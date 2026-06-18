@@ -453,8 +453,8 @@ Settings → Model Management → 选 provider → 填 apikey
 
 | 里程碑 | 内容 | 验收 |
 | --- | --- | --- |
-| **M0 · 工程脚手架** | Gradle 项目、Hilt、Compose、Navigation、Room、DataStore、ktlint 跑通;空 MainActivity 跑起来;测试框架落地 | `./gradlew assembleDebug` + `./gradlew test` 全绿 |
-| **M1 · 随手记闭环** | Note CRUD、列表、搜索、标签、详情、编辑;无 AI | 端到端可创建/编辑/搜索/删除笔记,数据持久化 |
+| **M0 · 工程脚手架** | Gradle 项目、Hilt、Compose、Navigation、Room、DataStore、ktlint 跑通;空 MainActivity 跑起来;测试框架落地 | `./gradlew assembleDebug` + `./gradlew test` 全绿 |✅ 2026-06-18 完成 + 归档 |
+| **M1 · 随手记闭环** | Note CRUD、列表、搜索、标签、详情、编辑;无 AI | 端到端可创建/编辑/搜索/删除笔记,数据持久化 |✅ 2026-06-18 完成 + 归档;review r1 + 11 项 fix |
 | **M2 · AI 抽象层 + FakeProvider 端到端** | `AiGateway`、`ProviderConfig`、`AnthropicCompatibleAdapter`(通用)、SSE 解析、用量统计、错误降级、FakeProvider 端到端走通(真实 provider 联调不阻塞 M2) | 用 FakeProvider 模拟 stream → 选中文本 → AI 润色 → 流式出结果 → 接受/拒绝,落库正确 |
 | **M3 · AI 全能力 + 多 provider** | 扩写/润色/整理三类操作、minimax/mimo 接入(各加 `ProviderConfig` 即可,不写新 adapter)、自定义 Anthropic 兼容 provider | 三家 provider 都可独立配置 apikey 并跑通三类操作 |
 | **M4 · 桌面 Widget + 手势 + 导入导出** | Glance 2x2 / 4x2、widget 刷新策略、predictive back、JSON/Markdown 导出导入、首次启动同意页 | 在小米/华为/OPPO/vivo 桌面分别验证 widget 可用;侧滑返回行为正确;导出再导入数据完整 |
@@ -500,7 +500,7 @@ Settings → Model Management → 选 provider → 填 apikey
 按依赖顺序:
 
 1. **`init-android-project`** — Gradle 脚手架、Hilt、Compose、Navigation、Room、DataStore、ktlint、测试框架落地。对应 M0。
-2. **`quick-note-feature`** — 随手记完整功能(无 AI)。对应 M1。
+2. **`quick-note-feature`** — 随手记完整功能(无 AI)。对应 M1。✅ 2026-06-18 归档。
 3. **`ai-abstraction-layer`** — `AiGateway` + `ProviderConfig` + `AnthropicCompatibleAdapter`(通用)+ SSE 解析 + 用量统计 + 错误降级 + `FakeProvider`(端到端验收用)。**真实 provider 联调不阻塞 M2**,推迟到 M5 或实际使用阶段。对应 M2。
 4. **`ai-writing-actions`** — 扩写/润色/整理三类操作 + 多 provider(deepseek、minimax、mimo、自定义 Anthropic 兼容)+ UI 集成。对应 M3。
 5. **`quick-note-widget`** — Glance 2x2 / 4x2 + 刷新策略 + 桌面兼容性测试。对应 M4 的一部分。

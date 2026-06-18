@@ -13,6 +13,26 @@
 
 ---
 
+## 2026-06-18 · M1 随手记闭环完成 + 归档
+
+- OpenSpec change `quick-note-feature` apply + 归档完整闭环:28 个新文件 + 4 个修改(`core/data` 实体 / DAO / Repo / DI + `feature/quicknote` 三屏 + `strings.xml` 双语 + `AppNav` 三路由 + `build.gradle.kts` 加 `kotlinx-serialization` 插件/运行时)
+- sync spec 到 `openspec/specs/quick-note/spec.md`(11 个 Requirement × 26 个 Scenario);archive 到 `openspec/changes/archive/2026-06-18-quick-note-feature/`
+- **M1 验收**:✅ `assembleDebug` / `testDebugUnitTest` 12 tests / `lintDebug` 全绿;`app/schemas/com.yy.writingwithai.core.data.db.AppDatabase/1.json` 自动生成;⚠️ `ktlintCheck` 11 个 `standard:function-naming` 全是 Compose PascalCase,见 memory `ktlint-compose-pascalcase-1.0`
+- **下一步候选**:M2 `ai-abstraction-layer`(`AiGateway` + `ProviderConfig` + `AnthropicCompatibleAdapter` + `FakeProvider`),或 M0/M1 polish follow-up
+
+---
+
+## 2026-06-18 · M1 review r1 + 11 项 fix 完成
+
+- `docs/reviews/2026-06-18-quick-note-feature-code-review-r1.md` 落档(3 个并行 reviewer 整合:6 HIGH + 6 MEDIUM + 11 LOW)
+- 全部修完:🔴 H1 editor VM `return@collect` 改 `.first()` + hadUserInput 防覆盖;H2 同源;H3 detail VM `requireNotNull` 改可空 NotFound;H4 search LIKE 加 `ESCAPE '\'` + Repository 端 `%`/`_`/`\` 转义;H5 share catch `ActivityNotFoundException`;🟡 M1 "404" 走 R.string;M2 `fallbackToDestructiveMigration()` 用 `BuildConfig.DEBUG` gate;M3 `observeAllTags` 提升外层 combine;M4 `TITLE_FALLBACK_LEN` 提升到 `Note.Companion`;M5 删 `TagRepository.kt`(dead code);M6 delete 用 `withContext(NonCancellable)`
+- 删 2 文件:`TagRepository.kt` / `RepositoryModule.kt`(空 placeholder)
+- 验收:`assembleDebug` / `testDebugUnitTest` 12 tests 全绿;`ktlintCheck` 仍 11 个 Compose PascalCase = 已知 M0 follow-up,本次未引入新违规
+- **H6 提醒**(不在 fix 范围):`app/schemas/.../1.json` 仍 untracked,commit 前需手动 `git add -f`
+- **下一步**:开 r2 review 验修复(本 change 收口)/ commit / 起 M2 `ai-abstraction-layer`
+
+---
+
 ## 2026-06-18 · 进入 M0 实施阶段(待 `/opsx:apply init-android-project` 启动)
 
 - OpenSpec change `init-android-project` 起草完成(4/4 artifacts):`proposal.md` / `design.md` / `specs/{android-build-system,app-shell,material-theme,localization,testing-framework}/spec.md` / `tasks.md`;落到 `openspec/changes/init-android-project/`

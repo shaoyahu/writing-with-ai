@@ -2,44 +2,62 @@
 
 package com.yy.writingwithai.app
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.yy.writingwithai.R
-import com.yy.writingwithai.app.ui.theme.LocalSpacing
+import com.yy.writingwithai.feature.quicknote.detail.QuickNoteDetailScreen
+import com.yy.writingwithai.feature.quicknote.edit.QuickNoteEditorScreen
+import com.yy.writingwithai.feature.quicknote.list.QuickNoteListScreen
+import kotlinx.serialization.Serializable
 
 /**
- * writing-with-ai · 应用 NavHost。
+ * writing-with-ai · 应用 NavHost(M1 接入 quick-note-feature)。
  *
- * M0 仅含一个占位路由 `home`,后续 change(`quick-note-feature` / `aiwriting` 等)按需加 destination。
- * 路由 id 用裸字符串便于 v1 简单维护;v2+ 可换类型安全路由。
+ * 路由结构:
+ * - [QuicknoteList] 列表入口(应用默认目的地)
+ * - [QuicknoteDetail] 详情(`id` 为 Note.id)
+ * - [QuicknoteEdit] 编辑(`id` 缺省或 "NEW" 视为新建)
+ *
+ * 后续 change(`aiwriting` / `settings` / `onboarding` 等)继续追加目的地。
  */
 @Composable
 fun AppNav() {
     val navController = rememberNavController()
     NavHost(
         navController = navController,
-        startDestination = HOME_ROUTE,
+        startDestination = QuicknoteList,
     ) {
-        composable(HOME_ROUTE) {
-            HomePlaceholder()
+        composable<QuicknoteList> {
+            QuickNoteListScreen(
+                onNoteClick = { id -> navController.navigate(QuicknoteDetail(id)) },
+                onCreateClick = { navController.navigate(QuicknoteEdit()) },
+            )
+        }
+        composable<QuicknoteDetail> {
+            QuickNoteDetailScreen(
+                onBack = { navController.popBackStack() },
+                onEdit = { id -> navController.navigate(QuicknoteEdit(id)) },
+                onDeleted = { navController.popBackStack() },
+            )
+        }
+        composable<QuicknoteEdit> {
+            QuickNoteEditorScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = { id ->
+                    // 编辑保存:pop 回列表 / 详情
+                    navController.popBackStack()
+                },
+            )
         }
     }
 }
 
-private const val HOME_ROUTE = "home"
+@Serializable
+data object QuicknoteList
 
-@Composable
-private fun HomePlaceholder() {
-    Text(
-        text = stringResource(R.string.placeholder_greeting),
-        style = MaterialTheme.typography.headlineSmall,
-        modifier = Modifier.padding(LocalSpacing.current.lg),
-    )
-}
+@Serializable
+data class QuicknoteDetail(val id: String)
+
+@Serializable
+data class QuicknoteEdit(val id: String? = "NEW")

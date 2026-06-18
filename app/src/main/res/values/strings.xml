@@ -1,6 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 默认中文;后续 change 在此追加业务字符串 -->
+    <!-- ===== 应用全局 ===== -->
     <string name="app_name">writing-with-ai</string>
     <string name="placeholder_greeting">writing-with-ai 脚手架已就绪</string>
+
+    <!-- ===== 随手记 quick-note-feature(M1)=====
+         中文为权威源;英文翻译见 values-en/strings.xml。
+         Composable 内禁止硬编码中文,所有用户可见字符串走 R.string.* 引用。 -->
+
+    <!-- 列表 -->
+    <string name="quicknote_list_title">随手记</string>
+    <string name="quicknote_list_empty">还没有笔记</string>
+    <string name="quicknote_list_empty_cta">点 + 创建第一条</string>
+    <string name="quicknote_list_search_hint">搜索标题或正文</string>
+    <string name="quicknote_list_fab_new">新建</string>
+    <string name="quicknote_list_filter_all">全部</string>
+
+    <!-- 详情 -->
+    <string name="quicknote_detail_title">笔记详情</string>
+    <string name="quicknote_detail_word_count_fmt">%1$d 字</string>
+    <string name="quicknote_detail_read_time_fmt">%1$d 分钟</string>
+    <string name="quicknote_detail_word_time_separator"> · </string>
+    <string name="quicknote_detail_edit">编辑</string>
+    <string name="quicknote_detail_share">分享</string>
+    <string name="quicknote_detail_delete">删除</string>
+    <string name="quicknote_detail_pin">固定</string>
+    <string name="quicknote_detail_unpin">取消固定</string>
+    <string name="quicknote_detail_not_found">笔记不存在</string>
+
+    <!-- 编辑 -->
+    <string name="quicknote_editor_title_new">新建笔记</string>
+    <string name="quicknote_editor_title_edit">编辑笔记</string>
+    <string name="quicknote_editor_title_hint">标题(可空)</string>
+    <string name="quicknote_editor_content_hint">开始写…</string>
+    <string name="quicknote_editor_save">保存</string>
+    <string name="quicknote_editor_cancel">取消</string>
+
+    <!-- 删除确认 -->
+    <string name="quicknote_editor_delete_confirm">确认删除这条笔记?</string>
+    <string name="quicknote_editor_delete_confirm_ok">删除</string>
+    <string name="quicknote_editor_delete_confirm_cancel">再想想</string>
+
+    <!-- 标签 -->
+    <string name="quicknote_tag_input_hint">添加标签(逗号或回车)</string>
+    <string name="quicknote_tag_remove_cd">移除标签 %1$s</string>
+
+    <!-- 分享 chooser -->
+    <string name="quicknote_share_chooser_title">分享到…</string>
+    <string name="quicknote_share_no_app">没有可用的分享应用</string>
 </resources>

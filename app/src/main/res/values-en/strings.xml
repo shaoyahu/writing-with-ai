@@ -1,6 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 英文;key 集必须与 values/strings.xml 完全一致 -->
+    <!-- 全部 quicknote_* key 当前为占位 TODO(en),M5 polish 阶段统一补齐 -->
     <string name="app_name">writing-with-ai</string>
     <string name="placeholder_greeting">writing-with-ai scaffold ready</string>
+
+    <string name="quicknote_list_title">TODO(en): 随手记</string>
+    <string name="quicknote_list_empty">TODO(en): 还没有笔记</string>
+    <string name="quicknote_list_empty_cta">TODO(en): 点 + 创建第一条</string>
+    <string name="quicknote_list_search_hint">TODO(en): 搜索标题或正文</string>
+    <string name="quicknote_list_fab_new">TODO(en): 新建</string>
+    <string name="quicknote_list_filter_all">TODO(en): 全部</string>
+
+    <string name="quicknote_detail_title">TODO(en): 笔记详情</string>
+    <string name="quicknote_detail_word_count_fmt">TODO(en): %1$d 字</string>
+    <string name="quicknote_detail_read_time_fmt">TODO(en): %1$d 分钟</string>
+    <string name="quicknote_detail_word_time_separator">TODO(en): ·</string>
+    <string name="quicknote_detail_edit">TODO(en): 编辑</string>
+    <string name="quicknote_detail_share">TODO(en): 分享</string>
+    <string name="quicknote_detail_delete">TODO(en): 删除</string>
+    <string name="quicknote_detail_pin">TODO(en): 固定</string>
+    <string name="quicknote_detail_unpin">TODO(en): 取消固定</string>
+    <string name="quicknote_detail_not_found">Note not found</string>
+
+    <string name="quicknote_editor_title_new">TODO(en): 新建笔记</string>
+    <string name="quicknote_editor_title_edit">TODO(en): 编辑笔记</string>
+    <string name="quicknote_editor_title_hint">TODO(en): 标题(可空)</string>
+    <string name="quicknote_editor_content_hint">TODO(en): 开始写…</string>
+    <string name="quicknote_editor_save">TODO(en): 保存</string>
+    <string name="quicknote_editor_cancel">TODO(en): 取消</string>
+
+    <string name="quicknote_editor_delete_confirm">TODO(en): 确认删除这条笔记?</string>
+    <string name="quicknote_editor_delete_confirm_ok">TODO(en): 删除</string>
+    <string name="quicknote_editor_delete_confirm_cancel">TODO(en): 再想想</string>
+
+    <string name="quicknote_tag_input_hint">TODO(en): 添加标签(逗号或回车)</string>
+    <string name="quicknote_tag_remove_cd">TODO(en): 移除标签 %1$s</string>
+
+    <string name="quicknote_share_chooser_title">TODO(en): 分享到…</string>
+    <string name="quicknote_share_no_app">No app available to share</string>
 </resources>

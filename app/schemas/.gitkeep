@@ -1,0 +1,7 @@
+# Room schema export 目录。
+#
+# 由 KSP 处理器根据 `app/build.gradle.kts` 中
+# `ksp { arg("room.schemaLocation", "$projectDir/schemas") }` 自动生成
+# `com.yy.writingwithai.core.data.db.AppDatabase/<version>.json`。
+# 本目录必须 git 追踪,以便后续 schema 变更走 AutoMigration 或写 Migration。
+# 详见 openspec/changes/quick-note-feature/specs/quick-note/spec.md §"Note database schema is exportable"。

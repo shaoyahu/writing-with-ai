@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ktlint)
@@ -43,6 +44,9 @@ android {
 
     buildFeatures {
         compose = true
+        // M2 修:启用 BuildConfig 以便 DataModule 用 BuildConfig.DEBUG gate
+        // `fallbackToDestructiveMigration()`,防止 release 升级 schema 时 wipe 用户笔记。
+        buildConfig = true
     }
 
     packaging {
@@ -59,6 +63,15 @@ android {
         // HardcodedText 升级为 error(见 app/lint.xml),与 abortOnError=true 配合阻断 hardcoded 中文字符串。
         lintConfig = file("lint.xml")
     }
+}
+
+// Room schema export:把 Room 生成的 schema JSON 输出到 app/schemas/,
+// git 追踪后可以做 AutoMigration 或人工写 Migration。
+// 路径是相对项目根,见 openspec/changes/quick-note-feature/specs/quick-note/spec.md
+// §"Note database schema is exportable"。
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
 }
 
 kotlin {
@@ -100,11 +113,16 @@ dependencies {
     // ----- Coroutines -----
     implementation(libs.kotlinx.coroutines.android)
 
+    // ----- Serialization(navigation-compose 类型安全路由)-----
+    implementation(libs.kotlinx.serialization.json)
+
     // ----- Test(JUnit5 + MockK + Turbine + Compose Test) -----
     testImplementation(libs.bundles.junit5)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.test.core)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.test.ext.junit)
