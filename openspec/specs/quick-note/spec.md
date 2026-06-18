@@ -5,35 +5,23 @@ TBD - created by archiving change quick-note-feature. Update Purpose after archi
 ## Requirements
 ### Requirement: Note entity schema
 
-系统 MUST 在 Room `notes` 表中持久化 `Note` 实体,且字段集合为下表所列;`Note.id` 是 UUID 字符串主键,`title` 在用户未填时由正文前 30 字派生(UI 层处理,不强制落表);`content` 是 Markdown 源码;`isPinned` 标记固定;`lastAiOp` 与 `lastAiAt` 是为 M2 AI 抽象层预留的元数据占位字段,M1 不写入但允许落表。
+系统 MUST 在 Room `notes` 表中持久化 `Note` 实体,M1 已有 `lastAiOp` / `lastAiAt` 字段但始终为 null。M2 修改行为:**当 AiGateway 完成一次 stream 后,系统 MUST 更新该 Note 的 `lastAiOp` 为操作类型字符串(`"expand"` / `"polish"` / `"organize"`) 和 `lastAiAt` 为当前 epoch millis**。
 
-#### Scenario: 必填字段持久化
-- **WHEN** 用户保存一条新笔记,`title = "晨跑计划"`,`content = "# 晨跑\n- 6:30 起床"`,`isPinned = false`
-- **THEN** Room 写入一行 `notes(id=<UUID>, title="晨跑计划", content="# 晨跑\n- 6:30 起床", createdAt=<now>, updatedAt=<now>, isPinned=false, lastAiOp=null, lastAiAt=null)`
+#### Scenario: AI operation completes, metadata written
+- **WHEN** `AiGateway.streamWritingOp(op=EXPAND, sourceText="...", ...)` 完成(Done event)
+- **THEN** `notes` 表中对应行的 `lastAiOp="expand"` 且 `lastAiAt=<completionTime>`
 
-#### Scenario: 更新触发 updatedAt
-- **WHEN** 用户编辑同一笔记并保存,`content` 变更,`isPinned` 不变
-- **THEN** Room 更新该行 `content` 与 `updatedAt=<newNow>`,`createdAt` 保持原值
-
-#### Scenario: lastAiOp 字段保留 null 占位
-- **WHEN** 用户新建笔记(M1 阶段,无 AI 操作)
-- **THEN** `lastAiOp=null` 且 `lastAiAt=null`;字段存在以便 M2 写入
+#### Scenario: AI operation fails, metadata not written
+- **WHEN** `AiGateway.streamWritingOp(...)` 只收到 Failed(未收到 Done)
+- **THEN** `notes` 表的 `lastAiOp` / `lastAiAt` 保持原值(不被 Failed 覆盖)
 
 ### Requirement: Note CRUD via Repository
 
-系统 MUST 提供 `NoteRepository`,封装 `NoteDao`,暴露 upsert / getById / delete / observeAll / observeByTag / search / setPinned 接口;调用方(列表 / 详情 / 编辑 ViewModel)只通过 Repository 访问数据,不直接持有 `NoteDao`。
+系统 MUST 在 `NoteRepository` 中新增 `updateAiMetadata(noteId: String, op: String, at: Long)`。此方法与 `streamWritingOp(...)` 的 Done 事件配对调用:Gateway 在完成时调 repo 写字段。其余 CRUD 行为不变。
 
-#### Scenario: 新建笔记通过 upsert
-- **WHEN** `editor` ViewModel 调用 `repo.upsert(Note(id=<新 UUID>, title=..., content=...))`
-- **THEN** 数据库新增一行,且返回的 `id` 与传入一致
-
-#### Scenario: 删除笔记
-- **WHEN** `detail` ViewModel 调用 `repo.delete(noteId)`
-- **THEN** 该行从 `notes` 表移除,且 `note_tags` 表中所有 `noteId = <id>` 的交叉引用也被级联删除
-
-#### Scenario: 编辑页读取既有笔记
-- **WHEN** 用户进入 `quicknote/edit?id=<existingId>`,`editor` ViewModel 初始化
-- **THEN** ViewModel 调用 `repo.getById(existingId)` 取得 `Note`,并把 `title` / `content` 预填到输入框
+#### Scenario: updateAiMetadata sets fields
+- **WHEN** 调用 `NoteRepository.updateAiMetadata(noteId="abc", op="polish", at=1700000000000L)`
+- **THEN** `notes` 表中 `id="abc"` 的行 `lastAiOp="polish"`,`lastAiAt=1700000000000L`
 
 ### Requirement: Tag many-to-many
 

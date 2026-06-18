@@ -68,4 +68,11 @@ interface NoteDao {
         id: String,
         pinned: Boolean,
     )
+
+    @Query("UPDATE notes SET lastAiOp = :op, lastAiAt = :at WHERE id = :noteId")
+    suspend fun updateAiMetadata(
+        noteId: String,
+        op: String,
+        at: Long,
+    )
 }

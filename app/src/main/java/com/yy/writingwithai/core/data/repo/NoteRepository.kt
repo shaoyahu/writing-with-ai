@@ -111,5 +111,13 @@ class NoteRepository
             noteDao.setPinned(id, pinned)
         }
 
+        suspend fun updateAiMetadata(
+            noteId: String,
+            op: String,
+            at: Long,
+        ) {
+            noteDao.updateAiMetadata(noteId, op, at)
+        }
+
         fun observeAllTags(): Flow<List<String>> = noteTagDao.observeAllTags().distinctUntilChanged()
     }

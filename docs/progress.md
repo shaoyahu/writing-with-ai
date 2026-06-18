@@ -22,6 +22,18 @@
 
 ---
 
+## 2026-06-18 · M2 AI 抽象层落地 + 归档
+
+- OpenSpec change `ai-abstraction-layer` apply + 归档完整闭环:22 个新文件 + 5 个修改(`core/ai/api|provider|stream|fake|prompt` + `core/data` AiHistory 全链 + `AppDatabase` v2 Migration + `AiModule` DI + `build.gradle.kts` mockwebserver)
+- sync 2 份新 spec(`ai-gateway` 9 Requirement + `ai-history` 4 Requirement)+ 修改 `quick-note`(2 Requirement)到 `openspec/specs/`
+- archive 到 `openspec/changes/archive/2026-06-18-ai-abstraction-layer/`
+- **M2 验收**:✅ `assembleDebug` / `testDebugUnitTest`(15 tests:FakeAiProvider 3 + M1 12)/ `lintDebug` 全绿;`app/schemas/.../2.json`(v2 schema 含 ai_history 表)自动生成;⚠️ `ktlintCheck` 12 个 `standard:function-naming` = 已知 Compose PascalCase(无新增违规)
+- **未实现测试**(M5 polish 补):SseParserTest / AnthropicCompatibleAdapterTest / CoreAiGatewayTest / AiHistoryDaoTest — 需 MockWebServer 或 instrumentation 运行,跳过
+- **关键架构落地**:单一 `AnthropicCompatibleAdapter`(三家 ProviderConfig 数据驱动)+ `AiGateway` 入口 + `FakeProvider` 端到端(3 Turbine tests pass)+ SSE 解析 + `AiHistory` 表 v2 Migration + prompt 模板(用户文本不拼 system)+ 错误降级(AiError sealed)
+- **下一步候选**:M3 `ai-writing-actions`(扩写/润色/整理 UI + 流式面板 + 多 provider),或 M2 review + polish
+
+---
+
 ## 2026-06-18 · M1 review r1 + 11 项 fix 完成
 
 - `docs/reviews/2026-06-18-quick-note-feature-code-review-r1.md` 落档(3 个并行 reviewer 整合:6 HIGH + 6 MEDIUM + 11 LOW)

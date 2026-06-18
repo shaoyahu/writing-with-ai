@@ -2,6 +2,7 @@ package com.yy.writingwithai.core.data.di
 
 import android.content.Context
 import androidx.room.Room
+import com.yy.writingwithai.core.data.db.AiHistoryDao
 import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.NoteTagDao
@@ -27,11 +28,11 @@ object DataModule {
     fun provideAppDatabase(
         @ApplicationContext context: Context,
     ): AppDatabase {
-        // M2 修:fallbackToDestructiveMigration 只在 debug 启用,避免 release 升级时 wipe 数据。
-        // release flavor 发版后改走 Migration 对象。
         val builder = Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
         if (com.yy.writingwithai.BuildConfig.DEBUG) {
             builder.fallbackToDestructiveMigration()
+        } else {
+            builder.addMigrations(AppDatabase.MIGRATION_1_2)
         }
         return builder.build()
     }
@@ -41,4 +42,7 @@ object DataModule {
 
     @Provides
     fun provideNoteTagDao(db: AppDatabase): NoteTagDao = db.noteTagDao()
+
+    @Provides
+    fun provideAiHistoryDao(db: AppDatabase): AiHistoryDao = db.aiHistoryDao()
 }
