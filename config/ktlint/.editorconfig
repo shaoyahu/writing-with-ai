@@ -1,0 +1,24 @@
+# writing-with-ai · ktlint 中央规则
+# 全局生效,不要在 module 里散落第二份 ktlint 块。
+
+[*.{kt,kts}]
+root = true
+
+# Android Studio 风格(分号、import 顺序、indent 等)
+ktlint_code_style = android_studio
+
+# 强制 4 空格 indent(Android Studio 默认)
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+# 行尾换行 LF
+insert_final_newline = true
+charset = utf-8
+
+# ---- 与 Compose 约定冲突的规则统一关闭 ----
+# Compose Composable 强制 PascalCase(如 App / AppNav / WritingAppTheme),
+# 与 ktlint function-naming 默认 "lowercase first letter" 冲突。
+# AppNav.HomeRoute 用 PascalCase 跟路由字符串常量统一;property-naming 默认 screaming snake 关掉。
+# multiline-expression-wrapping 强制折行反而难看(Color.kt 长 ColorScheme)。
+ktlint_disabled_rules = standard:function-naming,standard:multiline-expression-wrapping,standard:property-naming

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 英文;key 集必须与 values/strings.xml 完全一致 -->
+    <string name="app_name">writing-with-ai</string>
+    <string name="placeholder_greeting">writing-with-ai scaffold ready</string>
+</resources>

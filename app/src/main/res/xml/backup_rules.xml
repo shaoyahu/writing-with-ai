@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 及以下的 Auto Backup 规则。
+  apikey 占位路径排除;M0 还没真用,先准备好。
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="writingwithai_secure_prefs.xml" />
+</full-backup-content>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色 Activity 主题,启动闪屏不至于白底。 -->
+    <style name="Theme.WritingApp" parent="android:Theme.Material.NoActionBar" />
+</resources>

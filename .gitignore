@@ -1,0 +1,48 @@
+# ----- Gradle -----
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# ----- Android -----
+local.properties          # 本机 SDK 路径,不入库
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# ----- IDE (IntelliJ / Android Studio) -----
+*.iml
+.idea/
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+!.idea/fileTemplates/
+!.idea/copyright/
+*.iws
+*.ipr
+out/
+
+# ----- Kotlin -----
+.kotlin/
+
+# ----- OS -----
+.DS_Store
+Thumbs.db
+
+# ----- Logs -----
+*.log
+hs_err_pid*
+
+# ----- Secrets(强防御:即便误提交也不进 logcat / repo)-----
+*.keystore
+*.jks
+google-services.json
+
+# ----- 临时 / scratch -----
+*.tmp
+*.bak
+*.swp

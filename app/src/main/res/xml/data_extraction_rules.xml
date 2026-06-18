@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ data extraction rules。
+  apikey 加密存到 EncryptedSharedPreferences,文件位于
+  sharedpref 域;M0 还没真用,先排除占位路径。
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="writingwithai_secure_prefs.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="writingwithai_secure_prefs.xml" />
+    </device-transfer>
+</data-extraction-rules>
