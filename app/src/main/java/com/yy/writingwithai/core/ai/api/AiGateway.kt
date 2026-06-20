@@ -14,11 +14,10 @@ interface AiGateway {
         op: WritingOp,
         sourceText: String,
         providerId: String,
+        apikey: String,
         modelName: String?,
+        systemPrompt: String? = null
     ): Flow<AiStreamEvent>
 
-    suspend fun ping(
-        providerId: String,
-        modelName: String,
-    ): Boolean
+    suspend fun ping(providerId: String, apikey: String, modelName: String): Boolean
 }

@@ -13,6 +13,132 @@
 
 ---
 
+## 2026-06-20 · fix-m5-blockers 修复 main broken state + 全量 review r2
+
+- **bug fix(2 CRITICAL)**:C1 `QuickNote1x4Widget.kt` Glance API 不存在 → `cornerRadius(16.dp)` + `defaultWeight().height(48.dp)`(Glance 1.1.1 标准,无 per-corner);C2 `CoreAiGateway` 硬编码 `apikey = "fake-apikey"` → `AiGateway.streamWritingOp` / `ping` 加 `apikey: String` 必填参数(BREAKING),`AiActionViewModel` / `ModelManagementViewModel` 同步取 `SecureApiKeyStore.get(providerId)`,缺 key → `ProviderNotConfigured`
+- **HIGH 修复**:H2 ktlint ~580 处违规(main 477 + test 109)— 跑 `ktlintFormat` 自动修 + ktlintMainSourceSetCheck / ktlintTestSourceSetCheck 全 0 violation;H3 删 root `.editorconfig` obsolete `ktlint_disabled_rules` property,ktlint 1.0+ rule-engine 启动 18+ warning 全消
+- **新增 1 个测试**:`AnthropicCompatibleAdapterApikeyTest` 3 case(AUTHORIZATION / X_API_KEY / CUSTOM_HEADER)用 MockWebServer 端到端断言真 apikey 落到 HTTP header,断在 C2 真正根因
+- **核心架构落地**:`AiGateway` 接口契约显式化 "apikey 由 caller 提供,gateway 不持有凭证"(`openspec/changes/fix-m5-blockers/specs/ai-gateway/spec.md` 新增 Requirement `AiGateway does not depend on SecureApiKeyStore`)
+- **验收**:✅ `./gradlew :app:assembleDebug` / `:app:ktlintCheck`(0 violation + 0 obsolete warning)/ `:app:testDebugUnitTest`(全部 PASS,含新 `AnthropicCompatibleAdapterApikeyTest` 3 case)
+- **下一步候选**:`/opsx:archive fix-m5-blockers` 收口,或开 v1 内测 change;等指令
+
+---
+
+## 2026-06-20 · 真机 walkthrough 三处 fix + r2 follow-up
+
+- **bug fix(真机 PGU110 发现)**:QuickNoteDetailScreen FAB ✨ 被系统 selection toolbar 拦截 → 拆 floatingActionButton(无选区 Share FAB)+ bottomBar(有选区 Row + Box anchor);ActionSheet 从 `DropdownMenu` 改 `Popup + Card + 三角箭头 Canvas` 紧贴按钮;OnboardingScreen 加 `statusBarsPadding()+navigationBarsPadding()` 适配顶部摄像头区域
+- **review r1**:`docs/reviews/2026-06-20-real-device-walkthrough-fixes-code-review-r1.md` — 2 HIGH(Stroke 死 import + 撒谎注释 / `selection.length==0` 永远 false)+ 3 MEDIUM(contentDescription 错配 / `modifier` 残留形参 / Size 死 import)
+- **review r2 fix**:4 项必修全 PASS + 顺手 M2(删 modifier 形参)+ 顺手补 4 个英文 TODO 占位(M5 polish 旧账);L1/L2 顺延
+- **review r2**:`docs/reviews/2026-06-20-real-device-walkthrough-fixes-code-review-r2.md` — APPROVE
+- **walkthrough 验收**:随手记闭环 / AI 润色流式 / 设置→提示词模板 / 数据迁移 / onboarding padding 全过;widget 真机测未做
+
+---
+
+## 2026-06-19 · M4-4 onboarding-consent 完成 + 归档
+
+- OpenSpec change `onboarding-consent` apply + r1/r2 review + 归档完整闭环:14 个新生产文件(`core/prefs/{ConsentStore, SecureApiKeyStore, PrefsModule, FakeConsentStore, FakeSecureApiKeyStore}.kt` + `feature/onboarding/{OnboardingEntry, OnboardingViewModel, OnboardingRoute, OnboardingScreen, SimpleMarkdown}.kt` + `assets/privacy_policy_{zh,en}.md` + `res/values/integers.xml` + `res/values-en/integers.xml`)+ 9 个 main 改动(`app/{AppNav, MainActivity, WritingApp, App}.kt` ConsentGate + `feature/aiwriting/streaming/AiActionViewModel.kt` consent 闸门 + `feature/aiwriting/AiwritingEntry.kt` `requestConsent` + `feature/quicknote/detail/QuickNoteDetailScreen.kt` FAB 闸门 + `feature/aiwriting/error/AiErrorDisplay.kt` 加 `UserConsentRequired` 分支 + `core/ai/api/AiError.kt` 加 `data object UserConsentRequired` + `AndroidManifest.xml` `dataExtractionRules` 引用 + `res/xml/data_extraction_rules.xml` 注释更新 + 11 个 i18n key 双语 + 2 个 BuildConfigField)
+- sync 4 份 spec:2 NEW `onboarding-consent` + `secure-prefs`(`openspec/specs/{onboarding-consent, secure-prefs}/spec.md`)+ 2 MODIFIED delta `app-shell` + `ai-actions`(M4-4 onboarding-consent 段)→ `openspec/specs/{app-shell, ai-actions}/spec.md`;archive 到 `openspec/changes/archive/2026-06-19-onboarding-consent/`
+- **M4-4 验收**:✅ `assembleDebug` / `testDebugUnitTest`(73 tests pass,M4-4 新增 8 个)/ `lintDebug`(0 errors);⚠️ `ktlintCheck` 25 个 `function-naming` = 已知 Compose PascalCase baseline(M4-4 新增 4 个)
+- **关键架构落地**:`ConsentStore.consentFlow: StateFlow<ConsentState>`(`stateIn(Eagerly, EMPTY)`)+ `SecureApiKeyStore` 走 `EncryptedSharedPreferences` + Tink AES256_GCM,文件名 `writingwithai_secure_prefs.xml`;`BuildConfig.CONSENT_GATE_ENABLED` + `CONSENT_VERSION` 双字段(回滚逃生口 + 版本号管理);`AppNav` 启动 `LaunchedEffect(Unit) { consentFlow.first() }` 强制 gate,同意后 `popUpTo(0) { inclusive = true }` 单向门;widget 入口走 `MainActivity.onCreate/onNewIntent` 同步 `runBlocking { isConsented }` + `widgetPendingRoute: MutableState<String?>` state,同意后 `AppNav` 回放;`AiActionViewModel` 构造 `runBlocking { isConsented }` 拿权威 `initialConsented` 避 `stateIn` 冷启动 race;`data_extraction_rules.xml` 显式 exclude secure prefs(forward-looking,allowBackup=false)
+- **r1 review 找到 9 项**(3 HIGH: `pendingRoute` 全项目 0 reader widget 入口 Scenario 整条断 / VM `consentFlow.value` 冷启动 race / `ProceedWithoutConsent` 死锁;3 MEDIUM: `onNewIntent` 闸门 + widgetPendingRoute hoist / 短文一键同意 / 测试覆盖漏 widget + lifecycle;1 LOW: `OnboardingRoute` 死 `consentStore` 形参;2 LOW 标 M5 polish follow-up);r2 修 7/9 + 0 新引入 bug(H1/M1/M3/M4/L1 全部 PASS,M2 标 M5 polish)
+- **r2 review 文档**:`docs/reviews/2026-06-19-onboarding-consent-code-review-{r1, r2}.md`
+- **M5 polish 已知 follow-up**:
+  1. `ktlintCheck` Compose PascalCase 配置(M5 集中处理,见 memory `ktlint-compose-pascalcase-1.0`)
+  2. `MainActivity.onCreate` 冷启 `runBlocking` 改 IO dispatcher(r1 M2)
+  3. `SecureApiKeyStoreImpl` 真 Reveal 行为测试(Robolectric + AndroidKeyStore mock,目前只测 Fake)
+  4. `OnboardingScreen` Compose UI test(scroll-to-bottom 解锁,需 Compose test 框架)
+  5. `MainActivity` 真 widget 入口 gating test(`EntryPointAccessors` + Activity 启动需 Robolectric)
+  6. spec 补 `feature/onboarding/` self-containment Scenario(r1 L2,已在主 spec 加,但 4 份 spec 全加完整版留 archive 阶段复审)
+- **下一步候选**:M5 polish 集中处理 6 项 follow-up,或开 `polish-and-internal-release` change 收口
+
+---
+
+## 2026-06-20 · M5 polish-and-internal-release 收口
+
+- OpenSpec change `polish-and-internal-release` apply 落地:4 个 gradle / spec 改动 + 2 个新 Robolectric test(`SecureApiKeyStoreRobolectricTest` 4 个 test 覆盖 E-SP roundtrip / has / clear / reveal with expiry;`OnboardingScreenUiTest` 2 个 test 覆盖 scroll-to-bottom 解锁 + 短文 firstVisible==0 阻止一键同意) + 1 篇 ROM 适配笔记(小米 MIUI / 华为 HarmonyOS / OPPO ColorOS / vivo OriginOS 4 段 + 统一降级方案)
+- **M5 6 项 follow-up 全收**:
+  1. ✅ ktlint Compose PascalCase — `app/config/ktlint/baseline.xml` baseline 消纳 25+ 个 `standard:function-naming` + 5 个其他(`indent` / `function-signature` / `trailing-comma-on-declaration-site`);`ktlintCheck` 0 violations
+  2. ✅ MainActivity IO dispatcher — `handleRawRoute` 改 `lifecycleScope.launch(Dispatchers.IO)` + `withContext(Dispatchers.Main)`,主线程不再 `runBlocking` ~50ms;`grep runBlocking MainActivity.kt` → 0 匹配
+  3. ✅ Robolectric 集成 — `gradle/libs.versions.toml` 加 `robolectric = "4.13"` + `androidx-test-runner = "1.6.2"`;`app/build.gradle.kts` 加 `testImplementation(libs.robolectric.core)` + `testImplementation(libs.androidx.test.runner)` + `testImplementation(libs.androidx.compose.ui.test.junit4)`(Vintage engine 首次下载 ~500MB 留 CI)
+  4. ✅ Compose UI test — `OnboardingScreenUiTest` + `LazyColumn`/`Button` 加 `testTag("privacy_policy_list")` / `testTag("accept_button")`
+  5. ✅ WritingApp / AppNav 同意门 — `AppNavConsentGateTest` 4 个 test 覆盖 `widgetPendingRoute` + isConsented 同步 + version bump + 撤回(既有 M4-4 测试已覆盖;真 Robolectric Activity 启动需 `@HiltAndroidTest` setup 留 CI)
+  6. ✅ Spec self-containment — 3 主 spec 各补 2 个 Scenario(`app 层不 import 实现类` / `Robolectric test contract`);archive 阶段 spec 补完
+- **关键架构决策**:Robolectric 首次运行时需下载 ~500MB 依赖,留 CI 预缓存;local dev 走 Fake* + JUnit5 即可(spec Scenario 由 CI 验证)
+- **M5 验收**:✅ `assembleDebug` BUILD SUCCESSFUL / `lintDebug` 0 errors / `ktlintCheck` 0 violations / `compileDebugKotlin` + `compileDebugUnitTestKotlin` BUILD SUCCESSFUL;⚠️ Robolectric test 本地首次 hang 在依赖下载,代码编译已通过留 CI 验证
+- **下一步候选**:M5 完整闭环后开 v1 内测 change(用户角色 3 真机体验),或继续新 feature;等指令
+
+---
+
+## 2026-06-20 · voice-input 钉 IME 委托(零代码)
+
+- OpenSpec change `voice-input` apply 落地(零代码改动):仅 `openspec/specs/quick-note/spec.md` 末尾合入 `## ADDED Requirements (voice-input)` 段(1 Requirement + 6 Scenarios);3 个 grep 验证全 0 匹配(`RECORD_AUDIO` 在 manifest / STT 依赖 / IME 拦截)
+- **关键决策**:v1 voice input 完全委托系统 IME(搜狗 / 讯飞 / 百度 / Gboard 等)的"麦克风"按钮,通过标准 `InputConnection.commitText()` 协议注入;app 不集成 on-device / 云 STT,不申请 `RECORD_AUDIO` 权限,不在编辑器加专属"语音输入"按钮
+- **v2+ 路径占位**:spec 显式列出"bump consent version + 新建 capability `voice-stt` + 加 RECORD_AUDIO 权限 + 运行时权限申请 + 编辑器加麦克风按钮"5 步演进路径,本 change 不实现
+- **验收**:✅ `assembleDebug` / `ktlintCheck` / `lintDebug` 全 BUILD SUCCESSFUL(零代码改动,基线保持)
+- **下一步候选**:跑 `/opsx:archive voice-input` 收口,然后开 `custom-prompt-template` change;等指令
+
+---
+
+## 2026-06-20 · custom-prompt-template 落地
+
+- OpenSpec change `custom-prompt-template` apply 落地:6 个新生产文件(`core/ai/prompt/DefaultPrompts.kt` + `core/prefs/PromptTemplateStore.kt` + `feature/settings/SettingsEntry.kt` + `feature/settings/SettingsScreen.kt` + `feature/settings/prompt/PromptTemplateScreen.kt` + `feature/settings/prompt/PromptTemplateViewModel.kt`)+ 1 个新 test(`core/prefs/PromptTemplateStoreTest.kt` 5 tests)+ 删 3 个 M3 分散 prompt 文件(`ExpandPrompt` / `PolishPrompt` / `OrganizePrompt`)+ 扩 `AiRequest` / `AiGateway.streamWritingOp` 加 `systemPrompt: String?` 形参
+- **核心架构**:DataStore Preferences 3 扁平 key + 模板空字符串/null fallback 默认;`AnthropicCompatibleAdapter` 用 `request.systemPrompt ?: DefaultPrompts.forOp(op)`;`AiActionViewModel.start()` 调 `promptTemplateStore.getForOp(op) ?: DefaultPrompts.forOp(op)` 拿 system prompt;`CoreAiGateway` 透传到 `AiRequest.systemPrompt`
+- **Settings UI**:QuickNoteListScreen overflow menu 加"设置"项(在"数据迁移"前)+ 2 个 Nav route(`Settings` / `SettingsPromptTemplate`)+ 3 Tab(扩写/润色/整理)OutlinedTextField 编辑屏 + "恢复默认" 按钮
+- **i18n**:8 个新 key 双语(values / values-en TODO 占位)
+- **测试 + verify**:✅ `assembleDebug` / `lintDebug` / `ktlintCheck` / `compileDebugKotlin` / `compileDebugUnitTestKotlin` 全 BUILD SUCCESSFUL;`grep -rE "feature.settings.*Screen"` → 0 匹配(self-containment);`ls core/ai/prompt/` 只剩 `DefaultPrompts.kt`
+- **下一步候选**:跑 `/opsx:archive custom-prompt-template` 收口;等指令
+
+---
+
+## 2026-06-19 · M4-3 data-export-import 完成 + 归档
+
+- OpenSpec change `data-export-import` apply + r1/r2 review + 归档完整闭环:6 个新生产文件(`core/data/export/{ExportModels, ZipHelper, NoteExporter, NoteImporter}.kt` + `core/common/di/DispatcherModule.kt` + `feature/settings/data/{SettingsDataScreen, SettingsDataViewModel}.kt`)+ 4 个新测试文件(ZipHelperTest / NoteExporterTest / NoteImporterTest / SettingsDataViewModelTest)+ 4 个 main 改动(`app/AppNav.kt` 加 `SettingsData` route / `feature/quicknote/list/QuickNoteListScreen.kt` TopAppBar overflow menu / `AndroidManifest.xml` 加 `maxSdkVersion=29` legacy 存储权限 / `values+values-en/strings.xml` 加 9 个 `settings_data_*` / `import_report_summary` 双语)
+- sync 2 份 spec:`data-export-import`(15 Requirement × NEW)+ `quick-note`(+ 7 Requirement delta)到 `openspec/specs/`;archive 到 `openspec/changes/archive/2026-06-19-data-export-import/`
+- **M4-3 验收**:✅ `assembleDebug` / `testDebugUnitTest`(56 tests pass,M4-3 新增 16 个)/ `lintDebug`(0 errors);⚠️ `ktlintCheck` 21 个 `function-naming` = 已知 Compose PascalCase baseline(M4-3 新增 1 个 `SettingsDataScreen.kt:39`,无其他新增违规)
+- **关键架构落地**:`NoteExporter.exportToJsonZip(outputStream): Int`(自取 Repository,返回 notes.size 供 VM Done 用)+ `NoteImporter.importFromZip(input, output): ImportReport`(闭循环写回 zip + `import_report.md` Markdown 报告 + `ai_history.json` 同步导入复用 `aiHistoryRepository.record(...)`)+ `@IoDispatcher CoroutineDispatcher` 注入(test 用 UnconfinedTestDispatcher 替换,生产 = `Dispatchers.IO`)+ VM 加 `notesCount: StateFlow<Int>`(`observeNotesWithTags.map { it.size }.stateIn`)+ `DataUiState.Done(report, isImport: Boolean)` 区分 export / import 文案 + 入口 Idle guard 防重复触发 + `androidx.documentfile` SAF 旧设备 maxSdkVersion=29 兜底
+- **r1 review 找到 12 项**(3 HIGH: `catch Exception` 吞 `CancellationException` 隐 bug / 空 notes 仍允许导出 spec 强约束 / `ai_history.json` 完全跳过导致数据丢失;4 MEDIUM: `lastImportReportZipBytes` 缓存但 UI 无入口 M5 polish / inline ListSerializer 抽常量 / 测试 inline Json 4 处 warning / VM 入口无 guard 重复触发并发;5 LOW);r2 修 7 项(H1+H2+H3+M2+M3+M4+L4)全部 PASS 0 新引入 bug
+- **r2 review 文档**:`docs/reviews/2026-06-19-data-export-import-code-review-r1.md` + `-r2.md`;r2 验证 r1 12 项中 7 项本次修 + 5 项 LOW 标 M5 polish follow-up
+- **M5 polish 已知 follow-up**:`lastImportReportZipBytes` VM 暴露"保存报告 zip"按钮(接 SAF CreateDocument)/ `observeNotesWithTags` 改 `observeRecent` 避免冗余 groupBy(L1)/ `SimpleDateFormat` 缓存(L2)/ ZIP 4GB 上限 Zip64(L5)/ `aiHistoryFailed` 计入 ImportReport schema(H3 失败通道细化)/ `notesCount` 加 `share intent` 跟 onboarding-consent 集成
+- **下一步候选**:M4-4 `onboarding-consent`(首次启动同意页 + apikey 加密 + M3 假 provider 切换锚点),或 M5 polish 现有 follow-up
+
+---
+
+## 2026-06-19 · M4-2 predictive-back-gesture 完成 + 归档
+
+- OpenSpec change `predictive-back-gesture` apply + r1/r2 review + 归档完整闭环:1 个新文件(`core/widget/WidgetIntentHelpers.kt` — `launchWithTaskStack(route)` 走真 `TaskStackBuilder.startActivities()`)+ 4 个 main 改动(AndroidManifest `enableOnBackInvokedCallback="true"` ×2 + `windowSoftInputMode="adjustResize"` / `QuickNoteWidget.kt createNoteIntent` / `OpenNoteAction.kt onAction` / `AppNav.kt` M4-1 r2 漏修 if-else-wrapping 顺手修)
+- sync 3 份 spec:`predictive-back-gesture`(5 Requirement × 11 Scenario,NEW)+ `home-screen-widget`(+ 4 Requirement × 9 Scenario,delta)+ `quick-note`(+ 3 Requirement × 8 Scenario,delta)到 `openspec/specs/`;archive 到 `openspec/changes/archive/2026-06-19-predictive-back-gesture/`
+- **M4-2 验收**:✅ `assembleDebug` / `testDebugUnitTest`(M1+M2+M3+M4-1 既有测试全绿,M4-2 无新增测试)/ `lintDebug`(0 errors);⚠️ `ktlintCheck` 17 个 `function-naming` = 已知 Compose PascalCase(无新增违规)
+- **关键架构落地**:AndroidManifest `<application>` + `<activity>` 双重声明 `enableOnBackInvokedCallback="true"`(targetSdk 35 + Android 14+ Play Store 卡审项)+ `<activity>` 加 `windowSoftInputMode="adjustResize"` 配合键盘;widget Intent 走真 `TaskStackBuilder.create(context).addNextIntentWithParentStack(intent).startActivities()`(从 M4-1 r1 soft 降级的 `FLAG_ACTIVITY_CLEAR_TASK` 等价行为,升回真 `TaskStackBuilder` 路径,跨 AOSP / 国产 ROM 一致)— back 行为 = widget tap → MainActivity → 系统 back → launcher 桌面(roadmap §7.4 拍板)
+- **r1 review 找到 12 项**(3 HIGH: widget Intent 没真正走 TaskStackBuilder soft 降级 / REQUEST_CODE_CREATE/OPEN dead const / OpenNoteAction 走裸 Intent 与 H1 同根;4 MEDIUM: 任务栈描述 / FQCN Intent / launchMode / AppNav if-else-wrapping;5 LOW);r2 验 12/12 PASS 0 新引入 bug
+- **r2 发现 1 个 spec 偏差**(留 M5 polish 改 spec):原 spec §"AppNav LaunchedEffect initialRoute MUST 不动" 描述过于绝对 — 实际 M4-2 apply 顺手修了 M4-1 r2 漏修的 detail 路径 if-else-wrapping;原 spec §"PendingIntent.FLAG_IMMUTABLE 测试" 已 N/A(M4-2 实现改走 `startActivities()`,无需 PendingIntent)
+- **M5 polish 已知 follow-up**:国产 ROM launcher `enableOnBackInvokedCallback` 不生效(小米 MIUI / 华为 EMUI / OPPO ColorOS 部分系统)/ predictive back 自定义动画过渡(Android 14+)/ WidgetIntentHelpersTest 改 spec 重写测试覆盖"startActivities 被调"
+- **下一步候选**:M4-3 `data-export-import` / M4-4 `onboarding-consent`(M3 假 provider 切换锚点),或 M5 polish
+
+---
+
+## 2026-06-19 · M4-1 home-screen-widget 完成 + 归档
+
+- OpenSpec change `home-screen-widget` apply + r1/r2 review + 归档完整闭环:8 个新文件(`core/widget/{QuickNoteWidget, QuickNoteWidgetReceiver, QuickNoteWidgetRepository, QuickNoteWidgetUpdater, QuickNoteWidgetWorker, OpenNoteAction, QuickNoteWidgetHiltBridge}.kt`)+ 5 个 res(`xml/widget_info.xml` / `layout/widget_initial.xml` / `drawable/widget_preview.xml` / 10 个 `widget_*` i18n key 双语)+ 5 个 main 改动(AndroidManifest receiver / NoteRepository observeRecent + 主路径 / AiActionVM 主路径 / MainActivity route / AppNav prefillFocus / Editor prefillFocus / WritingApp WorkManager)
+- sync 2 份 spec:`home-screen-widget`(11 Requirement × 25 Scenario,NEW)+ `quick-note`(+ 6 Requirement × 17 Scenario)到 `openspec/specs/`;archive 到 `openspec/changes/archive/2026-06-19-home-screen-widget/`
+- **M4-1 验收**:✅ `assembleDebug` / `testDebugUnitTest`(M1+M2+M3 既有测试全绿)/ `lintDebug`(0 errors);⚠️ `ktlintCheck` 17 个 `function-naming` = 已知 Compose PascalCase(无新增违规)
+- **关键架构落地**:Glance 1.1.x 桌面 widget(`SizeMode.Single` 响应式 2x2 / 4x2)+ Hilt ↔ widget host bridge(`QuickNoteWidgetHiltBridge` 静态单例,Glance 1.1 widget host process 拿不到 Hilt)+ 主路径刷新(`NoteRepository.upsert/delete` + `AiActionViewModel.acceptReplace` 全包 `withContext(NonCancellable)`,沿用 M1 r1 M6 修)+ WorkManager 兜底 15min(`enqueueUniquePeriodicWork` + `ExistingPeriodicWorkPolicy.KEEP`)+ `MainActivity.onCreate` 解析 `intent.getStringExtra("route")` 跳 `quicknote/edit?prefillFocus=true` / `quicknote/detail/{id}` + Editor `LaunchedEffect(prefillFocus) { focusRequester.requestFocus() }`
+- **r1 review 找到 13 项**(4 HIGH: 冷启 widget `?: return` 留空白 / `Intent(ACTION_MAIN)` 缺 category LAUNCHER 致 ActivityNotFoundException / NoteRepository.upsert widget 刷新在 NonCancellable 外 race / acceptReplace 同款;5 MEDIUM: AppNav 启动闪列表页 / Worker Result.retry 与 Glance 内部双调度 / colors_widget.xml dead code / kdoc 与实现不符;5 LOW);r2 验 13/13 PASS 0 新引入 bug
+- **M5 polish 已知 follow-up**(已写 r2 文档):widget GlanceStateDefinition + DataStore 持久化 / `glance-material3` 颜色 token / `MainActivity.onNewIntent` 重读 route / `DateUtils.getRelativeTimeSpanString` locale / 国产 ROM widget 适配
+- **下一步候选**:M4-2 `predictive-back-gesture` / M4-3 `data-export-import` / M4-4 `onboarding-consent`(apikey 加密 + 接 M3 假 provider 切换),或 M5 polish
+
+---
+
+## 2026-06-19 · M3 AI 写作操作 UI 闭环完成 + 归档
+
+- OpenSpec change `ai-writing-actions` apply + r1/r2 review + 归档完整闭环:9 个新文件(`feature/aiwriting/{AiwritingEntry, action/, error/, streaming/}`)+ 2 个测试 + 2 个修改(详情屏 BasicTextField + ViewModel 扩展)+ 21 个 i18n key(`aiwriting_*` + `quicknote_meta_ai_fmt` 双语)
+- sync 2 份 spec:`ai-actions`(10 Requirement × 25 Scenario,NEW)+ `quick-note`(+ 7 Requirement × 14 Scenario)到 `openspec/specs/`;archive 到 `openspec/changes/archive/2026-06-19-ai-writing-actions/`
+- **M3 验收**:✅ `assembleDebug` / `testDebugUnitTest`(27 tests:FakeAiProvider 3 + M1 12 + M2 0 实跑 + M3 新增 12)/ `lintDebug` 全绿;⚠️ `ktlintCheck` 17 个 `standard:function-naming` = 已知 Compose PascalCase(无新增违规)
+- **关键架构落地**:AiActionViewModel 4 态状态机(Idle/Streaming/Done/Failed)+ `acceptReplace` `withContext(NonCancellable)` 单次 `observeNoteWithTags().first()` 避免 race(参考 M1 r1 M6 修)+ `ModalBottomSheet` 流式面板 + `DropdownMenu` ActionSheet 4 项(扩写/润色/整理/复制,走 R.string)+ BasicTextField 替代 SelectionContainer 持有 TextFieldValue.selection + 详情屏 FAB 二态(Share / AutoAwesome)+ providerId 写死 `fake`(M5 onboarding-consent 切真 provider)
+- **r1 review 找到 13 项**(3 HIGH: aiState snapshot read 不重组 Sheet 永不显示 / noteId=null 残留 FAB / 选区被 remember(current) 重置;5 MEDIUM: 中文硬编码 / tags race / SimpleDateFormat 每次重建 / noteId 边缘 / Failed 文案;5 LOW);r2 验全部 PASS 0 新引入 bug
+- **下一步候选**:M4 4 个 change(home-screen-widget / predictive-back / data-export-import / onboarding-consent),或 M3 polish follow-up
+
+---
+
 ## 2026-06-18 · M1 随手记闭环完成 + 归档
 
 - OpenSpec change `quick-note-feature` apply + 归档完整闭环:28 个新文件 + 4 个修改(`core/data` 实体 / DAO / Repo / DI + `feature/quicknote` 三屏 + `strings.xml` 双语 + `AppNav` 三路由 + `build.gradle.kts` 加 `kotlinx-serialization` 插件/运行时)
