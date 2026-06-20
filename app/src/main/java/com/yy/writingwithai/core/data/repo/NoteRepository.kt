@@ -1,5 +1,6 @@
 package com.yy.writingwithai.core.data.repo
 
+import android.content.Context
 import androidx.room.withTransaction
 import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
@@ -9,12 +10,16 @@ import com.yy.writingwithai.core.data.mapper.toEntity
 import com.yy.writingwithai.core.data.mapper.toModel
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.data.model.NoteWithTags
+import com.yy.writingwithai.core.widget.QuickNoteWidgetUpdater
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
+import kotlinx.coroutines.withContext
 
 /**
  * Note 业务仓库。
@@ -28,96 +33,93 @@ import javax.inject.Singleton
  */
 @Singleton
 class NoteRepository
-    @Inject
-    constructor(
-        private val db: AppDatabase,
-        private val noteDao: NoteDao,
-        private val noteTagDao: NoteTagDao,
-    ) {
-        /**
-         * 列表屏用:根据搜索词 / tag 筛选返回 `Flow<List<NoteWithTags>>`。
-         *
-         * - `query` 为空或 null → 无搜索条件
-         * - `tag` 为空或 null → 无 tag 筛选
-         */
-        fun observeNotesWithTags(
-            query: String?,
-            tag: String?,
-        ): Flow<List<NoteWithTags>> {
-            val notesFlow: Flow<List<Note>> =
-                when {
-                    !tag.isNullOrBlank() -> noteDao.observeByTag(tag).map { list -> list.map { it.toModel() } }
-                    !query.isNullOrBlank() -> {
-                        // H4 修:转义 `%` `_` `\` 避免用户输入被当通配符;配合 DAO 的 ESCAPE '\\'。
-                        val escaped =
-                            query.trim()
-                                .replace("\\", "\\\\")
-                                .replace("%", "\\%")
-                                .replace("_", "\\_")
-                        val q = "%$escaped%"
-                        noteDao.search(q).map { list -> list.map { it.toModel() } }
-                    }
-                    else -> noteDao.observeAll().map { list -> list.map { it.toModel() } }
+@Inject
+constructor(
+    @ApplicationContext private val context: Context,
+    private val db: AppDatabase,
+    private val noteDao: NoteDao,
+    private val noteTagDao: NoteTagDao,
+    private val widgetUpdater: QuickNoteWidgetUpdater
+) {
+    /**
+     * 列表屏用:根据搜索词 / tag 筛选返回 `Flow<List<NoteWithTags>>`。
+     *
+     * - `query` 为空或 null → 无搜索条件
+     * - `tag` 为空或 null → 无 tag 筛选
+     */
+    fun observeNotesWithTags(query: String?, tag: String?): Flow<List<NoteWithTags>> {
+        val notesFlow: Flow<List<Note>> =
+            when {
+                !tag.isNullOrBlank() -> noteDao.observeByTag(tag).map { list -> list.map { it.toModel() } }
+                !query.isNullOrBlank() -> {
+                    // H4 修:转义 `%` `_` `\` 避免用户输入被当通配符;配合 DAO 的 ESCAPE '\\'。
+                    val escaped =
+                        query.trim()
+                            .replace("\\", "\\\\")
+                            .replace("%", "\\%")
+                            .replace("_", "\\_")
+                    val q = "%$escaped%"
+                    noteDao.search(q).map { list -> list.map { it.toModel() } }
                 }
-            return combine(notesFlow, noteTagDao.observeAllCrossRefs()) { notes, crossRefs ->
-                val byNote = crossRefs.groupBy({ it.noteId }, { it.tag })
-                notes.map { NoteWithTags(it, byNote[it.id].orEmpty()) }
-            }.distinctUntilChanged()
-        }
-
-        /** 详情 / 编辑屏用:单条 note + 它的 tag 列表。 */
-        fun observeNoteWithTags(noteId: String): Flow<NoteWithTags?> =
-            combine(
-                noteDao.observeById(noteId).map { it?.toModel() },
-                noteTagDao.observeTagsFor(noteId),
-            ) { note, tags ->
-                note?.let { NoteWithTags(it, tags) }
-            }.distinctUntilChanged()
-
-        suspend fun getNote(id: String): Note? = noteDao.getById(id)?.toModel()
-
-        /**
-         * upsert + 同步 tags(整组替换):
-         * - 删掉该笔记的旧 tag 行
-         * - 把传入的 tag 集合逐个写入(去重 + 去空)
-         */
-        suspend fun upsert(
-            note: Note,
-            tags: List<String>,
-        ) {
-            db.withTransaction {
-                noteDao.upsert(note.toEntity())
-                noteTagDao.removeAllForNote(note.id)
-                tags
-                    .asSequence()
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
-                    .distinct()
-                    .forEach { tag -> noteTagDao.add(NoteTagCrossRef(noteId = note.id, tag = tag)) }
+                else -> noteDao.observeAll().map { list -> list.map { it.toModel() } }
             }
-        }
-
-        suspend fun delete(id: String) {
-            db.withTransaction {
-                noteTagDao.removeAllForNote(id)
-                noteDao.deleteById(id)
-            }
-        }
-
-        suspend fun setPinned(
-            id: String,
-            pinned: Boolean,
-        ) {
-            noteDao.setPinned(id, pinned)
-        }
-
-        suspend fun updateAiMetadata(
-            noteId: String,
-            op: String,
-            at: Long,
-        ) {
-            noteDao.updateAiMetadata(noteId, op, at)
-        }
-
-        fun observeAllTags(): Flow<List<String>> = noteTagDao.observeAllTags().distinctUntilChanged()
+        return combine(notesFlow, noteTagDao.observeAllCrossRefs()) { notes, crossRefs ->
+            val byNote = crossRefs.groupBy({ it.noteId }, { it.tag })
+            notes.map { NoteWithTags(it, byNote[it.id].orEmpty()) }
+        }.distinctUntilChanged()
     }
+
+    /** 详情 / 编辑屏用:单条 note + 它的 tag 列表。 */
+    fun observeNoteWithTags(noteId: String): Flow<NoteWithTags?> = combine(
+        noteDao.observeById(noteId).map { it?.toModel() },
+        noteTagDao.observeTagsFor(noteId)
+    ) { note, tags ->
+        note?.let { NoteWithTags(it, tags) }
+    }.distinctUntilChanged()
+
+    suspend fun getNote(id: String): Note? = noteDao.getById(id)?.toModel()
+
+    /**
+     * upsert + 同步 tags(整组替换):
+     * - 删掉该笔记的旧 tag 行
+     * - 把传入的 tag 集合逐个写入(去重 + 去空)
+     */
+    suspend fun upsert(note: Note, tags: List<String>) {
+        db.withTransaction {
+            noteDao.upsert(note.toEntity())
+            noteTagDao.removeAllForNote(note.id)
+            tags
+                .asSequence()
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .forEach { tag -> noteTagDao.add(NoteTagCrossRef(noteId = note.id, tag = tag)) }
+        }
+        // H3 修:widget 刷新包 NonCancellable,避免 viewModelScope 取消导致
+        // 数据库已落库但 widget 没刷新(用户 back 时 race)。
+        withContext(NonCancellable) { widgetUpdater.updateAll(context) }
+    }
+
+    suspend fun delete(id: String) {
+        db.withTransaction {
+            noteTagDao.removeAllForNote(id)
+            noteDao.deleteById(id)
+        }
+        // H3 修:同上,NonCancellable 包 widget 刷新。
+        withContext(NonCancellable) { widgetUpdater.updateAll(context) }
+    }
+
+    suspend fun setPinned(id: String, pinned: Boolean) {
+        noteDao.setPinned(id, pinned)
+    }
+
+    suspend fun updateAiMetadata(noteId: String, op: String, at: Long) {
+        noteDao.updateAiMetadata(noteId, op, at)
+    }
+
+    fun observeAllTags(): Flow<List<String>> = noteTagDao.observeAllTags().distinctUntilChanged()
+
+    /** M4-1:Widget 取最近 N 条笔记(内存截断,Room SQL 不变);Room 已按 updatedAt desc 排序(M1 既有 `observeAll()`)。 */
+    fun observeRecent(limit: Int): Flow<List<Note>> =
+        noteDao.observeAll().map { list -> list.take(limit).map { it.toModel() } }
+}

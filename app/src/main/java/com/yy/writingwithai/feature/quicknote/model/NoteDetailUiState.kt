@@ -11,6 +11,6 @@ sealed interface NoteDetailUiState {
     data class Content(
         val note: NoteWithTags,
         val wordCount: Int,
-        val readMinutes: Int,
+        val readMinutes: Int
     ) : NoteDetailUiState
 }

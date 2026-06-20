@@ -19,7 +19,7 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "notes",
-    indices = [Index("updatedAt")],
+    indices = [Index("updatedAt")]
 )
 data class NoteEntity(
     @PrimaryKey val id: String,
@@ -29,5 +29,5 @@ data class NoteEntity(
     val updatedAt: Long,
     val isPinned: Boolean = false,
     val lastAiOp: String? = null,
-    val lastAiAt: Long? = null,
+    val lastAiAt: Long? = null
 )

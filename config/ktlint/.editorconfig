@@ -21,4 +21,6 @@ charset = utf-8
 # 与 ktlint function-naming 默认 "lowercase first letter" 冲突。
 # AppNav.HomeRoute 用 PascalCase 跟路由字符串常量统一;property-naming 默认 screaming snake 关掉。
 # multiline-expression-wrapping 强制折行反而难看(Color.kt 长 ColorScheme)。
-ktlint_disabled_rules = standard:function-naming,standard:multiline-expression-wrapping,standard:property-naming
+ktlint_standard_function-naming = disabled
+ktlint_standard_multiline-expression-wrapping = disabled
+ktlint_standard_property-naming = disabled

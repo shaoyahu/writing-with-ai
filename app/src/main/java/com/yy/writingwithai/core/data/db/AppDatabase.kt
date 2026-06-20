@@ -20,10 +20,10 @@ import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
     entities = [
         NoteEntity::class,
         NoteTagCrossRef::class,
-        AiHistoryEntity::class,
+        AiHistoryEntity::class
     ],
     version = 2,
-    exportSchema = true,
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
@@ -54,15 +54,15 @@ abstract class AppDatabase : RoomDatabase() {
                             truncated INTEGER NOT NULL DEFAULT 0,
                             error TEXT
                         )
-                        """.trimIndent(),
+                        """.trimIndent()
                     )
                     db.execSQL(
                         "CREATE INDEX IF NOT EXISTS index_ai_history_noteId " +
-                            "ON ai_history (noteId)",
+                            "ON ai_history (noteId)"
                     )
                     db.execSQL(
                         "CREATE INDEX IF NOT EXISTS index_ai_history_createdAt " +
-                            "ON ai_history (createdAt)",
+                            "ON ai_history (createdAt)"
                     )
                 }
             }

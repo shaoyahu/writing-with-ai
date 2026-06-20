@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  M4-1 · Widget 添加预览图。
+  Launcher 长按 → widgets → 看到这张图作为 widget 缩略图。
+  颜色用字面量(同 widget_initial.xml)。
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFFFF" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item
+        android:left="8dp"
+        android:top="8dp"
+        android:right="8dp"
+        android:bottom="8dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFEEEEEE" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+</layer-list>

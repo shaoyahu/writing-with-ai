@@ -13,6 +13,6 @@ internal object MimoConfig {
             authStyle = AuthStyle.CUSTOM_HEADER,
             customAuthHeaderName = "api-key",
             defaultModel = "mimo-v2.5-flash",
-            supportedModels = listOf("mimo-v2.5-flash"),
+            supportedModels = listOf("mimo-v2.5-flash")
         )
 }

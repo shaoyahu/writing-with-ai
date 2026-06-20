@@ -22,10 +22,7 @@ interface NoteTagDao {
     suspend fun add(crossRef: NoteTagCrossRef)
 
     @Query("DELETE FROM note_tags WHERE noteId = :noteId AND tag = :tag")
-    suspend fun remove(
-        noteId: String,
-        tag: String,
-    )
+    suspend fun remove(noteId: String, tag: String)
 
     @Query("DELETE FROM note_tags WHERE noteId = :noteId")
     suspend fun removeAllForNote(noteId: String)

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  M5 widget-1x4-compact · 4x1 horizontal widget metadata。
+  - targetCellWidth=4 targetCellHeight=1 提示 launcher 这是 4x1 widget(横向长条)。
+  - resizeMode=horizontal|vertical 允许拖拽拉伸。
+  - updatePeriodMillis=0 禁用系统自带的 30min 最小更新(由 WorkManager 15min 兜底)。
+  - initialLayout=@layout/widget_initial 添加瞬间占位(复用 M4-1 widget 初始 layout)。
+  - previewLayout=@drawable/widget_preview 添加预览图(复用 M4-1 widget 预览)。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_initial"
+    android:previewLayout="@drawable/widget_preview"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_1x4_layout_label" />

@@ -12,6 +12,6 @@ internal object MinimaxConfig {
             endpointPath = "/anthropic/v1/messages",
             authStyle = AuthStyle.AUTHORIZATION,
             defaultModel = "MiniMax-M2.7-highspeed",
-            supportedModels = listOf("MiniMax-M2.7-highspeed"),
+            supportedModels = listOf("MiniMax-M2.7-highspeed")
         )
 }

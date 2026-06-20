@@ -16,13 +16,13 @@ sealed interface NoteListUiState {
 
     data class Empty(
         override val query: String,
-        override val selectedTag: String?,
+        override val selectedTag: String?
     ) : NoteListUiState
 
     data class Content(
         val notes: List<NoteWithTags>,
         val allTags: List<String>,
         override val query: String,
-        override val selectedTag: String?,
+        override val selectedTag: String?
     ) : NoteListUiState
 }

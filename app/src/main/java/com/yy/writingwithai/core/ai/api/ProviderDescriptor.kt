@@ -5,5 +5,5 @@ data class ProviderDescriptor(
     val id: String,
     val displayName: String,
     val models: List<String>,
-    val isConfigured: Boolean,
+    val isConfigured: Boolean
 )

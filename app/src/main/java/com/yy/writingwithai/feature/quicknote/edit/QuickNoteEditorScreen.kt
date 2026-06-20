@@ -16,8 +16,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,10 +34,16 @@ import com.yy.writingwithai.app.ui.theme.LocalSpacing
 fun QuickNoteEditorScreen(
     onBack: () -> Unit,
     onSaved: (id: String) -> Unit,
-    viewModel: QuickNoteEditorViewModel = hiltViewModel(),
+    prefillFocus: Boolean = false,
+    viewModel: QuickNoteEditorViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val spacing = LocalSpacing.current
+    // M4-1:widget "新建"启动时,自动 focus 正文输入框。
+    val contentFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(prefillFocus) {
+        if (prefillFocus) contentFocusRequester.requestFocus()
+    }
 
     Scaffold(
         topBar = {
@@ -44,36 +54,36 @@ fun QuickNoteEditorScreen(
                             stringResource(R.string.quicknote_editor_title_new)
                         } else {
                             stringResource(R.string.quicknote_editor_title_edit)
-                        },
+                        }
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.quicknote_editor_cancel),
+                            contentDescription = stringResource(R.string.quicknote_editor_cancel)
                         )
                     }
                 },
                 actions = {
                     IconButton(
                         onClick = { viewModel.save(onSaved = onSaved) },
-                        enabled = state.isLoaded && !state.isSaving,
+                        enabled = state.isLoaded && !state.isSaving
                     ) {
                         Icon(
                             Icons.Filled.Check,
-                            contentDescription = stringResource(R.string.quicknote_editor_save),
+                            contentDescription = stringResource(R.string.quicknote_editor_save)
                         )
                     }
-                },
+                }
             )
-        },
+        }
     ) { innerPadding ->
         Column(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
+            Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
             OutlinedTextField(
                 value = state.title,
@@ -81,24 +91,25 @@ fun QuickNoteEditorScreen(
                 placeholder = { Text(stringResource(R.string.quicknote_editor_title_hint)) },
                 singleLine = true,
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.md, vertical = spacing.sm / 2),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.md, vertical = spacing.sm / 2)
             )
             OutlinedTextField(
                 value = state.content,
                 onValueChange = viewModel::setContent,
                 placeholder = { Text(stringResource(R.string.quicknote_editor_content_hint)) },
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(280.dp)
-                        .padding(horizontal = spacing.md, vertical = spacing.sm / 2),
+                Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .focusRequester(contentFocusRequester)
+                    .padding(horizontal = spacing.md, vertical = spacing.sm / 2)
             )
             TagInputRow(
                 tags = state.tags,
                 onAddTag = viewModel::addTag,
-                onRemoveTag = viewModel::removeTag,
+                onRemoveTag = viewModel::removeTag
             )
         }
     }

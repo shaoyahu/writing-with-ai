@@ -456,8 +456,8 @@ Settings → Model Management → 选 provider → 填 apikey
 | **M0 · 工程脚手架** | Gradle 项目、Hilt、Compose、Navigation、Room、DataStore、ktlint 跑通;空 MainActivity 跑起来;测试框架落地 | `./gradlew assembleDebug` + `./gradlew test` 全绿 |✅ 2026-06-18 完成 + 归档 |
 | **M1 · 随手记闭环** | Note CRUD、列表、搜索、标签、详情、编辑;无 AI | 端到端可创建/编辑/搜索/删除笔记,数据持久化 |✅ 2026-06-18 完成 + 归档;review r1 + 11 项 fix |
 | **M2 · AI 抽象层 + FakeProvider 端到端** | `AiGateway`、`ProviderConfig`、`AnthropicCompatibleAdapter`(通用)、SSE 解析、用量统计、错误降级、FakeProvider 端到端走通(真实 provider 联调不阻塞 M2) | 用 FakeProvider 模拟 stream → 选中文本 → AI 润色 → 流式出结果 → 接受/拒绝,落库正确 |✅ 2026-06-18 完成 + 归档 |
-| **M3 · AI 全能力 + 多 provider** | 扩写/润色/整理三类操作、minimax/mimo 接入(各加 `ProviderConfig` 即可,不写新 adapter)、自定义 Anthropic 兼容 provider | 三家 provider 都可独立配置 apikey 并跑通三类操作 |
-| **M4 · 桌面 Widget + 手势 + 导入导出** | Glance 2x2 / 4x2、widget 刷新策略、predictive back、JSON/Markdown 导出导入、首次启动同意页 | 在小米/华为/OPPO/vivo 桌面分别验证 widget 可用;侧滑返回行为正确;导出再导入数据完整 |
+| **M3 · AI 操作 UI 闭环(扩写/润色/整理)** | ActionSheet + StreamingPanel + 接受/拒绝/再生成 + 错误降级 + providerId 写死 `fake`;三家真实 provider(apikey 接入)推迟到 M5 onboarding-consent | 用 FakeProvider 模拟 stream → 选中文本 → 扩写/润色/整理 → 流式面板 → 接受替换正文 + 落 lastAiOp + AiHistory |✅ 2026-06-19 完成 + 归档;review r1 + 13 项 fix(H1-H3 + M1-M5 + L1-L4) |
+| **M4 · 桌面 Widget + 手势 + 导入导出** | Glance 2x2 / 4x2、widget 刷新策略、predictive back、JSON/Markdown 导出导入、首次启动同意页 | 在小米/华为/OPPO/vivo 桌面分别验证 widget 可用;侧滑返回行为正确;导出再导入数据完整 |✅ 2026-06-19 M4-1(home-screen-widget)+ M4-2(predictive-back-gesture)+ M4-3(data-export-import)归档 + 37 项 fix;M4-4 待起 |
 | **M5 · 打磨 + 内测** | 性能调优、崩溃率回归、可观测性、隐私文案、Play Store 上架材料(若需) | 满足 §11 基线;5 人内测反馈已处理 |
 
 ---
@@ -502,10 +502,12 @@ Settings → Model Management → 选 provider → 填 apikey
 1. **`init-android-project`** — Gradle 脚手架、Hilt、Compose、Navigation、Room、DataStore、ktlint、测试框架落地。对应 M0。
 2. **`quick-note-feature`** — 随手记完整功能(无 AI)。对应 M1。✅ 2026-06-18 归档。
 3. **`ai-abstraction-layer`** — `AiGateway` + `ProviderConfig` + `AnthropicCompatibleAdapter`(通用)+ SSE 解析 + 用量统计 + 错误降级 + `FakeProvider`(端到端验收用)。**真实 provider 联调不阻塞 M2**,推迟到 M5 或实际使用阶段。对应 M2。✅ 2026-06-18 归档。
-4. **`ai-writing-actions`** — 扩写/润色/整理三类操作 + 多 provider(deepseek、minimax、mimo、自定义 Anthropic 兼容)+ UI 集成。对应 M3。
+4. **`ai-writing-actions`** — 扩写/润色/整理三类操作 + 多 provider(deepseek、minimax、mimo、自定义 Anthropic 兼容)+ UI 集成。对应 M3。✅ 2026-06-19 归档(M3 UI 闭环 + r1/r2 review + 13 项 fix 全部 PASS;providerId 写死 `fake`,真 provider 切换留给 M5 onboarding-consent)。
+5. **`home-screen-widget`** — Glance 2x2 / 4x2 + 刷新策略(主路径 + WorkManager 15min 兜底)+ 桌面兼容性测试。对应 M4 的一部分。✅ 2026-06-19 归档(M4-1 widget 主体 + r1/r2 review + 13 项 fix 全部 PASS;GlanceStateDefinition + 国产 ROM 适配留 M5 polish)。
+6. **`predictive-back-gesture`** — 系统手势适配、widget 启动的回退栈。对应 M4 的一部分。✅ 2026-06-19 归档(M4-2 AndroidManifest `enableOnBackInvokedCallback="true"` ×2 + 真 `TaskStackBuilder.startActivities` widget Intent 路径 + r1/r2 review + 12 项 fix 全部 PASS;国产 ROM `enableOnBackInvokedCallback` 不生效留 M5 polish)。
 5. **`quick-note-widget`** — Glance 2x2 / 4x2 + 刷新策略 + 桌面兼容性测试。对应 M4 的一部分。
 6. **`predictive-back-gesture`** — 系统手势适配、widget 启动的回退栈。对应 M4 的一部分。
-7. **`data-export-import`** — JSON / Markdown 导出导入。对应 M4 的一部分。
+7. **`data-export-import`** — JSON / Markdown 导出导入。对应 M4 的一部分。✅ 2026-06-19 归档(M4-3 `NoteExporter`/`NoteImporter`/`ZipHelper` + `SettingsDataScreen` 入口 + 9 个 i18n key + 16 个新单测 + r1/r2 review + 12 项 fix 全部 PASS;`lastImportReportZipBytes` 缓存 UI 入口 / `aiHistoryFailed` 计入 ImportReport / ZIP 4GB Zip64 留 M5 polish)。
 8. **`onboarding-consent`** — 首次启动同意页 + 隐私文案 + 卸载后状态重置。对应 M4 的一部分。
 9. **`polish-and-internal-release`** — 性能、崩溃、可用性打磨 + 内测反馈处理。对应 M5。
 

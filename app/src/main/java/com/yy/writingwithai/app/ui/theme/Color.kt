@@ -4,42 +4,49 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
+// M5 polish · ui-redesign-m5-glass · 种子色改 #3B82F6 蓝(产品定位"快速记录")。
 // 仅在本文件内允许 hex 字面量(Material 3 标准调色板);
 // feature / app 包外禁止再出现 Color(0x...)。
 @Suppress("MagicNumber")
 internal val LightColorScheme =
     lightColorScheme(
-        primary = Color(0xFF6750A4),
+        primary = Color(0xFF3B82F6),
         onPrimary = Color(0xFFFFFFFF),
-        primaryContainer = Color(0xFFEADDFF),
-        onPrimaryContainer = Color(0xFF21005D),
-        secondary = Color(0xFF625B71),
+        primaryContainer = Color(0xFFDBEAFE),
+        onPrimaryContainer = Color(0xFF1E3A8A),
+        secondary = Color(0xFF60A5FA),
         onSecondary = Color(0xFFFFFFFF),
-        secondaryContainer = Color(0xFFE8DEF8),
-        onSecondaryContainer = Color(0xFF1D192B),
-        tertiary = Color(0xFF7D5260),
+        secondaryContainer = Color(0xFFEFF6FF),
+        onSecondaryContainer = Color(0xFF1E40AF),
+        tertiary = Color(0xFF06B6D4),
         onTertiary = Color(0xFFFFFFFF),
-        background = Color(0xFFFFFBFE),
-        onBackground = Color(0xFF1C1B1F),
-        surface = Color(0xFFFFFBFE),
-        onSurface = Color(0xFF1C1B1F),
+        background = Color(0xFFFAFAFA),
+        onBackground = Color(0xFF1F2937),
+        surface = Color(0xFFFFFFFF),
+        onSurface = Color(0xFF1F2937),
+        surfaceVariant = Color(0xFFF3F4F6),
+        onSurfaceVariant = Color(0xFF6B7280),
+        outline = Color(0xFFE5E7EB)
     )
 
 @Suppress("MagicNumber")
 internal val DarkColorScheme =
     darkColorScheme(
-        primary = Color(0xFFD0BCFF),
-        onPrimary = Color(0xFF381E72),
-        primaryContainer = Color(0xFF4F378B),
-        onPrimaryContainer = Color(0xFFEADDFF),
-        secondary = Color(0xFFCCC2DC),
-        onSecondary = Color(0xFF332D41),
-        secondaryContainer = Color(0xFF4A4458),
-        onSecondaryContainer = Color(0xFFE8DEF8),
-        tertiary = Color(0xFFEFB8C8),
-        onTertiary = Color(0xFF492532),
-        background = Color(0xFF1C1B1F),
-        onBackground = Color(0xFFE6E1E5),
-        surface = Color(0xFF1C1B1F),
-        onSurface = Color(0xFFE6E1E5),
+        primary = Color(0xFF60A5FA),
+        onPrimary = Color(0xFF1E3A8A),
+        primaryContainer = Color(0xFF1E40AF),
+        onPrimaryContainer = Color(0xFFDBEAFE),
+        secondary = Color(0xFF93C5FD),
+        onSecondary = Color(0xFF1E3A8A),
+        secondaryContainer = Color(0xFF1E40AF),
+        onSecondaryContainer = Color(0xFFDBEAFE),
+        tertiary = Color(0xFF22D3EE),
+        onTertiary = Color(0xFF0E7490),
+        background = Color(0xFF111827),
+        onBackground = Color(0xFFF9FAFB),
+        surface = Color(0xFF1F2937),
+        onSurface = Color(0xFFF9FAFB),
+        surfaceVariant = Color(0xFF374151),
+        onSurfaceVariant = Color(0xFFD1D5DB),
+        outline = Color(0xFF4B5563)
     )

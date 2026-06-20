@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "ai_history",
-    indices = [Index("noteId"), Index("createdAt")],
+    indices = [Index("noteId"), Index("createdAt")]
 )
 data class AiHistoryEntity(
     @PrimaryKey val id: String,
@@ -22,5 +22,5 @@ data class AiHistoryEntity(
     val inputSnapshot: String,
     val outputSnapshot: String,
     val truncated: Boolean = false,
-    val error: String? = null,
+    val error: String? = null
 )

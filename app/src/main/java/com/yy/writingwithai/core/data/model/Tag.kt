@@ -8,5 +8,5 @@ package com.yy.writingwithai.core.data.model
  * 见 [openspec.changes.quick-note-feature.specs.quick-note.spec] §"Tag many-to-many"。
  */
 data class Tag(
-    val name: String,
+    val name: String
 )

@@ -16,7 +16,7 @@ data class Note(
     val updatedAt: Long,
     val isPinned: Boolean,
     val lastAiOp: String?,
-    val lastAiAt: Long?,
+    val lastAiAt: Long?
 ) {
     companion object {
         // M4 修:空 title 时由正文前 N 字派生(roadmap §3.1 + spec §"Note entity schema")。

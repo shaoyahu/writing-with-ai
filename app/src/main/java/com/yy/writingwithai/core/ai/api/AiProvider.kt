@@ -14,8 +14,5 @@ interface AiProvider {
     val supportedModels: List<String>
 
     /** 按 token 粒度流式返回(含 Started/Delta/Usage/Failed/Done)。 */
-    fun stream(
-        request: AiRequest,
-        credentials: AiCredentials,
-    ): Flow<AiStreamEvent>
+    fun stream(request: AiRequest, credentials: AiCredentials): Flow<AiStreamEvent>
 }

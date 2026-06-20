@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 data class CornerRadius(
     val sm: Dp = 4.dp,
     val md: Dp = 8.dp,
-    val lg: Dp = 16.dp,
+    val lg: Dp = 16.dp
 )
 
 /**

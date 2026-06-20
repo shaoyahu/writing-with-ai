@@ -37,17 +37,17 @@ fun TagInputRow(
     tags: List<String>,
     onAddTag: (String) -> Unit,
     onRemoveTag: (String) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val spacing = LocalSpacing.current
     var input by rememberSaveable { mutableStateOf("") }
 
     FlowRow(
         modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.md, vertical = spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(spacing.sm / 2),
+        modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.md, vertical = spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(spacing.sm / 2)
     ) {
         tags.forEach { tag ->
             InputChip(
@@ -57,9 +57,9 @@ fun TagInputRow(
                 trailingIcon = {
                     Icon(
                         Icons.Filled.Close,
-                        contentDescription = stringResource(R.string.quicknote_tag_remove_cd, tag),
+                        contentDescription = stringResource(R.string.quicknote_tag_remove_cd, tag)
                     )
-                },
+                }
             )
         }
         OutlinedTextField(
@@ -78,17 +78,17 @@ fun TagInputRow(
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions =
-                KeyboardActions(onDone = {
-                    if (input.isNotBlank()) {
-                        onAddTag(input)
-                        input = ""
-                    }
-                }),
+            KeyboardActions(onDone = {
+                if (input.isNotBlank()) {
+                    onAddTag(input)
+                    input = ""
+                }
+            }),
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = spacing.sm / 2),
-            textStyle = MaterialTheme.typography.bodyMedium,
+            Modifier
+                .fillMaxWidth()
+                .padding(top = spacing.sm / 2),
+            textStyle = MaterialTheme.typography.bodyMedium
         )
     }
 }

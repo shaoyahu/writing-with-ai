@@ -19,10 +19,10 @@ import androidx.room.Index
     primaryKeys = ["noteId", "tag"],
     indices = [
         Index("noteId"),
-        Index("tag"),
-    ],
+        Index("tag")
+    ]
 )
 data class NoteTagCrossRef(
     val noteId: String,
-    val tag: String,
+    val tag: String
 )

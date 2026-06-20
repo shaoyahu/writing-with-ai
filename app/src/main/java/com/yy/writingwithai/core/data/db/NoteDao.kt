@@ -31,7 +31,7 @@ interface NoteDao {
     suspend fun deleteById(id: String)
 
     @Query(
-        "SELECT * FROM notes ORDER BY isPinned DESC, updatedAt DESC",
+        "SELECT * FROM notes ORDER BY isPinned DESC, updatedAt DESC"
     )
     fun observeAll(): Flow<List<NoteEntity>>
 
@@ -44,7 +44,7 @@ interface NoteDao {
         INNER JOIN note_tags t ON n.id = t.noteId
         WHERE t.tag = :tag
         ORDER BY n.isPinned DESC, n.updatedAt DESC
-        """,
+        """
     )
     fun observeByTag(tag: String): Flow<List<NoteEntity>>
 
@@ -59,20 +59,13 @@ interface NoteDao {
         SELECT * FROM notes
         WHERE title LIKE :q ESCAPE '\' OR content LIKE :q ESCAPE '\'
         ORDER BY isPinned DESC, updatedAt DESC
-        """,
+        """
     )
     fun search(q: String): Flow<List<NoteEntity>>
 
     @Query("UPDATE notes SET isPinned = :pinned WHERE id = :id")
-    suspend fun setPinned(
-        id: String,
-        pinned: Boolean,
-    )
+    suspend fun setPinned(id: String, pinned: Boolean)
 
     @Query("UPDATE notes SET lastAiOp = :op, lastAiAt = :at WHERE id = :noteId")
-    suspend fun updateAiMetadata(
-        noteId: String,
-        op: String,
-        at: Long,
-    )
+    suspend fun updateAiMetadata(noteId: String, op: String, at: Long)
 }

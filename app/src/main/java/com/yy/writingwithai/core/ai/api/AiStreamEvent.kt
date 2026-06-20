@@ -9,7 +9,7 @@ sealed interface AiStreamEvent {
     data class Usage(
         val inputTokens: Int,
         val outputTokens: Int,
-        val totalTokens: Int,
+        val totalTokens: Int
     ) : AiStreamEvent
 
     data class Failed(val error: AiError, val recoverable: Boolean) : AiStreamEvent

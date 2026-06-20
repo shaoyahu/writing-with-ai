@@ -21,55 +21,52 @@ class FakeAiProviderTest {
     }
 
     @Test
-    fun normal_flow_emits_started_delta_usage_done() =
-        runTest {
-            FakeConfigHolder.set(
-                text = "hello world",
-                tokenCounts = AiStreamEvent.Usage(5, 2, 7),
-            )
-            val events =
-                provider.stream(
-                    AiRequest(WritingOp.EXPAND, "test", "fake"),
-                    AiCredentials("fake"),
-                ).toList()
+    fun normal_flow_emits_started_delta_usage_done() = runTest {
+        FakeConfigHolder.set(
+            text = "hello world",
+            tokenCounts = AiStreamEvent.Usage(5, 2, 7)
+        )
+        val events =
+            provider.stream(
+                AiRequest(WritingOp.EXPAND, "test", "fake"),
+                AiCredentials("fake")
+            ).toList()
 
-            assertEquals(AiStreamEvent.Started, events.first())
-            assertTrue(events.any { it is AiStreamEvent.Delta })
-            val usage = events.filterIsInstance<AiStreamEvent.Usage>().firstOrNull()
-            assertNotNull(usage)
-            assertEquals(5, usage!!.inputTokens)
-            assertEquals(AiStreamEvent.Done, events.last())
-        }
-
-    @Test
-    fun error_injection_emits_failed() =
-        runTest {
-            FakeConfigHolder.set(
-                text = "a b c d e",
-                errorAfterTokens = 1,
-            )
-            val events =
-                provider.stream(
-                    AiRequest(WritingOp.POLISH, "test", "fake"),
-                    AiCredentials("fake"),
-                ).toList()
-
-            assertEquals(AiStreamEvent.Started, events.first())
-            assertTrue(events.any { it is AiStreamEvent.Delta })
-            assertTrue(events.any { it is AiStreamEvent.Failed })
-        }
+        assertEquals(AiStreamEvent.Started, events.first())
+        assertTrue(events.any { it is AiStreamEvent.Delta })
+        val usage = events.filterIsInstance<AiStreamEvent.Usage>().firstOrNull()
+        assertNotNull(usage)
+        assertEquals(5, usage!!.inputTokens)
+        assertEquals(AiStreamEvent.Done, events.last())
+    }
 
     @Test
-    fun empty_text_emits_failed() =
-        runTest {
-            FakeConfigHolder.set(text = "")
-            val events =
-                provider.stream(
-                    AiRequest(WritingOp.ORGANIZE, "test", "fake"),
-                    AiCredentials("fake"),
-                ).toList()
+    fun error_injection_emits_failed() = runTest {
+        FakeConfigHolder.set(
+            text = "a b c d e",
+            errorAfterTokens = 1
+        )
+        val events =
+            provider.stream(
+                AiRequest(WritingOp.POLISH, "test", "fake"),
+                AiCredentials("fake")
+            ).toList()
 
-            assertEquals(AiStreamEvent.Started, events.first())
-            assertTrue(events.any { it is AiStreamEvent.Failed })
-        }
+        assertEquals(AiStreamEvent.Started, events.first())
+        assertTrue(events.any { it is AiStreamEvent.Delta })
+        assertTrue(events.any { it is AiStreamEvent.Failed })
+    }
+
+    @Test
+    fun empty_text_emits_failed() = runTest {
+        FakeConfigHolder.set(text = "")
+        val events =
+            provider.stream(
+                AiRequest(WritingOp.ORGANIZE, "test", "fake"),
+                AiCredentials("fake")
+            ).toList()
+
+        assertEquals(AiStreamEvent.Started, events.first())
+        assertTrue(events.any { it is AiStreamEvent.Failed })
+    }
 }

@@ -32,7 +32,7 @@ internal fun Context.shareNoteMarkdown(note: Note) {
     val chooser =
         Intent.createChooser(
             sendIntent,
-            getString(R.string.quicknote_share_chooser_title),
+            getString(R.string.quicknote_share_chooser_title)
         ).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -43,7 +43,7 @@ internal fun Context.shareNoteMarkdown(note: Note) {
             .makeText(
                 this,
                 getString(R.string.quicknote_share_no_app),
-                android.widget.Toast.LENGTH_SHORT,
+                android.widget.Toast.LENGTH_SHORT
             ).show()
     }
 }

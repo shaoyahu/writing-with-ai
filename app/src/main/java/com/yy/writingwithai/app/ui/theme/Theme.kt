@@ -21,21 +21,18 @@ private val DefaultCornerRadius = CornerRadius()
  * 提供 `LocalSpacing` / `LocalCornerRadius` 两个自定义 token,业务 Composable 通过它们读取。
  */
 @Composable
-fun WritingAppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
-) {
+fun WritingAppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     CompositionLocalProvider(
         LocalSpacing provides DefaultSpacing,
-        LocalCornerRadius provides DefaultCornerRadius,
+        LocalCornerRadius provides DefaultCornerRadius
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,
             shapes = Shapes,
-            content = content,
+            content = content
         )
     }
 }

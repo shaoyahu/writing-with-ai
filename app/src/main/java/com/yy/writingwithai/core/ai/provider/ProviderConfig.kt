@@ -15,5 +15,5 @@ data class ProviderConfig(
     val customAuthHeaderName: String? = null,
     val defaultModel: String,
     val supportedModels: List<String>,
-    val customHeaders: Map<String, String> = emptyMap(),
+    val customHeaders: Map<String, String> = emptyMap()
 )

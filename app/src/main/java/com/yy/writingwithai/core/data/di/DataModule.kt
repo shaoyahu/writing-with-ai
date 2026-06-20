@@ -25,9 +25,7 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideAppDatabase(
-        @ApplicationContext context: Context,
-    ): AppDatabase {
+    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
         val builder = Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
         if (com.yy.writingwithai.BuildConfig.DEBUG) {
             builder.fallbackToDestructiveMigration()

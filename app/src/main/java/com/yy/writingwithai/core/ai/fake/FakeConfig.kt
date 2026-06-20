@@ -11,7 +11,7 @@ data class FakeConfig(
     val text: String = "Fake AI response for testing",
     val delayMs: Long = 0L,
     val errorAfterTokens: Int? = null,
-    val tokenCounts: AiStreamEvent.Usage? = null,
+    val tokenCounts: AiStreamEvent.Usage? = null
 )
 
 /**
@@ -26,7 +26,7 @@ object FakeConfigHolder {
         text: String,
         delayMs: Long = 0L,
         errorAfterTokens: Int? = null,
-        tokenCounts: AiStreamEvent.Usage = AiStreamEvent.Usage(0, 0, 0),
+        tokenCounts: AiStreamEvent.Usage = AiStreamEvent.Usage(0, 0, 0)
     ) {
         config = FakeConfig(text, delayMs, errorAfterTokens, tokenCounts)
     }

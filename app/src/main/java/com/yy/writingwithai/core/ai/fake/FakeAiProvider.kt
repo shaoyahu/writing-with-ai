@@ -5,11 +5,11 @@ import com.yy.writingwithai.core.ai.api.AiError
 import com.yy.writingwithai.core.ai.api.AiProvider
 import com.yy.writingwithai.core.ai.api.AiRequest
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Fake AI Provider:用于 M2/M3 所有单测和 UI 验收,不接真实 HTTP。
@@ -18,65 +18,61 @@ import javax.inject.Singleton
  */
 @Singleton
 class FakeAiProvider
-    @Inject
-    constructor() : AiProvider {
-        override val id = "fake"
-        override val displayName = "Fake (Testing)"
-        override val supportedModels = listOf("fake-model")
+@Inject
+constructor() : AiProvider {
+    override val id = "fake"
+    override val displayName = "Fake (Testing)"
+    override val supportedModels = listOf("fake-model")
 
-        override fun stream(
-            request: AiRequest,
-            credentials: AiCredentials,
-        ): Flow<AiStreamEvent> =
-            flow {
-                val cfg = FakeConfigHolder.config
-                emit(AiStreamEvent.Started)
+    override fun stream(request: AiRequest, credentials: AiCredentials): Flow<AiStreamEvent> = flow {
+        val cfg = FakeConfigHolder.config
+        emit(AiStreamEvent.Started)
 
-                if (cfg.text.isBlank()) {
-                    emit(
-                        AiStreamEvent.Failed(
-                            AiError.Unknown(code = null, detail = "empty fake text"),
-                            recoverable = false,
-                        ),
+        if (cfg.text.isBlank()) {
+            emit(
+                AiStreamEvent.Failed(
+                    AiError.Unknown(code = null, detail = "empty fake text"),
+                    recoverable = false
+                )
+            )
+            return@flow
+        }
+
+        // 按 token 粒度(每 3 个字符或每个 sense split) emit
+        var emittedTokenCount = 0
+        val tokens = tokenize(cfg.text)
+
+        for ((index, token) in tokens.withIndex()) {
+            if (cfg.delayMs > 0) delay(cfg.delayMs)
+
+            if (cfg.errorAfterTokens != null && index >= cfg.errorAfterTokens) {
+                emit(
+                    AiStreamEvent.Failed(
+                        AiError.Network(code = -1, detail = "Fake error injection"),
+                        recoverable = true
                     )
-                    return@flow
-                }
-
-                // 按 token 粒度(每 3 个字符或每个 sense split) emit
-                var emittedTokenCount = 0
-                val tokens = tokenize(cfg.text)
-
-                for ((index, token) in tokens.withIndex()) {
-                    if (cfg.delayMs > 0) delay(cfg.delayMs)
-
-                    if (cfg.errorAfterTokens != null && index >= cfg.errorAfterTokens) {
-                        emit(
-                            AiStreamEvent.Failed(
-                                AiError.Network(code = -1, detail = "Fake error injection"),
-                                recoverable = true,
-                            ),
-                        )
-                        return@flow
-                    }
-
-                    emit(AiStreamEvent.Delta(token))
-                    emittedTokenCount = index + 1
-                }
-
-                val usage =
-                    if (cfg.tokenCounts != null) {
-                        cfg.tokenCounts!!
-                    } else {
-                        AiStreamEvent.Usage(
-                            inputTokens = request.sourceText.length / 2,
-                            outputTokens = emittedTokenCount,
-                            totalTokens = request.sourceText.length / 2 + emittedTokenCount,
-                        )
-                    }
-                emit(usage)
-                emit(AiStreamEvent.Done)
+                )
+                return@flow
             }
 
-        /** 简单 tokenize:按空格+标点 split,每个 segment 作为一个 token。 */
-        private fun tokenize(text: String): List<String> = text.split(Regex("(?<=\\s)|(?=\\s)")).filter { it.isNotBlank() }
+            emit(AiStreamEvent.Delta(token))
+            emittedTokenCount = index + 1
+        }
+
+        val usage =
+            if (cfg.tokenCounts != null) {
+                cfg.tokenCounts!!
+            } else {
+                AiStreamEvent.Usage(
+                    inputTokens = request.sourceText.length / 2,
+                    outputTokens = emittedTokenCount,
+                    totalTokens = request.sourceText.length / 2 + emittedTokenCount
+                )
+            }
+        emit(usage)
+        emit(AiStreamEvent.Done)
     }
+
+    /** 简单 tokenize:按空格+标点 split,每个 segment 作为一个 token。 */
+    private fun tokenize(text: String): List<String> = text.split(Regex("(?<=\\s)|(?=\\s)")).filter { it.isNotBlank() }
+}

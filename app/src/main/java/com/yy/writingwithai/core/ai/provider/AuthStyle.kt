@@ -9,5 +9,5 @@ enum class AuthStyle {
     X_API_KEY,
 
     /** `$customAuthHeaderName: $apikey`(mimo 用 `api-key`) */
-    CUSTOM_HEADER,
+    CUSTOM_HEADER
 }

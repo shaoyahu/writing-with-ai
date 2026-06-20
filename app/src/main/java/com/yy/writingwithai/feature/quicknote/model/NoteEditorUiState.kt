@@ -7,5 +7,5 @@ data class NoteEditorUiState(
     val title: String = "",
     val content: String = "",
     val tags: List<String> = emptyList(),
-    val isSaving: Boolean = false,
+    val isSaving: Boolean = false
 )

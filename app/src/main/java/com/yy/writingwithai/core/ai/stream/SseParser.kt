@@ -12,39 +12,38 @@ import okio.BufferedSource
  * 超时由 OkHttp readTimeout 提供。
  */
 internal object SseParser {
-    fun parse(source: BufferedSource): Flow<SseEvent> =
-        flow {
-            var dataBuffer = StringBuilder()
+    fun parse(source: BufferedSource): Flow<SseEvent> = flow {
+        var dataBuffer = StringBuilder()
 
-            while (!source.exhausted()) {
-                val line = source.readUtf8Line() ?: break
+        while (!source.exhausted()) {
+            val line = source.readUtf8Line() ?: break
 
-                when {
-                    line.isEmpty() -> {
-                        if (dataBuffer.isNotEmpty()) {
-                            emit(SseEvent.Data(dataBuffer.toString().trimEnd()))
-                            dataBuffer = StringBuilder()
-                        }
+            when {
+                line.isEmpty() -> {
+                    if (dataBuffer.isNotEmpty()) {
+                        emit(SseEvent.Data(dataBuffer.toString().trimEnd()))
+                        dataBuffer = StringBuilder()
                     }
-                    line == "[DONE]" -> {
+                }
+                line == "[DONE]" -> {
+                    emit(SseEvent.Done)
+                    return@flow
+                }
+                line.startsWith("data:") -> {
+                    val payload = line.removePrefix("data:").trimStart()
+                    if (payload == "[DONE]") {
                         emit(SseEvent.Done)
                         return@flow
                     }
-                    line.startsWith("data:") -> {
-                        val payload = line.removePrefix("data:").trimStart()
-                        if (payload == "[DONE]") {
-                            emit(SseEvent.Done)
-                            return@flow
-                        }
-                        if (dataBuffer.isNotEmpty()) dataBuffer.append('\n')
-                        dataBuffer.append(payload)
-                    }
+                    if (dataBuffer.isNotEmpty()) dataBuffer.append('\n')
+                    dataBuffer.append(payload)
                 }
             }
-
-            if (dataBuffer.isNotEmpty()) {
-                emit(SseEvent.Data(dataBuffer.toString().trimEnd()))
-            }
-            emit(SseEvent.Done)
         }
+
+        if (dataBuffer.isNotEmpty()) {
+            emit(SseEvent.Data(dataBuffer.toString().trimEnd()))
+        }
+        emit(SseEvent.Done)
+    }
 }

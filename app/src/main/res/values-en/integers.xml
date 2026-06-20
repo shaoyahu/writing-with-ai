@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- M4-4 onboarding-consent:与 values/integers.xml 同步。 -->
+    <integer name="consent_version">1</integer>
+</resources>

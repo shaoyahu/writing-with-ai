@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  M4-1 · Glance widget metadata。
+  - targetCellWidth=2 targetCellHeight=2 提示 launcher 这是 2x2 widget。
+  - resizeMode=horizontal|vertical 允许拖拽拉伸(Glance SizeMode.Single 响应式)。
+  - updatePeriodMillis=0 禁用系统自带的 30min 最小更新(由 WorkManager 15min 兜底)。
+  - initialLayout=@layout/widget_initial 添加瞬间占位。
+  - previewLayout=@drawable/widget_preview 添加预览图。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="160dp"
+    android:minHeight="160dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_initial"
+    android:previewLayout="@drawable/widget_preview"
+    android:widgetCategory="home_screen" />

@@ -12,6 +12,6 @@ internal object DeepseekConfig {
             endpointPath = "/anthropic/v1/messages",
             authStyle = AuthStyle.X_API_KEY,
             defaultModel = "deepseek-v4-flash",
-            supportedModels = listOf("deepseek-v4-flash", "deepseek-v4-pro"),
+            supportedModels = listOf("deepseek-v4-flash", "deepseek-v4-pro")
         )
 }

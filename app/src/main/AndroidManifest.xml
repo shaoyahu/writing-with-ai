@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- M0 不申请任何权限;后续 M2 网络 / M4 通知 / M5 widget 按需加。 -->
+    <!-- M0 不申请任何权限;M2 网络按需加;M4-1 widget / M4-2 predictive back / M4-3 数据迁移 已落地。
+
+         M4-3 数据迁移:API 30+ Android 11+ 走 SAF(无权限需要);API 26-29 旧设备(Android 8-10)
+         用 maxSdkVersion=29 兜底声明 READ/WRITE_EXTERNAL_STORAGE,
+         spec §"Android 11+ SAF 路径无需 WRITE_EXTERNAL_STORAGE" + "API 26-29 旧设备 fallback"。 -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
 
     <application
         android:name=".app.WritingApp"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -16,13 +27,41 @@
 
         <activity
             android:name=".app.MainActivity"
+            android:enableOnBackInvokedCallback="true"
             android:exported="true"
-            android:theme="@style/Theme.WritingApp">
+            android:theme="@style/Theme.WritingApp"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- M4-1 · 桌面小组件 receiver(widget "随手记")-->
+        <receiver
+            android:name=".core.widget.QuickNoteWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_2x2_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
+
+        <!-- M5 widget-1x4-compact · 1x4 compact widget receiver(独立 cell-size hint) -->
+        <receiver
+            android:name=".core.widget.QuickNote1x4WidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_1x4_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_1x4" />
+        </receiver>
     </application>
 
 </manifest>

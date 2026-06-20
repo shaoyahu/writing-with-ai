@@ -48,4 +48,109 @@
     <!-- 分享 chooser -->
     <string name="quicknote_share_chooser_title">分享到…</string>
     <string name="quicknote_share_no_app">没有可用的分享应用</string>
+
+    <!-- AI 详情屏 metadata -->
+    <string name="quicknote_meta_ai_fmt">上次 AI 操作 · %1$s · %2$s</string>
+
+    <!-- ===== AI 写作 ai-writing-actions(M3)=====
+         中文为权威源;英文翻译见 values-en/strings.xml。
+         Composable 内禁止硬编码中文,所有用户可见字符串走 R.string.* 引用。 -->
+
+    <!-- ActionSheet 菜单 -->
+    <string name="aiwriting_action_menu">AI 操作</string>
+    <string name="aiwriting_action_expand">扩写</string>
+    <string name="aiwriting_action_polish">润色</string>
+    <string name="aiwriting_action_organize">整理</string>
+    <string name="aiwriting_action_copy">复制</string>
+
+    <!-- StreamingPanel 顶部标题(按 op 分) -->
+    <string name="aiwriting_panel_title_expand">扩写</string>
+    <string name="aiwriting_panel_title_polish">润色</string>
+    <string name="aiwriting_panel_title_organize">整理</string>
+    <string name="aiwriting_panel_streaming">进行中…</string>
+
+    <!-- StreamingPanel 底部按钮 -->
+    <string name="aiwriting_panel_cancel">取消</string>
+    <string name="aiwriting_panel_accept">接受</string>
+    <string name="aiwriting_panel_reject">拒绝</string>
+    <string name="aiwriting_panel_regenerate">再生成</string>
+    <string name="aiwriting_panel_close">关闭</string>
+    <string name="aiwriting_panel_failed_title">出错</string>
+
+    <!-- token 用量 chip -->
+    <string name="aiwriting_panel_usage_fmt">输入 %1$d · 输出 %2$d</string>
+
+    <!-- 错误降级文案(AiError → R.string) -->
+    <string name="aiwriting_error_network">网络连接失败,请检查后重试</string>
+    <string name="aiwriting_error_auth">认证失败,请检查 API key</string>
+    <string name="aiwriting_error_balance">账户余额不足</string>
+    <string name="aiwriting_error_timeout">请求超时,请稍后重试</string>
+    <string name="aiwriting_error_unknown">出错了,请稍后重试</string>
+
+    <!-- ===== M4-1 桌面小组件 home-screen-widget ===== -->
+    <string name="widget_2x2_title">随手记</string>
+    <string name="widget_4x2_title">随手记</string>
+    <string name="widget_1x4_title">随手记</string>
+    <string name="widget_1x4_layout_label">4x1 横条</string>
+    <string name="widget_empty">还没有笔记\n点 + 创建第一条</string>
+    <string name="widget_create_cd">新建笔记</string>
+    <string name="widget_open_note_cd">打开笔记 %1$s</string>
+    <string name="widget_time_just_now">刚刚</string>
+    <string name="widget_time_minute_ago">分钟前</string>
+    <string name="widget_time_hour_ago">小时前</string>
+    <string name="widget_time_day_ago">天前</string>
+    <string name="widget_time_week_ago">周前</string>
+
+    <!-- ===== M4-3 数据迁移 data-export-import ===== -->
+    <string name="settings_data_title">数据迁移</string>
+    <string name="settings_data_export">导出全部数据</string>
+    <string name="settings_data_import">导入数据</string>
+    <string name="settings_data_exporting">导出中...</string>
+    <string name="settings_data_importing">导入中...</string>
+    <string name="settings_data_done">完成,共 %1$d 条笔记</string>
+    <string name="settings_data_failed">导出/导入失败:%1$s</string>
+    <string name="settings_data_no_data">暂无笔记可导出</string>
+    <string name="import_report_summary">导入完成:%1$d 成功 / %2$d 跳过 / %3$d 失败,详情见 import_report.md</string>
+
+    <!-- ===== M4-4 onboarding-consent ===== -->
+    <!-- OnboardingScreen 顶部 / 滚动提示 / 主次按钮 -->
+    <string name="onboarding_title">欢迎使用 writing-with-ai</string>
+    <string name="onboarding_subtitle">请阅读并同意以下条款</string>
+    <string name="onboarding_accept">同意并继续</string>
+    <string name="onboarding_reject">拒绝并退出</string>
+    <string name="onboarding_scroll_hint">请滚动到底部以继续</string>
+    <!-- AiError.UserConsentRequired 文案(ai-actions 复用) -->
+    <string name="onboarding_required">请先同意隐私条款</string>
+    <string name="ai_provider_not_configured">请先在设置 → 模型管理配置 AI provider</string>
+
+    <!-- SecureApiKeyStore 设置页(M5 polish 落地 UI,M4-4 仅暴露 API) -->
+    <string name="secure_prefs_hidden_label">••••••••</string>
+    <string name="secure_prefs_reveal_button">显示</string>
+    <string name="secure_prefs_copy_button">复制</string>
+    <string name="secure_prefs_clear_button">清除</string>
+
+    <!-- ===== M5 custom-prompt-template ===== -->
+    <string name="settings_title">设置</string>
+
+    <!-- ===== provider-real-integration 模型管理 model-management ===== -->
+    <string name="model_management_title">AI 模型管理</string>
+    <string name="model_management_subtitle">选择一个 AI provider 并填入 apikey,启用真实 AI 流式输出</string>
+    <string name="model_provider_deepseek">DeepSeek</string>
+    <string name="model_provider_minimax">Minimax</string>
+    <string name="model_provider_mimo">小米 MiMo</string>
+    <string name="model_management_test_ping">测试连通</string>
+    <string name="model_management_ping_idle">未测试</string>
+    <string name="model_management_ping_success">可用 · %1$dms</string>
+    <string name="model_management_ping_failed">失败:%1$s</string>
+    <string name="model_provider_detail_base_url">Base URL</string>
+    <string name="model_provider_detail_save">保存</string>
+    <string name="model_provider_detail_show_key">显示 API Key</string>
+    <string name="model_provider_detail_saved_toast">已保存</string>
+    <string name="settings_prompt_title">AI 提示词模板</string>
+    <string name="prompt_op_expand">扩写</string>
+    <string name="prompt_op_polish">润色</string>
+    <string name="prompt_op_organize">整理</string>
+    <string name="prompt_hint">自定义 AI 操作的 system prompt;空时使用默认;立即对下次 AI 操作生效</string>
+    <string name="prompt_hint_label">system prompt 内容</string>
+    <string name="prompt_reset_default">恢复默认</string>
 </resources>

@@ -7,5 +7,5 @@ package com.yy.writingwithai.core.data.model
  */
 data class NoteWithTags(
     val note: Note,
-    val tags: List<String>,
+    val tags: List<String>
 )

@@ -8,10 +8,11 @@ import androidx.compose.ui.unit.dp
  * 统一间距 token。所有页面间距走这里,业务代码不写裸 `.dp`。
  */
 data class Spacing(
+    val xs: Dp = 4.dp,
     val sm: Dp = 8.dp,
     val md: Dp = 16.dp,
     val lg: Dp = 24.dp,
-    val xl: Dp = 32.dp,
+    val xl: Dp = 32.dp
 )
 
 /**

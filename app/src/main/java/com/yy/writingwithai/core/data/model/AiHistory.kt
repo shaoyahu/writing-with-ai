@@ -15,5 +15,5 @@ data class AiHistory(
     val inputSnapshot: String,
     val outputSnapshot: String,
     val truncated: Boolean,
-    val error: String?,
+    val error: String?
 )

@@ -1,3 +1,5 @@
+@file:Suppress("unused", "FunctionNaming")
+
 package com.yy.writingwithai.feature.quicknote.list
 
 import androidx.compose.foundation.layout.Arrangement
@@ -14,9 +16,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,24 +39,24 @@ import java.util.Date
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun NoteRow(
-    item: NoteWithTags,
-    onClick: (noteId: String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun NoteRow(item: NoteWithTags, onClick: (noteId: String) -> Unit, modifier: Modifier = Modifier) {
     val note = item.note
     val spacing = LocalSpacing.current
-    Surface(
-        modifier = modifier.fillMaxWidth(),
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.md, vertical = spacing.xs),
         onClick = { onClick(note.id) },
-        tonalElevation = 0.dp,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.md, vertical = spacing.sm),
-            verticalAlignment = Alignment.Top,
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.md, vertical = spacing.sm),
+            verticalAlignment = Alignment.Top
         ) {
             if (note.isPinned) {
                 Icon(
@@ -61,9 +64,9 @@ fun NoteRow(
                     contentDescription = stringResource(R.string.quicknote_detail_pin),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier =
-                        Modifier
-                            .size(16.dp)
-                            .padding(top = 2.dp),
+                    Modifier
+                        .size(16.dp)
+                        .padding(top = 2.dp)
                 )
                 Spacer(Modifier.width(spacing.sm))
             }
@@ -72,7 +75,7 @@ fun NoteRow(
                     text = note.title.ifBlank { note.content.take(Note.TITLE_FALLBACK_LEN) },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (note.content.isNotBlank()) {
                     Text(
@@ -80,31 +83,31 @@ fun NoteRow(
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp),
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
                 if (item.tags.isNotEmpty()) {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(spacing.sm / 2),
-                        modifier = Modifier.padding(top = spacing.sm / 2),
+                        modifier = Modifier.padding(top = spacing.sm / 2)
                     ) {
                         item.tags.forEach { tagName ->
                             AssistChip(
                                 onClick = { onClick(note.id) },
                                 label = { Text("#$tagName") },
-                                colors = AssistChipDefaults.assistChipColors(),
+                                colors = AssistChipDefaults.assistChipColors()
                             )
                         }
                     }
                 }
                 Text(
                     text =
-                        DateFormat
-                            .getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                            .format(Date(note.updatedAt)),
+                    DateFormat
+                        .getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                        .format(Date(note.updatedAt)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = spacing.sm / 2),
+                    modifier = Modifier.padding(top = spacing.sm / 2)
                 )
             }
         }

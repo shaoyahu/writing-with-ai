@@ -39,4 +39,96 @@
 
     <string name="quicknote_share_chooser_title">TODO(en): 分享到…</string>
     <string name="quicknote_share_no_app">No app available to share</string>
+
+    <string name="quicknote_meta_ai_fmt">TODO(en): 上次 AI 操作 · %1$s · %2$s</string>
+
+    <!-- AI 写作 ai-writing-actions(M3) — 英文 TODO 占位,M5 polish 阶段补齐 -->
+    <string name="aiwriting_action_menu">AI actions</string>
+    <string name="aiwriting_action_expand">Expand</string>
+    <string name="aiwriting_action_polish">Polish</string>
+    <string name="aiwriting_action_organize">Organize</string>
+    <string name="aiwriting_action_copy">Copy</string>
+
+    <string name="aiwriting_panel_title_expand">TODO(en): aiwriting_panel_title_expand</string>
+    <string name="aiwriting_panel_title_polish">TODO(en): aiwriting_panel_title_polish</string>
+    <string name="aiwriting_panel_title_organize">TODO(en): aiwriting_panel_title_organize</string>
+    <string name="aiwriting_panel_streaming">TODO(en): aiwriting_panel_streaming</string>
+
+    <string name="aiwriting_panel_cancel">TODO(en): aiwriting_panel_cancel</string>
+    <string name="aiwriting_panel_accept">TODO(en): aiwriting_panel_accept</string>
+    <string name="aiwriting_panel_reject">TODO(en): aiwriting_panel_reject</string>
+    <string name="aiwriting_panel_regenerate">TODO(en): aiwriting_panel_regenerate</string>
+    <string name="aiwriting_panel_close">TODO(en): aiwriting_panel_close</string>
+    <string name="aiwriting_panel_failed_title">TODO(en): aiwriting_panel_failed_title</string>
+
+    <string name="aiwriting_panel_usage_fmt">TODO(en): aiwriting_panel_usage_fmt</string>
+
+    <string name="aiwriting_error_network">TODO(en): aiwriting_error_network</string>
+    <string name="aiwriting_error_auth">TODO(en): aiwriting_error_auth</string>
+    <string name="aiwriting_error_balance">TODO(en): aiwriting_error_balance</string>
+    <string name="aiwriting_error_timeout">TODO(en): aiwriting_error_timeout</string>
+    <string name="aiwriting_error_unknown">TODO(en): aiwriting_error_unknown</string>
+
+    <!-- ===== M4-1 桌面小组件 home-screen-widget(英文 TODO 占位,M5 polish 阶段补齐)===== -->
+    <string name="widget_2x2_title">TODO(en): widget_2x2_title</string>
+    <string name="widget_4x2_title">TODO(en): widget_4x2_title</string>
+    <string name="widget_1x4_title">TODO(en): widget_1x4_title</string>
+    <string name="widget_1x4_layout_label">TODO(en): widget_1x4_layout_label</string>
+    <string name="widget_empty">TODO(en): widget_empty</string>
+    <string name="widget_create_cd">TODO(en): widget_create_cd</string>
+    <string name="widget_open_note_cd">TODO(en): widget_open_note_cd</string>
+    <string name="widget_time_just_now">TODO(en): widget_time_just_now</string>
+    <string name="widget_time_minute_ago">TODO(en): widget_time_minute_ago</string>
+    <string name="widget_time_hour_ago">TODO(en): widget_time_hour_ago</string>
+    <string name="widget_time_day_ago">TODO(en): widget_time_day_ago</string>
+    <string name="widget_time_week_ago">TODO(en): widget_time_week_ago</string>
+
+    <!-- ===== M4-3 数据迁移 data-export-import(英文 TODO 占位)===== -->
+    <string name="settings_data_title">TODO(en): settings_data_title</string>
+    <string name="settings_data_export">TODO(en): settings_data_export</string>
+    <string name="settings_data_import">TODO(en): settings_data_import</string>
+    <string name="settings_data_exporting">TODO(en): settings_data_exporting</string>
+    <string name="settings_data_importing">TODO(en): settings_data_importing</string>
+    <string name="settings_data_done">TODO(en): settings_data_done</string>
+    <string name="settings_data_failed">TODO(en): settings_data_failed</string>
+    <string name="settings_data_no_data">TODO(en): settings_data_no_data</string>
+    <string name="import_report_summary">TODO(en): import_report_summary</string>
+
+    <!-- ===== M4-4 onboarding-consent(英文 TODO 占位,M5 polish 阶段补齐)===== -->
+    <string name="onboarding_title">TODO(en): onboarding_title</string>
+    <string name="onboarding_subtitle">TODO(en): onboarding_subtitle</string>
+    <string name="onboarding_accept">TODO(en): onboarding_accept</string>
+    <string name="onboarding_reject">TODO(en): onboarding_reject</string>
+    <string name="onboarding_scroll_hint">TODO(en): onboarding_scroll_hint</string>
+    <string name="onboarding_required">TODO(en): onboarding_required</string>
+    <string name="ai_provider_not_configured">TODO(en): ai_provider_not_configured</string>
+    <string name="secure_prefs_hidden_label">TODO(en): secure_prefs_hidden_label</string>
+    <string name="secure_prefs_reveal_button">TODO(en): secure_prefs_reveal_button</string>
+    <string name="secure_prefs_copy_button">TODO(en): secure_prefs_copy_button</string>
+    <string name="secure_prefs_clear_button">TODO(en): secure_prefs_clear_button</string>
+
+    <!-- ===== M5 custom-prompt-template(英文 TODO 占位,M5 polish 阶段补齐)===== -->
+    <string name="settings_title">TODO(en): settings_title</string>
+
+    <!-- ===== provider-real-integration 模型管理 model-management ===== -->
+    <string name="model_management_title">TODO(en): model_management_title</string>
+    <string name="model_management_subtitle">TODO(en): model_management_subtitle</string>
+    <string name="model_provider_deepseek">TODO(en): model_provider_deepseek</string>
+    <string name="model_provider_minimax">TODO(en): model_provider_minimax</string>
+    <string name="model_provider_mimo">TODO(en): model_provider_mimo</string>
+    <string name="model_management_test_ping">TODO(en): model_management_test_ping</string>
+    <string name="model_management_ping_idle">TODO(en): model_management_ping_idle</string>
+    <string name="model_management_ping_success">TODO(en): model_management_ping_success</string>
+    <string name="model_management_ping_failed">TODO(en): model_management_ping_failed</string>
+    <string name="model_provider_detail_base_url">TODO(en): model_provider_detail_base_url</string>
+    <string name="model_provider_detail_save">TODO(en): model_provider_detail_save</string>
+    <string name="model_provider_detail_show_key">TODO(en): model_provider_detail_show_key</string>
+    <string name="model_provider_detail_saved_toast">TODO(en): model_provider_detail_saved_toast</string>
+    <string name="settings_prompt_title">TODO(en): settings_prompt_title</string>
+    <string name="prompt_op_expand">TODO(en): prompt_op_expand</string>
+    <string name="prompt_op_polish">TODO(en): prompt_op_polish</string>
+    <string name="prompt_op_organize">TODO(en): prompt_op_organize</string>
+    <string name="prompt_hint">TODO(en): prompt_hint</string>
+    <string name="prompt_hint_label">TODO(en): prompt_hint_label</string>
+    <string name="prompt_reset_default">TODO(en): prompt_reset_default</string>
 </resources>

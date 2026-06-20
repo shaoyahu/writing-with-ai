@@ -25,6 +25,11 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+
+        // M4-4 onboarding-consent:consent 版本号(改隐私条款时 bump)与
+        // gate 启用开关(回滚逃生口,设 false 即回到 M4-3 行为)。
+        buildConfigField("Boolean", "CONSENT_GATE_ENABLED", "true")
+        buildConfigField("int", "CONSENT_VERSION", "1")
     }
 
     buildTypes {
@@ -109,6 +114,11 @@ dependencies {
 
     // ----- Widget(M0 占用,M4 真正用) -----
     implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.documentfile)
+
+    // ----- Security(M4-4 EncryptedSharedPreferences for AI apikey)-----
+    implementation(libs.androidx.security.crypto)
 
     // ----- Coroutines -----
     implementation(libs.kotlinx.coroutines.android)
@@ -116,13 +126,19 @@ dependencies {
     // ----- Serialization(navigation-compose 类型安全路由)-----
     implementation(libs.kotlinx.serialization.json)
 
-    // ----- Test(JUnit5 + MockK + Turbine + Compose Test) -----
+    // ----- Test(JUnit5 + MockK + Turbine + Compose Test + Robolectric) -----
     testImplementation(libs.bundles.junit5)
     testRuntimeOnly(libs.junit.jupiter.engine)
+    // M5:JUnit Vintage engine for Robolectric runner。首次运行时下载 ~500MB runtime
+    // 依赖,当前 CI 需预缓存。取消注释后跑 Robolectric test:
+    // testRuntimeOnly(libs.junit.vintage.engine)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.runner)
+    testImplementation(libs.robolectric.core)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -143,12 +159,15 @@ ktlint {
     // 其余规则集中在 config/ktlint/.editorconfig。
     // 注意:本项目常量严格遵守 CLAUDE.md §"约定" UPPER_SNAKE_CASE,
     // 因此 standard:property-naming 不再禁用。
+    // M5 fix:项目根 .editorconfig 用 ktlint 1.0 per-rule 下划线格式
+    // (disabledRules SetProperty 在 1.0.x rule-engine 不生效,
+    // 见 memory ktlint-compose-pascalcase-1.0)。
     disabledRules.set(
         setOf(
             // Composable 必须 PascalCase
             "standard:function-naming",
             // Color.kt 长表达式允许单行 / 自定义折行
-            "standard:multiline-expression-wrapping",
-        ),
+            "standard:multiline-expression-wrapping"
+        )
     )
 }
