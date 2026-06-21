@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ===== 应用全局 ===== -->
-    <string name="app_name">writing-with-ai</string>
+    <string name="app_name">小札</string>
     <string name="placeholder_greeting">writing-with-ai 脚手架已就绪</string>
 
     <!-- ===== 随手记 quick-note-feature(M1)=====

@@ -2,8 +2,8 @@
 <resources>
     <!-- 英文;key 集必须与 values/strings.xml 完全一致 -->
     <!-- 全部 quicknote_* key 当前为占位 TODO(en),M5 polish 阶段统一补齐 -->
-    <string name="app_name">writing-with-ai</string>
-    <string name="placeholder_greeting">writing-with-ai scaffold ready</string>
+    <string name="app_name">Xiaozha</string>
+    <string name="placeholder_greeting">Xiaozha scaffold ready</string>
 
     <string name="quicknote_list_title">TODO(en): 随手记</string>
     <string name="quicknote_list_empty">TODO(en): 还没有笔记</string>
