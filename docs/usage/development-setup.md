@@ -1,6 +1,6 @@
 # 开发环境依赖(writing-with-ai)
 
-> 新机器 / 新 clone 仓库之后,**开工 M0 之前**必须装的依赖。任何开发机 / CI / 朋友机器都一样。
+> 新机器 / 新 clone 仓库之后,**开工前**必须装的依赖。任何开发机 / CI / 朋友机器都一样。M0 之后入职只需装 JDK 17 + Gradle wrapper(随仓库提交)+ Android SDK(可选,见 §4)。
 
 ## 1. 系统要求
 
@@ -66,10 +66,21 @@ gradle --version   # 应输出 Gradle 9.x
 - **Gradle 与 AGP 不兼容**:
   - 升级 AGP ≥ 8.7 + 用 Gradle wrapper 8.9+;AGP 与 Gradle 版本对齐见 [Android 官方对照表](https://developer.android.com/build/releases/gradle-plugin)。
 - **ANDROID_HOME / SDK 未配**:
-  - M0 不需要(只编 Debug APK 用 AGP 自带 build-tools);M2 起需要装 Android SDK,届时在 CLAUDE.md §"命令" 旁加 §"SDK 安装" 段。
+  - M0 不需要本地 Android SDK(`assembleDebug` 用 AGP 自带 build-tools)。
+  - M2 起需要本地 SDK(APK 安装到真机、连模拟器调试)。建议装 Android commandlinetools:
+    ```bash
+    brew install --cask android-commandlinetools
+    sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+    ```
+  - 加 `local.properties`(已被 `.gitignore` 屏蔽)写入 `sdk.dir=/opt/homebrew/share/android-commandlinetools`,或 `export ANDROID_HOME=<path>`。
+  - `:app:installDebug` / `:app:connectedDebugAndroidTest` 必须有 `ANDROID_HOME`。
 
 ## 5. 项目特定说明
 
 - **本仓库不依赖 Android Studio 命令行**(只是开发推荐)。`./gradlew` 命令对所有 CI / 命令行场景可用。
-- **本仓库不依赖本地 Android SDK 即可跑**(`assembleDebug` 会自动下载 build-tools / platform-tools)。仅当用户要 `adb install` 到真机时才需要 `ANDROID_HOME`。
-- **JDK 必须 17**,不能用 21 / 25;AGP 8.5+ 在 21 上仍能编,但 `gradle daemon` 偶发崩溃在 Kotlin 2.x KSP 处理时。
+- **JDK 必须 17**,不能用 21 / 25;AGP 8.5+ 在 21 上仍能编,但 `gradle daemon` 偶发崩溃在 Kotlin 2.x KSP 处理时。系统装了 26 / 25 也不要紧,Gradle wrapper 会忽略 PATH 里的高版本,只走本仓库 `$JAVA_HOME` 指的 JDK 17。
+- **Node.js 可选**:仓库根目录有 `package.json` + `node_modules/`(`headroom-ai` 等本地辅助脚本,已被 `.gitignore` 屏蔽)。**新开发机不需要装 Node**,除非要跑这些本地脚本。Android 主流程不依赖 Node。
+
+## 6. Release 签名(M4+ 需要)
+
+见 [`docs/usage/signing.md`](signing.md)。`./gradlew :app:assembleRelease` 需在 `~/.gradle/gradle.properties` 配 keystore 路径 + 密码。Debug 构建不需。
