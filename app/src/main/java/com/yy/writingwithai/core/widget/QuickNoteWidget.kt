@@ -4,8 +4,8 @@ package com.yy.writingwithai.core.widget
 
 import android.content.Context
 import android.content.Intent
+import android.text.format.DateUtils
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -20,7 +20,6 @@ import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -36,14 +35,6 @@ import com.yy.writingwithai.app.MainActivity
 import com.yy.writingwithai.core.data.model.Note
 import kotlinx.coroutines.flow.first
 
-internal val cBlue = Color(0xFF3B82F6)
-internal val cWhite = Color(0xFFFFFFFF)
-internal val cBg = Color(0xFFF0F2F5)
-internal val cTitle = Color(0xFF111827)
-internal val cBody = Color(0xFF6B7280)
-internal val cMeta = Color(0xFF9CA3AF)
-internal fun cp(c: Color) = ColorProvider(c, c)
-
 class QuickNoteWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -57,23 +48,27 @@ class QuickNoteWidget : GlanceAppWidget() {
 
 @Composable
 private fun WidgetContent(notes: List<Note>, context: Context) {
+    val colors = widgetColors()
     if (LocalSize.current.width <= 160.dp) {
-        WidgetSmall(notes, context)
+        WidgetSmall(notes, context, colors)
     } else {
-        WidgetWide(notes, context)
+        WidgetWide(notes, context, colors)
     }
 }
 
 @Composable
-private fun AddButton(context: Context) {
+private fun AddButton(context: Context, colors: WidgetColors) {
     Box(
         GlanceModifier
-            .background(cp(cBlue))
+            .background(colors.widgetPrimary)
             .clickable(actionStartActivity(createNoteIntent(context)))
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text("+", style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 22.sp, color = cp(cWhite)))
+        Text(
+            "+",
+            style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 22.sp, color = colors.widgetOnBackground)
+        )
     }
 }
 
@@ -81,8 +76,8 @@ private fun AddButton(context: Context) {
 // Small(2x2)
 // ============================================================
 @Composable
-private fun WidgetSmall(notes: List<Note>, context: Context) {
-    Column(GlanceModifier.fillMaxSize().background(cp(cBg))) {
+private fun WidgetSmall(notes: List<Note>, context: Context, colors: WidgetColors) {
+    Column(GlanceModifier.fillMaxSize().background(colors.widgetBackground)) {
         // Header: title(left) + button(right, touches edges), no outer padding
         Row(
             GlanceModifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -90,10 +85,14 @@ private fun WidgetSmall(notes: List<Note>, context: Context) {
         ) {
             Text(
                 context.getString(R.string.widget_2x2_title),
-                style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 13.sp, color = cp(cBody)),
+                style = TextStyle(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp,
+                    color = colors.widgetOnSurfaceVariant
+                ),
                 modifier = GlanceModifier.defaultWeight().padding(start = 10.dp)
             )
-            AddButton(context)
+            AddButton(context, colors)
         }
         // Content with padding
         val note = notes.firstOrNull()
@@ -102,32 +101,34 @@ private fun WidgetSmall(notes: List<Note>, context: Context) {
             Column(
                 GlanceModifier.defaultWeight().fillMaxWidth()
                     .padding(horizontal = 10.dp)
-                    .background(cp(cWhite))
+                    .background(colors.widgetBackground)
                     .clickable(actionRunCallback<OpenNoteAction>(params))
                     .padding(10.dp)
             ) {
                 Text(
                     note.title.ifBlank { note.content.take(SNIPPET_LEN) },
-                    style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 13.sp, color = cp(cTitle)),
+                    style = TextStyle(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 13.sp,
+                        color = colors.widgetOnBackground
+                    ),
                     maxLines = 1
                 )
                 Text(
                     note.content.replace("\n", " ").take(50),
-                    style = TextStyle(fontSize = 11.sp, color = cp(cBody)),
+                    style = TextStyle(fontSize = 11.sp, color = colors.widgetOnSurfaceVariant),
                     maxLines = 2,
                     modifier = GlanceModifier.padding(top = 2.dp)
                 )
                 Text(
                     formatRelativeTime(context, note.updatedAt),
-                    style = TextStyle(fontSize = 10.sp, color = cp(cMeta)),
+                    style = TextStyle(fontSize = 10.sp, color = colors.widgetOnSurfaceVariant),
                     maxLines = 1,
                     modifier = GlanceModifier.padding(top = 4.dp)
                 )
             }
         } else {
-            Box(GlanceModifier.defaultWeight().fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text(context.getString(R.string.widget_empty), style = TextStyle(fontSize = 11.sp, color = cp(cMeta)))
-            }
+            EmptyState(colors, context)
         }
         // bottom spacer to keep content area balanced
         Box(GlanceModifier.fillMaxWidth().padding(bottom = 10.dp)) {}
@@ -138,23 +139,25 @@ private fun WidgetSmall(notes: List<Note>, context: Context) {
 // Wide(4x2)
 // ============================================================
 @Composable
-private fun WidgetWide(notes: List<Note>, context: Context) {
-    Column(GlanceModifier.fillMaxSize().background(cp(cBg))) {
+private fun WidgetWide(notes: List<Note>, context: Context, colors: WidgetColors) {
+    Column(GlanceModifier.fillMaxSize().background(colors.widgetBackground)) {
         Row(
             GlanceModifier.fillMaxWidth().padding(bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 context.getString(R.string.widget_4x2_title),
-                style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 13.sp, color = cp(cBody)),
+                style = TextStyle(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp,
+                    color = colors.widgetOnSurfaceVariant
+                ),
                 modifier = GlanceModifier.defaultWeight().padding(start = 10.dp)
             )
-            AddButton(context)
+            AddButton(context, colors)
         }
         if (notes.isEmpty()) {
-            Box(GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(context.getString(R.string.widget_empty), style = TextStyle(fontSize = 11.sp, color = cp(cMeta)))
-            }
+            EmptyState(colors, context)
         } else {
             Column(GlanceModifier.fillMaxSize()) {
                 notes.take(3).forEachIndexed { i, note ->
@@ -164,20 +167,24 @@ private fun WidgetWide(notes: List<Note>, context: Context) {
                     Column(
                         GlanceModifier.fillMaxWidth()
                             .padding(horizontal = 10.dp)
-                            .background(cp(cWhite))
+                            .background(colors.widgetBackground)
                             .clickable(actionRunCallback<OpenNoteAction>(params))
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 title,
-                                style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp, color = cp(cTitle)),
+                                style = TextStyle(
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 12.sp,
+                                    color = colors.widgetOnBackground
+                                ),
                                 maxLines = 1,
                                 modifier = GlanceModifier.defaultWeight()
                             )
                             Text(
                                 formatRelativeTimeCompact(context, note.updatedAt),
-                                style = TextStyle(fontSize = 10.sp, color = cp(cMeta)),
+                                style = TextStyle(fontSize = 10.sp, color = colors.widgetOnSurfaceVariant),
                                 maxLines = 1,
                                 modifier = GlanceModifier.padding(start = 4.dp)
                             )
@@ -185,7 +192,7 @@ private fun WidgetWide(notes: List<Note>, context: Context) {
                         if (body.isNotBlank()) {
                             Text(
                                 body,
-                                style = TextStyle(fontSize = 10.sp, color = cp(cBody)),
+                                style = TextStyle(fontSize = 10.sp, color = colors.widgetOnSurfaceVariant),
                                 maxLines = 1,
                                 modifier = GlanceModifier.padding(top = 1.dp)
                             )
@@ -198,35 +205,50 @@ private fun WidgetWide(notes: List<Note>, context: Context) {
     }
 }
 
+// ============================================================
+// Empty state + ROM hint(国产 ROM widget-rome-compat)
+// ============================================================
+@Composable
+private fun EmptyState(colors: WidgetColors, context: Context) {
+    val romHint = when (RomDetector.current()) {
+        RomVendor.MIUI -> context.getString(R.string.widget_rom_miui_hint)
+        RomVendor.EMUI -> context.getString(R.string.widget_rom_emui_hint)
+        RomVendor.COLOROS -> context.getString(R.string.widget_rom_coloros_hint)
+        RomVendor.ORIGINOS -> context.getString(R.string.widget_rom_originos_hint)
+        RomVendor.AOSP -> null
+    }
+    Box(GlanceModifier.fillMaxSize().padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                context.getString(R.string.widget_empty),
+                style = TextStyle(fontSize = 11.sp, color = colors.widgetOnSurfaceVariant)
+            )
+            if (romHint != null) {
+                Text(
+                    romHint,
+                    style = TextStyle(fontSize = 10.sp, color = colors.widgetOnSurfaceVariant),
+                    modifier = GlanceModifier.padding(top = 4.dp)
+                )
+            }
+        }
+    }
+}
+
 // ── Helpers ──
 
-internal fun formatRelativeTime(context: Context, epochMs: Long): String {
-    val diff = System.currentTimeMillis() - epochMs
-    val m = 60_000L
-    val h = 60 * m
-    val d = 24 * h
-    return when {
-        diff < m -> context.getString(R.string.widget_time_just_now)
-        diff < h -> "${diff / m} ${context.getString(R.string.widget_time_minute_ago)}"
-        diff < d -> "${diff / h} ${context.getString(R.string.widget_time_hour_ago)}"
-        diff < 7 * d -> "${diff / d} ${context.getString(R.string.widget_time_day_ago)}"
-        else -> "${diff / (7 * d)} ${context.getString(R.string.widget_time_week_ago)}"
-    }
-}
+internal fun formatRelativeTime(context: Context, epochMs: Long): String = DateUtils.getRelativeTimeSpanString(
+    epochMs,
+    System.currentTimeMillis(),
+    DateUtils.MINUTE_IN_MILLIS,
+    DateUtils.FORMAT_ABBREV_RELATIVE
+).toString()
 
-internal fun formatRelativeTimeCompact(context: Context, epochMs: Long): String {
-    val diff = System.currentTimeMillis() - epochMs
-    val m = 60_000L
-    val h = 60 * m
-    val d = 24 * h
-    return when {
-        diff < m -> context.getString(R.string.widget_time_just_now)
-        diff < h -> "${diff / m}m"
-        diff < d -> "${diff / h}h"
-        diff < 7 * d -> "${diff / d}d"
-        else -> "${diff / (7 * d)}w"
-    }
-}
+internal fun formatRelativeTimeCompact(context: Context, epochMs: Long): String = DateUtils.getRelativeTimeSpanString(
+    epochMs,
+    System.currentTimeMillis(),
+    DateUtils.MINUTE_IN_MILLIS,
+    DateUtils.FORMAT_ABBREV_RELATIVE or DateUtils.FORMAT_ABBREV_MONTH
+).toString()
 
 private const val SNIPPET_LEN = 30
 

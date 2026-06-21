@@ -33,7 +33,9 @@ import kotlinx.coroutines.flow.first
 
 /**
  * M5 widget-1x4-compact · 4x1 horizontal Glance widget.
- * Color tokens from QuickNoteWidget.kt(same package): cBlue, cWhite, cBg, cTitle, cBody, cMeta, cp().
+ *
+ * widget-rome-compat · 颜色 token 化(从 Material 3 colorScheme 派生,跟随系统暗色 / 亮色 /
+ * Material You),不再用 QuickNoteWidget.kt 已删的 cBlue / cWhite / cTitle / cMeta hex。
  */
 class QuickNote1x4Widget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
@@ -51,17 +53,19 @@ class QuickNote1x4Widget : GlanceAppWidget() {
 @Composable
 private fun Widget1x4Content(notes: List<Note>) {
     val ctx = LocalContext.current
+    val colors = widgetColors()
     val note = notes.firstOrNull()
     val title = note?.title?.ifBlank { note.content.take(SNIPPET_LEN) } ?: ctx.getString(R.string.widget_empty)
     val time = note?.let { formatRelativeTimeCompact(ctx, it.updatedAt) }.orEmpty()
     val params = note?.let { actionParametersOf(OpenNoteAction.KEY_NOTE_ID to it.id) }
 
-    // Widget card = white. Left: note title + time on white. Right: blue "+" button
+    // Widget card surface from ColorScheme.surface.
+    // Left: note title + time. Right: primary "+" button
     // fills full widget height and is flush to the right edge (zero right margin).
     Row(
         GlanceModifier
             .fillMaxSize()
-            .background(cp(cWhite))
+            .background(colors.widgetBackground)
             .cornerRadius(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -73,25 +77,25 @@ private fun Widget1x4Content(notes: List<Note>) {
         ) {
             Text(
                 title,
-                style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp, color = cp(cTitle)),
+                style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp, color = colors.widgetOnBackground),
                 maxLines = 1
             )
             if (time.isNotEmpty()) {
                 Text(
                     time,
-                    style = TextStyle(fontSize = 10.sp, color = cp(cMeta)),
+                    style = TextStyle(fontSize = 10.sp, color = colors.widgetOnSurfaceVariant),
                     maxLines = 1,
                     modifier = GlanceModifier.padding(top = 1.dp)
                 )
             }
         }
-        // Blue "+" button: defaultWeight + height → flush top/bottom of widget (no margin).
+        // "+" button: defaultWeight + height → flush top/bottom of widget (no margin).
         // No end margin → right edge of button = right edge of widget.
         Box(
             GlanceModifier
                 .defaultWeight()
                 .height(48.dp)
-                .background(cp(cBlue))
+                .background(colors.widgetPrimary)
                 .cornerRadius(16.dp)
                 .clickable(actionStartActivity(createNoteIntent(ctx)))
                 .padding(horizontal = 14.dp),
@@ -99,7 +103,7 @@ private fun Widget1x4Content(notes: List<Note>) {
         ) {
             Text(
                 "+",
-                style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 20.sp, color = cp(cWhite))
+                style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 20.sp, color = colors.widgetOnBackground)
             )
         }
     }
