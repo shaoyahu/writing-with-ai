@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.yy.writingwithai.R
-import com.yy.writingwithai.feature.aiwriting.AiActionFabState
+import com.yy.writingwithai.core.ui.AiActionFabState
 
 /**
  * 详情屏 FAB(根据选区切 Share / AutoAwesome)。

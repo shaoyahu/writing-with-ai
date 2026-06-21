@@ -1,6 +1,6 @@
 package com.yy.writingwithai.core.ai.provider.deepseek
 
-import com.yy.writingwithai.core.ai.provider.ApiFormat
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.provider.AuthStyle
 import com.yy.writingwithai.core.ai.provider.ProviderConfig
 

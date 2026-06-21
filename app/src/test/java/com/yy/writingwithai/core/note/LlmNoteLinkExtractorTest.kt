@@ -12,6 +12,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 
@@ -21,21 +22,23 @@ class LlmNoteLinkExtractorTest {
     private val noteDao: NoteDao = mockk()
     private val apikeyStore: SecureApiKeyStore = mockk()
     private val aiHistoryDao: AiHistoryDao = mockk()
-    private val ctx: Context = mockk()
+    private val ctx: Context = mockk(relaxed = true)
 
-    private val extractor = LlmNoteLinkExtractor(
-        gateway,
-        noteLinkDao,
-        noteDao,
-        apikeyStore,
-        aiHistoryDao,
-        ctx
-    )
+    private val extractor by lazy {
+        LlmNoteLinkExtractor(
+            gateway,
+            noteLinkDao,
+            noteDao,
+            apikeyStore,
+            aiHistoryDao,
+            ctx
+        )
+    }
 
     @Test fun `no apikey returns early`() = runTest {
         coEvery { noteDao.getById("A") } returns note("A", "t", "hi")
-        every { apikeyStore.getActiveProviderId() } returns "d"
-        coEvery { apikeyStore.getApiKey("d") } returns null
+        coEvery { apikeyStore.observeConfiguredProviders() } returns flowOf(setOf("d"))
+        coEvery { apikeyStore.get("d") } returns null
         every { ctx.getSharedPreferences(any(), any()) } returns mockk(relaxed = true)
         extractor.extractAndPersist("A")
         coVerify(exactly = 0) { gateway.streamWritingOp(any(), any(), any(), any(), any(), any()) }
@@ -44,7 +47,7 @@ class LlmNoteLinkExtractorTest {
     @Test fun `note not found returns early`() = runTest {
         coEvery { noteDao.getById("A") } returns null
         extractor.extractAndPersist("A")
-        coVerify(exactly = 0) { apikeyStore.getActiveProviderId() }
+        coVerify(exactly = 0) { apikeyStore.observeConfiguredProviders() }
     }
 
     @Test fun `rate limit enforced`() {

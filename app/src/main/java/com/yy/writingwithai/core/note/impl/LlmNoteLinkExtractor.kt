@@ -5,15 +5,12 @@ import com.yy.writingwithai.core.ai.api.AiGateway
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.ai.prompt.NoteAssociationPrompt
-import com.yy.writingwithai.core.data.db.AiHistoryDao
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
-import com.yy.writingwithai.core.data.db.entity.AiHistoryEntity
 import com.yy.writingwithai.core.data.db.entity.LinkType
 import com.yy.writingwithai.core.data.db.entity.NoteLinkEntity
 import com.yy.writingwithai.core.prefs.SecureApiKeyStore
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
@@ -27,29 +24,35 @@ class LlmNoteLinkExtractor @Inject constructor(
     private val noteLinkDao: NoteLinkDao,
     private val noteDao: NoteDao,
     private val apikeyStore: SecureApiKeyStore,
-    private val aiHistoryDao: AiHistoryDao,
     @ApplicationContext private val context: Context
 ) {
     private val json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
     }
+
+    // TODO polish-review-r2 M6:SharedPreferences → DataStore 与项目其他 store 一致;
+    // 当前保留 SharedPreferences(binary 兼容老用户,功能 OK)。
     private val ratePrefs = context.getSharedPreferences(PREFS_RATE, Context.MODE_PRIVATE)
 
-    suspend fun extractAndPersist(noteId: String, bypassRateLimit: Boolean = false) {
-        if (!bypassRateLimit && isRateLimited(noteId)) return
-        val src = noteDao.getById(noteId) ?: return
-        if (src.content.isBlank()) return
+    /** @return number of links persisted, or 0 if skipped / no candidates / error. */
+    suspend fun extractAndPersist(noteId: String, bypassRateLimit: Boolean = false): Int {
+        if (!bypassRateLimit && isRateLimited(noteId)) return 0
+        val src = noteDao.getById(noteId) ?: return 0
+        if (src.content.isBlank()) return 0
 
         val providers = apikeyStore.observeConfiguredProviders().first()
-        val providerId = providers.firstOrNull() ?: return
-        val apikey = apikeyStore.get(providerId) ?: return
+        val providerId = providers.firstOrNull() ?: return 0
+        val apikey = apikeyStore.get(providerId) ?: return 0
         val model = "default"
 
         val query = sanitize(src.content).take(50)
+            // H2 修:转义 `%` `_` `\` 与 Repository.observeNotesWithTags 行为对齐(DAO 用 `LIKE :q ESCAPE '\'`),
+            // 否则 `100\off` 这种含 `\` 的内容会让 SQLite `\o` 当转义,误匹配 `100*off`。
+            .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         val q = "%$query%"
         val candidates = noteDao.search(q).first().filter { it.id != noteId }
-        if (candidates.isEmpty()) return
+        if (candidates.isEmpty()) return 0
 
         val prompt = NoteAssociationPrompt.build(
             sourceTitle = src.title,
@@ -62,6 +65,7 @@ class LlmNoteLinkExtractor @Inject constructor(
         val startMs = System.currentTimeMillis()
         val inTokens = estimateTokens(prompt)
         var responseText = ""
+        var linkCount = 0
         try {
             gateway.streamWritingOp(
                 op = WritingOp.EXPAND,
@@ -73,11 +77,8 @@ class LlmNoteLinkExtractor @Inject constructor(
                 when (event) {
                     is AiStreamEvent.Delta -> responseText += event.text
                     is AiStreamEvent.Failed -> {
-                        recordHistory(
-                            noteId, providerId, model, inTokens, 0, startMs,
-                            prompt.take(500), "", error = event.error.summary()
-                        )
-                        return
+                        // M7 修:失败也由 gateway.onCompletion 统一 record,extractor 不再独立 record。
+                        return 0
                     }
                     else -> {}
                 }
@@ -93,21 +94,24 @@ class LlmNoteLinkExtractor @Inject constructor(
                     weight = l.confidence.coerceIn(0f, 1f),
                     createdAt = now,
                     updatedAt = now,
-                    evidence = "{\"reason\":\"${l.reason.replace("\"", "\\\"")}\",\"lastLlmExtractAt\":$now}"
+                    // M5 修:用 @Serializable 替代手动 JSON 拼接,
+                    // 避免 reason 含 `\n` / `\` / 控制字符破坏 JSON。
+                    evidence = Json.encodeToString(
+                        EvidenceDto.serializer(),
+                        EvidenceDto(reason = l.reason, lastLlmExtractAt = now)
+                    )
                 )
             }
+            linkCount = links.size
             if (links.isNotEmpty()) noteLinkDao.upsertAll(links)
             ratePrefs.edit().putLong("last_$noteId", now).apply()
-            recordHistory(
-                noteId, providerId, model, inTokens, outTokens, startMs,
-                prompt.take(500), responseText.take(500), error = null
-            )
+            // M7 修:删 recordHistory(...),由 CoreAiGateway.onCompletion 统一 record,避免双重 entry。
         } catch (e: Exception) {
-            recordHistory(
-                noteId, providerId, model, inTokens, 0, startMs,
-                prompt.take(500), "", error = e.message
-            )
+            // M7 修:同样由 gateway 统一 record(失败也走 onCompletion 的 lastError 路径)。
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            return 0
         }
+        return linkCount
     }
 
     fun isRateLimited(noteId: String): Boolean {
@@ -116,33 +120,7 @@ class LlmNoteLinkExtractor @Inject constructor(
         return System.currentTimeMillis() - last < RATE_LIMIT_MS
     }
 
-    private suspend fun recordHistory(
-        noteId: String,
-        providerId: String,
-        model: String,
-        inTokens: Int,
-        outTokens: Int,
-        startMs: Long,
-        inputSnapshot: String,
-        outputSnapshot: String,
-        error: String?
-    ) {
-        val total = inTokens + outTokens
-        val duration = System.currentTimeMillis() - startMs
-        aiHistoryDao.insert(
-            AiHistoryEntity(
-                id = UUID.randomUUID().toString(),
-                noteId = noteId, providerId = providerId, model = model,
-                op = "note-association-extract",
-                inputTokens = inTokens, outputTokens = outTokens,
-                totalTokens = total, durationMs = duration,
-                createdAt = System.currentTimeMillis(),
-                inputSnapshot = inputSnapshot, outputSnapshot = outputSnapshot,
-                truncated = inputSnapshot.length < inTokens * 3,
-                error = error
-            )
-        )
-    }
+    // M7 修:删 `private suspend fun recordHistory(...)` 整段 — gateway.onCompletion 统一 record。
 
     private fun parseResponse(text: String): NoteAssociationPrompt.LlmResponse {
         val clean = text.trim().removePrefix("```json").removePrefix("```")
@@ -151,18 +129,27 @@ class LlmNoteLinkExtractor @Inject constructor(
         @Serializable data class LDto(val id: String, val confidence: Float, val reason: String)
 
         @Serializable data class RDto(val links: List<LDto> = emptyList())
-        val dto = json.decodeFromString<RDto>(clean)
-        return NoteAssociationPrompt.LlmResponse(
-            links = dto.links.map {
-                NoteAssociationPrompt.LlmLinkResult(it.id, it.confidence.coerceIn(0f, 1f), it.reason)
-            }
-        )
+        return try {
+            val dto = json.decodeFromString<RDto>(clean)
+            NoteAssociationPrompt.LlmResponse(
+                links = dto.links.map {
+                    NoteAssociationPrompt.LlmLinkResult(it.id, it.confidence.coerceIn(0f, 1f), it.reason)
+                }
+            )
+        } catch (_: Exception) {
+            // 模型返回非 JSON / 截断,当作空链接处理(返回 0 link,不算错)。
+            NoteAssociationPrompt.LlmResponse(links = emptyList())
+        }
     }
 
     private fun sanitize(c: String) = c.replace(Regex("[\"'`*\\[\\]]"), " ")
         .replace(Regex("\\s+"), " ").trim().take(200)
 
     private fun estimateTokens(text: String): Int = (text.length / 3.5).toInt().coerceAtLeast(1)
+
+    /** M5:LLM 关联抽取 evidence 序列化(替代手动 JSON 拼接)。 */
+    @Serializable
+    private data class EvidenceDto(val reason: String, val lastLlmExtractAt: Long)
 
     companion object {
         private const val PREFS_RATE = "note_assoc_llm_rate"

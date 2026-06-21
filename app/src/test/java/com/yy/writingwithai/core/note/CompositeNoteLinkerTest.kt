@@ -11,7 +11,8 @@ import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
 import com.yy.writingwithai.core.note.impl.CompositeNoteLinker
 import com.yy.writingwithai.core.note.impl.LocalNoteLinker
 import com.yy.writingwithai.core.note.impl.WikilinkIndexer
-import com.yy.writingwithai.feature.settings.NoteAssociationSettings
+import com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -40,8 +41,8 @@ class CompositeNoteLinkerTest {
         val local = LocalNoteLinker(noteDao, noteTagDao)
         val wiki = WikilinkIndexer(noteDao)
         val llm: com.yy.writingwithai.core.note.impl.LlmNoteLinkExtractor = mockk()
-        every { llm.extractAndPersist(any(), any()) } returns Unit
-        val settings: NoteAssociationSettings = mockk()
+        coEvery { llm.extractAndPersist(any(), any()) } returns 0
+        val settings: NoteAssociationSettingsStore = mockk()
         every { settings.isEnabled() } returns false
         linker = CompositeNoteLinker(noteLinkDao, local, wiki, llm, settings)
     }

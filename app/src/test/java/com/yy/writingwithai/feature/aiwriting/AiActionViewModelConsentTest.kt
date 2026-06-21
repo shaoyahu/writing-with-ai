@@ -133,20 +133,25 @@ private class ThrowingAiGateway : AiGateway {
 
     override suspend fun listProviders(): List<com.yy.writingwithai.core.ai.api.ProviderDescriptor> = emptyList()
 
-    override fun streamWritingOp(
+    override suspend fun streamWritingOp(
         op: WritingOp,
         sourceText: String,
         providerId: String,
         apikey: String,
         modelName: String?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
     ): kotlinx.coroutines.flow.Flow<AiStreamEvent> {
         callCount++
         throw IllegalStateException("AiGateway must NOT be called when consent missing")
     }
 
-    override suspend fun ping(providerId: String, apikey: String, modelName: String): String? =
-        "test: ping not invoked in consent-missing path"
+    override suspend fun ping(
+        providerId: String,
+        apikey: String,
+        modelName: String,
+        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+    ): String? = "test: ping not invoked in consent-missing path"
 }
 
 /** 记录最后一次调用的 providerId 并 emit 完整流。 */
@@ -156,13 +161,14 @@ private class RecordingAiGateway : AiGateway {
 
     override suspend fun listProviders(): List<com.yy.writingwithai.core.ai.api.ProviderDescriptor> = emptyList()
 
-    override fun streamWritingOp(
+    override suspend fun streamWritingOp(
         op: WritingOp,
         sourceText: String,
         providerId: String,
         apikey: String,
         modelName: String?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
     ): kotlinx.coroutines.flow.Flow<AiStreamEvent> {
         callCount++
         lastProviderId = providerId
@@ -174,5 +180,10 @@ private class RecordingAiGateway : AiGateway {
         )
     }
 
-    override suspend fun ping(providerId: String, apikey: String, modelName: String): String? = null
+    override suspend fun ping(
+        providerId: String,
+        apikey: String,
+        modelName: String,
+        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+    ): String? = null
 }

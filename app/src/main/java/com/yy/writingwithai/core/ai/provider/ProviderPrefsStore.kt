@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -30,6 +31,25 @@ interface ProviderPrefsStore {
 
     /** Flow,UI 可订阅实时刷新。 */
     fun observeSelectedProviderId(): Flow<String>
+
+    /** per-provider 用户选定的 model 名;无值 = `null`(走 ProviderConfig.defaultModel 兜底)。 */
+    suspend fun getSelectedModel(providerId: String): String?
+
+    suspend fun setSelectedModel(providerId: String, model: String)
+
+    /** Flow,UI 可订阅实时刷新;值为 `null` 表示未设置。 */
+    fun observeSelectedModel(providerId: String): Flow<String?>
+
+    /**
+     * model-management-detail-dropdown X 方案:per-provider 用户选定的 API 格式覆盖。
+     * 无值 = `null`(走 ProviderConfig.apiFormat 兜底)。
+     * 存的是字符串,避免 enum 序列化耦合;解析失败回退 null。
+     */
+    suspend fun getApiFormat(providerId: String): ApiFormat?
+
+    suspend fun setApiFormat(providerId: String, format: ApiFormat)
+
+    fun observeApiFormat(providerId: String): Flow<ApiFormat?>
 }
 
 private val Context.providerPrefsDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -50,8 +70,61 @@ class ProviderPrefsStoreImpl(
     override fun observeSelectedProviderId(): Flow<String> = context.providerPrefsDataStore.data
         .map { it[KEY_SELECTED_PROVIDER_ID] ?: DEFAULT_PROVIDER_ID }
 
+    override suspend fun getSelectedModel(providerId: String): String? {
+        return context.providerPrefsDataStore.data
+            .map { it[selectedModelKey(providerId)] }
+            .first()
+    }
+
+    override suspend fun setSelectedModel(providerId: String, model: String) {
+        context.providerPrefsDataStore.edit { it[selectedModelKey(providerId)] = model }
+    }
+
+    override fun observeSelectedModel(providerId: String): Flow<String?> {
+        return context.providerPrefsDataStore.data
+            .map { it[selectedModelKey(providerId)] }
+    }
+
+    override suspend fun getApiFormat(providerId: String): ApiFormat? {
+        return context.providerPrefsDataStore.data
+            .map { it[apiFormatKey(providerId)]?.let { name -> parseApiFormat(providerId, name) } }
+            .first()
+    }
+
+    override suspend fun setApiFormat(providerId: String, format: ApiFormat) {
+        context.providerPrefsDataStore.edit { it[apiFormatKey(providerId)] = format.name }
+    }
+
+    override fun observeApiFormat(providerId: String): Flow<ApiFormat?> {
+        return context.providerPrefsDataStore.data
+            .map { it[apiFormatKey(providerId)]?.let { name -> parseApiFormat(providerId, name) } }
+    }
+
+    /**
+     * M12 修:解析失败时 `Log.w` 而非静默 — 旧版本升上来的脏数据(老 enum name)
+     * 应该让开发 / 用户能看到,而不是悄悄回退 ProviderConfig 默认。
+     */
+    private fun parseApiFormat(providerId: String, name: String): ApiFormat? = try {
+        ApiFormat.valueOf(name)
+    } catch (e: IllegalArgumentException) {
+        android.util.Log.w(TAG, "Unknown apiFormat name=$name for provider=$providerId, resetting to default")
+        null
+    }
+
     companion object {
         const val DEFAULT_PROVIDER_ID = "fake"
         private val KEY_SELECTED_PROVIDER_ID = stringPreferencesKey("selected_provider_id")
+        private const val TAG = "ProviderPrefsStore"
+        // TAG 与 KEY 合并到同一 companion object,避免拆分导致 IDE / compiler 看不到 const 引用。
+
+        /** per-provider selectedModel 的 Preferences.Key 工厂(动态 providerId 拼接)。 */
+        fun selectedModelKey(providerId: String): Preferences.Key<String> {
+            return stringPreferencesKey("selected_model_$providerId")
+        }
+
+        /** per-provider apiFormat 覆盖的 Preferences.Key 工厂(存枚举 name 字符串)。 */
+        fun apiFormatKey(providerId: String): Preferences.Key<String> {
+            return stringPreferencesKey("api_format_$providerId")
+        }
     }
 }

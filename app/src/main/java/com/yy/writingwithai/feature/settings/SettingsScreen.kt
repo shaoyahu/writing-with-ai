@@ -104,7 +104,7 @@ fun SettingsScreen(
                             checked = llmEnabled,
                             onCheckedChange = { enabled ->
                                 llmEnabled = enabled
-                                settings.llmExtractEnabled = enabled
+                                settings.setEnabled(enabled)
                             }
                         )
                     }
@@ -117,5 +117,5 @@ fun SettingsScreen(
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface SettingsEntryPoint {
-    fun noteAssociationSettings(): NoteAssociationSettings
+    fun noteAssociationSettings(): com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
 }

@@ -3,7 +3,7 @@ package com.yy.writingwithai.feature.aiwriting.action
 import androidx.compose.ui.text.TextRange
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.yy.writingwithai.feature.aiwriting.AiActionFabState
+import com.yy.writingwithai.core.ui.AiActionFabState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow

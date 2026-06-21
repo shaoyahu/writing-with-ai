@@ -3,6 +3,7 @@ package com.yy.writingwithai.feature.aiwriting.streaming
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.ai.api.AiError
 import com.yy.writingwithai.core.ai.api.AiGateway
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
@@ -17,6 +18,7 @@ import com.yy.writingwithai.core.widget.QuickNoteWidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -86,6 +88,7 @@ constructor(
     private var lastSourceText: String? = null
     private var lastNoteId: String? = null
     private var lastUsage: AiStreamEvent.Usage? = null
+    private var lastOriginalContent: String? = null
 
     fun start(op: WritingOp, sourceText: String, noteId: String) {
         streamJob?.cancel()
@@ -93,6 +96,7 @@ constructor(
         lastSourceText = sourceText
         lastNoteId = noteId
         lastUsage = null
+        lastOriginalContent = null
         // M4-4 consent gate:r1 H2 修后用构造期同步拿的 `initialConsented` 决策,
         // 避免 `consentFlow.value` 在 DataStore 冷启动 race 下误返 EMPTY.accepted=false。
         if (!initialConsented) {
@@ -103,8 +107,11 @@ constructor(
             viewModelScope.launch {
                 // M5 polish · fix-m5-blockers: 同步取 providerId + 真 apikey,
                 // 缺 apikey 阻断 AI 调用,真 apikey 透传 gateway。
+                // H1 修:4 个 prefs read 全在 suspend 上下文(viewModelScope.launch 内) await,
+                // 删原 gateway.streamWritingOp 内 runBlocking(主线程 ANR)。
                 val providerId = providerPrefsStore.getSelectedProviderId()
                 val apikey = secureApiKeyStore.get(providerId)
+                val apiFormatOverride = providerPrefsStore.getApiFormat(providerId)
                 if (providerId != PROVIDER_ID_FAKE && apikey == null) {
                     _state.value = AiActionUiState.Failed(op = op, error = AiError.ProviderNotConfigured)
                     return@launch
@@ -119,8 +126,9 @@ constructor(
                         sourceText = sourceText,
                         providerId = providerId,
                         apikey = apikey ?: "",
-                        modelName = null,
-                        systemPrompt = systemPrompt
+                        modelName = providerPrefsStore.getSelectedModel(providerId),
+                        systemPrompt = systemPrompt,
+                        apiFormatOverride = apiFormatOverride
                     ).collect { event ->
                         when (event) {
                             is AiStreamEvent.Started -> Unit
@@ -152,38 +160,97 @@ constructor(
 
     /**
      * M5 polish · provider-real-integration:从 [ProviderPrefsStore] 拿用户选定
-     * 的 providerId;若 apikey 未填 → emit `ProviderNotConfigured`(让 UI 引导用户
-     * 去设置 → 模型管理)。FakeProvider 仅作为 `defaultProviderId=="fake"` 时的
-     * 测试兜底(用户未在模型管理设置过)。
+     * M13 修:删 `resolveProviderId()` 死代码(r1 已建议,本轮清)— `start()` 直接 inline 逻辑,
+     * 没 caller,留函数只会跟着演化走偏。
      */
-    private suspend fun resolveProviderId(): String {
-        val selected = providerPrefsStore.getSelectedProviderId()
-        if (selected == PROVIDER_ID_FAKE) return PROVIDER_ID_FAKE
-        return if (secureApiKeyStore.has(selected)) selected else PROVIDER_ID_FAKE
-    }
 
     fun acceptReplace() {
-        val current = _state.value as? AiActionUiState.Done ?: return
-        val noteId = lastNoteId ?: return
+        // M1 修:release 包不打 noteId / op / e.message 到 logcat(隐私 + provider URL 泄露)。
+        if (BuildConfig.DEBUG) android.util.Log.d("AiVM", "acceptReplace called")
+        val current = _state.value as? AiActionUiState.Done ?: run {
+            if (BuildConfig.DEBUG) android.util.Log.d("AiVM", "acceptReplace: not Done state")
+            return
+        }
+        val noteId = lastNoteId ?: run {
+            if (BuildConfig.DEBUG) android.util.Log.d("AiVM", "acceptReplace: lastNoteId null")
+            return
+        }
+        val sourceText = lastSourceText ?: return
         val op = current.op
         val aiText = current.finalText
         viewModelScope.launch {
-            // M1 r1 M6 修同款:用户接受后立刻 back → viewModelScope 取消,但
-            // "替换正文 + 写 lastAiOp" 必须落库,NonCancellable 保护。
-            withContext(NonCancellable) {
-                // M2 修:一次 IO 拿 Note + tags,避免 getNote + observeNoteWithTags
-                // 之间的 race(用户改 tag 后被本 upsert 覆盖)。
-                val existingFlow = noteRepository.observeNoteWithTags(noteId)
-                val existing = existingFlow.first() ?: return@withContext
-                val now = System.currentTimeMillis()
-                val updated = existing.note.copy(content = aiText, updatedAt = now)
-                noteRepository.upsert(updated, existing.tags)
-                noteRepository.updateAiMetadata(noteId, op.name.lowercase(), now)
-                // H4 修:widget 刷新也包 NonCancellable,避免 viewModelScope 取消时
-                // Note 已落库但 widget 没刷新的 race。
-                widgetUpdater.updateAll(context)
+            try {
+                withContext(NonCancellable) {
+                    val existingFlow = noteRepository.observeNoteWithTags(noteId)
+                    val existing = existingFlow.first() ?: return@withContext
+                    val now = System.currentTimeMillis()
+                    val originalContent = existing.note.content
+                    // H6 修:`String.replace(sourceText, aiText)` 在原文不含 / 多次匹配时静默,
+                    // 改用 indexOf 严格校验,缺失/多匹配 emit Failed,避免"接受了但内容没动"。
+                    val idx = originalContent.indexOf(sourceText)
+                    if (idx < 0) {
+                        _state.value = AiActionUiState.Failed(
+                            op = op,
+                            error = AiError.Unknown(null, "原文已被修改,请重新生成")
+                        )
+                        return@withContext
+                    }
+                    if (originalContent.indexOf(sourceText, idx + sourceText.length) >= 0) {
+                        _state.value = AiActionUiState.Failed(
+                            op = op,
+                            error = AiError.Unknown(null, "原文有多处匹配,请手动选择")
+                        )
+                        return@withContext
+                    }
+                    val updatedContent = originalContent.replaceRange(idx, idx + sourceText.length, aiText)
+                    lastOriginalContent = originalContent
+                    val updated = existing.note.copy(content = updatedContent, updatedAt = now)
+                    noteRepository.upsert(updated, existing.tags)
+                    noteRepository.updateAiMetadata(noteId, op.name.lowercase(), now)
+                    widgetUpdater.updateAll(context)
+                }
+                // H7 修:删 `delay(150)` + `tryEmit` 强刷 + 误导 Log.d。
+                // Room Flow 是 single source of truth,`NonCancellable { upsert }` 退栈时
+                // invalidation 已传播,detail VM 主路径 Flow 自然收到更新,无需 push 强刷。
+                _state.value = AiActionUiState.Replaced(op = op)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) android.util.Log.e("AiVM", "acceptReplace ${op.name}", e)
+                _state.value = AiActionUiState.Failed(
+                    op = op,
+                    error = AiError.Unknown(null, e.message ?: "unknown")
+                )
             }
-            _state.value = AiActionUiState.Idle
+        }
+    }
+
+    /** 撤回 AI 替换,恢复原始内容。 */
+    fun undo() {
+        val noteId = lastNoteId ?: return
+        val original = lastOriginalContent ?: return
+        viewModelScope.launch {
+            try {
+                withContext(NonCancellable) {
+                    val existingFlow = noteRepository.observeNoteWithTags(noteId)
+                    val existing = existingFlow.first() ?: return@withContext
+                    val now = System.currentTimeMillis()
+                    val reverted = existing.note.copy(content = original, updatedAt = now)
+                    noteRepository.upsert(reverted, existing.tags)
+                    widgetUpdater.updateAll(context)
+                }
+                lastOriginalContent = null
+                _state.value = AiActionUiState.Idle
+            } catch (e: Exception) {
+                // M14 修:跟 acceptReplace 一致,DB 写异常 → Failed 而不是 stuck Replaced 态无法撤回。
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                val currentOp = (_state.value as? AiActionUiState.Replaced)?.op ?: WritingOp.POLISH
+                if (BuildConfig.DEBUG) android.util.Log.e("AiVM", "undo failed", e)
+                _state.value = AiActionUiState.Failed(
+                    op = currentOp,
+                    error = AiError.Unknown(null, "撤回失败:${e.message}")
+                )
+            }
         }
     }
 
@@ -200,6 +267,7 @@ constructor(
 
     fun dismiss() {
         streamJob?.cancel()
+        lastOriginalContent = null
         _state.value = AiActionUiState.Idle
     }
 

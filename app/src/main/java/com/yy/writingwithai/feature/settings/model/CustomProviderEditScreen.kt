@@ -74,7 +74,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.app.ui.theme.Spacing
-import com.yy.writingwithai.core.ai.provider.ApiFormat
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.provider.AuthStyle
 
 /**

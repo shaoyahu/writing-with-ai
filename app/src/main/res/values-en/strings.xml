@@ -68,6 +68,13 @@
     <string name="aiwriting_panel_regenerate">TODO(en): aiwriting_panel_regenerate</string>
     <string name="aiwriting_panel_close">TODO(en): aiwriting_panel_close</string>
     <string name="aiwriting_panel_failed_title">TODO(en): aiwriting_panel_failed_title</string>
+    <!-- model-management-detail-dropdown X 方案:Done but finalText empty fallback message -->
+    <string name="aiwriting_panel_empty_result">AI returned no content. Check model and protocol compatibility, or regenerate.</string>
+
+    <!-- AI replace / undo -->
+    <string name="aiwriting_panel_replaced">Replaced</string>
+    <string name="aiwriting_panel_replaced_hint">Text replaced. Undo to revert, or close to keep.</string>
+    <string name="aiwriting_panel_undo">Undo</string>
 
     <string name="aiwriting_panel_usage_fmt">TODO(en): aiwriting_panel_usage_fmt</string>
 
@@ -170,4 +177,31 @@
     <string name="model_provider_detail_save_failed_fmt">Save failed: %1$s</string>
     <string name="model_management_error_unknown">Unknown error</string>
     <string name="model_management_error_no_apikey">API key not configured</string>
+
+    <!-- model-management-detail-dropdown · protocol + model dropdown -->
+    <string name="model_provider_detail_api_format_label">Protocol</string>
+    <string name="model_provider_detail_api_format_anthropic">Anthropic compatible</string>
+    <string name="model_provider_detail_api_format_openai">OpenAI compatible</string>
+    <string name="model_provider_detail_model_label">Model</string>
+    <string name="model_provider_detail_model_default_suffix">(default)</string>
+    <string name="model_provider_detail_base_url_locked_hint">Endpoint preset by provider; not editable</string>
+
+    <!-- note-association -->
+    <string name="note_association_section_title">Related</string>
+    <string name="note_association_related_title">Related Notes</string>
+    <string name="note_association_related_empty">No related notes yet</string>
+    <string name="note_association_backlinks_title">Backlinks</string>
+    <string name="note_association_ai_find">Find related with AI</string>
+    <string name="note_association_ai_loading">AI is analyzing note associations…</string>
+    <string name="note_association_ai_success_found">Found %d related notes</string>
+    <string name="note_association_ai_success_none">AI found no new associations</string>
+    <string name="note_association_ai_error_unknown">AI analysis failed, please retry</string>
+    <string name="note_association_ai_retry">Retry</string>
+    <string name="note_association_ai_setting_title">Use AI to find associations on save</string>
+    <string name="note_association_ai_setting_desc">When enabled, AI will automatically extract note associations after each edit. Each call may incur a small cost.</string>
+    <string name="note_association_signal_wikilink">[[link]]</string>
+    <string name="note_association_signal_tag">Tag</string>
+    <string name="note_association_signal_content">Similar</string>
+    <string name="note_association_signal_ai">AI</string>
+    <string name="note_association_signal_backlink">Ref</string>
 </resources>

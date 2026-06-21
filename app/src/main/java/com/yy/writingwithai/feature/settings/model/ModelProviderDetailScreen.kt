@@ -21,7 +21,10 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,11 +52,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.provider.ProviderConfig
 
 /**
- * fix-ai-config-ux · M6 custom-model · Provider 详情屏:
- * - 通过 VM.getProviderConfig(providerId) suspend 拿配置(避免 runBlocking ANR)
+ * model-management-detail-dropdown X 方案 · Provider 详情屏:
+ * - baseURL 完全隐藏(roadmap §6.3:endpoint 由 apiFormat 自动推,provider 内部细节)
+ * - 协议类型下拉可写(用户可在 OpenAI / Anthropic 间切)
+ * - 选择模型下拉,默认项带「(默认)」后缀;切换 → VM.onModelSelected 写 prefs
+ * - VM.getProviderConfig suspend 拿配置
  * - 区分新配置 vs 覆盖(banner + 按钮文案 + placeholder)
  * - SharedFlow 接收 save 事件 → Toast + 自动 onBack
  */
@@ -78,6 +85,15 @@ fun ModelProviderDetailScreen(
 
     var apiKey by remember { mutableStateOf("") }
     var revealKey by remember { mutableStateOf(false) }
+
+    // X 方案:进屏回填当前 model + 当前 apiFormat
+    var currentModel by remember { mutableStateOf<String?>(null) }
+    var currentApiFormat by remember { mutableStateOf<ApiFormat?>(null) }
+    LaunchedEffect(providerId, config) {
+        val cfg = config ?: return@LaunchedEffect
+        currentModel = viewModel.loadSelectedModel(providerId) ?: cfg.defaultModel
+        currentApiFormat = viewModel.loadApiFormat(providerId)
+    }
 
     LaunchedEffect(Unit) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -110,8 +126,6 @@ fun ModelProviderDetailScreen(
     }
 
     val displayName = config?.displayName ?: providerId
-    val baseUrl = config?.baseUrl ?: "—"
-    val defaultModel = config?.defaultModel ?: "—"
 
     Scaffold(
         modifier = modifier,
@@ -158,20 +172,35 @@ fun ModelProviderDetailScreen(
                     }
                 )
             )
-            Text(
-                text = stringResource(R.string.model_provider_detail_base_url),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(text = baseUrl, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                text = stringResource(
-                    R.string.model_provider_detail_default_model_fmt,
-                    defaultModel
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            // X 方案:协议类型下拉可写
+            currentApiFormat?.let { fmt ->
+                ApiFormatDropdown(
+                    selected = fmt,
+                    onSelected = { picked ->
+                        currentApiFormat = picked
+                        viewModel.onApiFormatSelected(providerId, picked)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(spacing.sm))
+            }
+
+            // 选择模型下拉
+            config?.let { cfg ->
+                ModelDropdown(
+                    selected = currentModel,
+                    defaultModel = cfg.defaultModel,
+                    supportedModels = cfg.supportedModels,
+                    onSelected = { picked ->
+                        currentModel = picked
+                        viewModel.onModelSelected(providerId, picked)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             Spacer(Modifier.height(spacing.md))
             OutlinedTextField(
                 value = apiKey,
@@ -202,7 +231,7 @@ fun ModelProviderDetailScreen(
             Button(
                 onClick = {
                     if (apiKey.isNotBlank()) {
-                        viewModel.saveProvider(providerId, apiKey)
+                        viewModel.saveProvider(providerId, apiKey, currentModel)
                     }
                 },
                 enabled = apiKey.isNotBlank(),
@@ -215,6 +244,85 @@ fun ModelProviderDetailScreen(
                         stringResource(R.string.model_provider_detail_save_override)
                     } else {
                         stringResource(R.string.model_provider_detail_save)
+                    }
+                )
+            }
+        }
+    }
+}
+
+/** 协议类型下拉可写 — 切时调 onSelected,VM 写 prefs apiFormat 覆盖。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ApiFormatDropdown(selected: ApiFormat, onSelected: (ApiFormat) -> Unit, modifier: Modifier = Modifier) {
+    var expanded by remember { mutableStateOf(false) }
+    val labels = mapOf(
+        ApiFormat.ANTHROPIC to R.string.model_provider_detail_api_format_anthropic,
+        ApiFormat.OPENAI to R.string.model_provider_detail_api_format_openai
+    )
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = stringResource(labels.getValue(selected)),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.model_provider_detail_api_format_label)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            ApiFormat.entries.forEach { format ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(labels.getValue(format))) },
+                    onClick = {
+                        onSelected(format)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+/** 选择模型下拉;默认项后缀「(默认)」便于辨识。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelDropdown(
+    selected: String?,
+    defaultModel: String,
+    supportedModels: List<String>,
+    onSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val suffix = stringResource(R.string.model_provider_detail_model_default_suffix)
+    val effective = selected ?: defaultModel
+    val display = if (effective == defaultModel) "$effective $suffix" else effective
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = display,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.model_provider_detail_model_label)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            supportedModels.forEach { model ->
+                val itemLabel = if (model == defaultModel) "$model $suffix" else model
+                DropdownMenuItem(
+                    text = { Text(itemLabel) },
+                    onClick = {
+                        onSelected(model)
+                        expanded = false
                     }
                 )
             }

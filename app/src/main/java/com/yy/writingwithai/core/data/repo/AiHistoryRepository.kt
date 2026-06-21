@@ -18,8 +18,19 @@ constructor(
 ) {
     private companion object {
         const val MAX_SNAPSHOT_LEN = 10_000
+        const val MAX_ERROR_LEN = 1_000
         const val PRUNE_DAYS = 90L
+
+        // H3 修:apikey / Bearer / x-api-key 等敏感 pattern 集中脱敏,
+        // 避免 gateway / extractor 各自实现漂移。
+        val APIKEY_PATTERNS = listOf(
+            Regex("""sk-[A-Za-z0-9_\-]{16,}"""),
+            Regex("""(?i)Bearer\s+[A-Za-z0-9_\-\.=]{16,}"""),
+            Regex("""(?i)x-api-key[:\s]+[A-Za-z0-9_\-\.=]{16,}""")
+        )
     }
+
+    private fun redact(s: String): String = APIKEY_PATTERNS.fold(s) { acc, p -> acc.replace(p, "***REDACTED***") }
 
     /** 记录一次 AI 调用(由 CoreAiGateway 在 Done / Failed 时调)。 */
     suspend fun record(
@@ -36,6 +47,9 @@ constructor(
         outputSnapshot: String,
         error: String?
     ) {
+        val redactedInput = redact(inputSnapshot).take(MAX_SNAPSHOT_LEN)
+        val redactedOutput = redact(outputSnapshot).take(MAX_SNAPSHOT_LEN)
+        val redactedError = error?.let { redact(it).take(MAX_ERROR_LEN) }
         dao.insert(
             AiHistoryEntity(
                 id = UUID.randomUUID().toString(),
@@ -48,12 +62,12 @@ constructor(
                 totalTokens = totalTokens,
                 durationMs = durationMs,
                 createdAt = createdAt,
-                inputSnapshot = inputSnapshot.take(MAX_SNAPSHOT_LEN),
-                outputSnapshot = outputSnapshot.take(MAX_SNAPSHOT_LEN),
+                inputSnapshot = redactedInput,
+                outputSnapshot = redactedOutput,
                 truncated =
-                inputSnapshot.length > MAX_SNAPSHOT_LEN ||
-                    outputSnapshot.length > MAX_SNAPSHOT_LEN,
-                error = error
+                redactedInput.length < inputSnapshot.length ||
+                    redactedOutput.length < outputSnapshot.length,
+                error = redactedError
             )
         )
     }

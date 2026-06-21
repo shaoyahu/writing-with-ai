@@ -6,7 +6,7 @@ import com.yy.writingwithai.core.data.db.entity.NoteLinkEntity
 import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.note.RelatedNote
 import com.yy.writingwithai.core.note.config.LinkWeights
-import com.yy.writingwithai.feature.settings.NoteAssociationSettings
+import com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.async
@@ -20,7 +20,7 @@ constructor(
     private val localLinker: LocalNoteLinker,
     private val wikilinkIndexer: WikilinkIndexer,
     private val llmExtractor: LlmNoteLinkExtractor,
-    private val assocSettings: NoteAssociationSettings
+    private val assocSettings: NoteAssociationSettingsStore
 ) : NoteLinker {
 
     override suspend fun recomputeForNote(noteId: String) = coroutineScope {
@@ -50,7 +50,10 @@ constructor(
         if (assocSettings.isEnabled()) {
             try {
                 llmExtractor.extractAndPersist(noteId)
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                // M2 修:不吞 CancellationException(让 viewModelScope.cancel() 正确退出)
+                if (e is kotlinx.coroutines.CancellationException) throw e
+            }
         }
     }
 

@@ -37,4 +37,9 @@ sealed interface AiActionUiState {
         val op: WritingOp,
         val error: AiError
     ) : AiActionUiState
+
+    /** acceptReplace 后:内容已部分替换,用户可撤回。 */
+    data class Replaced(
+        val op: WritingOp
+    ) : AiActionUiState
 }

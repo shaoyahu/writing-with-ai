@@ -53,6 +53,9 @@ constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val recomputeFlow = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
+    /** AI replace 触发通知:detail ViewModel 收集,收到 noteId 后强刷。 */
+    val noteUpdateEvents = MutableSharedFlow<String>(extraBufferCapacity = 32, replay = 1)
+
     init {
         scope.launch {
             recomputeFlow

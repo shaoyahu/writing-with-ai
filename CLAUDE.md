@@ -57,6 +57,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 所有命令在仓库根目录运行。**前置依赖**见 [`docs/usage/development-setup.md`](docs/usage/development-setup.md)(JDK 17 + Gradle,本机一次装好即可)。当前**没有测试框架依赖**(`app/build.gradle.kts` 里没有 testImplementation),"跑单个测试"目前不存在 —— `init-android-project` change 会一起把 JUnit5 / MockK / Turbine 加进来,再加业务测试。
 
+**编译环境重要**: 本机 JDK 17 在 `/opt/homebrew/opt/openjdk@17`。macOS 的 `/usr/bin/java` 是 stub,直接 `java -version` 会报 "Unable to locate a Java Runtime",但**这不代表无法编译**——所有 Gradle 命令前先 `export JAVA_HOME=/opt/homebrew/opt/openjdk@17` 即可正常编译和跑测试。**每次修改代码后默认跑编译 + ktlint + 单测验证**,不要因为 `java -version` 报错就跳过。
+
 | 任务 | 命令 | 作用 |
 | --- | --- | --- |
 | 编译 Debug APK | `./gradlew :app:assembleDebug` | 构建可调式 APK 到 `app/build/outputs/apk/debug/` |

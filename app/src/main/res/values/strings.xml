@@ -84,6 +84,13 @@
     <string name="aiwriting_panel_regenerate">再生成</string>
     <string name="aiwriting_panel_close">关闭</string>
     <string name="aiwriting_panel_failed_title">出错</string>
+    <!-- model-management-detail-dropdown X 方案:Done 但 finalText 空的友好提示 -->
+    <string name="aiwriting_panel_empty_result">AI 未返回内容。请检查模型与协议的兼容性,或重新生成。</string>
+
+    <!-- AI 替换 / 撤回 -->
+    <string name="aiwriting_panel_replaced">已替换</string>
+    <string name="aiwriting_panel_replaced_hint">原文已修改。可点「撤回」恢复,或关闭继续。</string>
+    <string name="aiwriting_panel_undo">撤回</string>
 
     <!-- token 用量 chip -->
     <string name="aiwriting_panel_usage_fmt">输入 %1$d · 输出 %2$d</string>
@@ -201,6 +208,11 @@
     <string name="note_association_related_empty">暂无关联</string>
     <string name="note_association_backlinks_title">反向链接</string>
     <string name="note_association_ai_find">用 AI 找关联</string>
+    <string name="note_association_ai_loading">AI 正在分析笔记关联…</string>
+    <string name="note_association_ai_success_found">已找到 %d 条关联</string>
+    <string name="note_association_ai_success_none">AI 未发现新关联</string>
+    <string name="note_association_ai_error_unknown">AI 分析失败，请重试</string>
+    <string name="note_association_ai_retry">重试</string>
     <string name="note_association_ai_setting_title">保存时使用 AI 找关联</string>
     <string name="note_association_ai_setting_desc">开启后,编辑保存时自动用 AI 抽取笔记间关联;每次调用可能产生少量费用</string>
     <string name="note_association_signal_wikilink">[[链接]]</string>
@@ -269,4 +281,12 @@
 
     <!-- Provider 详情屏 -->
     <string name="model_provider_detail_default_model_fmt">默认 model:%1$s</string>
+
+    <!-- model-management-detail-dropdown · 协议 + 模型下拉 -->
+    <string name="model_provider_detail_api_format_label">协议类型</string>
+    <string name="model_provider_detail_api_format_anthropic">Anthropic 兼容</string>
+    <string name="model_provider_detail_api_format_openai">OpenAI 兼容</string>
+    <string name="model_provider_detail_model_label">选择模型</string>
+    <string name="model_provider_detail_model_default_suffix">(默认)</string>
+    <string name="model_provider_detail_base_url_locked_hint">端点由 provider 预置,不可修改</string>
 </resources>

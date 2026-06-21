@@ -50,7 +50,9 @@ fun StreamingPanel(
     onCancel: () -> Unit,
     onRegenerate: () -> Unit,
     onClose: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onUndo: () -> Unit = {},
+    onDismissReplace: () -> Unit = {}
 ) {
     if (state is AiActionUiState.Idle) return
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -92,22 +94,39 @@ fun StreamingPanel(
                         title = stringResource(opTitleRes(state.op)),
                         usage = state.usage
                     )
-                    ScrollableBody(text = state.finalText)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-                    ) {
-                        TextButton(onClick = onRegenerate) {
-                            Text(stringResource(R.string.aiwriting_panel_regenerate))
-                        }
-                        TextButton(onClick = onReject) {
-                            Text(stringResource(R.string.aiwriting_panel_reject))
-                        }
-                        Button(
-                            onClick = onAccept,
-                            enabled = state.finalText.isNotBlank()
+                    if (state.finalText.isBlank()) {
+                        // X 方案兼容:Done 但 finalText 空(模型兼容或 SSE 解析异常),
+                        // 不允许接受(避免空替换正文),给「重试」入口。
+                        ScrollableBody(text = stringResource(R.string.aiwriting_panel_empty_result))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                         ) {
-                            Text(stringResource(R.string.aiwriting_panel_accept))
+                            TextButton(onClick = onClose) {
+                                Text(stringResource(R.string.aiwriting_panel_close))
+                            }
+                            TextButton(onClick = onRegenerate) {
+                                Text(stringResource(R.string.aiwriting_panel_regenerate))
+                            }
+                        }
+                    } else {
+                        ScrollableBody(text = state.finalText)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                        ) {
+                            TextButton(onClick = onRegenerate) {
+                                Text(stringResource(R.string.aiwriting_panel_regenerate))
+                            }
+                            TextButton(onClick = onReject) {
+                                Text(stringResource(R.string.aiwriting_panel_reject))
+                            }
+                            Button(
+                                onClick = onAccept,
+                                enabled = state.finalText.isNotBlank()
+                            ) {
+                                Text(stringResource(R.string.aiwriting_panel_accept))
+                            }
                         }
                     }
                 }
@@ -121,6 +140,26 @@ fun StreamingPanel(
                     ) {
                         Button(onClick = onClose) {
                             Text(stringResource(R.string.aiwriting_panel_close))
+                        }
+                    }
+                }
+                is AiActionUiState.Replaced -> {
+                    HeaderRow(
+                        title = stringResource(opTitleRes(state.op)) +
+                            " · " +
+                            stringResource(R.string.aiwriting_panel_replaced),
+                        usage = null
+                    )
+                    ScrollableBody(text = stringResource(R.string.aiwriting_panel_replaced_hint))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                    ) {
+                        TextButton(onClick = onDismissReplace) {
+                            Text(stringResource(R.string.aiwriting_panel_close))
+                        }
+                        Button(onClick = onUndo) {
+                            Text(stringResource(R.string.aiwriting_panel_undo))
                         }
                     }
                 }

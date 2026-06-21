@@ -4,12 +4,9 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.R
-import com.yy.writingwithai.core.ai.api.AiCredentials
-import com.yy.writingwithai.core.ai.api.AiRequest
-import com.yy.writingwithai.core.ai.api.AiStreamEvent
-import com.yy.writingwithai.core.ai.api.WritingOp
+import com.yy.writingwithai.core.ai.api.AiGateway
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.provider.AnthropicCompatibleAdapter
-import com.yy.writingwithai.core.ai.provider.ApiFormat
 import com.yy.writingwithai.core.ai.provider.AuthStyle
 import com.yy.writingwithai.core.ai.provider.CustomProviderStore
 import com.yy.writingwithai.core.ai.provider.ProviderConfig
@@ -52,7 +49,10 @@ constructor(
     private val customProviderStore: CustomProviderStore,
     private val secureApiKeyStore: SecureApiKeyStore,
     private val providerPrefsStore: ProviderPrefsStore,
-    @Named("ai") private val okHttpClient: OkHttpClient
+    @Named("ai") private val okHttpClient: OkHttpClient,
+    // H9 新增:走 gateway.ping 让 ai_history 记录(observability),
+    // 同时不在此 VM 临时构造 AnthropicCompatibleAdapter(provider lifecycle 由 gateway 管理)。
+    private val coreAiGateway: AiGateway
 ) : ViewModel() {
     private val _state = MutableStateFlow(CustomProviderEditUiState())
     val state: StateFlow<CustomProviderEditUiState> = _state.asStateFlow()
@@ -176,27 +176,25 @@ constructor(
         }
         viewModelScope.launch {
             _state.update { it.copy(pingResult = PingResult.InProgress) }
-            val provider = AnthropicCompatibleAdapter(config, okHttpClient)
             val start = System.currentTimeMillis()
-            val result: PingResult = try {
-                var reason: String? = null
-                provider.stream(
-                    AiRequest(WritingOp.EXPAND, "ping", config.defaultModel),
-                    AiCredentials(s.apiKey)
-                ).collect { event ->
-                    if (event is AiStreamEvent.Failed) {
-                        reason = event.error.summary()
-                    }
-                }
-                if (reason == null) {
-                    PingResult.Success(System.currentTimeMillis() - start)
-                } else {
-                    PingResult.Failed(R.string.model_management_error_unknown, reason)
-                }
+            // H9 修:走 coreAiGateway.ping(内部 observer 写 ai_history,符合 CLAUDE.md "Token / 成本可观测" 规则)。
+            // apikey 走局部变量,函数退出 GC,不延长生命周期。
+            val reason = try {
+                coreAiGateway.ping(
+                    providerId = config.id,
+                    apikey = s.apiKey,
+                    modelName = config.defaultModel,
+                    apiFormatOverride = config.apiFormat
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                PingResult.Failed(R.string.model_management_error_unknown, e.message)
+                e.message ?: e::class.simpleName ?: "unknown exception"
+            }
+            val result = if (reason == null) {
+                PingResult.Success(System.currentTimeMillis() - start)
+            } else {
+                PingResult.Failed(R.string.model_management_error_unknown, reason)
             }
             _state.update { it.copy(pingResult = result) }
         }

@@ -6,7 +6,7 @@ import com.yy.writingwithai.core.data.db.entity.LinkType
 import com.yy.writingwithai.core.data.db.entity.NoteEntity
 import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
 import com.yy.writingwithai.core.note.impl.LocalNoteLinker
-import io.mockk.every
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -22,9 +22,10 @@ class LocalNoteLinkerTest {
 
     @Test
     fun `jaccard = 0_5`() = runTest {
-        every { noteDao.getById("A") } returns note("A", "t", "b")
-        every { noteTagDao.observeTagsFor("A") } returns flowOf(listOf("x", "y", "z"))
-        every { noteTagDao.observeAllCrossRefs() } returns flowOf(
+        coEvery { noteDao.getById("A") } returns note("A", "t", "b")
+        coEvery { noteDao.search(any()) } returns flowOf(emptyList())
+        coEvery { noteTagDao.observeTagsFor("A") } returns flowOf(listOf("x", "y", "z"))
+        coEvery { noteTagDao.observeAllCrossRefs() } returns flowOf(
             listOf(NoteTagCrossRef("B", "y"), NoteTagCrossRef("B", "z"), NoteTagCrossRef("B", "w"))
         )
         val r = linker.compute("A")
@@ -34,9 +35,10 @@ class LocalNoteLinkerTest {
 
     @Test
     fun `jaccard = 1_0`() = runTest {
-        every { noteDao.getById("A") } returns note("A", "t", "b")
-        every { noteTagDao.observeTagsFor("A") } returns flowOf(listOf("x", "y"))
-        every { noteTagDao.observeAllCrossRefs() } returns flowOf(
+        coEvery { noteDao.getById("A") } returns note("A", "t", "b")
+        coEvery { noteDao.search(any()) } returns flowOf(emptyList())
+        coEvery { noteTagDao.observeTagsFor("A") } returns flowOf(listOf("x", "y"))
+        coEvery { noteTagDao.observeAllCrossRefs() } returns flowOf(
             listOf(NoteTagCrossRef("B", "x"), NoteTagCrossRef("B", "y"))
         )
         val r = linker.compute("A")
@@ -46,9 +48,10 @@ class LocalNoteLinkerTest {
 
     @Test
     fun `disjoint tags no candidate`() = runTest {
-        every { noteDao.getById("A") } returns note("A", "t", "b")
-        every { noteTagDao.observeTagsFor("A") } returns flowOf(listOf("x"))
-        every { noteTagDao.observeAllCrossRefs() } returns flowOf(listOf(NoteTagCrossRef("B", "z")))
+        coEvery { noteDao.getById("A") } returns note("A", "t", "b")
+        coEvery { noteDao.search(any()) } returns flowOf(emptyList())
+        coEvery { noteTagDao.observeTagsFor("A") } returns flowOf(listOf("x"))
+        coEvery { noteTagDao.observeAllCrossRefs() } returns flowOf(listOf(NoteTagCrossRef("B", "z")))
         assertTrue(linker.compute("A").none { it.linkType == LinkType.TAG_OVERLAP })
     }
 

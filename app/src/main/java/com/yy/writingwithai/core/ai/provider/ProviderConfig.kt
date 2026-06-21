@@ -1,14 +1,7 @@
 package com.yy.writingwithai.core.ai.provider
 
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import kotlinx.serialization.Serializable
-
-/**
- * API 响应格式。
- * - ANTHROPIC: 顶层 `system`, `{"delta":{"text":"..."}}`
- * - OPENAI: `system` 在 messages 数组, `{"choices":[{"delta":{"content":"..."}}]}`
- */
-@Serializable
-enum class ApiFormat { ANTHROPIC, OPENAI }
 
 /**
  * Provider 的静态配置:URL / 认证 / 模型。

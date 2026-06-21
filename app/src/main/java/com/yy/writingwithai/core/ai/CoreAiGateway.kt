@@ -6,10 +6,12 @@ import com.yy.writingwithai.core.ai.api.AiGateway
 import com.yy.writingwithai.core.ai.api.AiProvider
 import com.yy.writingwithai.core.ai.api.AiRequest
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.api.ProviderDescriptor
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.ai.provider.AnthropicCompatibleAdapter
 import com.yy.writingwithai.core.ai.provider.CustomProviderStore
+import com.yy.writingwithai.core.ai.provider.ProviderPrefsStore
 import com.yy.writingwithai.core.data.repo.AiHistoryRepository
 import dagger.Lazy
 import java.util.concurrent.ConcurrentHashMap
@@ -42,7 +44,8 @@ constructor(
     private val providers: Map<String, @JvmSuppressWildcards AiProvider>,
     private val customProviderStore: CustomProviderStore,
     @Named("ai") private val okHttpClient: OkHttpClient,
-    private val historyRepo: Lazy<AiHistoryRepository>
+    private val historyRepo: Lazy<AiHistoryRepository>,
+    private val providerPrefsStore: ProviderPrefsStore
 ) : AiGateway {
     /** 动态 adapter 缓存:providerId → AnthropicCompatibleAdapter。 */
     private val customAdapterCache = ConcurrentHashMap<String, AnthropicCompatibleAdapter>()
@@ -91,15 +94,16 @@ constructor(
         }
     }
 
-    override fun streamWritingOp(
+    override suspend fun streamWritingOp(
         op: WritingOp,
         sourceText: String,
         providerId: String,
         apikey: String,
         modelName: String?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        apiFormatOverride: ApiFormat?
     ): Flow<AiStreamEvent> {
-        val provider = resolveProviderFlow(providerId)
+        val provider = resolveProvider(providerId)
             ?: return flowOf(
                 AiStreamEvent.Failed(
                     AiError.Unknown(null, "provider $providerId not found"),
@@ -108,7 +112,9 @@ constructor(
             )
 
         val model = modelName ?: provider.supportedModels.firstOrNull() ?: "unknown"
-        val request = AiRequest(op, sourceText, model, systemPrompt)
+        // H1 修:`apiFormatOverride` 由 caller(Vm) 在 suspend 上下文读 prefs 后传入,
+        // 删原 `runBlocking { providerPrefsStore.getApiFormat(providerId) }`(主线程 ANR)。
+        val request = AiRequest(op, sourceText, model, systemPrompt, apiFormatOverride)
         val credentials = AiCredentials(apikey = apikey)
 
         val startTime = System.currentTimeMillis()
@@ -153,32 +159,23 @@ constructor(
             }
     }
 
-    /**
-     * 流式入口的 provider 解析:阻塞在缓存未命中时仍要走 DataStore IO,
-     * 但 adapter 缓存命中时直接返回,避免每次 stream() 都读盘。
-     */
-    private fun resolveProviderFlow(providerId: String): AiProvider? {
-        providers[providerId]?.let { return it }
-        customAdapterCache[providerId]?.let { return it }
-        // 缓存未命中:此函数路径由 viewModelScope 调用方保证已先解析过,
-        // 兜底走 runBlocking 仅作最后手段。生产中应在调用前 await resolveProvider。
-        val config = kotlinx.coroutines.runBlocking {
-            customProviderStore.getById(providerId)
-        } ?: return null
-        return AnthropicCompatibleAdapter(config, okHttpClient).also {
-            customAdapterCache[providerId] = it
-        }
-    }
-
-    override suspend fun ping(providerId: String, apikey: String, modelName: String): String? {
+    override suspend fun ping(
+        providerId: String,
+        apikey: String,
+        modelName: String,
+        apiFormatOverride: ApiFormat?
+    ): String? {
         val provider = resolveProvider(providerId) ?: return "provider $providerId not registered"
         if (provider.id == "fake") return null
         val effectiveModel = provider.supportedModels.firstOrNull() ?: modelName
+        // X 方案:ping 也走用户选的 apiFormat,endpoint 跟着切。
+        // H1 修:ping 是 suspend,可在函数顶部 await providerPrefsStore.getApiFormat 而无需 runBlocking。
+        val effectiveApiFormat = apiFormatOverride ?: providerPrefsStore.getApiFormat(providerId)
         var failureReason: String? = null
         try {
             provider
                 .stream(
-                    AiRequest(WritingOp.EXPAND, "ping", effectiveModel),
+                    AiRequest(WritingOp.EXPAND, "ping", effectiveModel, apiFormatOverride = effectiveApiFormat),
                     AiCredentials(apikey)
                 ).collect { event ->
                     if (event is AiStreamEvent.Failed) {

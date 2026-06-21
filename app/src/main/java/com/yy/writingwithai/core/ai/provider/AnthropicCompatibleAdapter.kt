@@ -5,6 +5,7 @@ import com.yy.writingwithai.core.ai.api.AiError
 import com.yy.writingwithai.core.ai.api.AiProvider
 import com.yy.writingwithai.core.ai.api.AiRequest
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.ai.prompt.DefaultPrompts
 import com.yy.writingwithai.core.ai.stream.SseEvent
@@ -44,11 +45,20 @@ constructor(
     override val displayName = config.displayName
     override val supportedModels = config.supportedModels
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        // L12 修:不写 encodeDefaults,避免显式 `max_tokens=2048` 被某些 OpenAI proxy 400。
+    }
 
     override fun stream(request: AiRequest, credentials: AiCredentials): Flow<AiStreamEvent> = flow {
         val baseUrl = credentials.baseUrlOverride ?: config.baseUrl
-        val url = "$baseUrl${config.endpointPath}"
+        // model-management-detail-dropdown X 方案:用户在详情页可切 OpenAI/Anthropic,endpoint path 跟着切
+        val effectiveApiFormat = request.apiFormatOverride ?: config.apiFormat
+        val path = when (effectiveApiFormat) {
+            ApiFormat.OPENAI -> "/chat/completions"
+            ApiFormat.ANTHROPIC -> "/anthropic/v1/messages"
+        }
+        val url = "$baseUrl$path"
         // custom-prompt-template:用户自定义 prompt 优先,null 走 fallback 默认
         val systemPrompt = request.systemPrompt ?: systemPromptFor(request.op)
 
@@ -72,7 +82,7 @@ constructor(
             val messages: List<ChatMessage>
         )
 
-        val isOpenAi = config.apiFormat == ApiFormat.OPENAI
+        val isOpenAi = effectiveApiFormat == ApiFormat.OPENAI
         val body =
             if (isOpenAi) {
                 json.encodeToString(
@@ -106,8 +116,11 @@ constructor(
         val response = client.newCall(httpRequest).execute()
         if (!response.isSuccessful) {
             val code = response.code
-            val detail = response.body?.string() ?: ""
+            val rawDetail = response.body?.string() ?: ""
             response.close()
+            // M3 修:截断 raw body 长度(provider 5xx 经常返回 KB 级 HTML,可能含 Authorization header 回显),
+            // 脱敏 apikey / Bearer / x-api-key pattern(避免 provider 把请求 header 回显到错误页)。
+            val detail = sanitizeErrorDetail(rawDetail)
             emit(
                 AiStreamEvent.Failed(
                     error =
@@ -136,11 +149,11 @@ constructor(
             SseParser.parse(source).collect { sse ->
                 when (sse) {
                     is SseEvent.Data -> {
-                        val delta = parseDelta(sse.content)
+                        val delta = parseDelta(sse.content, effectiveApiFormat)
                         if (delta != null) {
                             emit(AiStreamEvent.Delta(delta))
                         }
-                        val usage = parseUsage(sse.content)
+                        val usage = parseUsage(sse.content, effectiveApiFormat)
                         if (usage != null) {
                             emit(usage)
                         }
@@ -183,6 +196,8 @@ constructor(
             AuthStyle.X_API_KEY -> request.header("x-api-key", credentials.apikey)
             AuthStyle.CUSTOM_HEADER -> {
                 val name = config.customAuthHeaderName ?: "x-api-key"
+                // L6 注:OkHttp `header()` 是后写后赢;用户自定义 `customHeaders` 含同名 key
+                // 会覆盖此默认,符合"用户自定义优先"预期,不额外处理顺序。
                 request.header(name, credentials.apikey)
             }
         }
@@ -191,9 +206,9 @@ constructor(
         }
     }
 
-    private fun parseDelta(content: String): String? {
+    private fun parseDelta(content: String, apiFormat: ApiFormat = config.apiFormat): String? {
         return try {
-            if (config.apiFormat == ApiFormat.OPENAI) {
+            if (apiFormat == ApiFormat.OPENAI) {
                 @Serializable
                 data class OpenAiDelta(val content: String? = null)
 
@@ -213,14 +228,15 @@ constructor(
                 val obj = json.decodeFromString(DeltaObj.serializer(), content)
                 obj.delta.text
             }
-        } catch (_: Exception) {
+        } catch (_: kotlinx.serialization.SerializationException) {
+            // L5 修:只吞序列化异常,其他异常抛给外层 catch。
             null
         }
     }
 
-    private fun parseUsage(content: String): AiStreamEvent.Usage? {
+    private fun parseUsage(content: String, apiFormat: ApiFormat = config.apiFormat): AiStreamEvent.Usage? {
         return try {
-            if (config.apiFormat == ApiFormat.OPENAI) {
+            if (apiFormat == ApiFormat.OPENAI) {
                 @Serializable
                 data class OpenAiUsageObj(
                     val prompt_tokens: Int = 0,
@@ -253,10 +269,32 @@ constructor(
                     totalTokens = obj.usage.input_tokens + obj.usage.output_tokens
                 )
             }
-        } catch (_: Exception) {
+        } catch (_: kotlinx.serialization.SerializationException) {
+            // L5 修:同上。
             null
         }
     }
 
     private fun systemPromptFor(op: WritingOp): String = DefaultPrompts.forOp(op)
+
+    private companion object {
+        const val MAX_ERROR_DETAIL_LEN = 200
+        val SENSITIVE_PATTERNS = listOf(
+            Regex("""sk-[A-Za-z0-9_\-]{16,}"""),
+            Regex("""(?i)Bearer\s+[A-Za-z0-9_\-\.=]{16,}"""),
+            Regex("""(?i)x-api-key[:\s]+[A-Za-z0-9_\-\.=]{16,}""")
+        )
+    }
+
+    /** M3:provider 错误页可能 HTML 或含敏感 header 回显,统一截断 + 脱敏。 */
+    private fun sanitizeErrorDetail(raw: String): String {
+        // 检测 HTML 错误页直接替换成"上游服务错误",避免 10KB HTML 灌进 UI / history
+        val trimmed = raw.take(MAX_ERROR_DETAIL_LEN)
+        val noHtml = if (trimmed.contains("<html", ignoreCase = true) || trimmed.contains("<body", ignoreCase = true)) {
+            "上游服务错误"
+        } else {
+            trimmed
+        }
+        return SENSITIVE_PATTERNS.fold(noHtml) { acc, p -> acc.replace(p, "***REDACTED***") }
+    }
 }

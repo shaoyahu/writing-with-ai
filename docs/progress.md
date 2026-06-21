@@ -11,9 +11,24 @@
 - **一条典型 1-3 行**;太长说明在写文档而不是进度。
 - 新增条目写在对应日期分组的最上面(同一日期内倒序)。
 
+## 2026-06-21 · review r2 全量 fix 落地
+
+- `docs/reviews/2026-06-21-full-project-review-r2.md` r2 review 9 HIGH + 16 MEDIUM + 12 LOW → Change 1 `fix-review-r2-high`(9 HIGH 全修)+ Change 2 `polish-review-r2`(22 项修 / 6 项 deferred)
+- Change 1 核心:CoreAiGateway 删 runBlocking(ANR) + AiHistoryRepository 集中脱敏 + AiwritingEntry 扩 public surface + CompositeNoteLinker 反向依赖解耦 + LIKE 转义 regression + acceptReplace indexOf 校验 + 删 delay/tryEmit 强刷 + DetailVM 双 launch 合并 + pingFromForm 走 gateway 记录 history
+- Change 2 已修:M1-M5/M7/M9/M10/M12-M15/L1/L5/L6/L12;Deferred:M6/M8/M11/M16/L2/L3/L7/L8/L11(review follow-up)
+- 验收:`assembleDebug` + `ktlintFormat` ✅;测试 compile ✅;真机 smoke 待用户跑
+- **不开自动 commit / push**(CLAUDE.md 硬规则),所有 commit 等用户指令
+
 ---
 
-## 2026-06-21 · M5 polish 4 个 fix change 归档
+- model-management-detail-dropdown 落地
+
+- OpenSpec change `model-management-detail-dropdown` apply 完成:`ModelProviderDetailScreen` 弱化 baseURL(onSurfaceVariant 灰字 + locked hint)+ 新增「协议类型」只读下拉 + 新增「选择模型」下拉(默认项带「(默认)」后缀);`ProviderPrefsStore` 加 `getSelectedModel` / `setSelectedModel` / `observeSelectedModel` 3 方法 + DataStore key 工厂 `selectedModelKey(providerId)`;`ModelManagementViewModel` 加 `loadSelectedModel` + `onModelSelected` + `saveProvider` 多收 model 参数 + `ping` 优先用 selectedModel;加 6 个 i18n key 双语(`api_format_label` / `_anthropic` / `_openai` / `model_label` / `model_default_suffix` / `base_url_locked_hint`)
+- 决策:协议下拉 readOnly(roadmap §6.3 provider 协议锁定);切换 provider 不清旧 selectedModel(v2+ 验证)
+- 验收:`assembleDebug` BUILD SUCCESSFUL + `ktlintCheck` 0 violations;`testDebugUnitTest` 因 note-association 已有测试编译错误阻塞(跟我无关,等 note-association 收口)
+- 下一步候选:`/opsx:sync model-management-detail-dropdown`(无 spec 改动,archive 前确认)/ 等指令
+
+---
 
 - fix-ai-config-ux / fix-global-back-nav-and-gesture / fix-quicknote-tags-and-search / release-readiness 全 archive 到 `2026-06-21-*`
 - sync 4 个 delta spec 合入 main spec(secure-prefs observeConfiguredProviders + 3 Scenario / ai-actions ADDED configuredProviderIds + 4 Scenario / custom-prompt-template 大改 PromptTemplateScreen / app-shell TopAppBar ArrowBack / predictive-back-gesture ADDED home Toast 5 Scenario / quick-note 4 个新 Scenario / android-build-system 加 release Scenario / release-readiness 加 5 个 Requirement)

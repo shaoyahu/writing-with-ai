@@ -5,7 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.data.repo.NoteRepository
-import com.yy.writingwithai.feature.aiwriting.AiActionFabState
+import com.yy.writingwithai.core.ui.AiActionFabState
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
 import com.yy.writingwithai.feature.quicknote.model.ReadingTime
 import com.yy.writingwithai.feature.quicknote.model.WordCount
@@ -34,28 +34,32 @@ constructor(
     // 改为可空,缺失时直接进入 NotFound,避免进程崩溃。
     private val noteId: String? = savedStateHandle.get<String>("id")
 
-    val uiState: StateFlow<NoteDetailUiState> =
+    private val _uiState = MutableStateFlow<NoteDetailUiState>(NoteDetailUiState.Loading)
+    val uiState: StateFlow<NoteDetailUiState> = _uiState.asStateFlow()
+
+    init {
         if (noteId.isNullOrBlank()) {
-            MutableStateFlow(NoteDetailUiState.NotFound).asStateFlow()
+            _uiState.value = NoteDetailUiState.NotFound
         } else {
-            repository.observeNoteWithTags(noteId)
-                .map { item ->
-                    if (item == null) {
-                        NoteDetailUiState.NotFound
-                    } else {
-                        NoteDetailUiState.Content(
-                            note = item,
-                            wordCount = WordCount.of(item.note.content),
-                            readMinutes = ReadingTime.minutesOf(item.note.content)
-                        )
+            // H8 修:删 `noteUpdateEvents` push 强刷路径(原 `delay(100)` hack + 双 launch 写同一 _uiState race);
+            // Room Flow 是 single source of truth,`NonCancellable { upsert }` 退栈时 invalidation 已传播,
+            // 主路径 Flow 自然收到新值(配合 AiActionViewModel.acceptReplace 删 `delay(150)` + `tryEmit`)。
+            viewModelScope.launch {
+                repository.observeNoteWithTags(noteId)
+                    .collect { item ->
+                        _uiState.value = if (item == null) {
+                            NoteDetailUiState.NotFound
+                        } else {
+                            NoteDetailUiState.Content(
+                                note = item,
+                                wordCount = WordCount.of(item.note.content),
+                                readMinutes = ReadingTime.minutesOf(item.note.content)
+                            )
+                        }
                     }
-                }
-                .stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(5_000L),
-                    initialValue = NoteDetailUiState.Loading
-                )
+            }
         }
+    }
 
     /** M3:BasicTextField 选区状态(M3 §7)。 */
     private val _selection = MutableStateFlow(TextRange.Zero)
@@ -83,7 +87,7 @@ constructor(
             }
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000L),
+                started = SharingStarted.Eagerly,
                 initialValue = null
             )
 

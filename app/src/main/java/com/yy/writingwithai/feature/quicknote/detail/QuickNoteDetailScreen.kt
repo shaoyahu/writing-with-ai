@@ -39,10 +39,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -61,12 +62,10 @@ import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
+import com.yy.writingwithai.feature.aiwriting.AiActionUiState
+import com.yy.writingwithai.feature.aiwriting.AiActionViewModel
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
-import com.yy.writingwithai.feature.aiwriting.action.ActionSheet
-import com.yy.writingwithai.feature.aiwriting.action.copyToClipboard
-import com.yy.writingwithai.feature.aiwriting.streaming.AiActionUiState
-import com.yy.writingwithai.feature.aiwriting.streaming.AiActionViewModel
-import com.yy.writingwithai.feature.aiwriting.streaming.StreamingPanel
+import com.yy.writingwithai.feature.aiwriting.streaming.AiActionUiState.Idle
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
 import com.yy.writingwithai.feature.quicknote.share.shareNoteMarkdown
 import dagger.hilt.EntryPoint
@@ -75,7 +74,6 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.components.ActivityComponent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
 /**
  * note-association:详情屏用的 Hilt EntryPoint(ConsentStore + NoteLinker)。
@@ -85,7 +83,7 @@ import kotlinx.coroutines.launch
 internal interface DetailScreenEntryPoint {
     fun consentStore(): ConsentStore
     fun noteLinker(): NoteLinker
-    fun noteAssociationSettings(): com.yy.writingwithai.feature.settings.NoteAssociationSettings
+    fun noteAssociationSettings(): com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
     fun llmExtractor(): com.yy.writingwithai.core.note.impl.LlmNoteLinkExtractor?
 }
 
@@ -117,8 +115,7 @@ fun QuickNoteDetailScreen(
     val noteLinker = detailEntry.noteLinker()
     val noteAssocSettings = detailEntry.noteAssociationSettings()
     val showAiButton = noteAssocSettings.isEnabled()
-    val coroutineScope = rememberCoroutineScope()
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsState()
     var menuExpanded by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
@@ -138,16 +135,24 @@ fun QuickNoteDetailScreen(
     // H1 修:`by` 委托订阅 StateFlow,而不是 `.value` 快照读(后者不触发重组,Sheet 永不显示)。
     // aiVm null 时 fallback 到 remember 住的 Idle 流,StreamingPanel 走 return 不渲染。
     val aiStateFlow: StateFlow<AiActionUiState> =
-        aiVm?.state ?: remember { MutableStateFlow(AiActionUiState.Idle) }
+        aiVm?.state ?: remember { MutableStateFlow(Idle) }
     val aiState: AiActionUiState by aiStateFlow.collectAsStateWithLifecycle()
 
     var actionMenuOpen by remember { mutableStateOf(false) }
     // H3 修:TextFieldValue 仅在 noteId 变化时重建,避免 content / wordCount / tags 任一变化重置选区。
     // selection 不从 ViewModel 反向同步回 BasicTextField(单向 BasicTextField → ViewModel)。
+    // AI replace 刷新:LaunchedEffect 同步 content 变化到 textFieldValue(keep selection)。
     var textFieldValue by remember(noteId) {
         mutableStateOf(
             TextFieldValue(text = current?.note?.note?.content.orEmpty())
         )
+    }
+    val syncContent = (state as? NoteDetailUiState.Content)?.note?.note?.content
+    LaunchedEffect(syncContent) {
+        val newText = syncContent ?: return@LaunchedEffect
+        if (textFieldValue.text != newText) {
+            textFieldValue = textFieldValue.copy(text = newText)
+        }
     }
 
     Scaffold(
@@ -271,13 +276,13 @@ fun QuickNoteDetailScreen(
                                 } else {
                                     current.note.note.content.substring(selection.min, selection.max)
                                 }
-                            ActionSheet(
+                            AiwritingEntry.ActionSheetRoute(
                                 expanded = actionMenuOpen,
                                 onDismiss = { actionMenuOpen = false },
                                 onExpand = { aiVm.start(WritingOp.EXPAND, sourceText, noteId) },
                                 onPolish = { aiVm.start(WritingOp.POLISH, sourceText, noteId) },
                                 onOrganize = { aiVm.start(WritingOp.ORGANIZE, sourceText, noteId) },
-                                onCopy = { context.copyToClipboard(sourceText) }
+                                onCopy = { AiwritingEntry.copyToClipboard(context, sourceText) }
                             )
                         }
                     }
@@ -384,12 +389,10 @@ fun QuickNoteDetailScreen(
                             navController.navigate(QuicknoteDetail(targetId))
                         },
                         onAiTrigger = {
-                            coroutineScope.launch {
-                                detailEntry.llmExtractor()?.extractAndPersist(
-                                    currentNoteId,
-                                    bypassRateLimit = true
-                                )
-                            }
+                            detailEntry.llmExtractor()?.extractAndPersist(
+                                currentNoteId,
+                                bypassRateLimit = true
+                            ) ?: 0
                         },
                         showAiButton = showAiButton
                     )
@@ -398,14 +401,16 @@ fun QuickNoteDetailScreen(
     }
 
     if (aiVm != null) {
-        StreamingPanel(
+        AiwritingEntry.StreamingPanelRoute(
             state = aiState,
             onAccept = { aiVm.acceptReplace() },
             onReject = { aiVm.reject() },
             onCancel = { aiVm.cancel() },
             onRegenerate = { aiVm.regenerate() },
             onClose = { aiVm.dismiss() },
-            onDismiss = { aiVm.dismiss() }
+            onDismiss = { aiVm.dismiss() },
+            onUndo = { aiVm.undo() },
+            onDismissReplace = { aiVm.dismiss() }
         )
     }
 

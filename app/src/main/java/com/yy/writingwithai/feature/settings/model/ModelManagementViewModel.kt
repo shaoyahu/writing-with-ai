@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.R
 import com.yy.writingwithai.core.ai.api.AiGateway
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.api.ProviderDescriptor
 import com.yy.writingwithai.core.ai.provider.CustomProviderStore
 import com.yy.writingwithai.core.ai.provider.ProviderConfig
@@ -122,8 +123,8 @@ constructor(
         }
     }
 
-    /** 保存 apikey + 切换 selected providerId。 */
-    fun saveProvider(providerId: String, apiKey: String) {
+    /** 保存 apikey + 切换 selected providerId;可选 model 同步落 selectedModel。 */
+    fun saveProvider(providerId: String, apiKey: String, model: String? = null) {
         viewModelScope.launch {
             _state.update { it.copy(lastSaveResult = SaveResult.InProgress) }
             try {
@@ -131,6 +132,7 @@ constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 val result = SaveResult.Failed(
                     messageRes = R.string.model_management_error_unknown,
                     rawDetail = e.message
@@ -144,6 +146,7 @@ constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 val result = SaveResult.Failed(
                     messageRes = R.string.model_management_error_unknown,
                     rawDetail = e.message
@@ -159,10 +162,64 @@ constructor(
                     pingResult = PingResult.Idle
                 )
             }
+            // model-management-detail-dropdown: model 非空时同步落 per-provider selectedModel。
+            if (model != null) {
+                try {
+                    providerPrefsStore.setSelectedModel(providerId, model)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    // 静默:apikey 已落,model 写失败不阻塞 save 成功反馈
+                }
+            }
             val success = SaveResult.Success
             _state.update { it.copy(lastSaveResult = success) }
             _saveEvents.tryEmit(success)
         }
+    }
+
+    /**
+     * model-management-detail-dropdown: 详情页切换模型下拉时调用。
+     * 写 prefs,**不**触发 save 事件(纯本地切换,无网络)。
+     */
+    fun onModelSelected(providerId: String, model: String) {
+        viewModelScope.launch {
+            try {
+                providerPrefsStore.setSelectedModel(providerId, model)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // M15 修:不静默,Log 留 trace 方便用户报告 issue。
+                android.util.Log.e("ModelMgmtVM", "setSelectedModel $providerId/$model failed", e)
+            }
+        }
+    }
+
+    /** model-management-detail-dropdown: 详情屏进屏时回填 selectedModel(无值时 UI 回退 defaultModel)。 */
+    suspend fun loadSelectedModel(providerId: String): String? {
+        return providerPrefsStore.getSelectedModel(providerId)
+    }
+
+    /** X 方案:详情页切 OpenAI/Anthropic 兼容协议时调用。写 prefs,无 save 事件。 */
+    fun onApiFormatSelected(providerId: String, format: ApiFormat) {
+        viewModelScope.launch {
+            try {
+                providerPrefsStore.setApiFormat(providerId, format)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // M15 修:同上,Log 留 trace。
+                android.util.Log.e("ModelMgmtVM", "setApiFormat $providerId/$format failed", e)
+            }
+        }
+    }
+
+    /** X 方案:详情屏回填当前 apiFormat(prefs 覆盖或 fallback config.apiFormat)。 */
+    suspend fun loadApiFormat(providerId: String): ApiFormat {
+        val override = providerPrefsStore.getApiFormat(providerId)
+        if (override != null) return override
+        val cfg = getProviderConfig(providerId)
+        return cfg?.apiFormat ?: ApiFormat.ANTHROPIC
     }
 
     /**
@@ -203,7 +260,9 @@ constructor(
                 return@launch
             }
             val config = getProviderConfig(providerId)
-            val effectiveModel = config?.defaultModel
+            // model-management-detail-dropdown: 优先用用户在详情页选的 model,无值回退 config 默认
+            val effectiveModel = loadSelectedModel(providerId)
+                ?: config?.defaultModel
                 ?: com.yy.writingwithai.core.ai.provider.deepseek.DeepseekConfig.config.defaultModel
             val start = System.currentTimeMillis()
             val mapped: PingResult =
@@ -221,6 +280,7 @@ constructor(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     PingResult.Failed(R.string.model_management_error_unknown, e.message)
                 }
             _state.update { it.copy(pingResult = mapped) }

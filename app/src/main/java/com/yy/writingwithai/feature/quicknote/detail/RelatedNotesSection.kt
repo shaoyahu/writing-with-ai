@@ -13,11 +13,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -28,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +42,22 @@ import com.yy.writingwithai.R
 import com.yy.writingwithai.core.data.db.entity.LinkType
 import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.note.RelatedNote
+import kotlinx.coroutines.launch
+
+/** UI state for the AI association extraction triggered by the user. */
+sealed interface AiExtractState {
+    /** Not running. */
+    data object Idle : AiExtractState
+
+    /** AI call is in flight. */
+    data object Loading : AiExtractState
+
+    /** AI returned results successfully. [linkCount] is the number of links persisted. */
+    data class Success(val linkCount: Int) : AiExtractState
+
+    /** AI call failed. [message] is a short user-facing error. */
+    data class Error(val message: String) : AiExtractState
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -46,12 +66,15 @@ fun RelatedNotesSection(
     noteId: String,
     noteLinker: NoteLinker,
     onNavigate: (String) -> Unit,
-    onAiTrigger: () -> Unit,
+    onAiTrigger: suspend () -> Int,
     showAiButton: Boolean,
     modifier: Modifier = Modifier
 ) {
     var related by remember { mutableStateOf<List<RelatedNote>>(emptyList()) }
     var backlinks by remember { mutableStateOf<List<RelatedNote>>(emptyList()) }
+    var aiState by remember { mutableStateOf<AiExtractState>(AiExtractState.Idle) }
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(noteId) {
         related = noteLinker.getRelated(noteId)
         backlinks = noteLinker.getBacklinks(noteId)
@@ -76,7 +99,29 @@ fun RelatedNotesSection(
         Spacer(Modifier.height(12.dp))
 
         if (related.isEmpty() && backlinks.isEmpty()) {
-            EmptyState(onAiTrigger = onAiTrigger, showAiButton = showAiButton)
+            // Capture Composable-dependent values outside coroutine scope
+            val errorUnknown = stringResource(R.string.note_association_ai_error_unknown)
+            EmptyState(
+                aiState = aiState,
+                showAiButton = showAiButton,
+                onAiTrigger = {
+                    aiState = AiExtractState.Loading
+                    scope.launch {
+                        try {
+                            val count = onAiTrigger()
+                            aiState = AiExtractState.Success(count)
+                            // Refresh the list after AI extraction
+                            related = noteLinker.getRelated(noteId)
+                            backlinks = noteLinker.getBacklinks(noteId)
+                        } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            aiState = AiExtractState.Error(
+                                e.message ?: errorUnknown
+                            )
+                        }
+                    }
+                }
+            )
         } else {
             if (related.isNotEmpty()) {
                 Text(
@@ -178,26 +223,78 @@ private fun SignalChip(text: String) {
 }
 
 @Composable
-private fun EmptyState(onAiTrigger: () -> Unit, showAiButton: Boolean) {
+private fun EmptyState(aiState: AiExtractState, showAiButton: Boolean, onAiTrigger: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            Icons.Outlined.LinkOff,
-            contentDescription = null,
-            modifier = Modifier.size(40.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-        )
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.note_association_related_empty),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (showAiButton) {
+        // Icon adapts to state
+        when (aiState) {
+            is AiExtractState.Loading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(40.dp),
+                    strokeWidth = 3.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.note_association_ai_loading),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            is AiExtractState.Success -> {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = if (aiState.linkCount > 0) {
+                        stringResource(R.string.note_association_ai_success_found, aiState.linkCount)
+                    } else {
+                        stringResource(R.string.note_association_ai_success_none)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            is AiExtractState.Error -> {
+                Icon(
+                    Icons.Outlined.ErrorOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = aiState.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            is AiExtractState.Idle -> {
+                Icon(
+                    Icons.Outlined.LinkOff,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.note_association_related_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Show button in Idle or Error state (allow retry)
+        if (showAiButton && (aiState is AiExtractState.Idle || aiState is AiExtractState.Error)) {
             Spacer(Modifier.height(12.dp))
             FilledTonalButton(onClick = onAiTrigger) {
                 Icon(
@@ -206,7 +303,13 @@ private fun EmptyState(onAiTrigger: () -> Unit, showAiButton: Boolean) {
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.note_association_ai_find))
+                Text(
+                    if (aiState is AiExtractState.Error) {
+                        stringResource(R.string.note_association_ai_retry)
+                    } else {
+                        stringResource(R.string.note_association_ai_find)
+                    }
+                )
             }
         }
     }
