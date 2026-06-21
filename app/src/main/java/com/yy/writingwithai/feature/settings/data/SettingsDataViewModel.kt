@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,6 +43,20 @@ sealed interface DataUiState {
     data class Failed(val error: String) : DataUiState
 }
 
+/**
+ * last-import-report-save · "保存导入报告"按钮反馈状态。
+ *
+ * 独立于 [DataUiState](避免覆盖 Done 态丢上下文)。`Idle` 默认;
+ * `Success` 由屏监听 Snackbar 显示 + reset;`Failed` 同样 reset 前显示错误。
+ */
+sealed interface SaveReportResult {
+    data object Idle : SaveReportResult
+
+    data object Success : SaveReportResult
+
+    data class Failed(val reason: String) : SaveReportResult
+}
+
 @HiltViewModel
 class SettingsDataViewModel
 @Inject
@@ -54,6 +69,13 @@ constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<DataUiState>(DataUiState.Idle)
     val uiState: StateFlow<DataUiState> = _uiState.asStateFlow()
+
+    /**
+     * last-import-report-save · 保存导入报告按钮反馈事件流。屏上 Snackbar
+     * LaunchedEffect 监听,Success/Failed 显示 + 调 [resetSaveReportResult] 回 Idle。
+     */
+    private val _lastSaveReportResult = MutableStateFlow<SaveReportResult>(SaveReportResult.Idle)
+    val lastSaveReportResult: StateFlow<SaveReportResult> = _lastSaveReportResult.asStateFlow()
 
     /**
      * H2 修:r1 review 发现空数据仍允许导出 → Done(0) 困惑。
@@ -131,4 +153,34 @@ constructor(
     /** 上次导入生成的 zip bytes(含 `import_report.md`),null = 未触发过导入或已清空。 */
     var lastImportReportZipBytes: ByteArray? = null
         private set
+
+    /**
+     * last-import-report-save · 把 [lastImportReportZipBytes] 写到用户选的 SAF URI。
+     *
+     * 缓存为 null 时 no-op(不抛错,UI 端按钮已置灰,正常路径不会走到这里);
+     * 写入走 `Dispatchers.IO`;失败 catch 后 emit [SaveReportResult.Failed],
+     * **不**切 [DataUiState](避免覆盖 Done 态丢用户上下文)。
+     */
+    fun saveImportReport(uri: Uri) {
+        val bytes = lastImportReportZipBytes ?: return
+        viewModelScope.launch {
+            try {
+                withContext(ioDispatcher) {
+                    context.contentResolver.openOutputStream(uri)?.use { stream ->
+                        stream.write(bytes)
+                    } ?: error("openOutputStream returned null")
+                }
+                _lastSaveReportResult.value = SaveReportResult.Success
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _lastSaveReportResult.value = SaveReportResult.Failed(e.message ?: "unknown")
+            }
+        }
+    }
+
+    /** 把 [lastSaveReportResult] 回到 [SaveReportResult.Idle],屏 LaunchedEffect 在 Snackbar 显示后调。 */
+    fun resetSaveReportResult() {
+        _lastSaveReportResult.value = SaveReportResult.Idle
+    }
 }

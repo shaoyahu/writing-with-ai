@@ -1,6 +1,7 @@
 // writing-with-ai · app module build.gradle.kts
 // 见 docs/usage/development-setup.md 与 gradle/libs.versions.toml。
 
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -32,13 +33,38 @@ android {
         buildConfigField("int", "CONSENT_VERSION", "1")
     }
 
+    // release-readiness:从 ~/.gradle/gradle.properties 读 4 凭据(keystore 不入库,本机维护)
+    signingConfigs {
+        create("release") {
+            val props = Properties().apply {
+                val f = file(System.getProperty("user.home") + "/.gradle/gradle.properties")
+                if (f.exists()) f.inputStream().use { load(it) }
+            }
+            storeFile = props.getProperty("RELEASE_STORE_FILE")?.let { file(it) }
+            storePassword = props.getProperty("RELEASE_STORE_PASSWORD")
+            keyAlias = props.getProperty("RELEASE_KEY_ALIAS")
+            keyPassword = props.getProperty("RELEASE_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
         }
         release {
-            isMinifyEnabled = false
-            // M5 打磨阶段配 release 签名 / ProGuard 规则;M0 不开 minify。
+            // release-readiness:开启 R8 混淆 + 资源压缩 + 签名
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            // C2 修:仅当本机 ~/.gradle/gradle.properties 配齐 4 凭据时挂 signingConfig,
+            // 未配时 release 走 unsigned(AGP 在 configuration 阶段不会因 storeFile=null 崩溃),
+            // 用户可在配齐凭据后单独跑 ./gradlew :app:assembleRelease 出包。
+            signingConfigs.getByName("release").let { cfg ->
+                if (cfg.storeFile != null) signingConfig = cfg
+            }
         }
     }
 

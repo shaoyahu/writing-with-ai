@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -22,7 +24,6 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +32,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -50,9 +54,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.yy.writingwithai.R
+import com.yy.writingwithai.app.QuicknoteDetail
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.data.model.Note
+import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
@@ -69,14 +75,18 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.components.ActivityComponent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
- * M4-4:详情屏用 Hilt EntryPoint 拿 ConsentStore(避免给 ViewModel 加 consent 字段)。
+ * note-association:详情屏用的 Hilt EntryPoint(ConsentStore + NoteLinker)。
  */
 @EntryPoint
 @InstallIn(ActivityComponent::class)
 internal interface DetailScreenEntryPoint {
     fun consentStore(): ConsentStore
+    fun noteLinker(): NoteLinker
+    fun noteAssociationSettings(): com.yy.writingwithai.feature.settings.NoteAssociationSettings
+    fun llmExtractor(): com.yy.writingwithai.core.note.impl.LlmNoteLinkExtractor?
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -98,6 +108,16 @@ fun QuickNoteDetailScreen(
             ).consentStore()
         }
     val consentFlow by consentStore.consentFlow.collectAsStateWithLifecycle(initialValue = ConsentState.EMPTY)
+    val detailEntry = remember(context) {
+        EntryPointAccessors.fromActivity(
+            context as android.app.Activity,
+            DetailScreenEntryPoint::class.java
+        )
+    }
+    val noteLinker = detailEntry.noteLinker()
+    val noteAssocSettings = detailEntry.noteAssociationSettings()
+    val showAiButton = noteAssocSettings.isEnabled()
+    val coroutineScope = rememberCoroutineScope()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var menuExpanded by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -310,9 +330,22 @@ fun QuickNoteDetailScreen(
                                 .padding(vertical = LocalSpacing.current.sm)
                         ) {
                             s.note.tags.forEach { tag ->
-                                AssistChip(onClick = {}, label = { Text("#$tag") })
+                                SuggestionChip(
+                                    onClick = {},
+                                    label = { Text("#$tag") },
+                                    colors = SuggestionChipDefaults.suggestionChipColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                    )
+                                )
                             }
                         }
+                    } else {
+                        Text(
+                            text = stringResource(R.string.quicknote_detail_no_tags),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = LocalSpacing.current.sm)
+                        )
                     }
                     // M3:SelectionContainer 改为 BasicTextField(readOnly),selection 推回 ViewModel
                     BasicTextField(
@@ -328,14 +361,41 @@ fun QuickNoteDetailScreen(
                             .fillMaxWidth()
                             .padding(vertical = LocalSpacing.current.sm)
                     )
+                    // note-association: 关联笔记
+                    val currentNoteId = s.note.note.id
+                    Spacer(Modifier.height(LocalSpacing.current.lg))
+                    androidx.compose.material3.HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                    Spacer(Modifier.height(LocalSpacing.current.md))
+                    RelatedNotesSection(
+                        noteId = currentNoteId,
+                        noteLinker = noteLinker,
+                        onNavigate = { targetId ->
+                            navController.navigate(QuicknoteDetail(targetId))
+                        },
+                        onAiTrigger = {
+                            coroutineScope.launch {
+                                detailEntry.llmExtractor()?.extractAndPersist(
+                                    currentNoteId,
+                                    bypassRateLimit = true
+                                )
+                            }
+                        },
+                        showAiButton = showAiButton
+                    )
+                    Spacer(Modifier.height(LocalSpacing.current.lg))
+                    androidx.compose.material3.HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                    Spacer(Modifier.height(LocalSpacing.current.md))
                     Text(
                         text =
                         "${context.getString(R.string.quicknote_detail_word_count_fmt, s.wordCount)}" +
                             context.getString(R.string.quicknote_detail_word_time_separator) +
                             context.getString(R.string.quicknote_detail_read_time_fmt, s.readMinutes),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = LocalSpacing.current.md)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
         }

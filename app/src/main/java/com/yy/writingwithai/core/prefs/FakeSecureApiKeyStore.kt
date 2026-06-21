@@ -2,6 +2,7 @@ package com.yy.writingwithai.core.prefs
 
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,9 +19,11 @@ class FakeSecureApiKeyStore
 constructor() : SecureApiKeyStore {
     private val store = mutableMapOf<String, String>()
     private val states = mutableMapOf<String, MutableStateFlow<RevealState>>()
+    private val configuredIds = MutableStateFlow<Set<String>>(emptySet())
 
     override suspend fun save(providerId: String, apikey: String) {
         store[providerId] = apikey
+        configuredIds.value = configuredIds.value + providerId
     }
 
     override suspend fun get(providerId: String): String? = store[providerId]
@@ -29,11 +32,13 @@ constructor() : SecureApiKeyStore {
 
     override suspend fun clear(providerId: String) {
         store.remove(providerId)
+        configuredIds.value = configuredIds.value - providerId
         states[providerId]?.value = RevealState.Hidden
     }
 
     override suspend fun clearAll() {
         store.clear()
+        configuredIds.value = emptySet()
         states.values.forEach { it.value = RevealState.Hidden }
     }
 
@@ -41,4 +46,6 @@ constructor() : SecureApiKeyStore {
         val flow = states.getOrPut(providerId) { MutableStateFlow(RevealState.Hidden) }
         return flow.asStateFlow()
     }
+
+    override fun observeConfiguredProviders(): Flow<Set<String>> = configuredIds.asStateFlow()
 }

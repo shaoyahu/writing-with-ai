@@ -10,6 +10,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavController
 import com.yy.writingwithai.app.ui.theme.WritingAppTheme
 
 /**
@@ -23,7 +24,11 @@ import com.yy.writingwithai.app.ui.theme.WritingAppTheme
  * 读 + navigate 该 route + 清栈(防 back 回 onboarding)。
  */
 @Composable
-fun App(initialRoute: String? = null, widgetPendingRoute: MutableState<String?> = mutableStateOf(null)) {
+fun App(
+    initialRoute: String? = null,
+    widgetPendingRoute: MutableState<String?> = mutableStateOf(null),
+    onNavControllerReady: (NavController) -> Unit = {}
+) {
     WritingAppTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -31,7 +36,8 @@ fun App(initialRoute: String? = null, widgetPendingRoute: MutableState<String?> 
         ) {
             AppNav(
                 initialRoute = initialRoute,
-                widgetPendingRoute = widgetPendingRoute
+                widgetPendingRoute = widgetPendingRoute,
+                onNavControllerReady = onNavControllerReady
             )
         }
     }

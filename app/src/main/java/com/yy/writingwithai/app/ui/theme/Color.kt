@@ -50,3 +50,19 @@ internal val DarkColorScheme =
         onSurfaceVariant = Color(0xFFD1D5DB),
         outline = Color(0xFF4B5563)
     )
+
+// C5 修:成功状态色 token(原 ModelManagementScreen.kt 直接写 Color(0xFF4CAF50) / Color(0xFF2E7D32)
+// 违反 CLAUDE.md "颜色一律走 MaterialTheme.colorScheme"。以下 token 走 Material 3 调色板
+// 同款命名,业务侧通过 MaterialTheme.customColors.success / successDark 引用。
+
+@Suppress("MagicNumber")
+internal val SuccessGreenLight = Color(0xFF4CAF50)
+
+@Suppress("MagicNumber")
+internal val SuccessGreenDarkLight = Color(0xFF2E7D32)
+
+@Suppress("MagicNumber")
+internal val SuccessGreenDarkTheme = Color(0xFF66BB6A)
+
+@Suppress("MagicNumber")
+internal val SuccessGreenDarkDarkTheme = Color(0xFFA5D6A7)

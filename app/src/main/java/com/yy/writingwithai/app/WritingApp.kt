@@ -5,6 +5,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.yy.writingwithai.BuildConfig
+import com.yy.writingwithai.core.note.backfill.BackfillScheduler
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.widget.QuickNoteWidgetHiltBridge
 import com.yy.writingwithai.core.widget.QuickNoteWidgetRepository
@@ -37,6 +38,9 @@ class WritingApp : Application() {
     @Inject
     lateinit var consentStore: ConsentStore
 
+    @Inject
+    lateinit var backfillScheduler: BackfillScheduler
+
     override fun onCreate() {
         super.onCreate()
         // 1) 把 Hilt 单例桥接到 widget host process 可读的静态字段
@@ -60,5 +64,8 @@ class WritingApp : Application() {
             ExistingPeriodicWorkPolicy.KEEP,
             periodic
         )
+
+        // 3) note-association 首次启动 backfill(延后 5s,一次性)
+        backfillScheduler.scheduleIfNeeded()
     }
 }

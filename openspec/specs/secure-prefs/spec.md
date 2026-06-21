@@ -20,8 +20,11 @@ TBD - created by archiving change `onboarding-consent`(2026-06-19)。定义 AI p
 - `suspend fun clear(providerId: String)`
 - `suspend fun clearAll()`
 - `fun reveal(providerId: String): StateFlow<RevealState>`
+- `fun observeConfiguredProviders(): Flow<Set<String>>` — 实时返回所有已配置 apikey 的 `providerId` 集合,初始 emit 当前 set,后续 key 增删时 emit 新 set,Flow cancel 时 unregister listener(防泄漏)
 
 实现 MUST 捕获 `GeneralSecurityException` / `KeyStoreException` 等 KeyStore 异常,fallback 行为:清空对应 provider 的 apikey + log 一行(不 log apikey 本身,只 log `providerId` + 异常类型)+ 返回 `null`(`get`) / `false`(`has`) / `KeystoreFailed`(`reveal`)。
+
+`observeConfiguredProviders()` 底层实现 MUST 用 `android.content.SharedPreferences.OnSharedPreferenceChangeListener` 监听 `writingwithai_secure_prefs.xml` 文件中所有以 `apikey_` 为前缀的 key;初始 emit 当前 set → 后续 key 增删时 emit 新 set;Flow cancel 时 MUST unregister listener(防泄漏)。`FakeSecureApiKeyStore` MUST 实现等价行为:StateFlow<MutableSet<String>>,`save` 时 add,`clear` 时 remove,`clearAll` 时清空。
 
 #### Scenario: 保存 apikey
 - **WHEN** `save("deepseek", "sk-xxx")` 调用
@@ -42,6 +45,18 @@ TBD - created by archiving change `onboarding-consent`(2026-06-19)。定义 AI p
 #### Scenario: clearAll 清空所有
 - **WHEN** `clearAll()` 调用
 - **THEN** `writingwithai_secure_prefs.xml` 所有 `apikey_*` key 移除;`get` 对所有 provider 返回 `null`
+
+#### Scenario: save 后 observeConfiguredProviders emit 新 set
+- **WHEN** `observeConfiguredProviders()` 被 collect + `save("deepseek", "sk-xxx")` 调用
+- **THEN** Flow emit `{"deepseek"}`(初始空 set → save 后 1 元素)
+
+#### Scenario: clear 后 observeConfiguredProviders emit 不含该 provider
+- **WHEN** `observeConfiguredProviders()` 已在 collect + `clear("deepseek")` 调用
+- **THEN** Flow emit 空 set(若仅 deepseek 一个 provider)
+
+#### Scenario: Keystore 损坏时 observeConfiguredProviders 仍 emit 当前 set
+- **WHEN** `EncryptedSharedPreferences` 初始化抛 `GeneralSecurityException`
+- **THEN** `observeConfiguredProviders()` emit 空 set(且 Flow 不中断;后续 save 调用走 catch 分支,不更新 set)
 
 ### Requirement: apikey 5-second auto-hide via Lifecycle pause
 

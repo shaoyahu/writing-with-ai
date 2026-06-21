@@ -66,6 +66,12 @@ interface NoteDao {
     @Query("UPDATE notes SET isPinned = :pinned WHERE id = :id")
     suspend fun setPinned(id: String, pinned: Boolean)
 
+    @Query("SELECT * FROM notes WHERE LOWER(title) LIKE LOWER(:q) ESCAPE '\\' ORDER BY updatedAt DESC LIMIT :limit")
+    suspend fun searchByTitlePrefix(q: String, limit: Int): List<NoteEntity>
+
+    @Query("SELECT * FROM notes WHERE LOWER(title) = LOWER(:title) ORDER BY updatedAt DESC LIMIT 1")
+    suspend fun resolveByTitle(title: String): NoteEntity?
+
     @Query("UPDATE notes SET lastAiOp = :op, lastAiAt = :at WHERE id = :noteId")
     suspend fun updateAiMetadata(noteId: String, op: String, at: Long)
 }

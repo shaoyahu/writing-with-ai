@@ -56,7 +56,7 @@ constructor(
         data class ChatMessage(val role: String, val content: String)
 
         @Serializable
-        data class RequestBody(
+        data class AnthropicBody(
             val model: String,
             val max_tokens: Int = 2048,
             val stream: Boolean = true,
@@ -64,15 +64,37 @@ constructor(
             val messages: List<ChatMessage>
         )
 
+        @Serializable
+        data class OpenAiBody(
+            val model: String,
+            val max_tokens: Int = 2048,
+            val stream: Boolean = true,
+            val messages: List<ChatMessage>
+        )
+
+        val isOpenAi = config.apiFormat == ApiFormat.OPENAI
         val body =
-            json.encodeToString(
-                RequestBody.serializer(),
-                RequestBody(
-                    model = request.model,
-                    system = systemPrompt,
-                    messages = listOf(ChatMessage("user", request.sourceText))
+            if (isOpenAi) {
+                json.encodeToString(
+                    OpenAiBody.serializer(),
+                    OpenAiBody(
+                        model = request.model,
+                        messages = listOf(
+                            ChatMessage("system", systemPrompt),
+                            ChatMessage("user", request.sourceText)
+                        )
+                    )
                 )
-            )
+            } else {
+                json.encodeToString(
+                    AnthropicBody.serializer(),
+                    AnthropicBody(
+                        model = request.model,
+                        system = systemPrompt,
+                        messages = listOf(ChatMessage("user", request.sourceText))
+                    )
+                )
+            }
 
         val httpRequest =
             Request.Builder()
@@ -171,13 +193,26 @@ constructor(
 
     private fun parseDelta(content: String): String? {
         return try {
-            @Serializable
-            data class DeltaBlock(val text: String)
+            if (config.apiFormat == ApiFormat.OPENAI) {
+                @Serializable
+                data class OpenAiDelta(val content: String? = null)
 
-            @Serializable
-            data class DeltaObj(val delta: DeltaBlock)
-            val obj = json.decodeFromString(DeltaObj.serializer(), content)
-            obj.delta.text
+                @Serializable
+                data class OpenAiChoice(val delta: OpenAiDelta? = null)
+
+                @Serializable
+                data class OpenAiChunk(val choices: List<OpenAiChoice> = emptyList())
+                val obj = json.decodeFromString(OpenAiChunk.serializer(), content)
+                obj.choices.firstOrNull()?.delta?.content
+            } else {
+                @Serializable
+                data class DeltaBlock(val text: String)
+
+                @Serializable
+                data class DeltaObj(val delta: DeltaBlock)
+                val obj = json.decodeFromString(DeltaObj.serializer(), content)
+                obj.delta.text
+            }
         } catch (_: Exception) {
             null
         }
@@ -185,20 +220,39 @@ constructor(
 
     private fun parseUsage(content: String): AiStreamEvent.Usage? {
         return try {
-            @Serializable
-            data class UsageObj(
-                val input_tokens: Int = 0,
-                val output_tokens: Int = 0
-            )
+            if (config.apiFormat == ApiFormat.OPENAI) {
+                @Serializable
+                data class OpenAiUsageObj(
+                    val prompt_tokens: Int = 0,
+                    val completion_tokens: Int = 0,
+                    val total_tokens: Int = 0
+                )
 
-            @Serializable
-            data class UsageWrapper(val usage: UsageObj)
-            val obj = json.decodeFromString(UsageWrapper.serializer(), content)
-            AiStreamEvent.Usage(
-                inputTokens = obj.usage.input_tokens,
-                outputTokens = obj.usage.output_tokens,
-                totalTokens = obj.usage.input_tokens + obj.usage.output_tokens
-            )
+                @Serializable
+                data class OpenAiUsageWrapper(val usage: OpenAiUsageObj? = null)
+                val obj = json.decodeFromString(OpenAiUsageWrapper.serializer(), content)
+                val u = obj.usage ?: return null
+                AiStreamEvent.Usage(
+                    inputTokens = u.prompt_tokens,
+                    outputTokens = u.completion_tokens,
+                    totalTokens = u.total_tokens
+                )
+            } else {
+                @Serializable
+                data class UsageObj(
+                    val input_tokens: Int = 0,
+                    val output_tokens: Int = 0
+                )
+
+                @Serializable
+                data class UsageWrapper(val usage: UsageObj)
+                val obj = json.decodeFromString(UsageWrapper.serializer(), content)
+                AiStreamEvent.Usage(
+                    inputTokens = obj.usage.input_tokens,
+                    outputTokens = obj.usage.output_tokens,
+                    totalTokens = obj.usage.input_tokens + obj.usage.output_tokens
+                )
+            }
         } catch (_: Exception) {
             null
         }

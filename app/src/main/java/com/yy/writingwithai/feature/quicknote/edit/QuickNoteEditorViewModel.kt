@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -32,6 +33,7 @@ constructor(
     private val titleFlow = MutableStateFlow("")
     private val contentFlow = MutableStateFlow("")
     private val tagsFlow = MutableStateFlow<List<String>>(emptyList())
+    private val tagInputFlow = MutableStateFlow("")
     private val savingFlow = MutableStateFlow(false)
     private val loadedFlow = MutableStateFlow(false)
 
@@ -58,15 +60,29 @@ constructor(
         }
     }
 
+    // combine 最多 5 个 Flow,6 个时嵌套一层
+    private data class PartialState(
+        val title: String,
+        val content: String,
+        val tags: List<String>,
+        val tagInput: String,
+        val saving: Boolean
+    )
+
     val uiState: StateFlow<NoteEditorUiState> =
-        combine(titleFlow, contentFlow, tagsFlow, savingFlow, loadedFlow) {
-                title, content, tags, saving, loaded ->
+        combine(
+            combine(titleFlow, contentFlow, tagsFlow, tagInputFlow, savingFlow) { t, c, ts, ti, s ->
+                PartialState(t, c, ts, ti, s)
+            },
+            loadedFlow
+        ) { p, loaded ->
             NoteEditorUiState(
                 isNew = isNew,
-                title = title,
-                content = content,
-                tags = tags,
-                isSaving = saving,
+                title = p.title,
+                content = p.content,
+                tags = p.tags,
+                tagInputText = p.tagInput,
+                isSaving = p.saving,
                 isLoaded = loaded
             )
         }.stateIn(
@@ -78,6 +94,7 @@ constructor(
                 title = "",
                 content = "",
                 tags = emptyList(),
+                tagInputText = "",
                 isLoaded = false
             )
         )
@@ -90,6 +107,16 @@ constructor(
         contentFlow.update { s }
     }
 
+    // fix-quicknote-tags-and-search · "已挂 #a #b" 副文案用
+    val tagsSummary: StateFlow<String> =
+        tagsFlow
+            .map { list -> list.joinToString(" ") { "#$it" } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000L),
+                initialValue = ""
+            )
+
     fun addTag(tag: String) {
         val trimmed = tag.trim()
         if (trimmed.isEmpty()) return
@@ -100,8 +127,18 @@ constructor(
         tagsFlow.update { current -> current.filterNot { it == tag } }
     }
 
+    fun setTagInput(value: String) {
+        tagInputFlow.update { value }
+    }
+
     fun save(onSaved: (id: String) -> Unit) {
         if (savingFlow.value) return
+        // 先消费 TagInputRow 中待提交的输入文本(用户未按逗号/回车就直接点保存的情况)
+        val pendingTag = tagInputFlow.value.trim()
+        if (pendingTag.isNotEmpty()) {
+            addTag(pendingTag)
+            tagInputFlow.update { "" }
+        }
         savingFlow.update { true }
         viewModelScope.launch {
             val now = System.currentTimeMillis()
@@ -123,7 +160,9 @@ constructor(
                     content = contentFlow.value,
                     updatedAt = now
                 )
-            repository.upsert(note, tagsFlow.value)
+            val tagsToSave = tagsFlow.value
+            android.util.Log.d("EditorVM", "save noteId=${note.id} tags=$tagsToSave")
+            repository.upsert(note, tagsToSave)
             savingFlow.update { false }
             onSaved(note.id)
         }

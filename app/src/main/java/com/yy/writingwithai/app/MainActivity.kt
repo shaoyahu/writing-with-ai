@@ -2,11 +2,17 @@ package com.yy.writingwithai.app
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import com.yy.writingwithai.BuildConfig
+import com.yy.writingwithai.R
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.widget.OpenNoteAction
 import dagger.hilt.EntryPoint
@@ -44,14 +50,46 @@ class MainActivity : ComponentActivity() {
     private val widgetPendingRoute = mutableStateOf<String?>(null)
     private var lastInitialRoute: String? = null
 
+    // fix-global-back-nav-and-gesture: 主页防误触(2s 二次确认 Toast)。
+    // C1 修:back callback 默认 enabled=false,等 navController ready 后在
+    // onDestinationChanged 真正命中主页再 enable,避免 onboarding 屏死锁。
+    private var lastBackPressAt: Long = 0L
+    private val backCallback =
+        object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastBackPressAt > 2000L) {
+                    lastBackPressAt = now
+                    Toast.makeText(
+                        this@MainActivity,
+                        R.string.back_press_exit_hint,
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this, backCallback)
         val rawRoute = intent?.getStringExtra(OpenNoteAction.EXTRA_ROUTE)
         handleRawRoute(rawRoute)
         setContent {
             App(
                 initialRoute = lastInitialRoute,
-                widgetPendingRoute = widgetPendingRoute
+                widgetPendingRoute = widgetPendingRoute,
+                onNavControllerReady = { nc: NavController ->
+                    // C1 修:用 typed Nav 2.8 hasRoute() 比对,而不是 FQN 字符串
+                    // `dest.route`(Navigation Compose 对 data object emit 的是序列化 route,
+                    // 不是 qualifiedName)。onNavControllerReady 是普通 lambda 不在 @Composable
+                    // 上下文里,直接 register listener(只调一次)。
+                    nc.addOnDestinationChangedListener { _, dest, _ ->
+                        backCallback.isEnabled = dest.hasRoute(QuicknoteList::class)
+                    }
+                }
             )
         }
     }

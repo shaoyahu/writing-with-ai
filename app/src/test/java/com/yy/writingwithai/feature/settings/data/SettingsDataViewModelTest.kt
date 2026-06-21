@@ -208,4 +208,117 @@ class SettingsDataViewModelTest {
         // exporter 只被调一次
         io.mockk.coVerify(exactly = 1) { noteExporter.exportToJsonZip(any()) }
     }
+
+    // ===== last-import-report-save · saveImportReport 行为 =====
+
+    @Test
+    fun saveImportReport_writesBytesToUri() = runTest {
+        // arrange:触发 import 让 VM 缓存 bytes
+        val importUri: Uri = mockk(relaxed = true)
+        val inputStream = java.io.ByteArrayInputStream(byteArrayOf(1, 2, 3))
+        val expectedReport =
+            ImportReport(
+                successCount = 1,
+                skippedCount = 0,
+                failedCount = 0,
+                failedNotes = emptyList()
+            )
+        every { contentResolver.openInputStream(importUri) } returns inputStream
+        coEvery {
+            noteImporter.importFromZip(any<java.io.InputStream>(), any<java.io.OutputStream>())
+        } coAnswers
+            {
+                // mock importer 写非空 bytes 到 out,模拟真实闭循环报告 zip
+                val out = secondArg<java.io.OutputStream>()
+                out.write(byteArrayOf(0xCA.toByte(), 0xFE.toByte(), 0xBA.toByte(), 0xBE.toByte()))
+                expectedReport
+            }
+        viewModel.importFromZip(importUri)
+        val cachedBytes = viewModel.lastImportReportZipBytes
+        assertNotNull(cachedBytes, "import 成功 MUST 缓存 bytes")
+        assertTrue(cachedBytes!!.isNotEmpty(), "mock importer 写入 out 后 cachedBytes MUST 非空")
+
+        // act:saveImportReport 写另一个 uri
+        val saveUri: Uri = mockk(relaxed = true)
+        val saveOutputStream = java.io.ByteArrayOutputStream()
+        every { contentResolver.openOutputStream(saveUri) } returns saveOutputStream
+        viewModel.saveImportReport(saveUri)
+
+        // assert:openOutputStream 被调 + bytes 等于 cachedBytes
+        io.mockk.verify { contentResolver.openOutputStream(saveUri) }
+        assertEquals(cachedBytes.size, saveOutputStream.size(), "saved bytes size MUST == cachedBytes size")
+        assertEquals(
+            cachedBytes.toList(),
+            saveOutputStream.toByteArray().toList(),
+            "saved bytes content MUST == cachedBytes"
+        )
+        // Done 态不变
+        assertTrue(viewModel.uiState.value is DataUiState.Done, "saveImportReport 成功 MUST 不破坏 Done 态")
+        // Success 信号触发后会被 LaunchedEffect reset;在 viewModel 层面,value 已被 set 为 Success
+        assertTrue(
+            viewModel.lastSaveReportResult.value is SaveReportResult.Success,
+            "saveImportReport 成功 MUST → lastSaveReportResult.Success, 实际 = ${viewModel.lastSaveReportResult.value}"
+        )
+    }
+
+    @Test
+    fun saveImportReport_nullBytesIsNoOp() = runTest {
+        // arrange:VM 初始(未触发 import)lastImportReportZipBytes == null
+        assertEquals(null, viewModel.lastImportReportZipBytes, "VM 初始 bytes MUST null")
+
+        // act:直接调 saveImportReport
+        val saveUri: Uri = mockk(relaxed = true)
+        viewModel.saveImportReport(saveUri)
+
+        // assert:openOutputStream 0 次调用 + lastSaveReportResult 仍 Idle
+        io.mockk.verify(exactly = 0) { contentResolver.openOutputStream(any<Uri>()) }
+        assertTrue(
+            viewModel.lastSaveReportResult.value is SaveReportResult.Idle,
+            "null bytes MUST no-op, lastSaveReportResult 保持 Idle, 实际 = ${viewModel.lastSaveReportResult.value}"
+        )
+    }
+
+    @Test
+    fun saveImportReport_outputStreamFailurePreservesDoneState() = runTest {
+        // arrange:先 import 成功,vm 进入 Done(isImport=true)
+        val importUri: Uri = mockk(relaxed = true)
+        val inputStream = java.io.ByteArrayInputStream(byteArrayOf(1, 2, 3))
+        val expectedReport =
+            ImportReport(successCount = 2, skippedCount = 0, failedCount = 0, failedNotes = emptyList())
+        every { contentResolver.openInputStream(importUri) } returns inputStream
+        coEvery {
+            noteImporter.importFromZip(any<java.io.InputStream>(), any<java.io.OutputStream>())
+        } coAnswers
+            {
+                val out = secondArg<java.io.OutputStream>()
+                out.write(byteArrayOf(0x01, 0x02, 0x03, 0x04))
+                expectedReport
+            }
+        viewModel.importFromZip(importUri)
+        assertTrue(viewModel.uiState.value is DataUiState.Done, "import 成功 MUST → Done")
+
+        // act:saveImportReport 模拟 SAF URI 失效抛 FileNotFoundException
+        val saveUri: Uri = mockk(relaxed = true)
+        every { contentResolver.openOutputStream(saveUri) } throws java.io.FileNotFoundException("SAF URI 失效")
+        viewModel.saveImportReport(saveUri)
+
+        // assert:uiState 仍 Done 不切 Failed + lastSaveReportResult = Failed
+        val finalUiState = viewModel.uiState.value
+        assertTrue(
+            finalUiState is DataUiState.Done,
+            "SAF 写失败 MUST 不破坏 Done 态, 实际 = $finalUiState"
+        )
+        finalUiState as DataUiState.Done
+        assertTrue(finalUiState.isImport, "Done MUST 仍 isImport = true")
+        val saveResult = viewModel.lastSaveReportResult.value
+        assertTrue(
+            saveResult is SaveReportResult.Failed,
+            "SAF 写失败 MUST → SaveReportResult.Failed, 实际 = $saveResult"
+        )
+        saveResult as SaveReportResult.Failed
+        assertTrue(
+            saveResult.reason.contains("SAF URI 失效"),
+            "Failed.reason MUST 含原异常 message, 实际 = ${saveResult.reason}"
+        )
+    }
 }

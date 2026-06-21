@@ -3,6 +3,7 @@ package com.yy.writingwithai.feature.settings.prompt
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.ai.api.WritingOp
+import com.yy.writingwithai.core.ai.prompt.DefaultPrompts
 import com.yy.writingwithai.core.prefs.PromptTemplateStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -13,16 +14,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * custom-prompt-template · PromptTemplate 编辑屏 ViewModel。
+ * fix-ai-config-ux · PromptTemplate 编辑屏 ViewModel。
  *
- * spec: openspec/changes/custom-prompt-template/specs/custom-prompt-template/spec.md
- * "PromptTemplateScreen provides 3-tab edit UI"
+ * 改动:
+ * - init 默认填 DefaultPrompts.forOp(op)(store 仍空,只 drafts 层先填)
+ * - onPromptChange 只改 drafts + pendingSave(不立即写 store)
+ * - 新增 save(op) 显式写 store + 清 dirty
+ * - resetToDefault 写 store + 清 drafts + 清 dirty
  *
- * 状态机:
- * - `currentOp` 当前 Tab
- * - `drafts[op]` 3 op 各自草稿(草稿层,UI 写入路径)
- *
- * 保存策略:每次 `onPromptChange` 立即写(简化版;切 Tab 也立即写)。
+ * spec: openspec/changes/fix-ai-config-ux/specs/custom-prompt-template/spec.md
  */
 @HiltViewModel
 class PromptTemplateViewModel
@@ -37,18 +37,22 @@ constructor(
                 WritingOp.EXPAND to "",
                 WritingOp.POLISH to "",
                 WritingOp.ORGANIZE to ""
-            )
+            ),
+        val pendingSave: Set<WritingOp> = emptySet()
     )
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     init {
-        // 初始化草稿:读 store 当前 3 op 值(空 → 走 fallback 默认)
+        // fix-ai-config-ux: store 空时默认填 DefaultPrompts,不改 store
         viewModelScope.launch {
-            val expand = promptTemplateStore.getForOp(WritingOp.EXPAND) ?: ""
-            val polish = promptTemplateStore.getForOp(WritingOp.POLISH) ?: ""
-            val organize = promptTemplateStore.getForOp(WritingOp.ORGANIZE) ?: ""
+            val expand = promptTemplateStore.getForOp(WritingOp.EXPAND)
+                ?: DefaultPrompts.forOp(WritingOp.EXPAND)
+            val polish = promptTemplateStore.getForOp(WritingOp.POLISH)
+                ?: DefaultPrompts.forOp(WritingOp.POLISH)
+            val organize = promptTemplateStore.getForOp(WritingOp.ORGANIZE)
+                ?: DefaultPrompts.forOp(WritingOp.ORGANIZE)
             _uiState.update {
                 it.copy(
                     drafts = mapOf(
@@ -61,12 +65,13 @@ constructor(
         }
     }
 
+    /** 改草稿 + 标 pendingSave,不立即写 store。fix-ai-config-ux: 废除旧"自动保存"行为。 */
     fun onPromptChange(op: WritingOp, value: String) {
         _uiState.update {
-            it.copy(drafts = it.drafts.toMutableMap().apply { put(op, value) })
-        }
-        viewModelScope.launch {
-            promptTemplateStore.setForOp(op, value)
+            it.copy(
+                drafts = it.drafts.toMutableMap().apply { put(op, value) },
+                pendingSave = it.pendingSave + op
+            )
         }
     }
 
@@ -74,12 +79,27 @@ constructor(
         _uiState.update { it.copy(currentOp = op) }
     }
 
+    /** 显式保存:写 store + 清 dirty。 */
+    fun save(op: WritingOp) {
+        val draft = _uiState.value.drafts[op] ?: return
+        viewModelScope.launch {
+            promptTemplateStore.setForOp(op, draft)
+        }
+        _uiState.update {
+            it.copy(pendingSave = it.pendingSave - op)
+        }
+    }
+
+    /** 恢复默认:写 store 空字符串 + 清 drafts + 清 dirty(下次 init 重填默认)。 */
     fun resetToDefault(op: WritingOp) {
         viewModelScope.launch {
             promptTemplateStore.resetToDefault(op)
         }
         _uiState.update {
-            it.copy(drafts = it.drafts.toMutableMap().apply { put(op, "") })
+            it.copy(
+                drafts = it.drafts.toMutableMap().apply { put(op, "") },
+                pendingSave = it.pendingSave - op
+            )
         }
     }
 }

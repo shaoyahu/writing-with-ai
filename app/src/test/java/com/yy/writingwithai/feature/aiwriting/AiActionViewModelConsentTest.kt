@@ -145,7 +145,8 @@ private class ThrowingAiGateway : AiGateway {
         throw IllegalStateException("AiGateway must NOT be called when consent missing")
     }
 
-    override suspend fun ping(providerId: String, apikey: String, modelName: String): Boolean = false
+    override suspend fun ping(providerId: String, apikey: String, modelName: String): String? =
+        "test: ping not invoked in consent-missing path"
 }
 
 /** 记录最后一次调用的 providerId 并 emit 完整流。 */
@@ -173,5 +174,5 @@ private class RecordingAiGateway : AiGateway {
         )
     }
 
-    override suspend fun ping(providerId: String, apikey: String, modelName: String): Boolean = true
+    override suspend fun ping(providerId: String, apikey: String, modelName: String): String? = null
 }

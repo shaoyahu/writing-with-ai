@@ -18,12 +18,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -51,6 +56,28 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
         ) { uri: Uri? ->
             uri?.let { viewModel.importFromZip(it) }
         }
+    val saveReportLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/zip")
+        ) { uri: Uri? ->
+            uri?.let { viewModel.saveImportReport(it) }
+        }
+    val saveResult by viewModel.lastSaveReportResult.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(saveResult) {
+        when (val r = saveResult) {
+            SaveReportResult.Idle -> Unit
+            SaveReportResult.Success -> {
+                snackbarHostState.showSnackbar(message = "报告已保存到所选位置")
+                viewModel.resetSaveReportResult()
+            }
+            is SaveReportResult.Failed -> {
+                snackbarHostState.showSnackbar(message = "保存失败:${r.reason}")
+                viewModel.resetSaveReportResult()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -62,7 +89,8 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier =
@@ -143,6 +171,29 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
                             ),
                             color = MaterialTheme.colorScheme.error
                         )
+                    }
+                    // last-import-report-save · 导入完成后暴露报告 zip 保存入口。
+                    // 仅在 isImport == true 显示(导出 Done 无报告);缓存 null(VM cleared)置灰。
+                    if (s.isImport) {
+                        val canSave = viewModel.lastImportReportZipBytes != null
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedButton(
+                            enabled = canSave,
+                            onClick = {
+                                val ts =
+                                    SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date())
+                                saveReportLauncher.launch("import-report-$ts.zip")
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.settings_data_save_report)) }
+                        if (!canSave) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.settings_data_no_report),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
                     }
                 }
                 is DataUiState.Failed -> {

@@ -2,6 +2,7 @@ package com.yy.writingwithai.core.data.repo
 
 import android.content.Context
 import androidx.room.withTransaction
+import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.NoteTagDao
@@ -10,15 +11,22 @@ import com.yy.writingwithai.core.data.mapper.toEntity
 import com.yy.writingwithai.core.data.mapper.toModel
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.data.model.NoteWithTags
+import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.widget.QuickNoteWidgetUpdater
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -39,8 +47,24 @@ constructor(
     private val db: AppDatabase,
     private val noteDao: NoteDao,
     private val noteTagDao: NoteTagDao,
-    private val widgetUpdater: QuickNoteWidgetUpdater
+    private val widgetUpdater: QuickNoteWidgetUpdater,
+    private val noteLinker: NoteLinker
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val recomputeFlow = MutableSharedFlow<String>(extraBufferCapacity = 64)
+
+    init {
+        scope.launch {
+            recomputeFlow
+                .debounce(DEBOUNCE_MS)
+                .collect { noteId ->
+                    try {
+                        noteLinker.recomputeForNote(noteId)
+                    } catch (_: Exception) { /* fire-and-forget */ }
+                }
+        }
+    }
+
     /**
      * 列表屏用:根据搜索词 / tag 筛选返回 `Flow<List<NoteWithTags>>`。
      *
@@ -85,19 +109,28 @@ constructor(
      * - 把传入的 tag 集合逐个写入(去重 + 去空)
      */
     suspend fun upsert(note: Note, tags: List<String>) {
+        // C6 修:BuildConfig.DEBUG gate,release 包不打 noteId + tags 到 logcat(隐私)。
+        if (BuildConfig.DEBUG) {
+            android.util.Log.d("NoteRepo", "upsert noteId=${note.id} tags=$tags")
+        }
         db.withTransaction {
             noteDao.upsert(note.toEntity())
             noteTagDao.removeAllForNote(note.id)
-            tags
+            val cleaned = tags
                 .asSequence()
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
                 .distinct()
-                .forEach { tag -> noteTagDao.add(NoteTagCrossRef(noteId = note.id, tag = tag)) }
+                .toList()
+            if (BuildConfig.DEBUG) {
+                android.util.Log.d("NoteRepo", "cleaned tags to insert: $cleaned")
+            }
+            cleaned.forEach { tag -> noteTagDao.add(NoteTagCrossRef(noteId = note.id, tag = tag)) }
         }
         // H3 修:widget 刷新包 NonCancellable,避免 viewModelScope 取消导致
         // 数据库已落库但 widget 没刷新(用户 back 时 race)。
         withContext(NonCancellable) { widgetUpdater.updateAll(context) }
+        recomputeFlow.tryEmit(note.id)
     }
 
     suspend fun delete(id: String) {
@@ -122,4 +155,8 @@ constructor(
     /** M4-1:Widget 取最近 N 条笔记(内存截断,Room SQL 不变);Room 已按 updatedAt desc 排序(M1 既有 `observeAll()`)。 */
     fun observeRecent(limit: Int): Flow<List<Note>> =
         noteDao.observeAll().map { list -> list.take(limit).map { it.toModel() } }
+
+    companion object {
+        private const val DEBOUNCE_MS = 500L
+    }
 }

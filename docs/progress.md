@@ -13,6 +13,51 @@
 
 ---
 
+## 2026-06-21 · M5 polish 4 个 fix change 归档
+
+- fix-ai-config-ux / fix-global-back-nav-and-gesture / fix-quicknote-tags-and-search / release-readiness 全 archive 到 `2026-06-21-*`
+- sync 4 个 delta spec 合入 main spec(secure-prefs observeConfiguredProviders + 3 Scenario / ai-actions ADDED configuredProviderIds + 4 Scenario / custom-prompt-template 大改 PromptTemplateScreen / app-shell TopAppBar ArrowBack / predictive-back-gesture ADDED home Toast 5 Scenario / quick-note 4 个新 Scenario / android-build-system 加 release Scenario / release-readiness 加 5 个 Requirement)
+- `openspec/changes/` active 队列清空;下一步候选:起 v1 内测 change / M5 旧 follow-up(国产 ROM widget 适配 / last-import-report-save / import-report-schema-v2);等指令
+
+## 2026-06-21 · widget-rome-compat 落地(M4-1 follow-up 收口)
+
+- OpenSpec change `widget-rome-compat` apply 收口国产 ROM 适配 + M4-1 r2 4 项 follow-up:GlanceStateDefinition(走 Application-scoped DataStore)/ 颜色 token(M3 ColorScheme)/ DateUtils locale-aware / ROM hint
+- 核心改动:`RomDetector` + `RomVendor` enum(5 case,Build.MANUFACTURER + BRAND 双判 8 关键词)/ `WidgetState` data class(`cachedNoteIds` / `lastRefreshAt` / `romVendor`)+ `WidgetStateSerializer` + `WidgetStateStore` Application-scoped holder;`WidgetColors` 6 ColorProvider token 派生 `MaterialTheme.colorScheme`;`formatRelativeTime` / `formatRelativeTimeCompact` 改 `DateUtils.getRelativeTimeSpanString` 删 30 行 when;`QuickNoteWidget` / `QuickNote1x4Widget` 删 6 个硬编码 hex + `cp()` helper 改 token 化
+- 设计纠偏:Glance 1.1.x `GlanceAppWidget.stateDefinition` 是 final,原计划 `WidgetStateDefinition : GlanceStateDefinition<WidgetState>` API 不可用 — 改走 Application-scoped DataStore holder `WidgetStateStore`(与 spec "GlanceStateDefinition persists widget state via DataStore" 意图一致,实现路径不同)
+- 加 4 个 i18n key 双语(`widget_rom_miui_hint` / `_emui_hint` / `_coloros_hint` / `_originos_hint`)+ 新 `docs/usage/domestic-rom-widget.md`(4 段:状态表 4×4 / 4 ROM 教程含 4 个截图占位 / 已知限制 / ROM 检测原理)
+- 验收:`assembleDebug` / `ktlintCheck`(0 violations,改 `WidgetTheme.kt` → `WidgetColors.kt` 文件名后过)/ `lintDebug`(0 errors)/ `testDebugUnitTest`(既有全绿)全绿
+- 4 个新 test deferred 到 polish 阶段(Robolectric Glance widget host 首次运行时下载 ~500MB vintage engine,polish-and-internal-release 已开 CI cache)
+- 下一步候选:`/opsx:sync widget-rome-compat` 合 spec + `/opsx:archive` 收口;或继续新 change;等指令
+
+## 2026-06-21 · last-import-report-save 落地
+
+- OpenSpec change `last-import-report-save` apply + sync + archive 完整闭环:1 个 ADDED Requirement(6 Scenario)合入 `openspec/specs/data-export-import/spec.md`
+- 核心改动:`saveImportReport(uri: Uri)` + `SaveReportResult` sealed + `lastSaveReportResult: StateFlow<SaveReportResult>` + `resetSaveReportResult()` + Screen `Done(isImport=true)` 分支 OutlinedButton + SAF CreateDocument + SnackbarHost;VM 失败 catch 不覆盖 Done 态(走独立 `lastSaveReportResult` 通道)
+- 加 4 个 i18n key 双语(`settings_data_save_report` / `_report_saved` / `_no_report` / `_save_failed`)+ 3 个 test case(`saveImportReport_writesBytesToUri` / `_nullBytesIsNoOp` / `_outputStreamFailurePreservesDoneState`);mock importer `coAnswers` 写非空 bytes 模拟闭循环报告
+- 验收:`assembleDebug` / `ktlintCheck`(0 violations)/ `lintDebug`(0 errors)/ `testDebugUnitTest`(9/9 PASS)全绿;1 处 ktlint test line-length violation 已修(argument-list-wrapping)
+- archive 到 `openspec/changes/archive/2026-06-21-last-import-report-save/`
+- 下一步候选:C 真机 walkthrough 二轮(验证 widget + 新保存按钮)/ B3 widget-rome-compat / A v1 内测 change;等指令
+
+## 2026-06-20 · fix-global-back-nav-and-gesture 落地
+
+- SettingsScreen / ModelManagement* 全局加返回按钮;主页 back 加 2s 防误触 Toast
+- Polish F-03 修:走 OnBackPressedCallback idiom(typed Nav + repeatOnLifecycle),onboarding 屏不触发防误触
+
+## 2026-06-20 · fix-ai-config-ux 落地
+
+- ModelManagementViewModel 走 SaveResult 状态机 + Channel 事件流,UI 显式反馈保存结果
+- 配置态可视化:ProviderInfoCard SuggestionChip + 选中边框,SecureApiKeyStore.observeConfiguredProviders 实时监听
+
+## 2026-06-20 · fix-quicknote-tags-and-search 落地
+
+- tag 筛选 + 保存反馈 + 搜索清除 icon + 空态文案
+
+## 2026-06-20 · release-readiness 落地
+
+- R8 + 资源压缩 + release signing(keystore 不入库,~/.gradle/gradle.properties 4 凭据占位)+ proguard keep 5 段
+
+---
+
 ## 2026-06-20 · fix-m5-blockers 修复 main broken state + 全量 review r2
 
 - **bug fix(2 CRITICAL)**:C1 `QuickNote1x4Widget.kt` Glance API 不存在 → `cornerRadius(16.dp)` + `defaultWeight().height(48.dp)`(Glance 1.1.1 标准,无 per-corner);C2 `CoreAiGateway` 硬编码 `apikey = "fake-apikey"` → `AiGateway.streamWritingOp` / `ping` 加 `apikey: String` 必填参数(BREAKING),`AiActionViewModel` / `ModelManagementViewModel` 同步取 `SecureApiKeyStore.get(providerId)`,缺 key → `ProviderNotConfigured`

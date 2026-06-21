@@ -19,5 +19,14 @@ interface AiGateway {
         systemPrompt: String? = null
     ): Flow<AiStreamEvent>
 
-    suspend fun ping(providerId: String, apikey: String, modelName: String): Boolean
+    /**
+     * 测连通。
+     *
+     * @return `null` 表示成功(收到非 Failed 事件流);非 `null` 表示失败原因(从 provider 返回的
+     *   [AiError.summary] 抽取,用于 UI 直接展示给用户)。
+     *
+     * 之前签名是 `Boolean`,失败细节被丢弃,UI 只能写死「apikey 无效或网络不通」,无法定位是
+     * 真 apikey 错(401)还是请求体被 server 拒绝(400)还是网络层 timeout。
+     */
+    suspend fun ping(providerId: String, apikey: String, modelName: String): String?
 }

@@ -10,7 +10,7 @@ Gradle 8 + Version Catalog + AGP + Kotlin 2.x + KSP + Compose Compiler + Hilt + 
 
 ### Requirement: Gradle build tasks pass for the debug variant
 
-The Gradle project MUST compile, assemble a debug APK, and run unit tests without errors using JDK 17.
+The Gradle project MUST compile, assemble a debug APK, and run unit tests without errors using JDK 17. When the user has configured `~/.gradle/gradle.properties` with release signing credentials (`RELEASE_STORE_FILE` / `RELEASE_STORE_PASSWORD` / `RELEASE_KEY_ALIAS` / `RELEASE_KEY_PASSWORD`), `./gradlew :app:assembleRelease` MUST also succeed; full release-variant semantics live in the `release-readiness` spec.
 
 #### Scenario: Debug APK assembly succeeds
 - **WHEN** the user runs `./gradlew :app:assembleDebug` from the repo root on JDK 17
@@ -19,6 +19,10 @@ The Gradle project MUST compile, assemble a debug APK, and run unit tests withou
 #### Scenario: Unit tests execute
 - **WHEN** the user runs `./gradlew :app:testDebugUnitTest` from the repo root
 - **THEN** the task exits with status 0 AND at least one test class from `app/src/test/` is executed
+
+#### Scenario: Release APK assembly succeeds when signing config is present
+- **WHEN** the user has configured `~/.gradle/gradle.properties` with `RELEASE_STORE_FILE` / `RELEASE_STORE_PASSWORD` / `RELEASE_KEY_ALIAS` / `RELEASE_KEY_PASSWORD` AND runs `./gradlew :app:assembleRelease`
+- **THEN** the task exits with status 0 AND an APK file exists at `app/build/outputs/apk/release/app-release.apk` AND `app/build/outputs/mapping/release/mapping.txt` exists
 
 ### Requirement: Dependencies are managed via Version Catalog
 
@@ -34,17 +38,28 @@ All library and plugin versions MUST be declared in `gradle/libs.versions.toml`;
 
 ### Requirement: ktlint static check passes
 
-The project MUST run ktlint in CI-equivalent mode and produce no errors; the rule set lives in `config/ktlint/.editorconfig`.
+The project MUST run ktlint in CI-equivalent mode and produce no errors; the rule set lives in `config/ktlint/.editorconfig`(per-rule 写法)+ `app/build.gradle.kts` 的 `ktlint {}` 块(集中 disabled rules)。
 
-> **已知限制**(2026-06-18 review r2):ktlint rule-engine 1.0.x(plugin 12.x 拉的)对 Compose Composable PascalCase 命名硬冲突;`disabledRules` / `@file:Suppress` / `@Suppress` / `// ktlint-disable` 已知 4 种 disable 方式均不生效;`./gradlew :app:ktlintCheck` 当前会报 5 个 standard:function-naming 违规。推迟到 `polish-and-internal-release` change 升 rule-engine ≥ 1.1 走 `experimental:annotation` 机制。
+> **2026-06-20 全量扫描**(main 477 + test 109 = ~580 违规,top 5:`indent` 183, `trailing-comma-on-call-site` 142, `argument-list-wrapping` 34, `function-signature` 30, `trailing-comma-on-declaration-site` 23)。修复路径:
+> 1. 跑 `./gradlew :app:ktlintFormat` 自动修大部分
+> 2. 手工修 `app/src/main/java/com/yy/writingwithai/app/ui/theme/Type.kt` 整文件 indent(12 → 8)
+> 3. 手工拆 `app/src/test/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionViewModelTest.kt:47,73,94,112,128,148,165` 多参数单行(8 参构造调 `AiActionViewModel(...)` 必须每参一行)
+> 4. 验 `./gradlew :app:ktlintCheck` 0 violation
 
 #### Scenario: ktlintCheck exits clean
 - **WHEN** the user runs `./gradlew :app:ktlintCheck`
-- **THEN** the task exits with status 0 AND no `error` lines are reported
+- **THEN** the task exits with status 0 AND no `error` lines are reported AND no `obsolete property 'ktlint_disabled_rules'` warning
 
 #### Scenario: ktlint rules centralized
 - **WHEN** a developer inspects ktlint configuration
-- **THEN** all ktlint rule overrides live in `config/ktlint/.editorconfig` (or the `ktlint {}` block of `app/build.gradle.kts`); no second `.editorconfig` with ktlint rules exists elsewhere
+- **THEN** ktlint rule overrides live in:
+- (a) `config/ktlint/.editorconfig` — 用 ktlint 1.0 per-rule 写法(单 disabled rule 用 property)
+- (b) `app/build.gradle.kts` 的 `ktlint { disabledRules.set(setOf(...)) }` 块 — 集中 disabled rules
+- 不存在带 obsolete `ktlint_disabled_rules` 属性的 `.editorconfig`
+
+#### Scenario: Type.kt indent 正确
+- **WHEN** 读 `app/src/main/java/com/yy/writingwithai/app/ui/theme/Type.kt`
+- **THEN** 所有 property 缩进为 4 的倍数(2 / 4 / 8 / 12 等),无 `Unexpected indentation (12) (should be 8)` 类违规
 
 ### Requirement: Aggregate check task combines lint and tests
 

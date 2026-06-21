@@ -14,10 +14,14 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -56,6 +60,9 @@ interface SecureApiKeyStore {
     suspend fun clearAll()
 
     fun reveal(providerId: String): StateFlow<RevealState>
+
+    /** fix-ai-config-ux: 返回当前所有已配置 apikey 的 providerId 集合,含实时监听。 */
+    fun observeConfiguredProviders(): Flow<Set<String>>
 }
 
 @Singleton
@@ -135,6 +142,26 @@ constructor(
         scope.launch { updateRevealState(providerId, flow) }
         return flow.asStateFlow()
     }
+
+    override fun observeConfiguredProviders(): Flow<Set<String>> = callbackFlow {
+        val current = prefs?.all?.keys.orEmpty()
+            .filter { it.startsWith("apikey_") }
+            .map { it.removePrefix("apikey_") }
+            .toSet()
+        trySend(current)
+        val listener =
+            SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                if (key != null && key.startsWith("apikey_")) {
+                    val next = prefs?.all?.keys.orEmpty()
+                        .filter { it.startsWith("apikey_") }
+                        .map { it.removePrefix("apikey_") }
+                        .toSet()
+                    trySend(next)
+                }
+            }
+        prefs?.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs?.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.distinctUntilChanged()
 
     private suspend fun updateRevealState(providerId: String, flow: MutableStateFlow<RevealState>) {
         if (prefs == null) {

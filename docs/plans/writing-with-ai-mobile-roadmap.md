@@ -279,11 +279,11 @@ sealed interface AiStreamEvent {
 
 ### 6.3 预置 provider 适配器
 
-**关键事实(2026-06-18 确认)**:三家 provider **全部走 Anthropic Messages API 兼容**(`/v1/messages` 端点),可共用**一个** `AnthropicCompatibleAdapter`;差异点(认证 header、模型、字段能力)通过 `ProviderConfig` 数据驱动,**不需要为每家写独立 adapter**。
+**关键事实(2026-06-21 更新)**:三家 provider 协议**不再统一**:deepseek 走 **OpenAI 兼容**(`/chat/completions` + `Authorization: Bearer`),minimax / mimo 仍走 **Anthropic Messages API 兼容**(`/v1/messages` + 各家 auth header)。共用**一个** `AnthropicCompatibleAdapter`,通过 `ProviderConfig.apiFormat = ApiFormat.{OPENAI,ANTHROPIC}` 切分支;差异点(认证 header、模型、字段能力)通过 `ProviderConfig` 数据驱动,**不需要为每家写独立 adapter**。
 
 | Provider | Base URL | 完整端点 | Auth header | 默认模型 | 详细文档 |
 | --- | --- | --- | --- | --- | --- |
-| **deepseek** | `https://api.deepseek.com/anthropic` | `POST /v1/messages` | `x-api-key` | `deepseek-v4-flash` | `docs/usage/api-deepseek.md` |
+| **deepseek** | `https://api.deepseek.com` | `POST /chat/completions` | `Authorization: Bearer` | `deepseek-v4-flash` | `docs/usage/api-deepseek.md` |
 | **minimax** | `https://api.minimaxi.com` | `POST /anthropic/v1/messages` | `Authorization: Bearer` | `MiniMax-M2.7-highspeed` | `docs/usage/api-minimax.md` |
 | **mimo** | `https://api.xiaomimimo.com` | `POST /anthropic/v1/messages` | ⚠️ `api-key`(不是 `x-api-key`) | `mimo-v2.5-flash` | `docs/usage/api-mimo.md` |
 
