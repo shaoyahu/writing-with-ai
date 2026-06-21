@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 小札 launcher icon background — 宣纸色(暖米白,品牌主调) -->
-    <color name="ic_launcher_background">#F2EBE0</color>
+    <!-- 小札 launcher icon background — 深墨绿(沉稳,带温度) -->
+    <color name="ic_launcher_background">#1F2A2E</color>
 </resources>
