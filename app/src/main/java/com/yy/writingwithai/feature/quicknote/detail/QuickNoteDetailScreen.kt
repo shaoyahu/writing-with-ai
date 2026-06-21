@@ -361,6 +361,15 @@ fun QuickNoteDetailScreen(
                             .fillMaxWidth()
                             .padding(vertical = LocalSpacing.current.sm)
                     )
+                    // 字数 / 阅读时间 — 放在关联笔记上方,作为正文元数据贴近主体
+                    Text(
+                        text =
+                        "${context.getString(R.string.quicknote_detail_word_count_fmt, s.wordCount)}" +
+                            context.getString(R.string.quicknote_detail_word_time_separator) +
+                            context.getString(R.string.quicknote_detail_read_time_fmt, s.readMinutes),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     // note-association: 关联笔记
                     val currentNoteId = s.note.note.id
                     Spacer(Modifier.height(LocalSpacing.current.lg))
@@ -383,19 +392,6 @@ fun QuickNoteDetailScreen(
                             }
                         },
                         showAiButton = showAiButton
-                    )
-                    Spacer(Modifier.height(LocalSpacing.current.lg))
-                    androidx.compose.material3.HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-                    Spacer(Modifier.height(LocalSpacing.current.md))
-                    Text(
-                        text =
-                        "${context.getString(R.string.quicknote_detail_word_count_fmt, s.wordCount)}" +
-                            context.getString(R.string.quicknote_detail_word_time_separator) +
-                            context.getString(R.string.quicknote_detail_read_time_fmt, s.readMinutes),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
         }
