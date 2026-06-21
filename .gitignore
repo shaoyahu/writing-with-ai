@@ -46,3 +46,11 @@ google-services.json
 *.tmp
 *.bak
 *.swp
+
+# ----- Node(本地工具,不入库)-----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
