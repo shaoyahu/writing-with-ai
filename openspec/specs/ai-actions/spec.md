@@ -32,7 +32,7 @@ TBD - created by archiving change ai-writing-actions. Update Purpose after archi
 
 ### Requirement: AiActionViewModel owns the streaming state machine
 
-`AiActionViewModel : ViewModel` MUST 注入 `AiGateway` + `NoteRepository` + `ConsentStore` + `SecureApiKeyStore` + `PromptTemplateStore`,暴露 `StateFlow<AiActionUiState>` 给 UI 订阅;状态机用 sealed interface 表达:
+`AiActionViewModel : ViewModel` MUST 注入 `AiGateway` + `NoteRepository` + `ConsentStore` + `SecureApiKeyStore` + `PromptTemplateStore` + `ProviderPrefsStore`,暴露 `StateFlow<AiActionUiState>` 给 UI 订阅;状态机用 sealed interface 表达:
 
 ```kotlin
 sealed interface AiActionUiState {
@@ -52,13 +52,18 @@ sealed interface AiActionUiState {
 ```
 
 `start(op, sourceText, noteId)` MUST:
-- 调 `secureApiKeyStore.resolveProviderId()` 拿 provider id(M4-4 落地,有 deepseek apikey → `"deepseek"`,否则 → `"fake"`)
+- 同步读 `providerPrefsStore.getSelectedProviderId()`(user-configured provider id) + `secureApiKeyStore.get(providerId)`(真 apikey)
+- 若 `providerId != "fake"` 且 `apikey == null` → `_state = Failed(op, AiError.ProviderNotConfigured)`,**不**调 `AiGateway.streamWritingOp(...)`,return
 - 调 `promptTemplateStore.getForOp(op)` 拿用户自定义 system prompt(custom-prompt-template 落地);`null` → 走 `DefaultPrompts.forOp(op)` fallback
-- 调 `AiGateway.streamWritingOp(op, sourceText, providerId, modelName=null, systemPrompt=<解析结果>)` 订阅
+- 调 `AiGateway.streamWritingOp(op, sourceText, providerId, apikey, modelName=null, systemPrompt=<解析结果>)` 订阅
 
-#### Scenario: start() 进入 Streaming
-- **WHEN** UI 调用 `viewModel.start(EXPAND, sourceText="晨跑", noteId="n1")`
-- **THEN** `AiGateway.streamWritingOp(EXPAND, "晨跑", "fake", modelName=null, systemPrompt=<DefaultPrompts.forOp(EXPAND)>)` 被订阅;首个 event `Started` 到达时 `AiActionUiState` 转为 `Streaming(op=EXPAND, partialText="")`
+#### Scenario: start() 同步取 apikey 透传 gateway
+- **WHEN** `providerPrefsStore.getSelectedProviderId() == "deepseek"`,`secureApiKeyStore.get("deepseek") == "sk-real-123"`,UI 调用 `viewModel.start(EXPAND, "晨跑", "n1")`
+- **THEN** `AiGateway.streamWritingOp(EXPAND, "晨跑", "deepseek", apikey="sk-real-123", modelName=null, systemPrompt=<DefaultPrompts.forOp(EXPAND)>)` 被订阅;首个 event `Started` 到达时 `AiActionUiState` 转为 `Streaming(op=EXPAND, partialText="")`
+
+#### Scenario: 缺 apikey 阻断 AI 调用
+- **WHEN** `providerPrefsStore.getSelectedProviderId() == "deepseek"`,`secureApiKeyStore.get("deepseek") == null`(用户配了 provider 但没存 apikey),UI 调用 `viewModel.start(EXPAND, "晨跑", "n1")`
+- **THEN** `_state` 立即转 `Failed(EXPAND, ProviderNotConfigured)`;`aiGateway.streamWritingOp(...)` 0 次调用;UI 显示 `R.string.aiwriting_error_unknown` 或对应"请先在设置 → 模型管理配置"文案
 
 #### Scenario: start() 使用用户自定义 prompt(custom-prompt-template)
 - **WHEN** UI 调用 `viewModel.start(POLISH, sourceText="晨跑", noteId="n1")`,`promptTemplateStore.getForOp(POLISH) == "你是一位正式文风润色助手"`
@@ -67,10 +72,6 @@ sealed interface AiActionUiState {
 #### Scenario: start() 模板空走 fallback(custom-prompt-template)
 - **WHEN** `viewModel.start(EXPAND, sourceText, noteId)` 调用,`promptTemplateStore.getForOp(EXPAND) == null`
 - **THEN** `systemPrompt = DefaultPrompts.forOp(EXPAND)`,AiGateway 收到 fallback 默认 prompt
-
-#### Scenario: providerId 走 secureApiKeyStore resolve(custom-prompt-template)
-- **WHEN** `viewModel.start(op, sourceText, noteId)` 调用
-- **THEN** `providerId = secureApiKeyStore.resolveProviderId()`(suspend,同步调用);有 deepseek apikey → "deepseek",否则 → "fake"
 
 #### Scenario: Delta 累加 partialText
 - **WHEN** AiGateway emit `Delta("你")` → `Delta("好")`
@@ -83,6 +84,46 @@ sealed interface AiActionUiState {
 #### Scenario: Failed 携带 AiError
 - **WHEN** AiGateway emit `Failed(AiError.Network(code=500, detail="timeout"), recoverable=true)`
 - **THEN** `AiActionUiState` 转为 `Failed(op, error=Network(500, "timeout"))`
+
+### Requirement: ModelManagementViewModel passes real apikey to gateway.ping
+
+`ModelManagementViewModel.ping(providerId)` MUST 同步从 `SecureApiKeyStore.get(providerId)` 拿 apikey,`null` → emit `PingResult.Failed("apikey 未配置")` 不调 gateway;非 null → 调 `aiGateway.ping(providerId, apikey=apikey, modelName="default")`。理由:`AiGateway.ping` 签名也升级到 `(providerId, apikey, modelName)`,与 `streamWritingOp` 一致。
+
+#### Scenario: ping 不调 fake 路径
+- **WHEN** `ModelManagementViewModel.ping("deepseek")` 调用,`secureApiKeyStore.get("deepseek") == "sk-real-123"`
+- **THEN** `aiGateway.ping("deepseek", apikey="sk-real-123", modelName="default")` 被调 1 次,无 `"fake-apikey"` 占位字面量出现在调用链上
+
+#### Scenario: 缺 apikey 时 ping 立即失败
+- **WHEN** `ModelManagementViewModel.ping("deepseek")` 调用,`secureApiKeyStore.get("deepseek") == null`
+- **THEN** `aiGateway.ping(...)` 0 次调用,UI 立即显示 `PingResult.Failed("apikey 未配置")`,不等待网络超时
+
+#### Scenario: saveProvider 失败时 UI 显式 Failed 反馈 + 不切 selected
+- **WHEN** `secureApiKeyStore.save(providerId, apiKey)` 抛 `GeneralSecurityException`(模拟 keystore 损坏)
+- **THEN** `lastSaveResult = Failed("KeyStore 损坏")`;`selectedProviderId` 与 `hasApiKeyForSelected` **不变**(不切 selected,不冒进);UI 显示 Snackbar `"保存失败:KeyStore 损坏"` + 不触发 onBack
+
+### Requirement: ModelManagementViewModel exposes configuredProviderIds
+
+`ModelManagementViewModel` MUST 暴露 `configuredProviderIds: StateFlow<Set<String>>`,数据源来自 `SecureApiKeyStore.observeConfiguredProviders()`(底层 `EncryptedSharedPreferences` 的 `OnSharedPreferenceChangeListener` 监听所有 `apikey_*` key)。
+
+`ModelManagementUiState` MUST 新增字段 `configuredProviderIds: Set<String> = emptySet()`;`init { }` MUST collect 该 Flow → `_state.update { it.copy(configuredProviderIds = ids) }`。
+
+`SaveResult` MUST 是 `sealed interface { data object Idle; data object InProgress; data object Success; data class Failed(val reason: String) }`;`ModelManagementUiState.lastSaveResult: SaveResult` 默认 `Idle`。
+
+#### Scenario: save 成功后 configuredProviderIds 实时 emit
+- **WHEN** `saveProvider("deepseek", "sk-xxx")` 调用成功
+- **THEN** `observeConfiguredProviders()` 1 次新 emit 含 `"deepseek"`;VM `_state.configuredProviderIds` 同步更新为 `{"deepseek"}`;`ModelManagementScreen` deepseek 卡片右上角 SuggestionChip 由 "未配置"(灰)变 "已配置"(蓝)+ CheckCircle
+
+#### Scenario: clear 后 configuredProviderIds 同步移除
+- **WHEN** `secureApiKeyStore.clear("deepseek")` 调用
+- **THEN** `observeConfiguredProviders()` 1 次新 emit 不含 `"deepseek"`;VM `_state.configuredProviderIds` 同步从 set 移除;deepseek 卡片回到 "未配置" 灰 chip
+
+#### Scenario: 多个 provider 并存配置
+- **WHEN** 同时配置 deepseek + minimax
+- **THEN** `_state.configuredProviderIds = {"deepseek", "minimax"}`;两张卡片同时显示 "已配置" 蓝 chip(不互斥)
+
+#### Scenario: 切换 selected 不影响其他 provider 已配置状态
+- **WHEN** deepseek 已配 → 选 mimo 为 selected
+- **THEN** `_state.configuredProviderIds` 仍含 `"deepseek"`(selected 切换是 prefs 行为,不删除 apikey);deepseek 卡片 "已配置" 蓝 chip 仍显示
 
 ### Requirement: StreamingPanel renders state-aware UI inside ModalBottomSheet
 

@@ -39,6 +39,10 @@ TBD - created by archiving change quick-note-feature. Update Purpose after archi
 - **WHEN** 列表页用户点击"灵感"标签 chip
 - **THEN** 列表只展示 `note_tags` 中存在 `(noteId, "灵感")` 的笔记,且保持"固定优先 + 时间倒序"
 
+#### Scenario: NoteRow chip 点击触发 tag 筛选
+- **WHEN** 列表行内 `NoteRow` 渲染的 `AssistChip("#$tag")` 被点击
+- **THEN** `QuickNoteListViewModel.selectTag(tag)` 被调用;`selectedTag = tag`;`observeNotesWithTags(query, tag)` emit 仅含该 tag 的笔记;顶部"当前筛选 #tag" banner 渲染
+
 ### Requirement: List ordering pinned-first and newest-first
 
 系统 MUST 让列表(无搜索 / 无 tag 筛选时)以 `isPinned DESC, updatedAt DESC` 顺序返回;被固定的笔记排在前部,同组内按更新时间倒序。
@@ -50,6 +54,10 @@ TBD - created by archiving change quick-note-feature. Update Purpose after archi
 #### Scenario: 同 pinned 组按 updatedAt 倒序
 - **WHEN** 数据库中两条笔记都是 `pinned=true`,`updatedAt` 不同
 - **THEN** 较新的(updatedAt 较大)在前
+
+#### Scenario: 选中 tag 后顶部 banner 显示 + 一键清除
+- **WHEN** 用户在 `TagFilterRow` 点选某个 tag(`selectedTag != null`)
+- **THEN** `QuickNoteListScreen` 在 search 与 TagFilterRow 中间渲染 "当前筛选 #tag" `AssistChip` + trailing close;点 close → `viewModel.selectTag(null)` → banner 消失 + 列表恢复全部
 
 ### Requirement: Search by title or content with LIKE
 
@@ -66,6 +74,12 @@ TBD - created by archiving change quick-note-feature. Update Purpose after archi
 #### Scenario: 搜索为空
 - **WHEN** 搜索框为空字符串
 - **THEN** 列表返回全部笔记(尊重固定排序与 tag 筛选)
+
+#### Scenario: 搜索框 trailingIcon 一键清除
+- **WHEN** 搜索框 `query` 非空
+- **THEN** `OutlinedTextField` `trailingIcon` 渲染 `IconButton(Close)`;点 close → `viewModel.setQuery("")` → 输入框清空 + trailingIcon 消失 + 列表恢复全部
+- **WHEN** `query` 为空
+- **THEN** `trailingIcon` 不渲染(节省屏宽)
 
 ### Requirement: Pin and unpin a note
 
@@ -130,6 +144,10 @@ TBD - created by archiving change quick-note-feature. Update Purpose after archi
 #### Scenario: 编辑既有笔记
 - **WHEN** 详情页"编辑"按钮被点击
 - **THEN** NavController 导航到 `quicknote/edit?id=<当前 id>`
+
+#### Scenario: 详情页无 tag 显示空状态文案
+- **WHEN** `note.tags.isEmpty()`
+- **THEN** `QuickNoteDetailScreen` 在 tag 区域渲染 `Text("无标签", style = labelSmall, color = onSurfaceVariant)`,替代原 `if (tags.isNotEmpty())` 的空白
 
 ### Requirement: i18n coverage
 

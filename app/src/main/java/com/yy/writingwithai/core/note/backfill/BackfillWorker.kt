@@ -1,0 +1,52 @@
+package com.yy.writingwithai.core.note.backfill
+
+import android.content.Context
+import androidx.work.CoroutineWorker
+import androidx.work.WorkerParameters
+import androidx.work.workDataOf
+import com.yy.writingwithai.core.data.db.AppDatabase
+import com.yy.writingwithai.core.note.NoteLinker
+import dagger.hilt.EntryPoint
+import dagger.hilt.EntryPoints
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+
+class BackfillWorker(
+    context: Context,
+    params: WorkerParameters
+) : CoroutineWorker(context, params) {
+
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        val entryPoint = EntryPoints.get(applicationContext, BackfillEntryPoint::class.java)
+        val db = entryPoint.db()
+        val noteLinker = entryPoint.noteLinker()
+
+        val ids = db.noteDao().observeAll()
+            .first()
+            .map { it.id }
+        val total = ids.size
+        var processed = 0
+        ids.chunked(BATCH_SIZE).forEach { batch ->
+            batch.forEach { id ->
+                noteLinker.recomputeForNote(id)
+                processed++
+            }
+            setProgress(workDataOf("processed" to processed, "total" to total))
+        }
+        Result.success(workDataOf("processed" to processed))
+    }
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface BackfillEntryPoint {
+        fun db(): AppDatabase
+        fun noteLinker(): NoteLinker
+    }
+
+    companion object {
+        private const val BATCH_SIZE = 50
+    }
+}

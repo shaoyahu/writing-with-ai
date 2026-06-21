@@ -6,6 +6,7 @@ import com.yy.writingwithai.core.data.db.AiHistoryDao
 import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.NoteTagDao
+import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,4 +44,7 @@ object DataModule {
 
     @Provides
     fun provideAiHistoryDao(db: AppDatabase): AiHistoryDao = db.aiHistoryDao()
+
+    @Provides
+    fun provideNoteLinkDao(db: AppDatabase): NoteLinkDao = db.noteLinkDao()
 }

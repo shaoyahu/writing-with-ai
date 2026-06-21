@@ -1,11 +1,14 @@
 package com.yy.writingwithai.core.data.db
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import com.yy.writingwithai.core.data.db.entity.AiHistoryEntity
 import com.yy.writingwithai.core.data.db.entity.NoteEntity
+import com.yy.writingwithai.core.data.db.entity.NoteLinkEntity
 import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
 
 /**
@@ -13,6 +16,8 @@ import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
  *
  * - version 1:首版 schema,对应 quick-note-feature
  * - version 2:加 ai_history 表,对应 ai-abstraction-layer
+ * - version 3:加 note_links,对应 note-association
+ *   - `@AutoMigration(2, 3)` 走 schema diff 自动建新表 + 索引 + 外键 CASCADE
  * - `exportSchema = true` 配合 `app/build.gradle.kts` 的 KSP arg,
  *   schema JSON 输出到 `app/schemas/com.yy.writingwithai.core.data.db.AppDatabase/<version>.json`
  */
@@ -20,10 +25,14 @@ import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
     entities = [
         NoteEntity::class,
         NoteTagCrossRef::class,
-        AiHistoryEntity::class
+        AiHistoryEntity::class,
+        NoteLinkEntity::class
     ],
-    version = 2,
-    exportSchema = true
+    version = 3,
+    exportSchema = true,
+    autoMigrations = [
+        AutoMigration(from = 2, to = 3)
+    ]
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
@@ -31,6 +40,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun noteTagDao(): NoteTagDao
 
     abstract fun aiHistoryDao(): AiHistoryDao
+
+    abstract fun noteLinkDao(): NoteLinkDao
 
     companion object {
         val MIGRATION_1_2 =

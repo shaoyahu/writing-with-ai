@@ -37,6 +37,14 @@
     <string name="quicknote_tag_input_hint">TODO(en): 添加标签(逗号或回车)</string>
     <string name="quicknote_tag_remove_cd">TODO(en): 移除标签 %1$s</string>
 
+    <!-- fix-quicknote-tags-and-search · 英文 TODO 占位 -->
+    <string name="quicknote_search_clear_cd">TODO(en): 清除搜索</string>
+    <string name="quicknote_list_filter_banner_fmt">TODO(en): 当前筛选 #%1$s</string>
+    <string name="quicknote_list_filter_clear_cd">TODO(en): 清除筛选</string>
+    <string name="quicknote_detail_no_tags">TODO(en): 无标签</string>
+    <string name="quicknote_editor_tags_count_fmt">TODO(en): 标签(%1$d 个)</string>
+    <string name="quicknote_editor_tags_saved_fmt">TODO(en): 已挂 %1$s</string>
+
     <string name="quicknote_share_chooser_title">TODO(en): 分享到…</string>
     <string name="quicknote_share_no_app">No app available to share</string>
 
@@ -75,6 +83,11 @@
     <string name="widget_1x4_title">TODO(en): widget_1x4_title</string>
     <string name="widget_1x4_layout_label">TODO(en): widget_1x4_layout_label</string>
     <string name="widget_empty">TODO(en): widget_empty</string>
+    <!-- widget-rome-compat(英文 TODO 占位,M5 polish 阶段补齐) -->
+    <string name="widget_rom_miui_hint">TODO(en): widget_rom_miui_hint</string>
+    <string name="widget_rom_emui_hint">TODO(en): widget_rom_emui_hint</string>
+    <string name="widget_rom_coloros_hint">TODO(en): widget_rom_coloros_hint</string>
+    <string name="widget_rom_originos_hint">TODO(en): widget_rom_originos_hint</string>
     <string name="widget_create_cd">TODO(en): widget_create_cd</string>
     <string name="widget_open_note_cd">TODO(en): widget_open_note_cd</string>
     <string name="widget_time_just_now">TODO(en): widget_time_just_now</string>
@@ -92,6 +105,11 @@
     <string name="settings_data_done">TODO(en): settings_data_done</string>
     <string name="settings_data_failed">TODO(en): settings_data_failed</string>
     <string name="settings_data_no_data">TODO(en): settings_data_no_data</string>
+    <!-- last-import-report-save(英文 TODO 占位,M5 polish 阶段补齐) -->
+    <string name="settings_data_save_report">TODO(en): settings_data_save_report</string>
+    <string name="settings_data_report_saved">TODO(en): settings_data_report_saved</string>
+    <string name="settings_data_no_report">TODO(en): settings_data_no_report</string>
+    <string name="settings_data_save_failed">TODO(en): settings_data_save_failed</string>
     <string name="import_report_summary">TODO(en): import_report_summary</string>
 
     <!-- ===== M4-4 onboarding-consent(英文 TODO 占位,M5 polish 阶段补齐)===== -->
@@ -131,4 +149,25 @@
     <string name="prompt_hint">TODO(en): prompt_hint</string>
     <string name="prompt_hint_label">TODO(en): prompt_hint_label</string>
     <string name="prompt_reset_default">TODO(en): prompt_reset_default</string>
+    <string name="prompt_save">TODO(en): 保存</string>
+    <string name="prompt_hint_v2">TODO(en): prompt_hint_v2</string>
+    <string name="back_press_exit_hint">TODO(en): 再按一次退出应用</string>
+
+    <!-- fix-ai-config-ux · 模型管理强化(英文 TODO 占位) -->
+    <string name="model_management_status_configured">TODO(en): 已配置</string>
+    <string name="model_management_status_not_configured">TODO(en): 未配置</string>
+    <string name="model_management_status_enabled">TODO(en): 已启用</string>
+    <string name="model_management_btn_configure">TODO(en): 配置</string>
+    <string name="model_management_btn_modify">TODO(en): 修改</string>
+    <string name="model_provider_detail_save_override">TODO(en): 保存(覆盖)</string>
+    <string name="model_provider_detail_banner_new">TODO(en): 新配置</string>
+    <string name="model_provider_detail_banner_existing">TODO(en): 已配置 · 点下方覆盖</string>
+    <string name="model_provider_detail_placeholder_new">TODO(en): 输入 API Key</string>
+    <string name="model_provider_detail_placeholder_override">TODO(en): 输入新 key 覆盖旧的</string>
+
+    <!-- C4 修:VM 不再硬编码中文,改为 messageRes + rawDetail,UI 层 stringResource 渲染 -->
+    <string name="model_provider_detail_api_key_label">API Key</string>
+    <string name="model_provider_detail_save_failed_fmt">Save failed: %1$s</string>
+    <string name="model_management_error_unknown">Unknown error</string>
+    <string name="model_management_error_no_apikey">API key not configured</string>
 </resources>
