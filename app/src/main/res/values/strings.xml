@@ -45,6 +45,14 @@
     <string name="quicknote_tag_input_hint">添加标签(逗号或回车)</string>
     <string name="quicknote_tag_remove_cd">移除标签 %1$s</string>
 
+    <!-- fix-quicknote-tags-and-search · 标签筛选 / 搜索清除 / 详情空态 / 编辑器反馈 -->
+    <string name="quicknote_search_clear_cd">清除搜索</string>
+    <string name="quicknote_list_filter_banner_fmt">当前筛选 #%1$s</string>
+    <string name="quicknote_list_filter_clear_cd">清除筛选</string>
+    <string name="quicknote_detail_no_tags">无标签</string>
+    <string name="quicknote_editor_tags_count_fmt">标签(%1$d 个)</string>
+    <string name="quicknote_editor_tags_saved_fmt">已挂 %1$s</string>
+
     <!-- 分享 chooser -->
     <string name="quicknote_share_chooser_title">分享到…</string>
     <string name="quicknote_share_no_app">没有可用的分享应用</string>
@@ -93,6 +101,11 @@
     <string name="widget_1x4_title">随手记</string>
     <string name="widget_1x4_layout_label">4x1 横条</string>
     <string name="widget_empty">还没有笔记\n点 + 创建第一条</string>
+    <!-- widget-rome-compat · 国产 ROM widget 自启动提示 -->
+    <string name="widget_rom_miui_hint">小米设备请到设置 → 电池 → 自启动管理开启本应用</string>
+    <string name="widget_rom_emui_hint">华为设备请到设置 → 应用 → 启动管理关闭自动管理</string>
+    <string name="widget_rom_coloros_hint">OPPO 设备请到设置 → 电池 → 关闭"睡眠待机优化"</string>
+    <string name="widget_rom_originos_hint">vivo 设备请到设置 → 电池 → 后台高耗电允许</string>
     <string name="widget_create_cd">新建笔记</string>
     <string name="widget_open_note_cd">打开笔记 %1$s</string>
     <string name="widget_time_just_now">刚刚</string>
@@ -110,6 +123,11 @@
     <string name="settings_data_done">完成,共 %1$d 条笔记</string>
     <string name="settings_data_failed">导出/导入失败:%1$s</string>
     <string name="settings_data_no_data">暂无笔记可导出</string>
+    <!-- last-import-report-save · 导入完成 Done 分支保存报告 zip 入口 -->
+    <string name="settings_data_save_report">保存导入报告</string>
+    <string name="settings_data_report_saved">报告已保存到所选位置</string>
+    <string name="settings_data_no_report">暂无可保存的报告</string>
+    <string name="settings_data_save_failed">保存失败:%1$s</string>
     <string name="import_report_summary">导入完成:%1$d 成功 / %2$d 跳过 / %3$d 失败,详情见 import_report.md</string>
 
     <!-- ===== M4-4 onboarding-consent ===== -->
@@ -153,4 +171,102 @@
     <string name="prompt_hint">自定义 AI 操作的 system prompt;空时使用默认;立即对下次 AI 操作生效</string>
     <string name="prompt_hint_label">system prompt 内容</string>
     <string name="prompt_reset_default">恢复默认</string>
+    <string name="prompt_save">保存</string>
+    <string name="prompt_hint_v2">自定义 AI 操作的 system prompt;修改后点保存生效;清空走默认</string>
+    <string name="back_press_exit_hint">再按一次退出应用</string>
+
+    <!-- fix-ai-config-ux · 模型管理强化 -->
+    <string name="model_management_status_configured">已配置</string>
+    <string name="model_management_status_not_configured">未配置</string>
+    <string name="model_management_status_enabled">已启用</string>
+    <string name="model_management_btn_configure">配置</string>
+    <string name="model_management_btn_modify">修改</string>
+    <string name="model_provider_detail_save_override">保存(覆盖)</string>
+    <string name="model_provider_detail_banner_new">新配置</string>
+    <string name="model_provider_detail_banner_existing">已配置 · 点下方覆盖</string>
+    <string name="model_provider_detail_placeholder_new">输入 API Key</string>
+    <string name="model_provider_detail_placeholder_override">输入新 key 覆盖旧的</string>
+
+    <!-- C4 修:VM 不再硬编码中文,改为 messageRes + rawDetail,UI 层 stringResource 渲染 -->
+    <string name="model_provider_detail_api_key_label">API Key</string>
+    <string name="model_provider_detail_save_failed_fmt">保存失败:%1$s</string>
+    <string name="model_management_error_unknown">未知错误</string>
+    <string name="model_management_error_no_apikey">apikey 未配置</string>
+
+    <string name="quicknote_untitled">无标题</string>
+
+    <!-- note-association -->
+    <string name="note_association_section_title">关联</string>
+    <string name="note_association_related_title">相关笔记</string>
+    <string name="note_association_related_empty">暂无关联</string>
+    <string name="note_association_backlinks_title">反向链接</string>
+    <string name="note_association_ai_find">用 AI 找关联</string>
+    <string name="note_association_ai_setting_title">保存时使用 AI 找关联</string>
+    <string name="note_association_ai_setting_desc">开启后,编辑保存时自动用 AI 抽取笔记间关联;每次调用可能产生少量费用</string>
+    <string name="note_association_signal_wikilink">[[链接]]</string>
+    <string name="note_association_signal_tag">标签</string>
+    <string name="note_association_signal_content">内容相似</string>
+    <string name="note_association_signal_ai">AI</string>
+    <string name="note_association_signal_backlink">引用</string>
+
+    <!-- ===== M6 custom-model · 自定义 Provider ===== -->
+    <string name="custom_provider_new_title">新建自定义模型</string>
+    <string name="custom_provider_edit_title">编辑自定义模型</string>
+    <string name="custom_provider_tag_custom">自定义</string>
+
+    <!-- 表单分区 -->
+    <string name="custom_provider_section_connection">连接信息</string>
+    <string name="custom_provider_section_models_auth">模型 &amp; 认证</string>
+    <string name="custom_provider_section_advanced">高级设置</string>
+
+    <!-- 连接字段 -->
+    <string name="custom_provider_display_name_label">显示名称</string>
+    <string name="custom_provider_display_name_hint">如:我的 OpenAI</string>
+    <string name="custom_provider_base_url_label">Base URL</string>
+    <string name="custom_provider_base_url_hint">如:https://api.openai.com</string>
+
+    <!-- 模型 & 认证字段 -->
+    <string name="custom_provider_auth_style_label">认证方式</string>
+    <string name="custom_provider_auth_style_authorization">Authorization: Bearer &lt;key&gt;</string>
+    <string name="custom_provider_auth_style_x_api_key">X-API-Key: &lt;key&gt;</string>
+    <string name="custom_provider_auth_style_custom_header">Custom Header</string>
+    <string name="custom_provider_custom_header_label">自定义 Header 名</string>
+    <string name="custom_provider_custom_header_hint">如:api-key</string>
+    <string name="custom_provider_default_model_label">默认模型</string>
+    <string name="custom_provider_default_model_hint">如:gpt-4</string>
+    <string name="custom_provider_supported_models_label">支持的模型</string>
+    <string name="custom_provider_add_model_hint">添加模型后回车</string>
+
+    <!-- 高级字段 -->
+    <string name="custom_provider_endpoint_path_label">Endpoint Path</string>
+    <string name="custom_provider_endpoint_path_hint">如:/chat/completions</string>
+    <string name="custom_provider_api_format_label">API 格式</string>
+    <string name="custom_provider_api_format_anthropic">Anthropic 兼容</string>
+    <string name="custom_provider_api_format_openai">OpenAI 兼容</string>
+
+    <!-- 表单内 ping -->
+    <string name="custom_provider_test_connection">测试连通</string>
+    <string name="custom_provider_ping_testing">正在测试…</string>
+
+    <!-- 错误提示(VM 抛回 UI) -->
+    <string name="custom_provider_error_missing_fields">请填写必填字段</string>
+    <string name="custom_provider_error_missing_apikey">请填写 API Key</string>
+    <string name="custom_provider_error_id_builtin_collision">id 与内置模型冲突,请换一个</string>
+    <string name="custom_provider_error_not_found">该自定义模型已不存在</string>
+    <string name="custom_provider_error_fmt">%1$s:%2$s</string>
+
+    <!-- 操作 -->
+    <string name="custom_provider_save">保存</string>
+    <string name="custom_provider_menu_edit">编辑配置</string>
+    <string name="custom_provider_menu_delete">删除</string>
+    <string name="custom_provider_delete_title">删除自定义模型</string>
+    <string name="custom_provider_delete_message">确定要删除这个自定义模型吗?apikey 也会被清除。</string>
+    <string name="custom_provider_delete_confirm">删除</string>
+    <string name="custom_provider_delete_cancel">取消</string>
+
+    <!-- 主屏 provider 卡片摘要 -->
+    <string name="model_management_models_summary_fmt">%1$d 个模型 · 默认 %2$s</string>
+
+    <!-- Provider 详情屏 -->
+    <string name="model_provider_detail_default_model_fmt">默认 model:%1$s</string>
 </resources>

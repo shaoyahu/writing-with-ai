@@ -1,6 +1,8 @@
 package com.yy.writingwithai.core.prefs
 
 import android.content.Context
+import com.yy.writingwithai.core.ai.provider.CustomProviderStore
+import com.yy.writingwithai.core.ai.provider.CustomProviderStoreImpl
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStore
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStoreImpl
 import dagger.Module
@@ -41,4 +43,9 @@ object PrefsModule {
     @Singleton
     fun provideProviderPrefsStore(@ApplicationContext context: Context): ProviderPrefsStore =
         ProviderPrefsStoreImpl(context)
+
+    @Provides
+    @Singleton
+    fun provideCustomProviderStore(@ApplicationContext context: Context): CustomProviderStore =
+        CustomProviderStoreImpl(context)
 }

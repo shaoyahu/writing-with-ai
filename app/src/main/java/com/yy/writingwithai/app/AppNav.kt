@@ -59,10 +59,14 @@ internal interface AppNavEntryPoint {
 @Composable
 fun AppNav(
     initialRoute: String? = null,
-    widgetPendingRoute: MutableState<String?> = remember { mutableStateOf<String?>(null) }
+    widgetPendingRoute: MutableState<String?> = remember { mutableStateOf<String?>(null) },
+    onNavControllerReady: (androidx.navigation.NavController) -> Unit = {}
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
+
+    // fix-global-back-nav-and-gesture: 把 navController 传给 Activity 层(用于 OnBackPressedCallback)
+    androidx.compose.runtime.SideEffect { onNavControllerReady(navController) }
 
     // M4-4 · 从 Activity 拿 ConsentStore(避免在 Composable 显式传 hiltViewModel)
     val consentStore =
@@ -167,7 +171,8 @@ fun AppNav(
         composable<Settings> {
             SettingsEntry.SettingsRoute(
                 onPromptTemplateClick = { navController.navigate(SettingsPromptTemplate) },
-                onModelManagementClick = { navController.navigate(SettingsModelManagement) }
+                onModelManagementClick = { navController.navigate(SettingsModelManagement) },
+                onBack = { navController.popBackStack() }
             )
         }
         composable<SettingsPromptTemplate> {
@@ -178,12 +183,21 @@ fun AppNav(
         composable<SettingsModelManagement> {
             ModelManagementEntry.ModelManagementRoute(
                 onProviderClick = { id -> navController.navigate(SettingsModelProviderDetail(id)) },
+                onCreateCustomClick = { navController.navigate(SettingsCustomProviderEdit(null)) },
+                onEditCustomClick = { id -> navController.navigate(SettingsCustomProviderEdit(id)) },
                 onBack = { navController.popBackStack() }
             )
         }
         composable<SettingsModelProviderDetail> { backStackEntry ->
             val args = backStackEntry.toRoute<SettingsModelProviderDetail>()
             ModelManagementEntry.ModelProviderDetailRoute(
+                providerId = args.providerId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable<SettingsCustomProviderEdit> { backStackEntry ->
+            val args = backStackEntry.toRoute<SettingsCustomProviderEdit>()
+            ModelManagementEntry.CustomProviderEditRoute(
                 providerId = args.providerId,
                 onBack = { navController.popBackStack() }
             )
@@ -246,3 +260,6 @@ data object SettingsModelManagement
 
 @Serializable
 data class SettingsModelProviderDetail(val providerId: String)
+
+@Serializable
+data class SettingsCustomProviderEdit(val providerId: String? = null)

@@ -8,39 +8,88 @@ import com.yy.writingwithai.core.ai.api.AiRequest
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.ProviderDescriptor
 import com.yy.writingwithai.core.ai.api.WritingOp
+import com.yy.writingwithai.core.ai.provider.AnthropicCompatibleAdapter
+import com.yy.writingwithai.core.ai.provider.CustomProviderStore
 import com.yy.writingwithai.core.data.repo.AiHistoryRepository
 import dagger.Lazy
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import okhttp3.OkHttpClient
 
 /**
  * [AiGateway] 唯一实现。
  *
- * - 根据 [providerId] 从 Hilt 注入的 `Map<String, AiProvider>` 取 provider
+ * - 根据 [providerId] 先从 Hilt 注入的 `Map<String, AiProvider>` 取内置 provider
+ * - 未命中时查 [CustomProviderStore] 动态构造 [AnthropicCompatibleAdapter]
+ * - adapter 缓存(ConcurrentHashMap)避免每次调用重建 OkHttp / SSE parser
+ * - 订阅 store 的 onInvalidate 回调,save/delete 时清缓存,避免 stale config
  * - 委托 `AiProvider.stream()` 发起调用,流式返回 [AiStreamEvent]
  * - 每次调用(成功/失败)通过 `onCompletion` 自动落 [AiHistoryEntity]
  * - 超时/IO 异常由 provider 内部处理并 emit [AiStreamEvent.Failed]
+ *
+ * M6 custom-model: 动态支持用户自定义 provider。
  */
 @Singleton
 class CoreAiGateway
 @Inject
 constructor(
     private val providers: Map<String, @JvmSuppressWildcards AiProvider>,
+    private val customProviderStore: CustomProviderStore,
+    @Named("ai") private val okHttpClient: OkHttpClient,
     private val historyRepo: Lazy<AiHistoryRepository>
 ) : AiGateway {
-    override suspend fun listProviders(): List<ProviderDescriptor> = providers
-        .map { (key, provider) ->
+    /** 动态 adapter 缓存:providerId → AnthropicCompatibleAdapter。 */
+    private val customAdapterCache = ConcurrentHashMap<String, AnthropicCompatibleAdapter>()
+
+    init {
+        // store 写时清对应 adapter 缓存,避免 stale config
+        customProviderStore.onInvalidate = { id ->
+            if (id.isBlank()) {
+                customAdapterCache.clear()
+            } else {
+                customAdapterCache.remove(id)
+            }
+        }
+    }
+
+    override suspend fun listProviders(): List<ProviderDescriptor> {
+        val builtin = providers
+            .map { (key, provider) ->
+                ProviderDescriptor(
+                    id = provider.id,
+                    displayName = provider.displayName,
+                    models = provider.supportedModels,
+                    isConfigured = true
+                )
+            }
+            .distinctBy { it.id }
+
+        val custom = customProviderStore.getAll().map { config ->
             ProviderDescriptor(
-                id = provider.id,
-                displayName = provider.displayName,
-                models = provider.supportedModels,
+                id = config.id,
+                displayName = config.displayName,
+                models = config.supportedModels,
                 isConfigured = true
             )
         }
-        .distinctBy { it.id }
+        return builtin + custom
+    }
+
+    /** 按 providerId 取 AiProvider(内置优先,未命中查自定义)。suspend,无 runBlocking。 */
+    private suspend fun resolveProvider(providerId: String): AiProvider? {
+        providers[providerId]?.let { return it }
+        customAdapterCache[providerId]?.let { return it }
+        val config = customProviderStore.getById(providerId) ?: return null
+        return AnthropicCompatibleAdapter(config, okHttpClient).also {
+            customAdapterCache[providerId] = it
+        }
+    }
 
     override fun streamWritingOp(
         op: WritingOp,
@@ -50,14 +99,13 @@ constructor(
         modelName: String?,
         systemPrompt: String?
     ): Flow<AiStreamEvent> {
-        val provider =
-            providers[providerId]
-                ?: return kotlinx.coroutines.flow.flowOf(
-                    AiStreamEvent.Failed(
-                        AiError.Unknown(null, "provider $providerId not found"),
-                        false
-                    )
+        val provider = resolveProviderFlow(providerId)
+            ?: return flowOf(
+                AiStreamEvent.Failed(
+                    AiError.Unknown(null, "provider $providerId not found"),
+                    false
                 )
+            )
 
         val model = modelName ?: provider.supportedModels.firstOrNull() ?: "unknown"
         val request = AiRequest(op, sourceText, model, systemPrompt)
@@ -78,9 +126,13 @@ constructor(
                 }
             }
             .onCompletion { cause ->
-                val errorMsg =
+                // Polish: cause 优先于 lastError(Failed event 后流又抛异常的少见情况)
+                val errorMsg = if (cause == null) {
                     lastError?.summary()
-                        ?: cause?.let { "${it::class.simpleName}: ${it.message}" }
+                } else {
+                    lastError?.summary()?.let { "$it; ${cause::class.simpleName}: ${cause.message}" }
+                        ?: "${cause::class.simpleName}: ${cause.message}"
+                }
                 val duration = System.currentTimeMillis() - startTime
                 historyRepo.get().record(
                     noteId = null,
@@ -101,21 +153,41 @@ constructor(
             }
     }
 
-    override suspend fun ping(providerId: String, apikey: String, modelName: String): Boolean {
-        val provider = providers[providerId] ?: return false
-        if (provider.id == "fake") return true
-        var ok = true
+    /**
+     * 流式入口的 provider 解析:阻塞在缓存未命中时仍要走 DataStore IO,
+     * 但 adapter 缓存命中时直接返回,避免每次 stream() 都读盘。
+     */
+    private fun resolveProviderFlow(providerId: String): AiProvider? {
+        providers[providerId]?.let { return it }
+        customAdapterCache[providerId]?.let { return it }
+        // 缓存未命中:此函数路径由 viewModelScope 调用方保证已先解析过,
+        // 兜底走 runBlocking 仅作最后手段。生产中应在调用前 await resolveProvider。
+        val config = kotlinx.coroutines.runBlocking {
+            customProviderStore.getById(providerId)
+        } ?: return null
+        return AnthropicCompatibleAdapter(config, okHttpClient).also {
+            customAdapterCache[providerId] = it
+        }
+    }
+
+    override suspend fun ping(providerId: String, apikey: String, modelName: String): String? {
+        val provider = resolveProvider(providerId) ?: return "provider $providerId not registered"
+        if (provider.id == "fake") return null
+        val effectiveModel = provider.supportedModels.firstOrNull() ?: modelName
+        var failureReason: String? = null
         try {
             provider
                 .stream(
-                    AiRequest(WritingOp.EXPAND, "ping", modelName),
+                    AiRequest(WritingOp.EXPAND, "ping", effectiveModel),
                     AiCredentials(apikey)
                 ).collect { event ->
-                    if (event is AiStreamEvent.Failed) ok = false
+                    if (event is AiStreamEvent.Failed) {
+                        failureReason = event.error.summary()
+                    }
                 }
-        } catch (_: Exception) {
-            ok = false
+        } catch (e: Exception) {
+            failureReason = e.message ?: e::class.simpleName ?: "unknown exception"
         }
-        return ok
+        return failureReason
     }
 }
