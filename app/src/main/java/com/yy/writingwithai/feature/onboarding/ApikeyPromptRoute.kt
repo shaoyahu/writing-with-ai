@@ -16,10 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
  * "Apikey prompt screen shown after consent"
  */
 @Composable
-fun ApikeyPromptRoute(
-    onFinished: () -> Unit,
-    viewModel: ApikeyPromptViewModel = hiltViewModel()
-) {
+fun ApikeyPromptRoute(onFinished: () -> Unit, viewModel: ApikeyPromptViewModel = hiltViewModel()) {
     val action by viewModel.action.collectAsState()
 
     LaunchedEffect(action) {

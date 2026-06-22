@@ -45,11 +45,7 @@ import com.yy.writingwithai.core.prefs.AiCostReference
  * 设计 1.4:`ApikeyPromptDialog` 复用本屏 body(拦截 AI 入口时弹)。
  */
 @Composable
-fun ApikeyPromptScreen(
-    onAck: () -> Unit,
-    onSkip: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun ApikeyPromptScreen(onAck: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -100,11 +96,7 @@ fun ApikeyPromptScreen(
  * "AI capability guard on first use" — 拦截后弹此 dialog。
  */
 @Composable
-fun ApikeyPromptDialog(
-    onAck: () -> Unit,
-    onDismiss: () -> Unit,
-    confirmLabel: String? = null
-) {
+fun ApikeyPromptDialog(onAck: () -> Unit, onDismiss: () -> Unit, confirmLabel: String? = null) {
     AlertDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(dismissOnClickOutside = false, dismissOnBackPress = true),

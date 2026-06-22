@@ -31,8 +31,7 @@ object PrefsModule {
 
     @Provides
     @Singleton
-    fun provideUserPrefsStore(@ApplicationContext context: Context): UserPrefsStore =
-        UserPrefsStoreImpl(context)
+    fun provideUserPrefsStore(@ApplicationContext context: Context): UserPrefsStore = UserPrefsStoreImpl(context)
 
     @Provides
     @Singleton
