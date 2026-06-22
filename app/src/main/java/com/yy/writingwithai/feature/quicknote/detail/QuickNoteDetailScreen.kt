@@ -268,6 +268,17 @@ fun QuickNoteDetailScreen(
                                     }
                                 )
                             }
+                            // feishu-bidir-sync:远程已删恢复入口
+                            if (feishuRef?.status == FeishuRefStatus.REMOTE_DELETED) {
+                                DropdownMenuItem(
+                                    text = { Text("重新同步为新文档") },
+                                    leadingIcon = { Icon(Icons.Filled.Cloud, contentDescription = null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.recreateFeishuDoc()
+                                    }
+                                )
+                            }
                         }
                     }
                 }

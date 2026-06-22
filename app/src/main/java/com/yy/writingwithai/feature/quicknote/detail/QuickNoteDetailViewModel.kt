@@ -214,6 +214,16 @@ constructor(
         _showConflictDialog.value = false
     }
 
+    // feishu-bidir-sync:远程已删恢复 —— 删旧 ref + push 创新文档
+    fun recreateFeishuDoc() {
+        val ref = _feishuRef.value ?: return
+        viewModelScope.launch {
+            refDao.deleteByNoteId(ref.noteId)
+            _feishuRef.value = null
+            pushToFeishu()
+        }
+    }
+
     private fun extractDocId(url: String): String {
         // 从飞书文档 URL 提取 docId
         // 格式:https://bytedance.feishu.cn/docx/{docId}?...
