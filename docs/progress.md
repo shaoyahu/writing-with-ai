@@ -11,6 +11,12 @@
 - **一条典型 1-3 行**;太长说明在写文档而不是进度。
 - 新增条目写在对应日期分组的最上面(同一日期内倒序)。
 
+## 2026-06-22 · 飞书同步链路收口
+
+- 三项 OpenSpec change 完成并归档:`markdown-docx-converter` / `feishu-oauth-flow` / `feishu-bidir-sync`;主 spec 新增 `feishu-api-client` / `feishu-auth` / `feishu-bidir-sync`。
+- 核心进展:Markdown ↔ FeishuBlock 转换层、tenant_access_token(app_id/secret) 授权链路、飞书 push/pull sync service、feishu_ref 关联表、详情页同步入口、列表状态 chip、设置页同步日志落地。
+- 验收:`assembleDebug` + `ktlintCheck` ✅;`testDebugUnitTest` 149/152,剩 3 个 CompositeNoteLinkerTest 需 Robolectric(既有遗留)。
+
 ## 2026-06-21 · review r2 全量 fix 落地
 
 - `docs/reviews/2026-06-21-full-project-review-r2.md` r2 review 9 HIGH + 16 MEDIUM + 12 LOW → Change 1 `fix-review-r2-high`(9 HIGH 全修)+ Change 2 `polish-review-r2`(22 项修 / 6 项 deferred)
