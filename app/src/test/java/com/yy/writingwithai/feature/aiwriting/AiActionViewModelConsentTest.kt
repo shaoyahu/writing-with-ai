@@ -65,7 +65,7 @@ class AiActionViewModelConsentTest {
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
                 providerPrefsStore = FakeProviderPrefsStore(),
-                userPrefsStore = FakeUserPrefsStore()
+                userPrefsStore = FakeUserPrefsStore().apply { seed(true) }
             )
 
         vm.start(WritingOp.EXPAND, sourceText = "晨跑", noteId = "n1")
@@ -94,7 +94,7 @@ class AiActionViewModelConsentTest {
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
                 providerPrefsStore = FakeProviderPrefsStore(),
-                userPrefsStore = FakeUserPrefsStore()
+                userPrefsStore = FakeUserPrefsStore().apply { seed(true) }
             )
 
         vm.start(WritingOp.EXPAND, sourceText = "晨跑", noteId = "n1")
@@ -123,7 +123,7 @@ class AiActionViewModelConsentTest {
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
                 providerPrefsStore = providerPrefs,
-                userPrefsStore = FakeUserPrefsStore()
+                userPrefsStore = FakeUserPrefsStore().apply { seed(true) }
             )
 
         vm.start(WritingOp.POLISH, sourceText = "test", noteId = "n2")

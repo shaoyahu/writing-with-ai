@@ -81,7 +81,7 @@ class AiActionViewModelTest {
                 secureApiKeyStore,
                 promptTemplateStore,
                 providerPrefsStore,
-                FakeUserPrefsStore()
+                FakeUserPrefsStore().apply { seed(true) }
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()
@@ -93,7 +93,7 @@ class AiActionViewModelTest {
 
     @Test
     fun accept_replace_upserts_and_writes_ai_metadata() = runTest {
-        val note = sampleNote("n1", content = "old")
+        val note = sampleNote("n1", content = "x")
         val noteWithTags = NoteWithTags(note, emptyList())
         coEvery { aiGateway.streamWritingOp(WritingOp.POLISH, "x", "fake", any(), null, any()) } returns
             flowOf(AiStreamEvent.Delta("新"), AiStreamEvent.Done)
@@ -112,7 +112,7 @@ class AiActionViewModelTest {
                 secureApiKeyStore,
                 promptTemplateStore,
                 providerPrefsStore,
-                FakeUserPrefsStore()
+                FakeUserPrefsStore().apply { seed(true) }
             )
         vm.start(WritingOp.POLISH, "x", "n1")
         advanceUntilIdle()
@@ -122,7 +122,9 @@ class AiActionViewModelTest {
         coVerify { noteRepository.observeNoteWithTags("n1") }
         coVerify { noteRepository.upsert(match { it.content == "新" }, emptyList()) }
         coVerify { noteRepository.updateAiMetadata("n1", "polish", any()) }
-        assertEquals(AiActionUiState.Idle, vm.state.value)
+        // acceptReplace 成功后 emit Replaced(op=POLISH); undo 后才会到 Idle。
+        val replaced = vm.state.value as AiActionUiState.Replaced
+        assertEquals(WritingOp.POLISH, replaced.op)
     }
 
     @Test
@@ -140,7 +142,7 @@ class AiActionViewModelTest {
                 secureApiKeyStore,
                 promptTemplateStore,
                 providerPrefsStore,
-                FakeUserPrefsStore()
+                FakeUserPrefsStore().apply { seed(true) }
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()
@@ -166,7 +168,7 @@ class AiActionViewModelTest {
                 secureApiKeyStore,
                 promptTemplateStore,
                 providerPrefsStore,
-                FakeUserPrefsStore()
+                FakeUserPrefsStore().apply { seed(true) }
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()
@@ -196,7 +198,7 @@ class AiActionViewModelTest {
                 secureApiKeyStore,
                 promptTemplateStore,
                 providerPrefsStore,
-                FakeUserPrefsStore()
+                FakeUserPrefsStore().apply { seed(true) }
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()
@@ -223,7 +225,7 @@ class AiActionViewModelTest {
                 secureApiKeyStore,
                 promptTemplateStore,
                 providerPrefsStore,
-                FakeUserPrefsStore()
+                FakeUserPrefsStore().apply { seed(true) }
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()

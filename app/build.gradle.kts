@@ -94,6 +94,12 @@ android {
         // HardcodedText 升级为 error(见 app/lint.xml),与 abortOnError=true 配合阻断 hardcoded 中文字符串。
         lintConfig = file("lint.xml")
     }
+
+    // onboarding-apikey-prompt:jvm 单测走 isReturnDefaultValues=true,允许 android.util.Log.* 等
+    // 未 mock Android 类返回默认值(0/null)而非抛 RuntimeException,降低 VM 内部日志对单测的耦合。
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 // Room schema export:把 Room 生成的 schema JSON 输出到 app/schemas/,
