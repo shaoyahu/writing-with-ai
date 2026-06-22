@@ -27,6 +27,15 @@
     <string name="quicknote_detail_pin">固定</string>
     <string name="quicknote_detail_unpin">取消固定</string>
     <string name="quicknote_detail_not_found">笔记不存在</string>
+    <string name="quicknote_detail_sync_to_feishu">同步到飞书</string>
+    <string name="quicknote_detail_pull_from_feishu">从飞书链接拉取</string>
+    <string name="quicknote_detail_open_in_feishu">在飞书中打开</string>
+    <string name="quicknote_feishu_pull_dialog_title">输入飞书文档链接</string>
+    <string name="quicknote_feishu_status_synced">已同步</string>
+    <string name="quicknote_feishu_status_dirty">待同步</string>
+    <string name="quicknote_feishu_status_conflict">冲突</string>
+    <string name="quicknote_feishu_status_remote_deleted">远程已删</string>
+    <string name="quicknote_feishu_syncing">同步中…</string>
 
     <!-- 编辑 -->
     <string name="quicknote_editor_title_new">新建笔记</string>

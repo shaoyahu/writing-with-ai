@@ -34,6 +34,7 @@ import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.data.model.NoteWithTags
+import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import java.text.DateFormat
 import java.util.Date
 
@@ -50,6 +51,7 @@ fun NoteRow(
     item: NoteWithTags,
     onClick: (noteId: String) -> Unit,
     onTagClick: (String) -> Unit = {},
+    feishuStatus: FeishuRefStatus? = null,
     modifier: Modifier = Modifier
 ) {
     val note = item.note
@@ -87,6 +89,33 @@ fun NoteRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
                 )
+                // feishu-bidir-sync:飞书同步状态 chip
+                if (feishuStatus != null) {
+                    Spacer(Modifier.width(spacing.xs))
+                    val (labelRes, chipColor) = when (feishuStatus) {
+                        FeishuRefStatus.SYNCED ->
+                            R.string.quicknote_feishu_status_synced to MaterialTheme.colorScheme.outlineVariant
+                        FeishuRefStatus.DIRTY ->
+                            R.string.quicknote_feishu_status_dirty to MaterialTheme.colorScheme.tertiary
+                        FeishuRefStatus.CONFLICT ->
+                            R.string.quicknote_feishu_status_conflict to MaterialTheme.colorScheme.error
+                        FeishuRefStatus.REMOTE_DELETED ->
+                            R.string.quicknote_feishu_status_remote_deleted to MaterialTheme.colorScheme.outlineVariant
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(chipColor)
+                            .padding(horizontal = 6.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = stringResource(labelRes),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
                 if (item.tags.isNotEmpty()) {
                     Spacer(Modifier.width(spacing.sm))
                     item.tags.take(MAX_INLINE_TAGS).forEach { tagName ->

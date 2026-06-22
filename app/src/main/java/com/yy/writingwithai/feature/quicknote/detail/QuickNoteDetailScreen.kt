@@ -17,9 +17,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.PushPin
@@ -30,7 +33,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
@@ -122,6 +127,13 @@ fun QuickNoteDetailScreen(
     val fabState by viewModel.fabState.collectAsStateWithLifecycle()
     val aiMeta by viewModel.aiMetaDisplay.collectAsStateWithLifecycle()
     val selection by viewModel.selection.collectAsStateWithLifecycle()
+    val syncMessage by viewModel.syncMessage.collectAsStateWithLifecycle()
+    val syncLoading by viewModel.syncLoading.collectAsStateWithLifecycle()
+    val feishuRef by viewModel.feishuRef.collectAsStateWithLifecycle()
+
+    var showPullDialog by remember { mutableStateOf(false) }
+    var pullUrlInput by remember { mutableStateOf("") }
+    var showSyncMessageDialog by remember { mutableStateOf(false) }
 
     val current = state as? NoteDetailUiState.Content
     val noteId = current?.note?.note?.id
@@ -220,6 +232,40 @@ fun QuickNoteDetailScreen(
                                     confirmDelete = true
                                 }
                             )
+                            // feishu-bidir-sync:同步菜单
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.quicknote_detail_sync_to_feishu)) },
+                                leadingIcon = { Icon(Icons.Filled.Cloud, contentDescription = null) },
+                                enabled = !syncLoading,
+                                onClick = {
+                                    menuExpanded = false
+                                    viewModel.pushToFeishu()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.quicknote_detail_pull_from_feishu)) },
+                                leadingIcon = { Icon(Icons.Filled.CloudDownload, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    showPullDialog = true
+                                }
+                            )
+                            if (feishuRef?.docUrl?.isNotEmpty() == true) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.quicknote_detail_open_in_feishu)) },
+                                    leadingIcon = { Icon(Icons.Filled.OpenInBrowser, contentDescription = null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        feishuRef?.docUrl?.let { url ->
+                                            val intent = android.content.Intent(
+                                                android.content.Intent.ACTION_VIEW,
+                                                android.net.Uri.parse(url)
+                                            )
+                                            context.startActivity(intent)
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -428,6 +474,64 @@ fun QuickNoteDetailScreen(
                 TextButton(onClick = { confirmDelete = false }) {
                     Text(stringResource(R.string.quicknote_editor_delete_confirm_cancel))
                 }
+            }
+        )
+    }
+
+    // feishu-bidir-sync:pull URL input dialog
+    if (showPullDialog) {
+        AlertDialog(
+            onDismissRequest = { showPullDialog = false },
+            title = { Text(stringResource(R.string.quicknote_feishu_pull_dialog_title)) },
+            text = {
+                OutlinedTextField(
+                    value = pullUrlInput,
+                    onValueChange = { pullUrlInput = it },
+                    label = { Text("https://bytedance.feishu.cn/docx/...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPullDialog = false
+                    if (pullUrlInput.isNotBlank()) {
+                        viewModel.pullFromFeishu(pullUrlInput.trim())
+                        pullUrlInput = ""
+                    }
+                }) { Text("拉取") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showPullDialog = false
+                    pullUrlInput = ""
+                }) { Text(stringResource(R.string.quicknote_editor_delete_confirm_cancel)) }
+            }
+        )
+    }
+
+    // feishu-bidir-sync:sync status
+    if (syncLoading) {
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+    }
+
+    // feishu-bidir-sync:sync result message
+    if (syncMessage != null && !showSyncMessageDialog) {
+        LaunchedEffect(syncMessage) { showSyncMessageDialog = true }
+    }
+    if (showSyncMessageDialog && syncMessage != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showSyncMessageDialog = false
+                viewModel.clearSyncMessage()
+            },
+            title = { Text("飞书同步") },
+            text = { Text(syncMessage ?: "") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSyncMessageDialog = false
+                    viewModel.clearSyncMessage()
+                }) { Text("确定") }
             }
         )
     }

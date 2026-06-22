@@ -5,6 +5,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.data.repo.NoteRepository
+import com.yy.writingwithai.core.feishu.api.FeishuError
+import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
+import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
 import com.yy.writingwithai.core.ui.AiActionFabState
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
 import com.yy.writingwithai.feature.quicknote.model.ReadingTime
@@ -28,7 +31,8 @@ class QuickNoteDetailViewModel
 @Inject
 constructor(
     savedStateHandle: SavedStateHandle,
-    private val repository: NoteRepository
+    private val repository: NoteRepository,
+    private val feishuSyncService: FeishuSyncService
 ) : ViewModel() {
     // H3 修:`requireNotNull` 在 process-death / 深链 / saved state 跨版本场景会 IAE crash。
     // 改为可空,缺失时直接进入 NotFound,避免进程崩溃。
@@ -112,6 +116,73 @@ constructor(
         viewModelScope.launch {
             repository.setPinned(current.note.id, !current.note.isPinned)
         }
+    }
+
+    // feishu-bidir-sync:同步状态
+    private val _syncMessage = MutableStateFlow<String?>(null)
+    val syncMessage: StateFlow<String?> = _syncMessage.asStateFlow()
+
+    private val _syncLoading = MutableStateFlow(false)
+    val syncLoading: StateFlow<Boolean> = _syncLoading.asStateFlow()
+
+    private val _feishuRef = MutableStateFlow<FeishuRefEntity?>(null)
+    val feishuRef: StateFlow<FeishuRefEntity?> = _feishuRef.asStateFlow()
+
+    init {
+        // feishu-bidir-sync:加载 feishu_ref 状态
+        noteId?.let { id ->
+            viewModelScope.launch {
+                _feishuRef.value = feishuSyncService.getRef(id)
+            }
+        }
+    }
+
+    fun pushToFeishu() {
+        val id = noteId ?: return
+        viewModelScope.launch {
+            _syncLoading.value = true
+            _syncMessage.value = null
+            try {
+                val msg = feishuSyncService.push(id)
+                _syncMessage.value = msg
+                _feishuRef.value = feishuSyncService.getRef(id)
+            } catch (e: FeishuError) {
+                _syncMessage.value = "同步失败: ${e.message}"
+            } catch (e: Throwable) {
+                _syncMessage.value = "同步失败: ${e.message}"
+            } finally {
+                _syncLoading.value = false
+            }
+        }
+    }
+
+    fun pullFromFeishu(docUrl: String) {
+        viewModelScope.launch {
+            _syncLoading.value = true
+            _syncMessage.value = null
+            try {
+                val docId = extractDocId(docUrl)
+                val msg = feishuSyncService.pull(docId, docUrl)
+                _syncMessage.value = msg
+            } catch (e: FeishuError) {
+                _syncMessage.value = "拉取失败: ${e.message}"
+            } catch (e: Throwable) {
+                _syncMessage.value = "拉取失败: ${e.message}"
+            } finally {
+                _syncLoading.value = false
+            }
+        }
+    }
+
+    fun clearSyncMessage() {
+        _syncMessage.value = null
+    }
+
+    private fun extractDocId(url: String): String {
+        // 从飞书文档 URL 提取 docId
+        // 格式:https://bytedance.feishu.cn/docx/{docId}?...
+        val regex = Regex("""/docx?/([A-Za-z0-9_-]+)""")
+        return regex.find(url)?.groupValues?.get(1) ?: url
     }
 }
 
