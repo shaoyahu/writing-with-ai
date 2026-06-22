@@ -64,6 +64,7 @@ import com.yy.writingwithai.app.QuicknoteDetail
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.data.model.Note
+import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
@@ -130,6 +131,7 @@ fun QuickNoteDetailScreen(
     val syncMessage by viewModel.syncMessage.collectAsStateWithLifecycle()
     val syncLoading by viewModel.syncLoading.collectAsStateWithLifecycle()
     val feishuRef by viewModel.feishuRef.collectAsStateWithLifecycle()
+    val showConflictDialog by viewModel.showConflictDialog.collectAsStateWithLifecycle()
 
     var showPullDialog by remember { mutableStateOf(false) }
     var pullUrlInput by remember { mutableStateOf("") }
@@ -513,6 +515,18 @@ fun QuickNoteDetailScreen(
     // feishu-bidir-sync:sync status
     if (syncLoading) {
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+    }
+
+    // feishu-bidir-sync:conflict resolution dialog
+    if (showConflictDialog && feishuRef?.status == FeishuRefStatus.CONFLICT) {
+        val localContent = current?.note?.note?.content.orEmpty()
+        ConflictResolutionDialog(
+            localPreview = localContent,
+            remotePreview = "(飞书端内容,需 pull 拉取)",
+            onResolveKeepLocal = viewModel::resolveConflictKeepLocal,
+            onResolveKeepRemote = viewModel::resolveConflictKeepRemote,
+            onCancel = viewModel::cancelConflictResolution
+        )
     }
 
     // feishu-bidir-sync:sync result message

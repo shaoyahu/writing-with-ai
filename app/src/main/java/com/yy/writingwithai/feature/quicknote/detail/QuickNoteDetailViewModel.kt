@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.data.repo.NoteRepository
 import com.yy.writingwithai.core.feishu.api.FeishuError
 import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
+import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
 import com.yy.writingwithai.core.ui.AiActionFabState
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
@@ -32,7 +33,8 @@ class QuickNoteDetailViewModel
 constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: NoteRepository,
-    private val feishuSyncService: FeishuSyncService
+    private val feishuSyncService: FeishuSyncService,
+    private val refDao: com.yy.writingwithai.core.feishu.sync.FeishuRefDao
 ) : ViewModel() {
     // H3 修:`requireNotNull` 在 process-death / 深链 / saved state 跨版本场景会 IAE crash。
     // 改为可空,缺失时直接进入 NotFound,避免进程崩溃。
@@ -176,6 +178,40 @@ constructor(
 
     fun clearSyncMessage() {
         _syncMessage.value = null
+    }
+
+    // feishu-bidir-sync:conflict detection + resolution
+    private val _showConflictDialog = MutableStateFlow(false)
+    val showConflictDialog: StateFlow<Boolean> = _showConflictDialog.asStateFlow()
+
+    fun resolveConflictKeepLocal() {
+        val ref = _feishuRef.value ?: return
+        viewModelScope.launch {
+            refDao.upsert(ref.copy(status = FeishuRefStatus.DIRTY))
+            _feishuRef.value = refDao.getByNoteId(ref.noteId)
+            _showConflictDialog.value = false
+            pushToFeishu()
+        }
+    }
+
+    fun resolveConflictKeepRemote() {
+        val ref = _feishuRef.value ?: return
+        viewModelScope.launch {
+            // 保留飞书版本:重新 pull(覆盖本地)
+            try {
+                val titleHint = (uiState.value as? NoteDetailUiState.Content)?.note?.note?.title ?: "来自飞书"
+                feishuSyncService.pull(ref.docId, ref.docUrl, titleHint)
+                _feishuRef.value = refDao.getByNoteId(ref.noteId)
+                _showConflictDialog.value = false
+                _syncMessage.value = "已采用飞书版本"
+            } catch (e: FeishuError) {
+                _syncMessage.value = "解决冲突失败: ${e.message}"
+            }
+        }
+    }
+
+    fun cancelConflictResolution() {
+        _showConflictDialog.value = false
     }
 
     private fun extractDocId(url: String): String {
