@@ -13,6 +13,7 @@ import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.FakeConsentStore
 import com.yy.writingwithai.core.prefs.FakePromptTemplateStore
 import com.yy.writingwithai.core.prefs.FakeSecureApiKeyStore
+import com.yy.writingwithai.core.prefs.FakeUserPrefsStore
 import com.yy.writingwithai.core.widget.QuickNoteWidgetUpdater
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -79,7 +80,8 @@ class AiActionViewModelTest {
                 consentStore,
                 secureApiKeyStore,
                 promptTemplateStore,
-                providerPrefsStore
+                providerPrefsStore,
+                FakeUserPrefsStore()
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()
@@ -109,7 +111,8 @@ class AiActionViewModelTest {
                 consentStore,
                 secureApiKeyStore,
                 promptTemplateStore,
-                providerPrefsStore
+                providerPrefsStore,
+                FakeUserPrefsStore()
             )
         vm.start(WritingOp.POLISH, "x", "n1")
         advanceUntilIdle()
@@ -136,7 +139,8 @@ class AiActionViewModelTest {
                 consentStore,
                 secureApiKeyStore,
                 promptTemplateStore,
-                providerPrefsStore
+                providerPrefsStore,
+                FakeUserPrefsStore()
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()
@@ -161,7 +165,8 @@ class AiActionViewModelTest {
                 consentStore,
                 secureApiKeyStore,
                 promptTemplateStore,
-                providerPrefsStore
+                providerPrefsStore,
+                FakeUserPrefsStore()
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()
@@ -190,7 +195,8 @@ class AiActionViewModelTest {
                 consentStore,
                 secureApiKeyStore,
                 promptTemplateStore,
-                providerPrefsStore
+                providerPrefsStore,
+                FakeUserPrefsStore()
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()
@@ -216,7 +222,8 @@ class AiActionViewModelTest {
                 consentStore,
                 secureApiKeyStore,
                 promptTemplateStore,
-                providerPrefsStore
+                providerPrefsStore,
+                FakeUserPrefsStore()
             )
         vm.start(WritingOp.EXPAND, "x", "n1")
         advanceUntilIdle()

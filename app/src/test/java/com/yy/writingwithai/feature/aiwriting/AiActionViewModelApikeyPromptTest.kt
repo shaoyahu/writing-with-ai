@@ -55,7 +55,7 @@ class AiActionViewModelApikeyPromptTest {
                 seed(ConsentState(accepted = true, acceptedAt = 1L, version = 1))
             }
         val userPrefs = FakeUserPrefsStore() // 默认 ack=false
-        val gateway = ThrowingAiGateway()
+        val gateway = ThrowingAiGatewayForAckTest()
         val vm =
             AiActionViewModel(
                 context = mockk<Context>(relaxed = true),
@@ -84,7 +84,7 @@ class AiActionViewModelApikeyPromptTest {
                 seed(ConsentState(accepted = true, acceptedAt = 1L, version = 1))
             }
         val userPrefs = FakeUserPrefsStore().apply { seed(true) }
-        val gateway = RecordingAiGateway()
+        val gateway = RecordingAiGatewayForAckTest()
         val vm =
             AiActionViewModel(
                 context = mockk<Context>(relaxed = true),
@@ -104,7 +104,7 @@ class AiActionViewModelApikeyPromptTest {
 }
 
 /** 任何 stream 调用都抛,用来验证"根本没被调"。 */
-private class ThrowingAiGateway : AiGateway {
+private class ThrowingAiGatewayForAckTest : AiGateway {
     var callCount: Int = 0
 
     override suspend fun listProviders(): List<com.yy.writingwithai.core.ai.api.ProviderDescriptor> = emptyList()
@@ -116,7 +116,7 @@ private class ThrowingAiGateway : AiGateway {
         apikey: String,
         modelName: String?,
         systemPrompt: String?,
-        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
     ): kotlinx.coroutines.flow.Flow<AiStreamEvent> {
         callCount++
         throw IllegalStateException("AiGateway must NOT be called when ack=false")
@@ -126,12 +126,12 @@ private class ThrowingAiGateway : AiGateway {
         providerId: String,
         apikey: String,
         modelName: String,
-        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
     ): String? = null
 }
 
 /** 记录最后一次调用的 providerId 并 emit 完整流。 */
-private class RecordingAiGateway : AiGateway {
+private class RecordingAiGatewayForAckTest : AiGateway {
     var callCount: Int = 0
     var lastProviderId: String? = null
 
@@ -144,7 +144,7 @@ private class RecordingAiGateway : AiGateway {
         apikey: String,
         modelName: String?,
         systemPrompt: String?,
-        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
     ): kotlinx.coroutines.flow.Flow<AiStreamEvent> {
         callCount++
         lastProviderId = providerId
@@ -160,6 +160,6 @@ private class RecordingAiGateway : AiGateway {
         providerId: String,
         apikey: String,
         modelName: String,
-        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
     ): String? = null
 }

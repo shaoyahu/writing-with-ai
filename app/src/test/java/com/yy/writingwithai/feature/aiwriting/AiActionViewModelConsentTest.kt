@@ -11,6 +11,7 @@ import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.FakeConsentStore
 import com.yy.writingwithai.core.prefs.FakePromptTemplateStore
 import com.yy.writingwithai.core.prefs.FakeSecureApiKeyStore
+import com.yy.writingwithai.core.prefs.FakeUserPrefsStore
 import com.yy.writingwithai.core.widget.QuickNoteWidgetUpdater
 import com.yy.writingwithai.feature.aiwriting.streaming.AiActionUiState
 import com.yy.writingwithai.feature.aiwriting.streaming.AiActionViewModel
@@ -63,7 +64,8 @@ class AiActionViewModelConsentTest {
                 consentStore = consent,
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore()
+                providerPrefsStore = FakeProviderPrefsStore(),
+                userPrefsStore = FakeUserPrefsStore()
             )
 
         vm.start(WritingOp.EXPAND, sourceText = "晨跑", noteId = "n1")
@@ -91,7 +93,8 @@ class AiActionViewModelConsentTest {
                 consentStore = consent,
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore()
+                providerPrefsStore = FakeProviderPrefsStore(),
+                userPrefsStore = FakeUserPrefsStore()
             )
 
         vm.start(WritingOp.EXPAND, sourceText = "晨跑", noteId = "n1")
@@ -119,7 +122,8 @@ class AiActionViewModelConsentTest {
                 consentStore = consent,
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = providerPrefs
+                providerPrefsStore = providerPrefs,
+                userPrefsStore = FakeUserPrefsStore()
             )
 
         vm.start(WritingOp.POLISH, sourceText = "test", noteId = "n2")
@@ -140,7 +144,7 @@ private class ThrowingAiGateway : AiGateway {
         apikey: String,
         modelName: String?,
         systemPrompt: String?,
-        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
     ): kotlinx.coroutines.flow.Flow<AiStreamEvent> {
         callCount++
         throw IllegalStateException("AiGateway must NOT be called when consent missing")
@@ -150,7 +154,7 @@ private class ThrowingAiGateway : AiGateway {
         providerId: String,
         apikey: String,
         modelName: String,
-        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
     ): String? = "test: ping not invoked in consent-missing path"
 }
 
@@ -168,7 +172,7 @@ private class RecordingAiGateway : AiGateway {
         apikey: String,
         modelName: String?,
         systemPrompt: String?,
-        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
     ): kotlinx.coroutines.flow.Flow<AiStreamEvent> {
         callCount++
         lastProviderId = providerId
@@ -184,6 +188,6 @@ private class RecordingAiGateway : AiGateway {
         providerId: String,
         apikey: String,
         modelName: String,
-        apiFormatOverride: com.yy.writingwithai.core.ai.provider.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
     ): String? = null
 }
