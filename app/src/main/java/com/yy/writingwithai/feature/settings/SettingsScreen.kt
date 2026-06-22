@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.yy.writingwithai.R
+import com.yy.writingwithai.feature.settings.feishu.FeishuSyncLogSection
 import dagger.hilt.EntryPoint
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
@@ -110,6 +111,14 @@ fun SettingsScreen(
                     }
                 )
             }
+            // feishu-bidir-sync:同步日志 section
+            item {
+                val ctx = LocalContext.current
+                val entry = remember(ctx) {
+                    EntryPoints.get(ctx.applicationContext, SettingsEntryPoint::class.java)
+                }
+                FeishuSyncLogSection(eventDao = entry.feishuSyncEventDao())
+            }
         }
     }
 }
@@ -118,4 +127,5 @@ fun SettingsScreen(
 @InstallIn(SingletonComponent::class)
 interface SettingsEntryPoint {
     fun noteAssociationSettings(): com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
+    fun feishuSyncEventDao(): com.yy.writingwithai.core.feishu.sync.FeishuSyncEventDao
 }

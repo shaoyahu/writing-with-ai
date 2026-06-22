@@ -178,10 +178,12 @@ fun QuickNoteListScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(items = s.notes, key = { it.note.id }) { item ->
+                            val feishuRefsMap = viewModel.feishuRefs.collectAsStateWithLifecycle().value
                             NoteRow(
                                 item = item,
                                 onClick = onNoteClick,
-                                onTagClick = { tag -> viewModel.selectTag(tag) }
+                                onTagClick = { tag -> viewModel.selectTag(tag) },
+                                feishuStatus = feishuRefsMap[item.note.id]?.status
                             )
                         }
                     }

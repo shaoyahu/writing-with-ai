@@ -1,6 +1,7 @@
 package com.yy.writingwithai.feature.quicknote.model
 
 import com.yy.writingwithai.core.data.model.NoteWithTags
+import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
 
 /**
  * 列表屏 UI 状态(spec §"List ordering" + "Search" + "Tag many-to-many")。
@@ -23,6 +24,7 @@ sealed interface NoteListUiState {
         val notes: List<NoteWithTags>,
         val allTags: List<String>,
         override val query: String,
-        override val selectedTag: String?
+        override val selectedTag: String?,
+        val feishuRefs: Map<String, FeishuRefEntity> = emptyMap()
     ) : NoteListUiState
 }
