@@ -13,12 +13,14 @@ import com.yy.writingwithai.core.data.db.entity.NoteEntity
  */
 @Entity(
     tableName = "feishu_ref",
-    foreignKeys = [ForeignKey(
-        entity = NoteEntity::class,
-        parentColumns = ["id"],
-        childColumns = ["noteId"],
-        onDelete = ForeignKey.CASCADE
-    )]
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["noteId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
 )
 data class FeishuRefEntity(
     @PrimaryKey val noteId: String,

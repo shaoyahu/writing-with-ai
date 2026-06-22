@@ -5,8 +5,6 @@ import com.yy.writingwithai.core.feishu.api.FeishuApiClient
 import com.yy.writingwithai.core.feishu.api.FeishuApiClientImpl
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthStore
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthStoreImpl
-import com.yy.writingwithai.core.feishu.sync.FeishuConflictResolver
-import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

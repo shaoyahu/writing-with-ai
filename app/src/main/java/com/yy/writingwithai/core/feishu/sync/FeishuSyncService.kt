@@ -42,10 +42,14 @@ constructor(
             val created = feishuApi.createDocument(note.title.ifBlank { "未命名笔记" })
             refDao.upsert(
                 FeishuRefEntity(
-                    noteId = noteId, docId = created.docId, docUrl = created.docUrl,
+                    noteId = noteId,
+                    docId = created.docId,
+                    docUrl = created.docUrl,
                     lastSyncedAt = System.currentTimeMillis(),
-                    syncDirection = SyncDirection.PUSH, localRevision = note.updatedAt,
-                    remoteRevision = "", status = FeishuRefStatus.SYNCED
+                    syncDirection = SyncDirection.PUSH,
+                    localRevision = note.updatedAt,
+                    remoteRevision = "",
+                    status = FeishuRefStatus.SYNCED
                 )
             )
             created.docId
@@ -59,11 +63,13 @@ constructor(
 
         val meta = feishuApi.getDocument(docId)
         refDao.upsert(
-            (existingRef ?: FeishuRefEntity(
-                noteId = noteId, docId = docId, docUrl = "", lastSyncedAt = 0L,
-                syncDirection = SyncDirection.PUSH, localRevision = 0L,
-                remoteRevision = "", status = FeishuRefStatus.SYNCED
-            )).copy(
+            (
+                existingRef ?: FeishuRefEntity(
+                    noteId = noteId, docId = docId, docUrl = "", lastSyncedAt = 0L,
+                    syncDirection = SyncDirection.PUSH, localRevision = 0L,
+                    remoteRevision = "", status = FeishuRefStatus.SYNCED
+                )
+                ).copy(
                 localRevision = note.updatedAt,
                 remoteRevision = meta.revisionId,
                 lastSyncedAt = System.currentTimeMillis(),
@@ -79,54 +85,59 @@ constructor(
      * pull 工作流(design D3):
      * GET blocks → MD 转换 → 新建/更新 note → 写 ref。
      */
-    suspend fun pull(docId: String, docUrl: String, titleHint: String = "来自飞书"): String =
-        withContext(Dispatchers.IO) {
-            val rawBlocks = feishuApi.getBlocks(docId)
-            if (rawBlocks.isBlank() || rawBlocks == "{}") {
-                throw FeishuError.BadRequest(0, "飞书端为空,不覆盖本地")
-            }
-
-            // getBlocks 返回飞书 block 结构 JSON,由 caller 解析回 FeishuBlock 列表
-            val markdown = docxConverter.convert(emptyList()) // TODO:实际由 caller 映射原始 API JSON → FeishuBlock
-            val title = titleHint.ifBlank { "来自飞书" }
-
-            val existingRef = refDao.getByDocId(docId)
-            val noteId: String
-            if (existingRef != null) {
-                noteId = existingRef.noteId
-                val existingNote = noteRepository.getNote(noteId)
-                if (existingNote != null) {
-                    noteRepository.upsert(
-                        existingNote.copy(content = markdown, title = title), emptyList()
-                    )
-                }
-            } else {
-                val newNote = Note(
-                    id = UUID.randomUUID().toString(),
-                    title = title, content = markdown,
-                    createdAt = System.currentTimeMillis(),
-                    updatedAt = System.currentTimeMillis(),
-                    isPinned = false, lastAiOp = null, lastAiAt = null
-                )
-                noteRepository.upsert(newNote, emptyList())
-                noteId = newNote.id
-            }
-
-            val meta = feishuApi.getDocument(docId)
-            refDao.upsert(
-                FeishuRefEntity(
-                    noteId = noteId, docId = docId, docUrl = docUrl,
-                    lastSyncedAt = System.currentTimeMillis(),
-                    syncDirection = SyncDirection.PULL,
-                    localRevision = System.currentTimeMillis(),
-                    remoteRevision = meta.revisionId,
-                    status = FeishuRefStatus.SYNCED
-                )
-            )
-
-            recordEvent(noteId, SyncDirection.PULL, "OK", null)
-            "拉取完成: $title"
+    suspend fun pull(docId: String, docUrl: String, titleHint: String = "来自飞书"): String = withContext(Dispatchers.IO) {
+        val rawBlocks = feishuApi.getBlocks(docId)
+        if (rawBlocks.isBlank() || rawBlocks == "{}") {
+            throw FeishuError.BadRequest(0, "飞书端为空,不覆盖本地")
         }
+
+        // getBlocks 返回飞书 block 结构 JSON,由 caller 解析回 FeishuBlock 列表
+        val markdown = docxConverter.convert(emptyList()) // TODO:实际由 caller 映射原始 API JSON → FeishuBlock
+        val title = titleHint.ifBlank { "来自飞书" }
+
+        val existingRef = refDao.getByDocId(docId)
+        val noteId: String
+        if (existingRef != null) {
+            noteId = existingRef.noteId
+            val existingNote = noteRepository.getNote(noteId)
+            if (existingNote != null) {
+                noteRepository.upsert(
+                    existingNote.copy(content = markdown, title = title),
+                    emptyList()
+                )
+            }
+        } else {
+            val newNote = Note(
+                id = UUID.randomUUID().toString(),
+                title = title,
+                content = markdown,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis(),
+                isPinned = false,
+                lastAiOp = null,
+                lastAiAt = null
+            )
+            noteRepository.upsert(newNote, emptyList())
+            noteId = newNote.id
+        }
+
+        val meta = feishuApi.getDocument(docId)
+        refDao.upsert(
+            FeishuRefEntity(
+                noteId = noteId,
+                docId = docId,
+                docUrl = docUrl,
+                lastSyncedAt = System.currentTimeMillis(),
+                syncDirection = SyncDirection.PULL,
+                localRevision = System.currentTimeMillis(),
+                remoteRevision = meta.revisionId,
+                status = FeishuRefStatus.SYNCED
+            )
+        )
+
+        recordEvent(noteId, SyncDirection.PULL, "OK", null)
+        "拉取完成: $title"
+    }
 
     suspend fun logSyncError(noteId: String, direction: SyncDirection, error: String) {
         recordEvent(noteId, direction, "ERROR", error)
@@ -139,14 +150,14 @@ constructor(
 
     suspend fun disconnectAll() = refDao.deleteAll()
 
-    private suspend fun recordEvent(
-        noteId: String, direction: SyncDirection, status: String, error: String?
-    ) {
+    private suspend fun recordEvent(noteId: String, direction: SyncDirection, status: String, error: String?) {
         eventDao.insert(
             FeishuSyncEventEntity(
                 id = UUID.randomUUID().toString(),
-                noteId = noteId, direction = direction,
-                status = status, errorMessage = error,
+                noteId = noteId,
+                direction = direction,
+                status = status,
+                errorMessage = error,
                 createdAt = System.currentTimeMillis()
             )
         )
@@ -167,9 +178,13 @@ private fun buildBlockChildrenJson(blocks: List<FeishuBlock>): String {
 }
 
 private fun blockToJsonDict(block: FeishuBlock): String = when (block) {
-    is FeishuBlock.Heading -> """{"block_type":"heading","heading_level":${block.level},"content":"${runsToText(block.runs)}"}"""
+    is FeishuBlock.Heading -> """{"block_type":"heading","heading_level":${block.level},"content":"${runsToText(
+        block.runs
+    )}"}"""
     is FeishuBlock.Paragraph -> """{"block_type":"text","content":"${runsToText(block.runs)}"}"""
-    is FeishuBlock.CodeBlock -> """{"block_type":"code","language":"${block.language}","content":"${escapeJson(block.text)}"}"""
+    is FeishuBlock.CodeBlock -> """{"block_type":"code","language":"${block.language}","content":"${escapeJson(
+        block.text
+    )}"}"""
     is FeishuBlock.Quote -> """{"block_type":"quote","content":"${runsToText(block.runs)}"}"""
     is FeishuBlock.Divider -> """{"block_type":"divider"}"""
     else -> """{"block_type":"text","content":""}"""
