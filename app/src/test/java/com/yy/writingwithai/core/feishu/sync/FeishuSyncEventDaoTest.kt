@@ -2,7 +2,6 @@ package com.yy.writingwithai.core.feishu.sync
 
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /** feishu-bidir-sync · FeishuSyncEventDao 单测(tasks §10.4)。 */
@@ -86,26 +85,5 @@ class FeishuSyncEventDaoTest {
         assertEquals(4, remaining.size)
         assertEquals("e9", remaining[0].id)
         assertEquals("e6", remaining[3].id)
-    }
-}
-
-private class FakeFeishuSyncEventDao : FeishuSyncEventDao {
-    private val store = mutableListOf<FeishuSyncEventEntity>()
-
-    override suspend fun insert(event: FeishuSyncEventEntity) {
-        store.add(event)
-    }
-
-    override suspend fun listLast(limit: Int): List<FeishuSyncEventEntity> =
-        store.sortedByDescending { it.createdAt }.take(limit)
-
-    override suspend fun count(): Int = store.size
-
-    override suspend fun trimTo(cap: Int) {
-        if (store.size <= cap) return
-        val sortedAsc = store.sortedBy { it.createdAt }
-        val toRemove = sortedAsc.take(store.size - cap).map { it.id }.toSet()
-        store.removeAll { it.id in toRemove }
-        assertTrue(store.size <= cap)
     }
 }

@@ -86,27 +86,3 @@ class FeishuRefDaoTest {
         assertEquals(FeishuRefStatus.DIRTY, refs[1].status)
     }
 }
-
-private class FakeFeishuRefDao : FeishuRefDao {
-    private val store = mutableMapOf<String, FeishuRefEntity>()
-
-    override suspend fun upsert(ref: FeishuRefEntity) {
-        store[ref.noteId] = ref
-    }
-
-    override suspend fun getByNoteId(noteId: String): FeishuRefEntity? = store[noteId]
-
-    override suspend fun getByNoteIds(noteIds: List<String>): List<FeishuRefEntity> = noteIds.mapNotNull { store[it] }
-
-    override suspend fun getByDocId(docId: String): FeishuRefEntity? = store.values.firstOrNull { it.docId == docId }
-
-    override suspend fun deleteByNoteId(noteId: String) {
-        store.remove(noteId)
-    }
-
-    override suspend fun listAll(): List<FeishuRefEntity> = store.values.toList()
-
-    override suspend fun deleteAll() {
-        store.clear()
-    }
-}
