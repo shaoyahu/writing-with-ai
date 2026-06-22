@@ -6,10 +6,14 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
+import com.yy.writingwithai.core.data.db.dao.entity.EntityAliasDao
+import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.db.entity.AiHistoryEntity
 import com.yy.writingwithai.core.data.db.entity.NoteEntity
 import com.yy.writingwithai.core.data.db.entity.NoteLinkEntity
 import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
+import com.yy.writingwithai.core.data.db.entity.entity.EntityAliasRow
+import com.yy.writingwithai.core.data.db.entity.entity.NoteEntityRow
 import com.yy.writingwithai.core.feishu.sync.FeishuRefDao
 import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventDao
@@ -34,13 +38,16 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         AiHistoryEntity::class,
         NoteLinkEntity::class,
         FeishuRefEntity::class,
-        FeishuSyncEventEntity::class
+        FeishuSyncEventEntity::class,
+        NoteEntityRow::class,
+        EntityAliasRow::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
-        AutoMigration(from = 3, to = 4)
+        AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = 5)
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -55,6 +62,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun feishuRefDao(): FeishuRefDao
 
     abstract fun feishuSyncEventDao(): FeishuSyncEventDao
+
+    abstract fun noteEntityDao(): NoteEntityDao
+
+    abstract fun entityAliasDao(): EntityAliasDao
 
     companion object {
         val MIGRATION_1_2 =

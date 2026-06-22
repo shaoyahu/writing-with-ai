@@ -61,5 +61,6 @@ enum class LinkType {
     WIKILINK,
     TAG_OVERLAP,
     CONTENT_SIM,
-    LLM_EXTRACT
+    LLM_EXTRACT,
+    ENTITY_HIT
 }
