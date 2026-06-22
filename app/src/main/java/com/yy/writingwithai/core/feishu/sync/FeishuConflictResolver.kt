@@ -15,11 +15,9 @@ enum class ConflictResult { NO_CONFLICT, LOCAL_WINS, REMOTE_WINS, BOTH_DIRTY }
 class FeishuConflictResolver @Inject constructor() {
     fun detect(localRev: Long, storedRemoteRev: String, newRemoteRev: String): ConflictResult {
         if (storedRemoteRev.isEmpty()) return ConflictResult.NO_CONFLICT
-        val localChanged = localRev > 0L
         val remoteChanged = newRemoteRev.isNotEmpty() && newRemoteRev != storedRemoteRev
-        if (localChanged && remoteChanged) return ConflictResult.BOTH_DIRTY
-        if (localChanged) return ConflictResult.LOCAL_WINS
-        if (remoteChanged) return ConflictResult.REMOTE_WINS
-        return ConflictResult.NO_CONFLICT
+        if (!remoteChanged) return ConflictResult.NO_CONFLICT
+        // 远端变了,本地也有过变更(localRev > 0)即冲突
+        return if (localRev > 0L) ConflictResult.BOTH_DIRTY else ConflictResult.REMOTE_WINS
     }
 }
