@@ -5,6 +5,8 @@ import com.yy.writingwithai.core.feishu.api.FeishuApiClient
 import com.yy.writingwithai.core.feishu.api.FeishuApiClientImpl
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthStore
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthStoreImpl
+import com.yy.writingwithai.core.feishu.sync.FeishuConflictResolver
+import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -50,4 +52,7 @@ abstract class FeishuModuleBinds {
     @Binds
     @Singleton
     abstract fun bindFeishuApiClient(impl: FeishuApiClientImpl): FeishuApiClient
+
+    // feishu-bidir-sync providers:FeishuSyncService + FeishuConflictResolver 自身有 @Inject ctor,
+    // Hilt 可直接发现,但显式通过 Module 提供以保持一致性(claude.md 约束)
 }

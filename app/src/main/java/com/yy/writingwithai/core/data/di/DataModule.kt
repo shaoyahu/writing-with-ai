@@ -7,6 +7,8 @@ import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.NoteTagDao
 import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
+import com.yy.writingwithai.core.feishu.sync.FeishuRefDao
+import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -47,4 +49,10 @@ object DataModule {
 
     @Provides
     fun provideNoteLinkDao(db: AppDatabase): NoteLinkDao = db.noteLinkDao()
+
+    @Provides
+    fun provideFeishuRefDao(db: AppDatabase): FeishuRefDao = db.feishuRefDao()
+
+    @Provides
+    fun provideFeishuSyncEventDao(db: AppDatabase): FeishuSyncEventDao = db.feishuSyncEventDao()
 }
