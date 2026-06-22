@@ -18,6 +18,8 @@ import androidx.navigation.toRoute
 import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
+import com.yy.writingwithai.core.prefs.UserPrefsStore
+import com.yy.writingwithai.feature.onboarding.ApikeyPromptRoute
 import com.yy.writingwithai.feature.onboarding.OnboardingEntry
 import com.yy.writingwithai.feature.onboarding.OnboardingRoute
 import com.yy.writingwithai.feature.quicknote.detail.QuickNoteDetailScreen
@@ -31,6 +33,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.components.ActivityComponent
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 
 /**
@@ -54,6 +57,7 @@ import kotlinx.serialization.Serializable
 @InstallIn(ActivityComponent::class)
 internal interface AppNavEntryPoint {
     fun consentStore(): ConsentStore
+    fun userPrefsStore(): UserPrefsStore
 }
 
 @Composable
@@ -77,6 +81,15 @@ fun AppNav(
             ).consentStore()
         }
 
+    // onboarding-apikey-prompt · 同样从 Activity 拿 UserPrefsStore(走 EntryPoint)
+    val userPrefsStore =
+        remember(context) {
+            EntryPointAccessors.fromActivity(
+                context as Activity,
+                AppNavEntryPoint::class.java
+            ).userPrefsStore()
+        }
+
     // M4-4 · 启动时强制 gate:未同意或版本过期 → navigate onboarding + 清栈
     LaunchedEffect(Unit) {
         val state = consentStore.consentFlow.first()
@@ -90,11 +103,22 @@ fun AppNav(
 
     // M4-4 · 同意后单向门 + widget route 回放(r1 H1 修)
     val consentState by consentStore.consentFlow.collectAsState(initial = ConsentState.EMPTY)
-    LaunchedEffect(consentState.accepted, consentState.version) {
+    // onboarding-apikey-prompt · ack 状态镜像(用于二段门)
+    val ackApikeyPrompt by userPrefsStore.ackApikeyPromptFlow
+        .map { it }
+        .collectAsState(initial = false)
+    LaunchedEffect(consentState.accepted, consentState.version, ackApikeyPrompt) {
         if (consentState.accepted && consentState.version >= BuildConfig.CONSENT_VERSION) {
             val pending = widgetPendingRoute.value
             val currentRoute = navController.currentDestination?.route
             if (currentRoute?.contains("onboarding") == true) {
+                // onboarding-apikey-prompt · 同意通过后,若 ack=false → 串到 apikey-prompt
+                if (!ackApikeyPrompt) {
+                    navController.navigate(OnboardingEntry.ROUTE_APIKEY_PROMPT) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                    return@LaunchedEffect
+                }
                 if (pending != null) {
                     // widget 入口未同意时暂存的 route — 同意后回放
                     widgetPendingRoute.value = null
@@ -205,6 +229,42 @@ fun AppNav(
         composable(OnboardingEntry.ROUTE_CONSENT) {
             OnboardingRoute(
                 onExitApp = { /* OnboardingRoute 内部已 finishAffinity() */ }
+            )
+        }
+        composable(OnboardingEntry.ROUTE_APIKEY_PROMPT) {
+            ApikeyPromptRoute(
+                onFinished = {
+                    // ack=true 后(VM 已写 DataStore),此处手动 navigate 到主路由。
+                    // 上面 LaunchedEffect(ackApikeyPrompt) 在 collect 触发新值后
+                    // 也会再次 navigate,这里 popUpTo(0) 防止双跳。
+                    val pending = widgetPendingRoute.value
+                    if (pending != null) {
+                        widgetPendingRoute.value = null
+                        when {
+                            pending.startsWith("quicknote/edit") -> {
+                                val prefill = pending.contains("prefillFocus=true")
+                                navController.navigate(QuicknoteEdit(id = "NEW", prefillFocus = prefill)) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                            pending.startsWith("quicknote/detail/") -> {
+                                val id = pending.removePrefix("quicknote/detail/")
+                                if (id.isNotBlank()) {
+                                    navController.navigate(QuicknoteDetail(id)) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                } else {
+                                    navController.navigate(QuicknoteList) { popUpTo(0) { inclusive = true } }
+                                }
+                            }
+                            else -> {
+                                navController.navigate(QuicknoteList) { popUpTo(0) { inclusive = true } }
+                            }
+                        }
+                    } else {
+                        navController.navigate(QuicknoteList) { popUpTo(0) { inclusive = true } }
+                    }
+                }
             )
         }
     }

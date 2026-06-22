@@ -127,6 +127,23 @@
     <string name="onboarding_scroll_hint">TODO(en): onboarding_scroll_hint</string>
     <string name="onboarding_required">TODO(en): onboarding_required</string>
     <string name="ai_provider_not_configured">TODO(en): ai_provider_not_configured</string>
+
+    <!-- ===== onboarding-apikey-prompt · Apikey prompt screen(英文 TODO 占位)===== -->
+    <string name="apikey_prompt_title">TODO(en): apikey_prompt_title</string>
+    <string name="apikey_prompt_subtitle">TODO(en): apikey_prompt_subtitle</string>
+    <string name="apikey_prompt_intro">TODO(en): apikey_prompt_intro</string>
+    <string name="apikey_prompt_section_capabilities">TODO(en): apikey_prompt_section_capabilities</string>
+    <string name="apikey_prompt_token_range_fmt">TODO(en): apikey_prompt_token_range_fmt (%1$s / %2$s)</string>
+    <string name="apikey_prompt_cost_disclaimer_inline">TODO(en): apikey_prompt_cost_disclaimer_inline</string>
+    <string name="apikey_prompt_disclaimer">TODO(en): apikey_prompt_disclaimer</string>
+    <string name="apikey_prompt_btn_ack">TODO(en): apikey_prompt_btn_ack</string>
+    <string name="apikey_prompt_btn_skip">TODO(en): apikey_prompt_btn_skip</string>
+    <string name="apikey_prompt_btn_dismiss">TODO(en): apikey_prompt_btn_dismiss</string>
+    <string name="reset_apikey_prompt_label">TODO(en): reset_apikey_prompt_label</string>
+    <string name="reset_apikey_prompt_dialog_title">TODO(en): reset_apikey_prompt_dialog_title</string>
+    <string name="reset_apikey_prompt_dialog_message">TODO(en): reset_apikey_prompt_dialog_message</string>
+    <string name="reset_apikey_prompt_dialog_confirm">TODO(en): reset_apikey_prompt_dialog_confirm</string>
+    <string name="reset_apikey_prompt_toast">TODO(en): reset_apikey_prompt_toast</string>
     <string name="secure_prefs_hidden_label">TODO(en): secure_prefs_hidden_label</string>
     <string name="secure_prefs_reveal_button">TODO(en): secure_prefs_reveal_button</string>
     <string name="secure_prefs_copy_button">TODO(en): secure_prefs_copy_button</string>

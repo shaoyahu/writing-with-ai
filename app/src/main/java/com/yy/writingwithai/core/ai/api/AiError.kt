@@ -30,6 +30,14 @@ sealed interface AiError {
      */
     data object ProviderNotConfigured : AiError
 
+    /**
+     * onboarding-apikey-prompt:用户尚未阅读/确认 apikey 教育页。
+     *
+     * spec: openspec/changes/onboarding-apikey-prompt/specs/onboarding-consent/spec.md
+     * "AI capability guard on first use"
+     */
+    data object ApikeyPromptNotAcked : AiError
+
     /** 供 AiHistory 落库用的单行摘要。 */
     fun summary(): String = when (this) {
         is Network -> "Network($code): $detail"
@@ -41,5 +49,6 @@ sealed interface AiError {
         is Unknown -> "Unknown($code): $detail"
         is UserConsentRequired -> "UserConsentRequired"
         is ProviderNotConfigured -> "ProviderNotConfigured"
+        is ApikeyPromptNotAcked -> "ApikeyPromptNotAcked"
     }
 }

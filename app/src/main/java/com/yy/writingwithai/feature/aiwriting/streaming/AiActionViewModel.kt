@@ -14,6 +14,7 @@ import com.yy.writingwithai.core.data.repo.NoteRepository
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.prefs.PromptTemplateStore
 import com.yy.writingwithai.core.prefs.SecureApiKeyStore
+import com.yy.writingwithai.core.prefs.UserPrefsStore
 import com.yy.writingwithai.core.widget.QuickNoteWidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -61,7 +62,8 @@ constructor(
     private val consentStore: ConsentStore,
     private val secureApiKeyStore: SecureApiKeyStore,
     private val promptTemplateStore: PromptTemplateStore,
-    private val providerPrefsStore: ProviderPrefsStore
+    private val providerPrefsStore: ProviderPrefsStore,
+    private val userPrefsStore: UserPrefsStore
 ) : ViewModel() {
     companion object {
         /** M3 阶段写死 fake provider;M4-4 起 [resolveProviderId] 优先 deepseek。 */
@@ -79,6 +81,13 @@ constructor(
      */
     private val initialConsented: Boolean =
         runBlocking { consentStore.isConsented(com.yy.writingwithai.BuildConfig.CONSENT_VERSION) }
+
+    /**
+     * onboarding-apikey-prompt:ack 状态同步镜像(避免冷启动 race,同 `initialConsented` 模式)。
+     * VM 构造期一次性 `runBlocking`,等价 `MainActivity.onCreate` 同步检查。
+     */
+    private val initialAckApikeyPrompt: Boolean =
+        runBlocking { userPrefsStore.isApikeyPromptAcked() }
 
     private val _state = MutableStateFlow<AiActionUiState>(AiActionUiState.Idle)
     val state: StateFlow<AiActionUiState> = _state.asStateFlow()
@@ -101,6 +110,13 @@ constructor(
         // 避免 `consentFlow.value` 在 DataStore 冷启动 race 下误返 EMPTY.accepted=false。
         if (!initialConsented) {
             _state.value = AiActionUiState.Failed(op = op, error = AiError.UserConsentRequired)
+            return
+        }
+        // onboarding-apikey-prompt · 二段门:apikey 教育未 ack → 阻断。
+        // spec: openspec/changes/onboarding-apikey-prompt/specs/onboarding-consent/spec.md
+        // "AI capability guard on first use"
+        if (!initialAckApikeyPrompt) {
+            _state.value = AiActionUiState.Failed(op = op, error = AiError.ApikeyPromptNotAcked)
             return
         }
         streamJob =

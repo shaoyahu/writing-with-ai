@@ -31,6 +31,11 @@ object PrefsModule {
 
     @Provides
     @Singleton
+    fun provideUserPrefsStore(@ApplicationContext context: Context): UserPrefsStore =
+        UserPrefsStoreImpl(context)
+
+    @Provides
+    @Singleton
     fun provideSecureApiKeyStore(@ApplicationContext context: Context): SecureApiKeyStore =
         SecureApiKeyStoreImpl(context)
 

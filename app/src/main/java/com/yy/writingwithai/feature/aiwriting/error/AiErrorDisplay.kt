@@ -21,4 +21,5 @@ fun AiError.toDisplayMessage(context: Context): String = when (this) {
     is AiError.Unknown -> context.getString(R.string.aiwriting_error_unknown)
     is AiError.UserConsentRequired -> context.getString(R.string.onboarding_required)
     is AiError.ProviderNotConfigured -> context.getString(R.string.ai_provider_not_configured)
+    is AiError.ApikeyPromptNotAcked -> context.getString(R.string.onboarding_required)
 }

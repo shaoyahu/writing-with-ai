@@ -148,6 +148,23 @@
     <string name="onboarding_required">请先同意隐私条款</string>
     <string name="ai_provider_not_configured">请先在设置 → 模型管理配置 AI provider</string>
 
+    <!-- ===== onboarding-apikey-prompt · Apikey 教育页 ===== -->
+    <string name="apikey_prompt_title">关于 API Key</string>
+    <string name="apikey_prompt_subtitle">填写 API Key 即可启用 AI 写作能力</string>
+    <string name="apikey_prompt_intro">本应用调用第三方 AI 服务完成笔记扩写、润色、整理、关联等能力。你需要自备 API Key(DeepSeek / Minimax / MiMo 等),所有费用由 provider 直接向你收取,本应用不经手。</string>
+    <string name="apikey_prompt_section_capabilities">AI 能力与参考成本</string>
+    <string name="apikey_prompt_token_range_fmt">单次约 %1$s input / %2$s output tokens</string>
+    <string name="apikey_prompt_cost_disclaimer_inline">以 provider 实际账单为准</string>
+    <string name="apikey_prompt_disclaimer">以上为参考值,实际以 provider 账单为准。本应用不经手费用。</string>
+    <string name="apikey_prompt_btn_ack">我知道了</string>
+    <string name="apikey_prompt_btn_skip">稍后设置</string>
+    <string name="apikey_prompt_btn_dismiss">取消</string>
+    <string name="reset_apikey_prompt_label">重新显示 API Key 说明</string>
+    <string name="reset_apikey_prompt_dialog_title">重置提示</string>
+    <string name="reset_apikey_prompt_dialog_message">下次使用 AI 功能时会再次显示 API Key 说明。是否继续?</string>
+    <string name="reset_apikey_prompt_dialog_confirm">确认重置</string>
+    <string name="reset_apikey_prompt_toast">已重置,下次 AI 调用时会再次显示说明</string>
+
     <!-- SecureApiKeyStore 设置页(M5 polish 落地 UI,M4-4 仅暴露 API) -->
     <string name="secure_prefs_hidden_label">••••••••</string>
     <string name="secure_prefs_reveal_button">显示</string>
