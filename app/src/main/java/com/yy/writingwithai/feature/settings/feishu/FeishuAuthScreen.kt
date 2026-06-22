@@ -76,10 +76,7 @@ fun FeishuAuthScreen(viewModel: FeishuAuthViewModel = hiltViewModel()) {
                     enabled = appIdInput.isNotBlank() && appSecretInput.isNotBlank()
                 ) { Text("保存") }
                 OutlinedButton(
-                    onClick = {
-                        viewModel.saveCredentials()
-                        viewModel.connect()
-                    },
+                    onClick = viewModel::saveAndConnect,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = appIdInput.isNotBlank() && appSecretInput.isNotBlank()
                 ) { Text("保存并连接") }

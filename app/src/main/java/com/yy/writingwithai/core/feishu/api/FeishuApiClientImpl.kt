@@ -100,6 +100,10 @@ constructor(
     private fun executeRequest(request: Request): ParsedResponse {
         val response = try {
             httpClient.newCall(request).execute()
+        } catch (e: FeishuError) {
+            // review r1 HIGH#5:AuthInterceptor runBlocking 抛的 FeishuError(NotAuthorized 等)
+            // 不能被下面 Throwable catch 包成 NetworkError,直接 rethrow 保语义。
+            throw e
         } catch (e: Throwable) {
             throw FeishuError.NetworkError(detail = e.javaClass.simpleName + ": " + (e.message ?: ""))
         }

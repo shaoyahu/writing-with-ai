@@ -53,10 +53,11 @@ constructor(
         _appSecretInput.value = value
     }
 
-    /** 保存凭证但不立即取 token;state → CONFIGURED */
+    /** 保存凭证但不立即取 token;state → CONFIGURED。换凭证后必须 invalidate 否则旧 token 命中缓存。 */
     fun saveCredentials() {
         viewModelScope.launch {
             store.setCredentials(_appIdInput.value.trim(), _appSecretInput.value.trim())
+            tokenProvider.invalidate() // review r1 HIGH#4:换凭证清旧 token 缓存
             _appSecretInput.value = "" // 清空 UI 输入框;secret 不再保留
         }
     }
@@ -67,6 +68,26 @@ constructor(
             _errorMessage.value = null
             try {
                 tokenProvider.getToken() // 触发 reentrantFetch,失败抛 FeishuError
+            } catch (e: FeishuError) {
+                _errorMessage.value = e.message
+            } catch (e: Throwable) {
+                _errorMessage.value = e.javaClass.simpleName + ": " + (e.message ?: "")
+            }
+        }
+    }
+
+    /**
+     * review r1 HIGH#3:「保存并连接」合并成单个 suspend 流程,保证 setCredentials
+     * 写入完成后再 getToken,避免 connect 的 getCredentialsSnapshot 读到 null。
+     */
+    fun saveAndConnect() {
+        viewModelScope.launch {
+            _errorMessage.value = null
+            try {
+                store.setCredentials(_appIdInput.value.trim(), _appSecretInput.value.trim())
+                tokenProvider.invalidate()
+                _appSecretInput.value = ""
+                tokenProvider.getToken()
             } catch (e: FeishuError) {
                 _errorMessage.value = e.message
             } catch (e: Throwable) {
