@@ -221,4 +221,15 @@
     <string name="note_association_signal_content">Similar</string>
     <string name="note_association_signal_ai">AI</string>
     <string name="note_association_signal_backlink">Ref</string>
+
+    <!-- feishu-bidir-sync -->
+    <string name="quicknote_detail_sync_to_feishu">Sync to Feishu</string>
+    <string name="quicknote_detail_pull_from_feishu">Pull from Feishu URL</string>
+    <string name="quicknote_detail_open_in_feishu">Open in Feishu</string>
+    <string name="quicknote_feishu_pull_dialog_title">Enter Feishu document URL</string>
+    <string name="quicknote_feishu_status_synced">Synced</string>
+    <string name="quicknote_feishu_status_dirty">Pending sync</string>
+    <string name="quicknote_feishu_status_conflict">Conflict</string>
+    <string name="quicknote_feishu_status_remote_deleted">Remote deleted</string>
+    <string name="quicknote_feishu_syncing">Syncing…</string>
 </resources>
