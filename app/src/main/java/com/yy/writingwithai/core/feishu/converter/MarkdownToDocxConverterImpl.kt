@@ -21,15 +21,17 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
         var i = 0
         while (i < lines.size) {
             val raw = lines[i]
+            // r2 修:统一 trimStart 一次,后续分支只看 trimmed line
+            val line = raw.trimStart()
 
             // 空行跳过
-            if (raw.isBlank()) {
+            if (line.isBlank()) {
                 i++
                 continue
             }
 
             // 代码块:连续 ``` 包围
-            if (raw.trimStart().startsWith("```")) {
+            if (line.startsWith("```")) {
                 val (codeBlock, next) = parseCodeBlock(lines, i)
                 blocks += codeBlock
                 i = next
@@ -37,7 +39,7 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
             }
 
             // 表格:连续 | 行
-            if (raw.contains("|") && i + 1 < lines.size && TABLE_SEPARATOR.matches(lines[i + 1].trim())) {
+            if (line.contains("|") && i + 1 < lines.size && TABLE_SEPARATOR.matches(lines[i + 1].trim())) {
                 val (tableBlock, next) = parseTable(lines, i)
                 blocks += tableBlock
                 i = next
@@ -45,21 +47,21 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
             }
 
             // 图片:行内 `![alt](path)`
-            if (raw.trimStart().startsWith("![")) {
-                blocks += parseImage(raw.trimStart())
+            if (line.startsWith("![")) {
+                blocks += parseImage(line)
                 i++
                 continue
             }
 
             // heading / quote / divider / list / paragraph 单行处理
             when {
-                HEADING.matches(raw) -> {
-                    val m = HEADING.matchEntire(raw)!!
+                HEADING.matches(line) -> {
+                    val m = HEADING.matchEntire(line)!!
                     val level = m.groupValues[1].length
                     val text = m.groupValues[2]
                     blocks += FeishuBlock.Heading(level, parseRuns(text))
                 }
-                raw.trimStart().startsWith(">") -> {
+                line.startsWith(">") -> {
                     // 收集连续 quote 行;每行剥一个 `> ` 前缀(spec 不要求嵌套 quote)
                     val runs = StringBuilder()
                     while (i < lines.size && lines[i].trimStart().startsWith(">")) {
@@ -71,8 +73,8 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
                     blocks += FeishuBlock.Quote(parseRuns(runs.toString()))
                     continue
                 }
-                DIVIDER.matches(raw.trim()) -> blocks += FeishuBlock.Divider
-                BULLET.matches(raw.trimStart()) -> {
+                DIVIDER.matches(line.trim()) -> blocks += FeishuBlock.Divider
+                BULLET.matches(line) -> {
                     // 收集连续 bullet
                     val items = mutableListOf<List<Run>>()
                     while (i < lines.size && BULLET.matches(lines[i].trimStart())) {
@@ -83,7 +85,7 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
                     blocks += FeishuBlock.Bullet(items)
                     continue
                 }
-                ORDERED.matches(raw.trimStart()) -> {
+                ORDERED.matches(line) -> {
                     val items = mutableListOf<List<Run>>()
                     while (i < lines.size && ORDERED.matches(lines[i].trimStart())) {
                         val m = ORDERED.matchEntire(lines[i].trimStart())!!
