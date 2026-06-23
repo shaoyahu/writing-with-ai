@@ -41,6 +41,7 @@ import dagger.hilt.components.SingletonComponent
 fun SettingsScreen(
     onPromptTemplateClick: () -> Unit,
     onModelManagementClick: () -> Unit = {},
+    onAliasManagementClick: () -> Unit = {},
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -109,6 +110,16 @@ fun SettingsScreen(
                             }
                         )
                     }
+                )
+            }
+            item {
+                ListItem(
+                    headlineContent = { Text("实体别名管理") },
+                    supportingContent = { Text("合并小明 / 小名 / XiaoMing 等同一实体") },
+                    trailingContent = {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable(onClick = onAliasManagementClick)
                 )
             }
             // feishu-bidir-sync:同步日志 section

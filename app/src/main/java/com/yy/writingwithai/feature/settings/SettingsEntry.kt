@@ -24,12 +24,14 @@ object SettingsEntry {
     fun SettingsRoute(
         onPromptTemplateClick: () -> Unit,
         onModelManagementClick: () -> Unit = {},
+        onAliasManagementClick: () -> Unit = {},
         onBack: () -> Unit = {},
         modifier: Modifier = Modifier
     ) {
         SettingsScreen(
             onPromptTemplateClick = onPromptTemplateClick,
             onModelManagementClick = onModelManagementClick,
+            onAliasManagementClick = onAliasManagementClick,
             onBack = onBack,
             modifier = modifier
         )

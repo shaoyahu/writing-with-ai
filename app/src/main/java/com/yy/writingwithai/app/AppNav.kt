@@ -26,6 +26,7 @@ import com.yy.writingwithai.feature.quicknote.detail.QuickNoteDetailScreen
 import com.yy.writingwithai.feature.quicknote.edit.QuickNoteEditorScreen
 import com.yy.writingwithai.feature.quicknote.list.QuickNoteListScreen
 import com.yy.writingwithai.feature.settings.SettingsEntry
+import com.yy.writingwithai.feature.settings.alias.AliasManagementScreen
 import com.yy.writingwithai.feature.settings.data.SettingsDataScreen
 import com.yy.writingwithai.feature.settings.model.ModelManagementEntry
 import dagger.hilt.EntryPoint
@@ -196,6 +197,7 @@ fun AppNav(
             SettingsEntry.SettingsRoute(
                 onPromptTemplateClick = { navController.navigate(SettingsPromptTemplate) },
                 onModelManagementClick = { navController.navigate(SettingsModelManagement) },
+                onAliasManagementClick = { navController.navigate(SettingsAliasManagement) },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -203,6 +205,9 @@ fun AppNav(
             SettingsEntry.PromptTemplateRoute(
                 onBack = { navController.popBackStack() }
             )
+        }
+        composable<SettingsAliasManagement> {
+            AliasManagementScreen(onBack = { navController.popBackStack() })
         }
         composable<SettingsModelManagement> {
             ModelManagementEntry.ModelManagementRoute(
@@ -314,6 +319,9 @@ data object Settings
 
 @Serializable
 data object SettingsPromptTemplate
+
+@Serializable
+data object SettingsAliasManagement
 
 @Serializable
 data object SettingsModelManagement
