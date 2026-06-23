@@ -28,6 +28,7 @@ internal fun Context.shareNoteMarkdown(note: Note) {
         Intent(Intent.ACTION_SEND).apply {
             type = "text/markdown"
             putExtra(Intent.EXTRA_TEXT, markdown)
+            putExtra(Intent.EXTRA_TITLE, note.title.ifBlank { note.id })
         }
     val chooser =
         Intent.createChooser(

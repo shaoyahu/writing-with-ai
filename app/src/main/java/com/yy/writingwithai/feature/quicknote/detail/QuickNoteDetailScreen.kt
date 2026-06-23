@@ -1,5 +1,8 @@
 package com.yy.writingwithai.feature.quicknote.detail
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -153,6 +156,53 @@ fun QuickNoteDetailScreen(
     val aiState: AiActionUiState by aiStateFlow.collectAsStateWithLifecycle()
 
     var actionMenuOpen by remember { mutableStateOf(false) }
+
+    // SAF launcher for exporting single note as Markdown
+    val exportMdLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/markdown")
+    ) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        val note = (state as? NoteDetailUiState.Content)?.note?.note ?: return@rememberLauncherForActivityResult
+        try {
+            context.contentResolver.openOutputStream(uri)?.use { os ->
+                val md = buildString {
+                    if (note.title.isNotBlank()) {
+                        append("# ")
+                        append(note.title)
+                        append("\n\n")
+                    }
+                    append(note.content)
+                }
+                os.write(md.toByteArray(Charsets.UTF_8))
+            }
+            Toast.makeText(context, context.getString(R.string.quicknote_export_success), Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            Toast.makeText(context, context.getString(R.string.quicknote_export_error), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // SAF launcher for exporting single note as plain text
+    val exportTxtLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        val note = (state as? NoteDetailUiState.Content)?.note?.note ?: return@rememberLauncherForActivityResult
+        try {
+            context.contentResolver.openOutputStream(uri)?.use { os ->
+                val text = buildString {
+                    if (note.title.isNotBlank()) {
+                        append(note.title)
+                        append("\n\n")
+                    }
+                    append(note.content)
+                }
+                os.write(text.toByteArray(Charsets.UTF_8))
+            }
+            Toast.makeText(context, context.getString(R.string.quicknote_export_success), Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            Toast.makeText(context, context.getString(R.string.quicknote_export_error), Toast.LENGTH_SHORT).show()
+        }
+    }
     // H3 修:TextFieldValue 仅在 noteId 变化时重建,避免 content / wordCount / tags 任一变化重置选区。
     // selection 不从 ViewModel 反向同步回 BasicTextField(单向 BasicTextField → ViewModel)。
     // AI replace 刷新:LaunchedEffect 同步 content 变化到 textFieldValue(keep selection)。
@@ -224,6 +274,26 @@ fun QuickNoteDetailScreen(
                                 onClick = {
                                     menuExpanded = false
                                     context.shareNoteMarkdown(current.note.note)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.quicknote_detail_export_md)) },
+                                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    val note = current.note.note
+                                    val name = note.title.ifBlank { note.id } + ".md"
+                                    exportMdLauncher.launch(name)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.quicknote_detail_export_txt)) },
+                                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    val note = current.note.note
+                                    val name = note.title.ifBlank { note.id } + ".txt"
+                                    exportTxtLauncher.launch(name)
                                 }
                             )
                             DropdownMenuItem(

@@ -18,7 +18,12 @@
     <string name="quicknote_detail_word_time_separator">TODO(en): ·</string>
     <string name="quicknote_detail_edit">TODO(en): 编辑</string>
     <string name="quicknote_detail_share">TODO(en): 分享</string>
-    <string name="quicknote_detail_delete">TODO(en): 删除</string>
+    <string name="quicknote_detail_export_md">Export as Markdown</string>
+    <string name="quicknote_detail_export_txt">Export as Text</string>
+    <string name="quicknote_list_select_mode_title">Selected %1$d</string>
+    <string name="quicknote_list_export_selected">Export selected</string>
+    <string name="quicknote_export_success">Export successful</string>
+    <string name="quicknote_export_error">Export failed</string>    <string name="quicknote_detail_delete">TODO(en): 删除</string>
     <string name="quicknote_detail_pin">TODO(en): 固定</string>
     <string name="quicknote_detail_unpin">TODO(en): 取消固定</string>
     <string name="quicknote_detail_not_found">Note not found</string>

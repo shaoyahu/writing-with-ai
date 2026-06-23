@@ -32,6 +32,8 @@ constructor(
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val selectedTag = MutableStateFlow<String?>(null)
+    val selectedIds = MutableStateFlow<Set<String>>(emptySet())
+    val isSelectMode = MutableStateFlow(false)
 
     val uiState: StateFlow<NoteListUiState> =
         combine(
@@ -67,6 +69,21 @@ constructor(
     fun selectTag(tag: String?) {
         selectedTag.update { tag }
     }
+
+    fun toggleSelect(noteId: String) {
+        isSelectMode.value = true
+        selectedIds.update { ids ->
+            if (noteId in ids) ids - noteId else ids + noteId
+        }
+        if (selectedIds.value.isEmpty()) isSelectMode.value = false
+    }
+
+    fun clearSelection() {
+        selectedIds.value = emptySet()
+        isSelectMode.value = false
+    }
+
+    fun getSelectedNoteIds(): List<String> = selectedIds.value.toList()
 
     private val _feishuRefs = MutableStateFlow<Map<String, FeishuRefEntity>>(emptyMap())
     val feishuRefs: StateFlow<Map<String, FeishuRefEntity>> = _feishuRefs.asStateFlow()
