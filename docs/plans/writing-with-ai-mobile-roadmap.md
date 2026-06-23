@@ -458,7 +458,8 @@ Settings → Model Management → 选 provider → 填 apikey
 | **M2 · AI 抽象层 + FakeProvider 端到端** | `AiGateway`、`ProviderConfig`、`AnthropicCompatibleAdapter`(通用)、SSE 解析、用量统计、错误降级、FakeProvider 端到端走通(真实 provider 联调不阻塞 M2) | 用 FakeProvider 模拟 stream → 选中文本 → AI 润色 → 流式出结果 → 接受/拒绝,落库正确 |✅ 2026-06-18 完成 + 归档 |
 | **M3 · AI 操作 UI 闭环(扩写/润色/整理)** | ActionSheet + StreamingPanel + 接受/拒绝/再生成 + 错误降级 + providerId 写死 `fake`;三家真实 provider(apikey 接入)推迟到 M5 onboarding-consent | 用 FakeProvider 模拟 stream → 选中文本 → 扩写/润色/整理 → 流式面板 → 接受替换正文 + 落 lastAiOp + AiHistory |✅ 2026-06-19 完成 + 归档;review r1 + 13 项 fix(H1-H3 + M1-M5 + L1-L4) |
 | **M4 · 桌面 Widget + 手势 + 导入导出** | Glance 2x2 / 4x2、widget 刷新策略、predictive back、JSON/Markdown 导出导入、首次启动同意页 | 在小米/华为/OPPO/vivo 桌面分别验证 widget 可用;侧滑返回行为正确;导出再导入数据完整 |✅ 2026-06-19 M4-1(home-screen-widget)+ M4-2(predictive-back-gesture)+ M4-3(data-export-import)归档 + 37 项 fix;M4-4 待起 |
-| **M5 · 打磨 + 内测** | 性能调优、崩溃率回归、可观测性、隐私文案、Play Store 上架材料(若需) | 满足 §11 基线;5 人内测反馈已处理 |
+| **M5 · 打磨 + 内测** | 性能调优、崩溃率回归、可观测性、隐私文案、Play Store 上架材料(若需) | 满足 §11 基线;5 人内测反馈已处理 |✅ 2026-06-23 全量归档(21 change);`entity-extraction-association` + `model-management-detail-dropdown` + `widget-rome-compat` + `note-association`(superseded)同批收口;lint baseline 1514→1492;169 tests 全绿 |
+| **M6 · 笔记关联增强(实体抽取)** | LLM 抽取笔记实体 + 反向索引 + 别名管理 + 可解释「相关笔记」section;`entity-extraction-association` change 主体 | 详情页 `RelatedNotesSection` 显示共享实体 chip + 证据;`./gradlew :app:check` 全绿;6 项 polish deferred(重命名 / SQL 阈值 / slider UI / 进度 UI / DAO+worker 测试) |✅ 2026-06-23 `entity-extraction-association` 归档;`note-association` superseded by 本条,同批 archive |
 
 ---
 

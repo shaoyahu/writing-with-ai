@@ -1,11 +1,8 @@
 # domestic-rom-widget Specification
 
 ## Purpose
-
-定义国产 Android ROM(小米 MIUI / 华为 EMUI / OPPO ColorOS / vivo OriginOS)下桌面 widget 的适配契约,涵盖 ROM 检测、空状态文案提示、用户自助开启 widget 自启动教程文档。roadmap §14 标"国产 ROM 对 widget 限制"为风险项,M4-1 follow-up 推迟到 widget-rome-compat change 收口。
-
+TBD - created by archiving change widget-rome-compat. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: RomDetector identifies 4 major domestic ROMs
 
 `core/widget/RomDetector.kt` MUST 暴露 `enum RomVendor { MIUI / EMUI / COLOROS / ORIGINOS / AOSP }` 与 `object RomDetector { fun current(): RomVendor }`。
@@ -127,3 +124,4 @@ test class MUST 用 `@RunWith(RobolectricTestRunner::class) @Config(sdk = [34])`
 
 - **WHEN** widget 笔记项触发 `quicknote/detail/n1` Intent → 5s 后 widget "+" 触发 `quicknote/edit?prefillFocus=true` Intent
 - **THEN** `lastInitialRoute` 从 `quicknote/detail/n1` 替换为 `quicknote/edit?prefillFocus=true`;`AppNav` LaunchedEffect 触发 2 次 navigate(首次 detail/n1,二次 edit prefillFocus=true)
+

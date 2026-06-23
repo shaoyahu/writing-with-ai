@@ -1,6 +1,4 @@
-# home-screen-widget Specification (delta)
-
-## ADDED Requirements (widget-rome-compat)
+## ADDED Requirements
 
 ### Requirement: GlanceStateDefinition persists widget state via DataStore
 

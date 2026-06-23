@@ -2,6 +2,32 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log,单次评审查 `docs/reviews/`,规划查 `docs/plans/`。
 
+## 2026-06-23 · M5 盖 ✅ 章
+
+- M5(打磨 + 内测)里程碑正式完成;roadmap §13 M5 行打 ✅;所有 M5 内 OpenSpec change 已归档(21 个)
+- 本会话收口 3 change:`entity-extraction-association` + `model-management-detail-dropdown` + `widget-rome-compat`;`note-association` superseded 归档
+- lint baseline 收敛:修 2 个 pre-existing 错(FlowOperator + ProduceState);baseline 1514 → 1492 行
+- `./gradlew :app:check` 全绿(169 tests + ktlint 0 + lint 0);项目 0 个 active change
+
+## 2026-06-23 · model-management-detail-dropdown 收尾 + baseline 收敛
+
+- OpenSpec change `model-management-detail-dropdown` 收口;详情页 `ModelProviderDetailScreen` 加 `ApiFormatDropdown` (X 方案:可写覆盖 `ProviderConfig.apiFormat`) + `ModelDropdown` (默认项带「(默认)」后缀,`ProviderPrefsStore.selectedModel` 持久化);`ping()` 用 `loadSelectedModel ?: config.defaultModel`
+- DataStore 新增 `selected_model_<id>` + `api_format_<id>` 两组 key,向后兼容(老用户首次进 detail 屏回退 `ProviderConfig`)
+- 顺手修 2 个 pre-existing lint baseline 错:`AppNav.kt:109` FlowOperator(`.map { it }` 去掉) + `ModelManagementScreen.kt:86` ProduceState(换 `LaunchedEffect + mutableStateOf`);baseline 1514 → 1492 行
+- 验收:`./gradlew :app:check` 全绿(169 tests + ktlint 0 + lint 0)
+- 4 项 M6 polish deferred(`base_url_locked_hint` i18n dead key / 3 旅程真机 / VM 3 个新方法单测 / `SemanticNoteLinker` rename 沿用)
+- 自审:`docs/reviews/2026-06-23-model-management-detail-dropdown-code-review-r1.md` → 通过
+
+## 2026-06-23 · entity-extraction-association 收尾
+
+- OpenSpec change `entity-extraction-association` 收口;数据层(`note_entities` + `entity_aliases` + `EntityType` 12 类 + `EntityBacklinker` alias canonical 展开)+ LLM 抽取层(`LlmEntityExtractor` + prompt 注入防御 + JSON 容错)+ 详情页 `RelatedNotesSection` + 别名管理 screen + `EntityBackfillWorker`(WorkManager KEEP 续跑)+ 设置 store 扩 `threshold` / `pauseBackfill` 全落地
+- `AppDatabase` version 4 → 5(`@AutoMigration` 自动);`note_links` 新增 `ENTITY_HIT` 档;`NoteLinkCap` 2:1 截断
+- 测试:`LlmEntityExtractorTest` 7 case + `EntityBacklinkerTest` 4 case,全绿
+- 验收:`./gradlew :app:check` 全绿(169 tests;lint baseline 含 2 个 pre-existing 错误,Step 3 顺手修)
+- 6 项 M6 polish deferred(语义重命名 / SQL 阈值参数化 / slider UI / 进度 UI / DAO+worker 集成测试)— 不影响核心数据流
+- 自审:`docs/reviews/2026-06-23-entity-extraction-association-code-review-r1.md` → 通过
+- 后续:`note-association` superseded by `entity-extraction-association`,随本 change 一起 archive
+
 ## 维护规则
 
 - **时间倒序**(最近在上)。
