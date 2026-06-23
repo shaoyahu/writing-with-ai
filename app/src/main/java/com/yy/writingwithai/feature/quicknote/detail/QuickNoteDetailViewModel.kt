@@ -32,9 +32,13 @@ class QuickNoteDetailViewModel
 @Inject
 constructor(
     savedStateHandle: SavedStateHandle,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val repository: NoteRepository,
     private val feishuSyncService: FeishuSyncService,
-    private val refDao: com.yy.writingwithai.core.feishu.sync.FeishuRefDao
+    private val refDao: com.yy.writingwithai.core.feishu.sync.FeishuRefDao,
+    private val noteAttachmentDao: com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao,
+    private val attachmentStore: com.yy.writingwithai.core.media.AttachmentStore,
+    private val imageCompressor: com.yy.writingwithai.core.media.ImageCompressor
 ) : ViewModel() {
     // H3 修:`requireNotNull` 在 process-death / 深链 / saved state 跨版本场景会 IAE crash。
     // 改为可空,缺失时直接进入 NotFound,避免进程崩溃。
@@ -245,6 +249,43 @@ constructor(
     fun getExportFilename(extension: String): String {
         val note = (uiState.value as? NoteDetailUiState.Content)?.note?.note ?: return "note.$extension"
         return note.title.ifBlank { note.id } + ".$extension"
+    }
+
+    // media-attachment-infrastructure · 附件观察 + 添加
+    fun observeAttachments():
+        kotlinx.coroutines.flow.Flow<List<com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity>> {
+        val id = noteId ?: return kotlinx.coroutines.flow.flowOf(emptyList())
+        return noteAttachmentDao.observeForNote(id)
+    }
+
+    fun addAttachment(uri: android.net.Uri) {
+        val id = noteId ?: return
+        viewModelScope.launch {
+            try {
+                val attachmentId = java.util.UUID.randomUUID().toString()
+                val sourceFile = java.io.File(appContext.cacheDir, "tmp_$attachmentId.jpg")
+                appContext.contentResolver.openInputStream(uri)?.use { input ->
+                    sourceFile.outputStream().use { output -> input.copyTo(output) }
+                } ?: return@launch
+                val destFile = attachmentStore.getAttachmentFile(id, attachmentId, "jpg")
+                imageCompressor.compress(sourceFile, destFile)
+                sourceFile.delete()
+                noteAttachmentDao.insert(
+                    com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity(
+                        id = attachmentId,
+                        noteId = id,
+                        mimeType = "image/jpeg",
+                        localPath = destFile.absolutePath,
+                        fileSize = destFile.length(),
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
+            } catch (e: Exception) {
+                if (com.yy.writingwithai.BuildConfig.DEBUG) {
+                    android.util.Log.e("DetailVM", "addAttachment failed", e)
+                }
+            }
+        }
     }
 }
 

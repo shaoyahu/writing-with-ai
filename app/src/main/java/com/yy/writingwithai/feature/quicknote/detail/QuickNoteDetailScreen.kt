@@ -3,6 +3,8 @@ package com.yy.writingwithai.feature.quicknote.detail
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,6 +31,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PushPin
@@ -55,6 +63,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
@@ -421,6 +430,20 @@ fun QuickNoteDetailScreen(
             }
         }
     ) { innerPadding ->
+        val attachmentPicker = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickVisualMedia()
+        ) { uri ->
+            uri?.let { viewModel.addAttachment(it) }
+        }
+        var attachments by remember {
+            mutableStateOf(emptyList<com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity>())
+        }
+        androidx.compose.runtime.LaunchedEffect(state) {
+            if (state is NoteDetailUiState.Content) {
+                viewModel.observeAttachments().collect { attachments = it }
+            }
+        }
+
         when (val s = state) {
             NoteDetailUiState.Loading -> Unit
             NoteDetailUiState.NotFound ->
@@ -512,6 +535,38 @@ fun QuickNoteDetailScreen(
                     androidx.compose.material3.HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
+                    Spacer(Modifier.height(LocalSpacing.current.md))
+                    // media-attachment-infrastructure · 附件图片 LazyRow
+                    if (attachments.isNotEmpty()) {
+                        Spacer(Modifier.height(LocalSpacing.current.md))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(attachments, key = { it.id }) { att ->
+                                Image(
+                                    painter = androidx.compose.ui.graphics.painter.ColorPainter(
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                )
+                            }
+                        }
+                    }
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            attachmentPicker.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        }
+                    ) {
+                        Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.quicknote_detail_add_image))
+                    }
                     Spacer(Modifier.height(LocalSpacing.current.md))
                     RelatedNotesSection(
                         noteId = currentNoteId,
