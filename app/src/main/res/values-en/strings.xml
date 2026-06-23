@@ -274,4 +274,5 @@
     <string name="entity_type_product">Product</string>
     <string name="entity_type_task">Task</string>
     <string name="entity_type_number">Number</string>
+    <string name="quicknote_list_menu_cd">Menu</string>
 </resources>

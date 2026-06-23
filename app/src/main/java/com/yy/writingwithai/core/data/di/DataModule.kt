@@ -6,6 +6,7 @@ import com.yy.writingwithai.core.data.db.AiHistoryDao
 import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.NoteTagDao
+import com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
 import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import com.yy.writingwithai.core.data.db.dao.entity.EntityAliasDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
@@ -63,4 +64,7 @@ object DataModule {
 
     @Provides
     fun provideEntityAliasDao(db: AppDatabase): EntityAliasDao = db.entityAliasDao()
+
+    @Provides
+    fun provideNoteAttachmentDao(db: AppDatabase): NoteAttachmentDao = db.noteAttachmentDao()
 }

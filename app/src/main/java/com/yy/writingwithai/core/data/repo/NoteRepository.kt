@@ -6,11 +6,13 @@ import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.NoteTagDao
+import com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
 import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
 import com.yy.writingwithai.core.data.mapper.toEntity
 import com.yy.writingwithai.core.data.mapper.toModel
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.data.model.NoteWithTags
+import com.yy.writingwithai.core.media.AttachmentStore
 import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.widget.QuickNoteWidgetUpdater
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -47,8 +49,10 @@ constructor(
     private val db: AppDatabase,
     private val noteDao: NoteDao,
     private val noteTagDao: NoteTagDao,
+    private val noteAttachmentDao: NoteAttachmentDao,
     private val widgetUpdater: QuickNoteWidgetUpdater,
-    private val noteLinker: NoteLinker
+    private val noteLinker: NoteLinker,
+    private val attachmentStore: AttachmentStore
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val recomputeFlow = MutableSharedFlow<String>(extraBufferCapacity = 64)

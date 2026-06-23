@@ -72,7 +72,10 @@ fun QuickNoteListScreen(
                 title = { Text(stringResource(R.string.quicknote_list_title)) },
                 actions = {
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = null)
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.quicknote_list_menu_cd)
+                        )
                     }
                     DropdownMenu(
                         expanded = menuOpen,
@@ -115,7 +118,12 @@ fun QuickNoteListScreen(
                 value = state.query,
                 onValueChange = viewModel::setQuery,
                 placeholder = { Text(stringResource(R.string.quicknote_list_search_hint)) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Search,
+                        contentDescription = stringResource(R.string.quicknote_list_search_hint)
+                    )
+                },
                 trailingIcon = {
                     if (state.query.isNotEmpty()) {
                         IconButton(onClick = { viewModel.setQuery("") }) {

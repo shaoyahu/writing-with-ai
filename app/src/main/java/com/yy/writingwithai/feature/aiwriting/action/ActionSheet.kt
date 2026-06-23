@@ -159,3 +159,12 @@ private fun ActionSheetItem(icon: @Composable () -> Unit, text: String, onClick:
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(name = "ActionSheet", showBackground = true)
+@Composable
+private fun ActionSheetPreview() {
+    MaterialTheme {
+        ActionSheet(expanded = true, onDismiss = {
+        }, onExpand = {}, onPolish = {}, onOrganize = {}, onSummarize = {}, onTranslate = {}, onCopy = {})
+    }
+}
