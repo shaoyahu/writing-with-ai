@@ -16,5 +16,6 @@ import kotlinx.serialization.Serializable
 data class WidgetState(
     val cachedNoteIds: List<String> = emptyList(),
     val lastRefreshAt: Long = 0L,
-    val romVendor: RomVendor = RomVendor.AOSP
+    val romVendor: RomVendor = RomVendor.AOSP,
+    val currentNoteIndex: Int = 0
 )

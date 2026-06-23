@@ -12,4 +12,7 @@ package com.yy.writingwithai.core.widget
 object QuickNoteWidgetHiltBridge {
     @Volatile
     var repository: QuickNoteWidgetRepository? = null
+
+    @Volatile
+    var widgetStateStore: WidgetStateStore? = null
 }

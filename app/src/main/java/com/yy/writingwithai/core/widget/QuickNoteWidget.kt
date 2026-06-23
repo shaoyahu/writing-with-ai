@@ -39,7 +39,10 @@ class QuickNoteWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val notes = QuickNoteWidgetHiltBridge.repository?.observeRecent(LIMIT)?.first() ?: emptyList()
-        provideContent { GlanceTheme { WidgetContent(notes = notes, context = context) } }
+        val noteIndex = WidgetStateStore.current(context).currentNoteIndex
+        provideContent {
+            GlanceTheme { WidgetContent(notes = notes, noteIndex = noteIndex, context = context) }
+        }
     }
     private companion object {
         const val LIMIT = 3
@@ -47,10 +50,10 @@ class QuickNoteWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun WidgetContent(notes: List<Note>, context: Context) {
+private fun WidgetContent(notes: List<Note>, noteIndex: Int, context: Context) {
     val colors = widgetColors()
     if (LocalSize.current.width <= 160.dp) {
-        WidgetSmall(notes, context, colors)
+        WidgetSmall(notes, noteIndex, context, colors)
     } else {
         WidgetWide(notes, context, colors)
     }
@@ -76,7 +79,7 @@ private fun AddButton(context: Context, colors: WidgetColors) {
 // Small(2x2)
 // ============================================================
 @Composable
-private fun WidgetSmall(notes: List<Note>, context: Context, colors: WidgetColors) {
+private fun WidgetSmall(notes: List<Note>, noteIndex: Int, context: Context, colors: WidgetColors) {
     Column(GlanceModifier.fillMaxSize().background(colors.widgetBackground)) {
         // Header: title(left) + button(right, touches edges), no outer padding
         Row(
@@ -95,7 +98,7 @@ private fun WidgetSmall(notes: List<Note>, context: Context, colors: WidgetColor
             AddButton(context, colors)
         }
         // Content with padding
-        val note = notes.firstOrNull()
+        val note = notes.getOrNull(noteIndex % notes.size) ?: notes.firstOrNull()
         if (note != null) {
             val params = actionParametersOf(OpenNoteAction.KEY_NOTE_ID to note.id)
             Column(

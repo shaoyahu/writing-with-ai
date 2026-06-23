@@ -126,7 +126,7 @@
     <!-- ===== M4-1 桌面小组件 home-screen-widget ===== -->
     <string name="widget_2x2_title">随手记</string>
     <string name="widget_4x2_title">随手记</string>
-    <string name="widget_1x4_title">随手记</string>
+    <string name="widget_1x1_label">记笔记</string>    <string name="widget_1x4_title">随手记</string>
     <string name="widget_1x4_layout_label">4x1 横条</string>
     <string name="widget_empty">还没有笔记\n点 + 创建第一条</string>
     <!-- widget-rome-compat · 国产 ROM widget 自启动提示 -->

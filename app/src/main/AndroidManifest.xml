@@ -64,6 +64,18 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_1x4" />
         </receiver>
+            <!-- 1x1 快速记笔记 widget receiver -->
+        <receiver
+            android:name=".core.widget.QuickNote1x1WidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_1x1_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_1x1" />
+        </receiver>
     </application>
 
 </manifest>
