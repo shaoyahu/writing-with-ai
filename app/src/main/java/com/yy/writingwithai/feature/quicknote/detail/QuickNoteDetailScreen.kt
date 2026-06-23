@@ -341,6 +341,8 @@ fun QuickNoteDetailScreen(
                                 onExpand = { aiVm.start(WritingOp.EXPAND, sourceText, noteId) },
                                 onPolish = { aiVm.start(WritingOp.POLISH, sourceText, noteId) },
                                 onOrganize = { aiVm.start(WritingOp.ORGANIZE, sourceText, noteId) },
+                                onSummarize = { aiVm.start(WritingOp.SUMMARIZE, sourceText, noteId) },
+                                onTranslate = { aiVm.start(WritingOp.TRANSLATE, sourceText, noteId) },
                                 onCopy = { AiwritingEntry.copyToClipboard(context, sourceText) }
                             )
                         }
@@ -467,6 +469,8 @@ fun QuickNoteDetailScreen(
             onCancel = { aiVm.cancel() },
             onRegenerate = { aiVm.regenerate() },
             onClose = { aiVm.dismiss() },
+            onRetry = { aiVm.retry() },
+            onNavigateToSettings = { navController.navigate(com.yy.writingwithai.app.Settings) },
             onDismiss = { aiVm.dismiss() },
             onUndo = { aiVm.undo() },
             onDismissReplace = { aiVm.dismiss() }
@@ -567,5 +571,7 @@ private fun opKeyToRes(opKey: String): Int = when (opKey) {
     "expand" -> R.string.aiwriting_action_expand
     "polish" -> R.string.aiwriting_action_polish
     "organize" -> R.string.aiwriting_action_organize
+    "summarize" -> R.string.aiwriting_action_summarize
+    "translate" -> R.string.aiwriting_action_translate
     else -> R.string.aiwriting_action_expand
 }

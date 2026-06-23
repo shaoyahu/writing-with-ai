@@ -13,7 +13,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ShortText
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,9 +34,9 @@ import com.yy.writingwithai.R
 /**
  * AI 操作 ActionSheet(M3 fix - Popup + arrow)。
  *
- * 详情屏选中文本时,从底部栏 ✨ 按钮弹出的操作菜单。提供 4 项:
- * - 扩写 / 润色 / 整理(走 [onExpand] / [onPolish] / [onOrganize] 触发 AiActionViewModel)
- * - 复制(走 [onCopy] 调 ClipboardManager,不走 AiGateway)
+ * 详情屏选中文本时,从底部栏 ✨ 按钮弹出的操作菜单。提供 6 项:
+ * - 扩写 / 润色 / 整理 / 摘要 / 翻译(走 ViewModel 触发 AiGateway)
+ * - 复制(走 ClipboardManager,不走 AiGateway)
  *
  * 见 ai-actions spec "ActionSheet shows available AI operations on selection"。
  */
@@ -45,6 +47,8 @@ fun ActionSheet(
     onExpand: () -> Unit,
     onPolish: () -> Unit,
     onOrganize: () -> Unit,
+    onSummarize: () -> Unit,
+    onTranslate: () -> Unit,
     onCopy: () -> Unit
 ) {
     if (!expanded) return
@@ -91,6 +95,22 @@ fun ActionSheet(
                         onClick = {
                             onDismiss()
                             onOrganize()
+                        }
+                    )
+                    ActionSheetItem(
+                        icon = { Icon(Icons.Filled.ShortText, contentDescription = null) },
+                        text = stringResource(R.string.aiwriting_action_summarize),
+                        onClick = {
+                            onDismiss()
+                            onSummarize()
+                        }
+                    )
+                    ActionSheetItem(
+                        icon = { Icon(Icons.Filled.Translate, contentDescription = null) },
+                        text = stringResource(R.string.aiwriting_action_translate),
+                        onClick = {
+                            onDismiss()
+                            onTranslate()
                         }
                     )
                     ActionSheetItem(

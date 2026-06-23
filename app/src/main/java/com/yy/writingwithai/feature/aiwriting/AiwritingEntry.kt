@@ -55,10 +55,12 @@ object AiwritingEntry {
         onExpand: () -> Unit,
         onPolish: () -> Unit,
         onOrganize: () -> Unit,
+        onSummarize: () -> Unit,
+        onTranslate: () -> Unit,
         onCopy: () -> Unit,
         modifier: Modifier = Modifier
     ) {
-        ActionSheet(expanded, onDismiss, onExpand, onPolish, onOrganize, onCopy)
+        ActionSheet(expanded, onDismiss, onExpand, onPolish, onOrganize, onSummarize, onTranslate, onCopy)
     }
 
     /**
@@ -75,9 +77,14 @@ object AiwritingEntry {
         onClose: () -> Unit,
         onDismiss: () -> Unit,
         onUndo: () -> Unit = {},
-        onDismissReplace: () -> Unit = {}
+        onDismissReplace: () -> Unit = {},
+        onRetry: () -> Unit = {},
+        onNavigateToSettings: () -> Unit = {}
     ) {
-        StreamingPanel(state, onAccept, onReject, onCancel, onRegenerate, onClose, onDismiss, onUndo, onDismissReplace)
+        StreamingPanel(
+            state, onAccept, onReject, onCancel, onRegenerate, onClose,
+            onDismiss, onUndo, onDismissReplace, onRetry, onNavigateToSettings
+        )
     }
 
     /**

@@ -56,10 +56,14 @@
     <string name="aiwriting_action_polish">Polish</string>
     <string name="aiwriting_action_organize">Organize</string>
     <string name="aiwriting_action_copy">Copy</string>
+    <string name="aiwriting_action_summarize">Summarize</string>
+    <string name="aiwriting_action_translate">Translate</string>
 
     <string name="aiwriting_panel_title_expand">TODO(en): aiwriting_panel_title_expand</string>
     <string name="aiwriting_panel_title_polish">TODO(en): aiwriting_panel_title_polish</string>
     <string name="aiwriting_panel_title_organize">TODO(en): aiwriting_panel_title_organize</string>
+    <string name="aiwriting_panel_title_summarize">Summarize</string>
+    <string name="aiwriting_panel_title_translate">Translate</string>
     <string name="aiwriting_panel_streaming">TODO(en): aiwriting_panel_streaming</string>
 
     <string name="aiwriting_panel_cancel">TODO(en): aiwriting_panel_cancel</string>
@@ -67,6 +71,9 @@
     <string name="aiwriting_panel_reject">TODO(en): aiwriting_panel_reject</string>
     <string name="aiwriting_panel_regenerate">TODO(en): aiwriting_panel_regenerate</string>
     <string name="aiwriting_panel_close">TODO(en): aiwriting_panel_close</string>
+    <string name="aiwriting_panel_retry">Retry</string>
+    <string name="aiwriting_panel_go_settings">Settings</string>
+    <string name="aiwriting_panel_balance_hint">Try switching to another model</string>
     <string name="aiwriting_panel_failed_title">TODO(en): aiwriting_panel_failed_title</string>
     <!-- model-management-detail-dropdown X 方案:Done but finalText empty fallback message -->
     <string name="aiwriting_panel_empty_result">AI returned no content. Check model and protocol compatibility, or regenerate.</string>

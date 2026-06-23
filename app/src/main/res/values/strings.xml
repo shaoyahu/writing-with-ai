@@ -79,11 +79,15 @@
     <string name="aiwriting_action_polish">润色</string>
     <string name="aiwriting_action_organize">整理</string>
     <string name="aiwriting_action_copy">复制</string>
+    <string name="aiwriting_action_summarize">摘要</string>
+    <string name="aiwriting_action_translate">翻译</string>
 
     <!-- StreamingPanel 顶部标题(按 op 分) -->
     <string name="aiwriting_panel_title_expand">扩写</string>
     <string name="aiwriting_panel_title_polish">润色</string>
     <string name="aiwriting_panel_title_organize">整理</string>
+    <string name="aiwriting_panel_title_summarize">摘要</string>
+    <string name="aiwriting_panel_title_translate">翻译</string>
     <string name="aiwriting_panel_streaming">进行中…</string>
 
     <!-- StreamingPanel 底部按钮 -->
@@ -92,6 +96,9 @@
     <string name="aiwriting_panel_reject">拒绝</string>
     <string name="aiwriting_panel_regenerate">再生成</string>
     <string name="aiwriting_panel_close">关闭</string>
+    <string name="aiwriting_panel_retry">重试</string>
+    <string name="aiwriting_panel_go_settings">去设置</string>
+    <string name="aiwriting_panel_balance_hint">可尝试切换其他模型</string>
     <string name="aiwriting_panel_failed_title">出错</string>
     <!-- model-management-detail-dropdown X 方案:Done 但 finalText 空的友好提示 -->
     <string name="aiwriting_panel_empty_result">AI 未返回内容。请检查模型与协议的兼容性,或重新生成。</string>

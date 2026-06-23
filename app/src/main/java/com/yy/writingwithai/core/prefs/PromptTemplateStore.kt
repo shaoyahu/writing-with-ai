@@ -72,7 +72,9 @@ constructor(
     private val keys = mapOf(
         WritingOp.EXPAND to stringPreferencesKey("prompt_template_expand"),
         WritingOp.POLISH to stringPreferencesKey("prompt_template_polish"),
-        WritingOp.ORGANIZE to stringPreferencesKey("prompt_template_organize")
+        WritingOp.ORGANIZE to stringPreferencesKey("prompt_template_organize"),
+        WritingOp.SUMMARIZE to stringPreferencesKey("prompt_template_summarize"),
+        WritingOp.TRANSLATE to stringPreferencesKey("prompt_template_translate")
     )
 
     override suspend fun getForOp(op: WritingOp): String? {

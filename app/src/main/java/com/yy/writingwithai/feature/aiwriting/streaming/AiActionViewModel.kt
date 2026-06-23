@@ -161,6 +161,7 @@ constructor(
                             is AiStreamEvent.Done -> {
                                 _state.value =
                                     AiActionUiState.Done(
+                                        originalText = sourceText,
                                         op = op,
                                         finalText = builder.toString(),
                                         usage = lastUsage
@@ -289,6 +290,15 @@ constructor(
 
     fun regenerate() {
         val current = _state.value as? AiActionUiState.Done ?: return
+        val op = lastOp ?: current.op
+        val sourceText = lastSourceText ?: return
+        val noteId = lastNoteId ?: return
+        start(op = op, sourceText = sourceText, noteId = noteId)
+    }
+
+    /** Failed 态重试:复用上次 op / sourceText / noteId 重新 start()。 */
+    fun retry() {
+        val current = _state.value as? AiActionUiState.Failed ?: return
         val op = lastOp ?: current.op
         val sourceText = lastSourceText ?: return
         val noteId = lastNoteId ?: return

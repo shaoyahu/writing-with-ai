@@ -28,6 +28,7 @@ sealed interface AiActionUiState {
     ) : AiActionUiState
 
     data class Done(
+        val originalText: String,
         val op: WritingOp,
         val finalText: String,
         val usage: AiStreamEvent.Usage?
