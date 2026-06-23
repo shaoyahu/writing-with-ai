@@ -1,5 +1,9 @@
 package com.yy.writingwithai.feature.quicknote.list
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,9 +44,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,8 +56,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
+import com.yy.writingwithai.core.prefs.SearchHistoryStore
 import com.yy.writingwithai.core.ui.NoteListSkeleton
 import com.yy.writingwithai.feature.quicknote.model.NoteListUiState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +74,35 @@ fun QuickNoteListScreen(
     val spacing = LocalSpacing.current
     val allTags: List<String> = (state as? NoteListUiState.Content)?.allTags ?: emptyList()
     var menuOpen by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var searchHistory by remember { mutableStateOf<List<String>>(emptyList()) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        searchHistory = SearchHistoryStore.getAll(context)
+    }
+
+    val exportAllLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        val ctx = context
+        uri ?: return@rememberLauncherForActivityResult
+        try {
+            ctx.contentResolver.openOutputStream(uri)?.use { os ->
+                val notes = (state as? NoteListUiState.Content)?.notes ?: emptyList()
+                val buf = java.util.zip.ZipOutputStream(os)
+                for (n in notes) {
+                    val note = n.note
+                    buf.putNextEntry(java.util.zip.ZipEntry(note.title.ifBlank { note.id } + ".md"))
+                    buf.write(note.content.toByteArray(Charsets.UTF_8))
+                    buf.closeEntry()
+                }
+                buf.finish()
+            }
+            Toast.makeText(ctx, ctx.getString(R.string.quicknote_export_success), Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            Toast.makeText(ctx, ctx.getString(R.string.quicknote_export_error), Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -93,6 +131,13 @@ fun QuickNoteListScreen(
                             onClick = {
                                 menuOpen = false
                                 onSettingsClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.quicknote_list_export_selected)) },
+                            onClick = {
+                                menuOpen = false
+                                exportAllLauncher.launch("notes_export.zip")
                             }
                         )
                     }
@@ -167,6 +212,35 @@ fun QuickNoteListScreen(
                             }
                         }
                     )
+                }
+            }
+            if (state.query.isEmpty() && searchHistory.isNotEmpty()) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Text(
+                        text = stringResource(R.string.quicknote_search_history_title),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    for (q in searchHistory.take(5)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setQuery(q) }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(q, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                            IconButton(onClick = {
+                                coroutineScope.launch {
+                                    SearchHistoryStore.remove(context, q)
+                                    searchHistory = SearchHistoryStore.getAll(context)
+                                }
+                            }) {
+                                Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                            }
+                        }
+                    }
                 }
             }
             TagFilterRow(
