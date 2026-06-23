@@ -29,5 +29,9 @@ data class NoteEntity(
     val updatedAt: Long,
     val isPinned: Boolean = false,
     val lastAiOp: String? = null,
-    val lastAiAt: Long? = null
+    val lastAiAt: Long? = null,
+    val syncRevision: String? = null,
+    @androidx.room.ColumnInfo(defaultValue = "local")
+    val syncStatus: String = "local",
+    val lastSyncedAt: Long? = null
 )
