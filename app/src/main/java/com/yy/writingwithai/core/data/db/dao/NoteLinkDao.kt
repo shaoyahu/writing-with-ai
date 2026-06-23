@@ -46,9 +46,11 @@ interface NoteLinkDao {
                   THEN 1.50 * MAX(CASE WHEN nl.linkType = 'TAG_OVERLAP' THEN nl.weight ELSE 0 END)
                   ELSE 0 END) +
             (1.00 * COALESCE(MAX(CASE WHEN nl.linkType = 'CONTENT_SIM' THEN nl.weight ELSE 0 END), 0)) +
-            (0.80 * COALESCE(MAX(CASE WHEN nl.linkType = 'LLM_EXTRACT' THEN nl.weight ELSE 0 END), 0))
+            (0.80 * COALESCE(MAX(CASE WHEN nl.linkType = 'LLM_EXTRACT' THEN nl.weight ELSE 0 END), 0)) +
+            (1.50 * COALESCE(MAX(CASE WHEN nl.linkType = 'ENTITY_HIT' THEN nl.weight ELSE 0 END), 0))
                 AS score,
-            GROUP_CONCAT(DISTINCT nl.linkType) AS signals
+            GROUP_CONCAT(DISTINCT nl.linkType) AS signals,
+            GROUP_CONCAT(nl.evidence) AS evidence
         FROM note_links nl
         INNER JOIN notes n ON n.id = nl.dstNoteId
         WHERE nl.srcNoteId = :noteId
@@ -72,9 +74,11 @@ interface NoteLinkDao {
                   THEN 1.50 * MAX(CASE WHEN nl.linkType = 'TAG_OVERLAP' THEN nl.weight ELSE 0 END)
                   ELSE 0 END) +
             (1.00 * COALESCE(MAX(CASE WHEN nl.linkType = 'CONTENT_SIM' THEN nl.weight ELSE 0 END), 0)) +
-            (0.80 * COALESCE(MAX(CASE WHEN nl.linkType = 'LLM_EXTRACT' THEN nl.weight ELSE 0 END), 0))
+            (0.80 * COALESCE(MAX(CASE WHEN nl.linkType = 'LLM_EXTRACT' THEN nl.weight ELSE 0 END), 0)) +
+            (1.50 * COALESCE(MAX(CASE WHEN nl.linkType = 'ENTITY_HIT' THEN nl.weight ELSE 0 END), 0))
                 AS score,
-            GROUP_CONCAT(DISTINCT nl.linkType) AS signals
+            GROUP_CONCAT(DISTINCT nl.linkType) AS signals,
+            GROUP_CONCAT(nl.evidence) AS evidence
         FROM note_links nl
         INNER JOIN notes n ON n.id = nl.srcNoteId
         WHERE nl.dstNoteId = :noteId
@@ -98,5 +102,6 @@ data class RelatedRow(
     val title: String,
     val preview: String,
     val score: Float,
-    val signals: String
+    val signals: String,
+    val evidence: String?
 )

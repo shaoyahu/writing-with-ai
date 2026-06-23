@@ -49,5 +49,6 @@ data class RelatedNote(
     val title: String,
     val preview: String,
     val score: Float,
-    val signals: Set<LinkType>
+    val signals: Set<LinkType>,
+    val evidence: String? = null
 )

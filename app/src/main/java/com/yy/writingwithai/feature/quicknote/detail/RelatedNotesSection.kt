@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.LinkOff
@@ -162,6 +163,7 @@ private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit, isBack
                         note.signals.contains(LinkType.WIKILINK) -> Icons.Filled.Link
                         note.signals.contains(LinkType.TAG_OVERLAP) -> Icons.Filled.LocalOffer
                         note.signals.contains(LinkType.CONTENT_SIM) -> Icons.Filled.Search
+                        note.signals.contains(LinkType.ENTITY_HIT) -> Icons.Filled.Tag
                         note.signals.contains(LinkType.LLM_EXTRACT) -> Icons.Filled.AutoAwesome
                         else -> Icons.Filled.Link
                     },
@@ -203,8 +205,20 @@ private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit, isBack
                 if (note.signals.contains(LinkType.CONTENT_SIM)) {
                     SignalChip(text = stringResource(R.string.note_association_signal_content))
                 }
+                if (note.signals.contains(LinkType.ENTITY_HIT)) {
+                    SignalChip(text = "Entity")
+                }
                 if (note.signals.contains(LinkType.LLM_EXTRACT)) {
                     SignalChip(text = stringResource(R.string.note_association_signal_ai))
+                }
+            }
+            val sharedEntities = parseSharedEntities(note.evidence)
+            if (sharedEntities.isNotEmpty()) {
+                Spacer(Modifier.height(6.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    sharedEntities.take(6).forEach { entity ->
+                        SignalChip(text = entity)
+                    }
                 }
             }
         }
@@ -313,4 +327,13 @@ private fun EmptyState(aiState: AiExtractState, showAiButton: Boolean, onAiTrigg
             }
         }
     }
+}
+
+private fun parseSharedEntities(evidence: String?): List<String> {
+    if (evidence.isNullOrBlank()) return emptyList()
+    val match = Regex(""""sharedEntities"\s*:\s*\[([^]]*)]""").find(evidence) ?: return emptyList()
+    return Regex(""""([^"\\]+)""")
+        .findAll(match.groupValues[1])
+        .map { it.groupValues[1] }
+        .toList()
 }

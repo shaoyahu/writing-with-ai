@@ -103,7 +103,8 @@ class CompositeNoteLinkerTest {
                 title = "Title",
                 preview = "Preview",
                 score = 1.5f,
-                signals = "WIKILINK,TAG_OVERLAP"
+                signals = "WIKILINK,TAG_OVERLAP",
+                evidence = "{\"sharedEntities\":[\"x\"]}"
             )
         )
 
@@ -126,7 +127,8 @@ class CompositeNoteLinkerTest {
                 title = "Backlink",
                 preview = "Ref",
                 score = 1.0f,
-                signals = "WIKILINK"
+                signals = "WIKILINK",
+                evidence = null
             )
         )
 

@@ -75,5 +75,6 @@ internal fun RelatedRow.map(): RelatedNote = RelatedNote(
     title = title,
     preview = preview,
     score = score,
-    signals = LinkWeights.parseSignals(signals)
+    signals = LinkWeights.parseSignals(signals),
+    evidence = evidence
 )
