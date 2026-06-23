@@ -29,9 +29,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yy.writingwithai.R
 import com.yy.writingwithai.core.note.entity.EntityType
 
 /** entity-extraction-association · 别名管理 screen(tasks §4.3)。 */
@@ -47,7 +49,7 @@ fun AliasManagementScreen(onBack: () -> Unit, viewModel: AliasManagementViewMode
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("实体别名管理") },
+                title = { Text(stringResource(R.string.entity_alias_management_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -84,14 +86,14 @@ fun AliasManagementScreen(onBack: () -> Unit, viewModel: AliasManagementViewMode
                     OutlinedTextField(
                         value = aliasKey,
                         onValueChange = { aliasKey = it },
-                        label = { Text("别名(alias)") },
+                        label = { Text(stringResource(R.string.entity_alias_input_alias)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = canonicalKey,
                         onValueChange = { canonicalKey = it },
-                        label = { Text("标准实体(canonical)") },
+                        label = { Text(stringResource(R.string.entity_alias_input_canonical)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -103,7 +105,7 @@ fun AliasManagementScreen(onBack: () -> Unit, viewModel: AliasManagementViewMode
                         },
                         enabled = aliasKey.isNotBlank() && canonicalKey.isNotBlank()
                     ) {
-                        Text("合并别名")
+                        Text(stringResource(R.string.entity_alias_merge_button))
                     }
                 }
             }
@@ -114,7 +116,7 @@ fun AliasManagementScreen(onBack: () -> Unit, viewModel: AliasManagementViewMode
                     supportingContent = { Text("${alias.entityType.name} → ${alias.canonicalEntityKey}") },
                     trailingContent = {
                         TextButton(onClick = { viewModel.unmerge(alias.entityType, alias.aliasKey) }) {
-                            Text("删除")
+                            Text(stringResource(R.string.entity_alias_delete_button))
                         }
                     }
                 )

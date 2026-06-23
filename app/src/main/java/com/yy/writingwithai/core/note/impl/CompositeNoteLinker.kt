@@ -19,6 +19,7 @@ constructor(
     private val noteLinkDao: NoteLinkDao,
     private val localLinker: LocalNoteLinker,
     private val wikilinkIndexer: WikilinkIndexer,
+    private val entityBacklinker: EntityBacklinker,
     private val llmExtractor: LlmNoteLinkExtractor,
     private val assocSettings: NoteAssociationSettingsStore
 ) : NoteLinker {
@@ -28,9 +29,11 @@ constructor(
 
         val localDeferred = async { localLinker.compute(noteId) }
         val wikiDeferred = async { wikilinkIndexer.index(noteId) }
+        val entityDeferred = async { entityBacklinker.compute(noteId) }
 
         val localCandidates = localDeferred.await()
         val wikiRows = wikiDeferred.await()
+        val entityRows = entityDeferred.await()
 
         val now = System.currentTimeMillis()
         val localRows = localCandidates.map { c ->
@@ -44,14 +47,17 @@ constructor(
                 evidence = c.evidence
             )
         }
-        val allRows = localRows + wikiRows
-        if (allRows.isNotEmpty()) noteLinkDao.upsertAll(allRows)
+        val allRows = (localRows + wikiRows + entityRows)
+        // tasks §3.5:2:1 截断(ENTITY_HIT 最多占 66%)
+        val capped = NoteLinkCap.enforce(allRows)
+        if (capped.isNotEmpty()) noteLinkDao.upsertAll(capped)
 
-        if (assocSettings.isEnabled()) {
+        // tasks §3.3:共享实体 < 1 时回退到 LLM 语义抽取
+        val entityDstCount = entityRows.map { it.dstNoteId }.distinct().size
+        if (assocSettings.isEnabled() && entityDstCount < 1) {
             try {
                 llmExtractor.extractAndPersist(noteId)
             } catch (e: Exception) {
-                // M2 修:不吞 CancellationException(让 viewModelScope.cancel() 正确退出)
                 if (e is kotlinx.coroutines.CancellationException) throw e
             }
         }

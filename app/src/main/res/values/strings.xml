@@ -315,4 +315,30 @@
     <string name="model_provider_detail_model_label">选择模型</string>
     <string name="model_provider_detail_model_default_suffix">(默认)</string>
     <string name="model_provider_detail_base_url_locked_hint">端点由 provider 预置,不可修改</string>
+
+    <!-- entity-extraction-association · 别名管理 + 关联阈值 + 回填进度 -->
+    <string name="entity_alias_management_title">实体别名管理</string>
+    <string name="entity_alias_management_desc">合并小明 / 小名 / XiaoMing 等同一实体</string>
+    <string name="entity_alias_input_alias">别名 (alias)</string>
+    <string name="entity_alias_input_canonical">标准实体 (canonical)</string>
+    <string name="entity_alias_merge_button">合并别名</string>
+    <string name="entity_alias_delete_button">删除</string>
+    <string name="entity_alias_merged_toast">已合并别名</string>
+    <string name="entity_alias_unmerged_toast">已取消别名</string>
+    <string name="entity_association_threshold_label">关联阈值</string>
+    <string name="entity_backfill_pause_button">取消回填</string>
+    <string name="entity_backfill_progress_fmt">回填进度:%1$d / %2$d</string>
+    <string name="entity_signal_entity">实体</string>
+    <string name="entity_type_person">人物</string>
+    <string name="entity_type_work">作品</string>
+    <string name="entity_type_event">事件</string>
+    <string name="entity_type_location">地点</string>
+    <string name="entity_type_org">组织</string>
+    <string name="entity_type_concept">概念</string>
+    <string name="entity_type_date">日期</string>
+    <string name="entity_type_url">链接</string>
+    <string name="entity_type_quote">引文</string>
+    <string name="entity_type_product">产品</string>
+    <string name="entity_type_task">任务</string>
+    <string name="entity_type_number">数字</string>
 </resources>

@@ -232,4 +232,30 @@
     <string name="quicknote_feishu_status_conflict">Conflict</string>
     <string name="quicknote_feishu_status_remote_deleted">Remote deleted</string>
     <string name="quicknote_feishu_syncing">Syncing…</string>
+
+    <!-- entity-extraction-association · alias management + threshold + backfill progress -->
+    <string name="entity_alias_management_title">Entity alias management</string>
+    <string name="entity_alias_management_desc">Merge same entity under different names (e.g. 小明 / XiaoMing)</string>
+    <string name="entity_alias_input_alias">Alias</string>
+    <string name="entity_alias_input_canonical">Canonical entity</string>
+    <string name="entity_alias_merge_button">Merge alias</string>
+    <string name="entity_alias_delete_button">Delete</string>
+    <string name="entity_alias_merged_toast">Alias merged</string>
+    <string name="entity_alias_unmerged_toast">Alias removed</string>
+    <string name="entity_association_threshold_label">Association threshold</string>
+    <string name="entity_backfill_pause_button">Cancel backfill</string>
+    <string name="entity_backfill_progress_fmt">Backfill progress: %1$d / %2$d</string>
+    <string name="entity_signal_entity">Entity</string>
+    <string name="entity_type_person">Person</string>
+    <string name="entity_type_work">Work</string>
+    <string name="entity_type_event">Event</string>
+    <string name="entity_type_location">Location</string>
+    <string name="entity_type_org">Organization</string>
+    <string name="entity_type_concept">Concept</string>
+    <string name="entity_type_date">Date</string>
+    <string name="entity_type_url">URL</string>
+    <string name="entity_type_quote">Quote</string>
+    <string name="entity_type_product">Product</string>
+    <string name="entity_type_task">Task</string>
+    <string name="entity_type_number">Number</string>
 </resources>

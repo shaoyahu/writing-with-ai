@@ -5,6 +5,7 @@ import com.yy.writingwithai.core.data.db.dao.RelatedRow
 import com.yy.writingwithai.core.data.db.entity.LinkType
 import com.yy.writingwithai.core.data.db.entity.NoteLinkEntity
 import com.yy.writingwithai.core.note.impl.CompositeNoteLinker
+import com.yy.writingwithai.core.note.impl.EntityBacklinker
 import com.yy.writingwithai.core.note.impl.LlmNoteLinkExtractor
 import com.yy.writingwithai.core.note.impl.LocalLinkCandidate
 import com.yy.writingwithai.core.note.impl.LocalNoteLinker
@@ -30,6 +31,7 @@ class CompositeNoteLinkerTest {
     private lateinit var noteLinkDao: NoteLinkDao
     private lateinit var local: LocalNoteLinker
     private lateinit var wiki: WikilinkIndexer
+    private lateinit var entity: EntityBacklinker
     private lateinit var llm: LlmNoteLinkExtractor
     private lateinit var settings: NoteAssociationSettingsStore
     private lateinit var linker: CompositeNoteLinker
@@ -39,10 +41,12 @@ class CompositeNoteLinkerTest {
         noteLinkDao = mockk(relaxed = true)
         local = mockk()
         wiki = mockk()
+        entity = mockk()
         llm = mockk(relaxed = true)
         settings = mockk()
         every { settings.isEnabled() } returns false
-        linker = CompositeNoteLinker(noteLinkDao, local, wiki, llm, settings)
+        coEvery { entity.compute(any()) } returns emptyList()
+        linker = CompositeNoteLinker(noteLinkDao, local, wiki, entity, llm, settings)
     }
 
     @Test
@@ -65,6 +69,7 @@ class CompositeNoteLinkerTest {
         )
         coEvery { local.compute("n1") } returns listOf(localCandidate)
         coEvery { wiki.index("n1") } returns listOf(wikiRow)
+        coEvery { entity.compute("n1") } returns emptyList()
 
         linker.recomputeForNote("n1")
 
@@ -86,6 +91,7 @@ class CompositeNoteLinkerTest {
         every { settings.isEnabled() } returns true
         coEvery { local.compute("n1") } returns emptyList()
         coEvery { wiki.index("n1") } returns emptyList()
+        coEvery { entity.compute("n1") } returns emptyList()
         coEvery { llm.extractAndPersist("n1", any()) } returns 1
 
         linker.recomputeForNote("n1")

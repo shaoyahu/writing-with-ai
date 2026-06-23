@@ -114,8 +114,8 @@ fun SettingsScreen(
             }
             item {
                 ListItem(
-                    headlineContent = { Text("实体别名管理") },
-                    supportingContent = { Text("合并小明 / 小名 / XiaoMing 等同一实体") },
+                    headlineContent = { Text(stringResource(R.string.entity_alias_management_title)) },
+                    supportingContent = { Text(stringResource(R.string.entity_alias_management_desc)) },
                     trailingContent = {
                         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
                     },

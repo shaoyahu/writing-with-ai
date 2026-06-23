@@ -67,5 +67,8 @@ class WritingApp : Application() {
 
         // 3) note-association 首次启动 backfill(延后 5s,一次性)
         backfillScheduler.scheduleIfNeeded()
+
+        // 4) entity-extraction-association §7.2:DB 升级后 enqueue 实体抽取回填(5s 延后)
+        backfillScheduler.scheduleEntityBackfillIfNeeded()
     }
 }
