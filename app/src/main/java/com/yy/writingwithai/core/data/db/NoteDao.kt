@@ -63,6 +63,17 @@ interface NoteDao {
     )
     fun search(q: String): Flow<List<NoteEntity>>
 
+    /** search-enhancement · FTS4 全文搜索,返回匹配的 note id 列表。 */
+    @Query(
+        """
+        SELECT n.id FROM notes_fts fts
+        JOIN notes n ON n.rowid = fts.rowid
+        WHERE notes_fts MATCH :query
+        ORDER BY n.updatedAt DESC
+        """
+    )
+    suspend fun searchFtsIds(query: String): List<String>
+
     @Query("UPDATE notes SET isPinned = :pinned WHERE id = :id")
     suspend fun setPinned(id: String, pinned: Boolean)
 

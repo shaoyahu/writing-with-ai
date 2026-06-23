@@ -9,6 +9,7 @@ import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import com.yy.writingwithai.core.data.db.dao.entity.EntityAliasDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.db.entity.AiHistoryEntity
+import com.yy.writingwithai.core.data.db.entity.FtsNoteEntity
 import com.yy.writingwithai.core.data.db.entity.NoteEntity
 import com.yy.writingwithai.core.data.db.entity.NoteLinkEntity
 import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
@@ -40,14 +41,16 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         FeishuRefEntity::class,
         FeishuSyncEventEntity::class,
         NoteEntityRow::class,
-        EntityAliasRow::class
+        EntityAliasRow::class,
+        FtsNoteEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4),
-        AutoMigration(from = 4, to = 5)
+        AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 5, to = 6)
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
