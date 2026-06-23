@@ -388,3 +388,61 @@ private fun opTitleRes(op: WritingOp): Int = when (op) {
     WritingOp.SUMMARIZE -> R.string.aiwriting_panel_title_summarize
     WritingOp.TRANSLATE -> R.string.aiwriting_panel_title_translate
 }
+
+// ===== Previews =====
+
+@androidx.compose.ui.tooling.preview.Preview(name = "Streaming", showBackground = true)
+@Composable
+private fun StreamingPanelStreamingPreview() {
+    MaterialTheme {
+        StreamingPanel(
+            state = AiActionUiState.Streaming(op = WritingOp.EXPAND, partialText = "正在扩写中..."),
+            onAccept = {},
+            onReject = {},
+            onCancel = {},
+            onRegenerate = {},
+            onClose = {},
+            onDismiss = {}
+        )
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(name = "Done", showBackground = true)
+@Composable
+private fun StreamingPanelDonePreview() {
+    MaterialTheme {
+        StreamingPanel(
+            state = AiActionUiState.Done(
+                op = WritingOp.POLISH,
+                originalText = "今天天气很好",
+                finalText = "今日天朗气清",
+                usage = null
+            ),
+            onAccept = {},
+            onReject = {},
+            onCancel = {},
+            onRegenerate = {},
+            onClose = {},
+            onDismiss = {}
+        )
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(name = "Failed", showBackground = true)
+@Composable
+private fun StreamingPanelFailedPreview() {
+    MaterialTheme {
+        StreamingPanel(
+            state = AiActionUiState.Failed(
+                op = WritingOp.ORGANIZE,
+                error = com.yy.writingwithai.core.ai.api.AiError.Network(code = 500, detail = "timeout")
+            ),
+            onAccept = {},
+            onReject = {},
+            onCancel = {},
+            onRegenerate = {},
+            onClose = {},
+            onDismiss = {}
+        )
+    }
+}

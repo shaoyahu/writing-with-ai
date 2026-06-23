@@ -2,6 +2,22 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log,单次评审查 `docs/reviews/`,规划查 `docs/plans/`。
 
+## 2026-06-23
+
+- **B1 ai-writing-ux-polish**: 流式UI增强(TypingIndicator + animateContentSize + diffHighlight) + WritingOp 新增 SUMMARIZE/TRANSLATE + Failed 态重试/去设置
+- **B3 note-export-share**: 单篇导出 MD/TXT(SAF CreateDocument) + 分享 EXTRA_TITLE + 列表页多选+批量导出
+- **B4 widget-enhancement**: 1x1 快速记笔记 widget + 2x2 笔记切换(currentNoteIndex + SwitchNoteAction)
+- **B2 search-enhancement**: FTS4 全文搜索(FtsNoteEntity + AppDatabase v6) + SearchHistoryStore(DataStore)
+- **Cd ai-observability**: (并入 B2，AiHistoryDao 已有基础)
+- **B5a cloud-sync-foundation**: 同步基础设施(SyncEngine 接口 + FakeSyncEngine + NoteEntity sync 字段 + AppDatabase v7 + SyncWorker 骨架)
+- **B6a media-attachment-infrastructure**: 附件数据表 + AttachmentStore + ImageCompressor + AppDatabase v8
+- **B6b rich-text-editor**: MarkdownEditor 接口 + SimpleMarkdownEditor v1 + EditorModule DI
+- **B5b cloud-sync-webdav**: WebDavSyncEngine 骨架
+- **B5c cloud-sync-ui**: 云同步 i18n + SyncModule 切换
+- **B6c voice-insert**: AudioRecorder 骨架
+- **B7 ui-ux-polish**: Shimmer 骨架屏(NoteListSkeleton/NoteDetailSkeleton) + 列表页 Loading 态渲染
+- **Cc composable-preview-fill**: StreamingPanel 3 态 Preview(Streaming/Done/Failed)
+- 全量 `./gradlew :app:check` 全绿 ✅
 ## 2026-06-23 · M5 盖 ✅ 章
 
 - M5(打磨 + 内测)里程碑正式完成;roadmap §13 M5 行打 ✅;所有 M5 内 OpenSpec change 已归档(21 个)
