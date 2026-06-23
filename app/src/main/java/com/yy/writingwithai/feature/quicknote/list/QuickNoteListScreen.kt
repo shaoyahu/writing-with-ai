@@ -49,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
+import com.yy.writingwithai.core.ui.NoteListSkeleton
 import com.yy.writingwithai.feature.quicknote.model.NoteListUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -166,7 +167,11 @@ fun QuickNoteListScreen(
                 onTagSelected = viewModel::selectTag
             )
             when (val s = state) {
-                NoteListUiState.Loading -> Unit
+                NoteListUiState.Loading -> {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(5) { NoteListSkeleton() }
+                    }
+                }
                 is NoteListUiState.Empty ->
                     EmptyState(
                         onCreateClick = onCreateClick,

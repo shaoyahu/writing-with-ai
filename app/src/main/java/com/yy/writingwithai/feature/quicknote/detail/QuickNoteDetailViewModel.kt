@@ -230,13 +230,29 @@ constructor(
         val regex = Regex("""/docx?/([A-Za-z0-9_-]+)""")
         return regex.find(url)?.groupValues?.get(1) ?: url
     }
+    fun getExportMarkdown(): String? {
+        val note = (uiState.value as? NoteDetailUiState.Content)?.note?.note ?: return null
+        return buildString {
+            if (note.title.isNotBlank()) {
+                append("# ")
+                append(note.title)
+                append("\n\n")
+            }
+            append(note.content)
+        }
+    }
+
+    fun getExportFilename(extension: String): String {
+        val note = (uiState.value as? NoteDetailUiState.Content)?.note?.note ?: return "note.$extension"
+        return note.title.ifBlank { note.id } + ".$extension"
+    }
 }
 
 /** M3:详情屏顶部"上次 AI 操作"行投影 — `opKey` 是 aiwriting op 名("expand"/"polish"/"organize"),UI 层 `stringResource` 翻译。 */
 data class AiMetaDisplay(val opKey: String, val opAt: String)
 
-// M3 修:`SimpleDateFormat` hoist 到顶层,避免每次 `map { formatLocalDateTime(...) }` 重建。
-// 本身非线程安全;`map` 单线程 + Compose 端 `WhileSubscribed(5s)` 重订阅安全。
-private val DATE_TIME_FORMAT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-
-private fun formatLocalDateTime(epochMs: Long): String = DATE_TIME_FORMAT.format(Date(epochMs))
+// M3 修:SimpleDateFormat hoist 到顶层,避免每次 map { formatLocalDateTime(...) } 重建。
+private fun formatLocalDateTime(epochMillis: Long): String {
+    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    return sdf.format(Date(epochMillis))
+}
