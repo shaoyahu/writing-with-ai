@@ -15,5 +15,5 @@ import javax.inject.Singleton
 abstract class SyncModule {
     @Binds
     @Singleton
-    abstract fun bindSyncEngine(impl: FakeSyncEngine): SyncEngine
+    abstract fun bindSyncEngine(impl: WebDavSyncEngine): SyncEngine
 }

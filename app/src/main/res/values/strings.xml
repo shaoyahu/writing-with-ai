@@ -29,7 +29,9 @@
     <string name="quicknote_search_sort_relevance">按相关性</string>
     <string name="quicknote_search_history_title">搜索历史</string>
     <string name="quicknote_search_history_clear">清除搜索历史</string>    <string name="quicknote_list_select_mode_title">已选 %1$d 篇</string>
-    <string name="quicknote_list_export_selected">导出选中</string>
+    <string name="settings_cloud_sync">云同步</string>
+    <string name="settings_cloud_sync_status">未配置</string>
+    <string name="settings_cloud_sync_connect">连接</string>    <string name="quicknote_list_export_selected">导出选中</string>
     <string name="quicknote_export_success">导出成功</string>
     <string name="quicknote_export_error">导出失败</string>    <string name="quicknote_detail_delete">删除</string>
     <string name="quicknote_detail_pin">固定</string>
