@@ -45,9 +45,9 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -83,11 +83,9 @@ fun ModelManagementScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val spacing = LocalSpacing.current
 
-    val descriptors by produceState(
-        initialValue = emptyList<ProviderDescriptor>(),
-        state.customProviders
-    ) {
-        value = viewModel.providerDescriptors()
+    val descriptors = remember { mutableStateOf<List<ProviderDescriptor>>(emptyList()) }
+    LaunchedEffect(state.customProviders) {
+        descriptors.value = viewModel.providerDescriptors()
     }
 
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
@@ -127,12 +125,12 @@ fun ModelManagementScreen(
             )
             Spacer(Modifier.height(spacing.md))
 
-            val builtinIds = remember(descriptors) {
-                descriptors.filter { it.id in CustomProviderEditViewModel.BUILTIN_IDS }
+            val builtinIds = remember(descriptors.value) {
+                descriptors.value.filter { it.id in CustomProviderEditViewModel.BUILTIN_IDS }
                     .map { it.id }
                     .toSet()
             }
-            descriptors.forEach { descriptor ->
+            descriptors.value.forEach { descriptor ->
                 val isCustom = descriptor.id !in builtinIds
                 ProviderInfoCard(
                     descriptor = descriptor,

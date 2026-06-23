@@ -1,0 +1,1492 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.7.3" type="baseline" client="gradle" dependencies="false" name="AGP (8.7.3)" variant="all" version="8.7.3">
+
+    <issue
+        id="ScopedStorage"
+        message="WRITE_EXTERNAL_STORAGE no longer provides write access when targeting Android 10, unless you use `requestLegacyExternalStorage`"
+        errorLine1="        android:name=&quot;android.permission.WRITE_EXTERNAL_STORAGE&quot;"
+        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="14"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `enableOnBackInvokedCallback` is only used in API level 33 and higher (current min is 26)"
+        errorLine1="        android:enableOnBackInvokedCallback=&quot;true&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="21"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `enableOnBackInvokedCallback` is only used in API level 33 and higher (current min is 26)"
+        errorLine1="            android:enableOnBackInvokedCallback=&quot;true&quot;"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="32"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellWidth` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellWidth=&quot;2&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/widget_info.xml"
+            line="13"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellHeight` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellHeight=&quot;2&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/widget_info.xml"
+            line="14"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `previewLayout` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:previewLayout=&quot;@drawable/widget_preview&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/widget_info.xml"
+            line="18"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellWidth` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellWidth=&quot;4&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/widget_info_1x4.xml"
+            line="13"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellHeight` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellHeight=&quot;1&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/widget_info_1x4.xml"
+            line="14"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `previewLayout` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:previewLayout=&quot;@drawable/widget_preview&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/widget_info_1x4.xml"
+            line="18"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.7.3 is available: 9.2.1"
+        errorLine1="agp = &quot;8.7.3&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="6"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.7.3 is available: 9.2.1"
+        errorLine1="agp = &quot;8.7.3&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="6"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.7.3 is available: 9.2.1"
+        errorLine1="agp = &quot;8.7.3&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="6"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-ktx than 1.13.1 is available: 1.19.0"
+        errorLine1="core-ktx = &quot;1.13.1&quot;"
+        errorLine2="           ~~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="12"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-ktx than 1.13.1 is available: 1.19.0"
+        errorLine1="core-ktx = &quot;1.13.1&quot;"
+        errorLine2="           ~~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="12"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-ktx than 1.13.1 is available: 1.19.0"
+        errorLine1="core-ktx = &quot;1.13.1&quot;"
+        errorLine2="           ~~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="12"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.appcompat:appcompat than 1.7.0 is available: 1.7.1"
+        errorLine1="appcompat = &quot;1.7.0&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="13"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.appcompat:appcompat than 1.7.0 is available: 1.7.1"
+        errorLine1="appcompat = &quot;1.7.0&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="13"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.appcompat:appcompat than 1.7.0 is available: 1.7.1"
+        errorLine1="appcompat = &quot;1.7.0&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="13"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
+        errorLine1="activity-compose = &quot;1.9.3&quot;"
+        errorLine2="                   ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="14"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
+        errorLine1="activity-compose = &quot;1.9.3&quot;"
+        errorLine2="                   ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="14"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
+        errorLine1="activity-compose = &quot;1.9.3&quot;"
+        errorLine2="                   ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="14"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.8.7&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.navigation:navigation-compose than 2.8.4 is available: 2.9.8"
+        errorLine1="navigation-compose = &quot;2.8.4&quot;"
+        errorLine2="                     ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="16"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.navigation:navigation-compose than 2.8.4 is available: 2.9.8"
+        errorLine1="navigation-compose = &quot;2.8.4&quot;"
+        errorLine2="                     ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="16"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.navigation:navigation-compose than 2.8.4 is available: 2.9.8"
+        errorLine1="navigation-compose = &quot;2.8.4&quot;"
+        errorLine2="                     ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="16"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.06.00"
+        errorLine1="compose-bom = &quot;2024.10.01&quot;"
+        errorLine2="              ~~~~~~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="19"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.06.00"
+        errorLine1="compose-bom = &quot;2024.10.01&quot;"
+        errorLine2="              ~~~~~~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="19"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.06.00"
+        errorLine1="compose-bom = &quot;2024.10.01&quot;"
+        errorLine2="              ~~~~~~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="19"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-compiler than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-compiler than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-compiler than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-ktx than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-ktx than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-ktx than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-runtime than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-runtime than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-runtime than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.1.1 is available: 1.2.1"
+        errorLine1="datastore = &quot;1.1.1&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="23"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.1.1 is available: 1.2.1"
+        errorLine1="datastore = &quot;1.1.1&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="23"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.1.1 is available: 1.2.1"
+        errorLine1="datastore = &quot;1.1.1&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="23"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.3.0"
+        errorLine1="hilt-navigation-compose = &quot;1.2.0&quot;"
+        errorLine2="                          ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="27"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.3.0"
+        errorLine1="hilt-navigation-compose = &quot;1.2.0&quot;"
+        errorLine2="                          ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="27"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.3.0"
+        errorLine1="hilt-navigation-compose = &quot;1.2.0&quot;"
+        errorLine2="                          ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="27"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.work:work-runtime-ktx than 2.9.1 is available: 2.11.2"
+        errorLine1="work = &quot;2.9.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="34"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.work:work-runtime-ktx than 2.9.1 is available: 2.11.2"
+        errorLine1="work = &quot;2.9.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="34"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.work:work-runtime-ktx than 2.9.1 is available: 2.11.2"
+        errorLine1="work = &quot;2.9.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="34"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.documentfile:documentfile than 1.0.1 is available: 1.1.0"
+        errorLine1="documentfile = &quot;1.0.1&quot;"
+        errorLine2="               ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="37"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.documentfile:documentfile than 1.0.1 is available: 1.1.0"
+        errorLine1="documentfile = &quot;1.0.1&quot;"
+        errorLine2="               ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="37"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.documentfile:documentfile than 1.0.1 is available: 1.1.0"
+        errorLine1="documentfile = &quot;1.0.1&quot;"
+        errorLine2="               ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="37"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test.ext:junit than 1.2.1 is available: 1.3.0"
+        errorLine1="androidx-test-ext = &quot;1.2.1&quot;"
+        errorLine2="                    ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="52"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test.ext:junit than 1.2.1 is available: 1.3.0"
+        errorLine1="androidx-test-ext = &quot;1.2.1&quot;"
+        errorLine2="                    ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="52"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test.ext:junit than 1.2.1 is available: 1.3.0"
+        errorLine1="androidx-test-ext = &quot;1.2.1&quot;"
+        errorLine2="                    ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="52"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test:runner than 1.6.2 is available: 1.7.0"
+        errorLine1="androidx-test-runner = &quot;1.6.2&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="53"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test:runner than 1.6.2 is available: 1.7.0"
+        errorLine1="androidx-test-runner = &quot;1.6.2&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="53"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test:runner than 1.6.2 is available: 1.7.0"
+        errorLine1="androidx-test-runner = &quot;1.6.2&quot;"
+        errorLine2="                       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="53"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test.espresso:espresso-core than 3.6.1 is available: 3.7.0"
+        errorLine1="androidx-test-espresso = &quot;3.6.1&quot;"
+        errorLine2="                         ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="54"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test.espresso:espresso-core than 3.6.1 is available: 3.7.0"
+        errorLine1="androidx-test-espresso = &quot;3.6.1&quot;"
+        errorLine2="                         ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="54"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test.espresso:espresso-core than 3.6.1 is available: 3.7.0"
+        errorLine1="androidx-test-espresso = &quot;3.6.1&quot;"
+        errorLine2="                         ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="54"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test:core-ktx than 1.6.1 is available: 1.7.0"
+        errorLine1="androidx-test-core = { module = &quot;androidx.test:core-ktx&quot;, version = &quot;1.6.1&quot; }"
+        errorLine2="                                                                    ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="114"
+            column="69"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test:core-ktx than 1.6.1 is available: 1.7.0"
+        errorLine1="androidx-test-core = { module = &quot;androidx.test:core-ktx&quot;, version = &quot;1.6.1&quot; }"
+        errorLine2="                                                                    ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="114"
+            column="69"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test:core-ktx than 1.6.1 is available: 1.7.0"
+        errorLine1="androidx-test-core = { module = &quot;androidx.test:core-ktx&quot;, version = &quot;1.6.1&quot; }"
+        errorLine2="                                                                    ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="114"
+            column="69"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/feature/quicknote/list/NoteRow.kt"
+            line="55"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="        modifier: Modifier = Modifier"
+        errorLine2="        ~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/feature/settings/SettingsEntry.kt"
+            line="29"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/feature/settings/SettingsScreen.kt"
+            line="46"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;related&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;note_association_ai_success_found&quot;>Found %d related notes&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="213"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="StringFormatCount"
+        message="Inconsistent number of arguments in formatting string `aiwriting_panel_usage_fmt`; found both 0 here and 2 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;aiwriting_panel_usage_fmt&quot;>TODO(en): aiwriting_panel_usage_fmt&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="79"
+            column="5"/>
+        <location
+            file="src/main/res/values/strings.xml"
+            line="105"
+            column="5"
+            message="Conflicting number of arguments (2) here"/>
+    </issue>
+
+    <issue
+        id="StringFormatCount"
+        message="Inconsistent number of arguments in formatting string `widget_open_note_cd`; found both 0 here and 1 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;widget_open_note_cd&quot;>TODO(en): widget_open_note_cd&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="99"
+            column="5"/>
+        <location
+            file="src/main/res/values/strings.xml"
+            line="126"
+            column="5"
+            message="Conflicting number of arguments (1) here"/>
+    </issue>
+
+    <issue
+        id="StringFormatCount"
+        message="Inconsistent number of arguments in formatting string `settings_data_done`; found both 0 here and 1 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;settings_data_done&quot;>TODO(en): settings_data_done&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="112"
+            column="5"/>
+        <location
+            file="src/main/res/values/strings.xml"
+            line="139"
+            column="5"
+            message="Conflicting number of arguments (1) here"/>
+    </issue>
+
+    <issue
+        id="StringFormatCount"
+        message="Inconsistent number of arguments in formatting string `settings_data_failed`; found both 0 here and 1 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;settings_data_failed&quot;>TODO(en): settings_data_failed&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="113"
+            column="5"/>
+        <location
+            file="src/main/res/values/strings.xml"
+            line="140"
+            column="5"
+            message="Conflicting number of arguments (1) here"/>
+    </issue>
+
+    <issue
+        id="StringFormatCount"
+        message="Inconsistent number of arguments in formatting string `settings_data_save_failed`; found both 0 here and 1 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;settings_data_save_failed&quot;>TODO(en): settings_data_save_failed&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="119"
+            column="5"/>
+        <location
+            file="src/main/res/values/strings.xml"
+            line="146"
+            column="5"
+            message="Conflicting number of arguments (1) here"/>
+    </issue>
+
+    <issue
+        id="StringFormatCount"
+        message="Inconsistent number of arguments in formatting string `import_report_summary`; found both 0 here and 3 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;import_report_summary&quot;>TODO(en): import_report_summary&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="120"
+            column="5"/>
+        <location
+            file="src/main/res/values/strings.xml"
+            line="147"
+            column="5"
+            message="Conflicting number of arguments (3) here"/>
+    </issue>
+
+    <issue
+        id="StringFormatCount"
+        message="Inconsistent number of arguments in formatting string `model_management_ping_success`; found both 0 here and 1 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;model_management_ping_success&quot;>TODO(en): model_management_ping_success&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="163"
+            column="5"/>
+        <location
+            file="src/main/res/values/strings.xml"
+            line="194"
+            column="5"
+            message="Conflicting number of arguments (1) here"/>
+    </issue>
+
+    <issue
+        id="StringFormatCount"
+        message="Inconsistent number of arguments in formatting string `model_management_ping_failed`; found both 0 here and 1 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;model_management_ping_failed&quot;>TODO(en): model_management_ping_failed&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="164"
+            column="5"/>
+        <location
+            file="src/main/res/values/strings.xml"
+            line="195"
+            column="5"
+            message="Conflicting number of arguments (1) here"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="This folder configuration (`v26`) is unnecessary; `minSdkVersion` is 26. Merge all the resources in this folder into `mipmap-anydpi`.">
+        <location
+            file="src/main/res/mipmap-anydpi-v26"/>
+    </issue>
+
+    <issue
+        id="Overdraw"
+        message="Possible overdraw: Root element paints background `#FFFFFFFF` with a theme that also paints a background (inferred theme is `@style/Theme.WritingApp`)"
+        errorLine1="    android:background=&quot;#FFFFFFFF&quot;>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/layout/widget_initial.xml"
+            line="10"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.integer.consent_version` appears to be unused"
+        errorLine1="    &lt;integer name=&quot;consent_version&quot;>1&lt;/integer>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/integers.xml"
+            line="4"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.placeholder_greeting` appears to be unused"
+        errorLine1="    &lt;string name=&quot;placeholder_greeting&quot;>writing-with-ai 脚手架已就绪&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="5"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_feishu_syncing` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_feishu_syncing&quot;>同步中…&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="38"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.widget_create_cd` appears to be unused"
+        errorLine1="    &lt;string name=&quot;widget_create_cd&quot;>新建笔记&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.widget_open_note_cd` appears to be unused"
+        errorLine1="    &lt;string name=&quot;widget_open_note_cd&quot;>打开笔记 %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="126"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.widget_time_just_now` appears to be unused"
+        errorLine1="    &lt;string name=&quot;widget_time_just_now&quot;>刚刚&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.widget_time_minute_ago` appears to be unused"
+        errorLine1="    &lt;string name=&quot;widget_time_minute_ago&quot;>分钟前&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.widget_time_hour_ago` appears to be unused"
+        errorLine1="    &lt;string name=&quot;widget_time_hour_ago&quot;>小时前&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.widget_time_day_ago` appears to be unused"
+        errorLine1="    &lt;string name=&quot;widget_time_day_ago&quot;>天前&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.widget_time_week_ago` appears to be unused"
+        errorLine1="    &lt;string name=&quot;widget_time_week_ago&quot;>周前&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="131"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_data_report_saved` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_data_report_saved&quot;>报告已保存到所选位置&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="144"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_data_save_failed` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_data_save_failed&quot;>保存失败:%1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="146"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.reset_apikey_prompt_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;reset_apikey_prompt_label&quot;>重新显示 API Key 说明&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="171"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.reset_apikey_prompt_dialog_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;reset_apikey_prompt_dialog_title&quot;>重置提示&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="172"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.reset_apikey_prompt_dialog_message` appears to be unused"
+        errorLine1="    &lt;string name=&quot;reset_apikey_prompt_dialog_message&quot;>下次使用 AI 功能时会再次显示 API Key 说明。是否继续?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="173"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.reset_apikey_prompt_dialog_confirm` appears to be unused"
+        errorLine1="    &lt;string name=&quot;reset_apikey_prompt_dialog_confirm&quot;>确认重置&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="174"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.reset_apikey_prompt_toast` appears to be unused"
+        errorLine1="    &lt;string name=&quot;reset_apikey_prompt_toast&quot;>已重置,下次 AI 调用时会再次显示说明&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="175"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.secure_prefs_hidden_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;secure_prefs_hidden_label&quot;>••••••••&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="178"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.secure_prefs_reveal_button` appears to be unused"
+        errorLine1="    &lt;string name=&quot;secure_prefs_reveal_button&quot;>显示&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="179"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.secure_prefs_copy_button` appears to be unused"
+        errorLine1="    &lt;string name=&quot;secure_prefs_copy_button&quot;>复制&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="180"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.secure_prefs_clear_button` appears to be unused"
+        errorLine1="    &lt;string name=&quot;secure_prefs_clear_button&quot;>清除&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="181"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.model_provider_deepseek` appears to be unused"
+        errorLine1="    &lt;string name=&quot;model_provider_deepseek&quot;>DeepSeek&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="189"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.model_provider_minimax` appears to be unused"
+        errorLine1="    &lt;string name=&quot;model_provider_minimax&quot;>Minimax&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="190"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.model_provider_mimo` appears to be unused"
+        errorLine1="    &lt;string name=&quot;model_provider_mimo&quot;>小米 MiMo&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="191"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.model_provider_detail_base_url` appears to be unused"
+        errorLine1="    &lt;string name=&quot;model_provider_detail_base_url&quot;>Base URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="196"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.prompt_hint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;prompt_hint&quot;>自定义 AI 操作的 system prompt;空时使用默认;立即对下次 AI 操作生效&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="204"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.model_provider_detail_default_model_fmt` appears to be unused"
+        errorLine1="    &lt;string name=&quot;model_provider_detail_default_model_fmt&quot;>默认 model:%1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="309"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.model_provider_detail_base_url_locked_hint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;model_provider_detail_base_url_locked_hint&quot;>端点由 provider 预置,不可修改&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="317"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_alias_merged_toast` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_alias_merged_toast&quot;>已合并别名&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="326"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_alias_unmerged_toast` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_alias_unmerged_toast&quot;>已取消别名&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="327"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_association_threshold_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_association_threshold_label&quot;>关联阈值&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="328"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_backfill_pause_button` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_backfill_pause_button&quot;>取消回填&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="329"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_backfill_progress_fmt` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_backfill_progress_fmt&quot;>回填进度:%1$d / %2$d&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="330"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_signal_entity` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_signal_entity&quot;>实体&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="331"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_person` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_person&quot;>人物&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="332"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_work` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_work&quot;>作品&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="333"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_event` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_event&quot;>事件&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="334"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_location` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_location&quot;>地点&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="335"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_org` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_org&quot;>组织&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="336"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_concept` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_concept&quot;>概念&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="337"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_date` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_date&quot;>日期&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="338"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_url` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_url&quot;>链接&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="339"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_quote` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_quote&quot;>引文&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="340"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_product` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_product&quot;>产品&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="341"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_task` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_task&quot;>任务&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="342"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.entity_type_number` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_type_number&quot;>数字&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="343"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;settings_data_exporting&quot;>导出中...&lt;/string>"
+        errorLine2="                                           ~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="137"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;settings_data_importing&quot;>导入中...&lt;/string>"
+        errorLine2="                                           ~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="138"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="ConstantLocale"
+        message="Assigning `Locale.getDefault()` to a final static field is suspicious; this code will not work correctly if the user changes locale while the app is running"
+        errorLine1="private val DATE_TIME_FORMAT = SimpleDateFormat(&quot;yyyy-MM-dd HH:mm&quot;, Locale.getDefault())"
+        errorLine2="                                                                    ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailViewModel.kt"
+            line="240"
+            column="69"/>
+    </issue>
+
+</issues>

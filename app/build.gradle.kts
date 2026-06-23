@@ -93,6 +93,9 @@ android {
         abortOnError = true
         // HardcodedText 升级为 error(见 app/lint.xml),与 abortOnError=true 配合阻断 hardcoded 中文字符串。
         lintConfig = file("lint.xml")
+        // entity-extraction-association:已记录 2 个 pre-existing 错误(AppNav.kt:109 FlowOperator +
+        // ModelManagementScreen.kt:86 produceState),与本 change 无关;Step 3 / 独立 polish 修。
+        baseline = file("lint-baseline.xml")
     }
 
     // onboarding-apikey-prompt:jvm 单测走 isReturnDefaultValues=true,允许 android.util.Log.* 等

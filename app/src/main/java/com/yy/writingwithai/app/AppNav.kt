@@ -34,7 +34,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.components.ActivityComponent
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 
 /**
@@ -106,7 +105,6 @@ fun AppNav(
     val consentState by consentStore.consentFlow.collectAsState(initial = ConsentState.EMPTY)
     // onboarding-apikey-prompt · ack 状态镜像(用于二段门)
     val ackApikeyPrompt by userPrefsStore.ackApikeyPromptFlow
-        .map { it }
         .collectAsState(initial = false)
     LaunchedEffect(consentState.accepted, consentState.version, ackApikeyPrompt) {
         if (consentState.accepted && consentState.version >= BuildConfig.CONSENT_VERSION) {
