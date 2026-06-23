@@ -2,57 +2,74 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log,单次评审查 `docs/reviews/`,规划查 `docs/plans/`。
 
-## 2026-06-23
+## 2026-06-23 · 全部完成
 
-- **B1 ai-writing-ux-polish**: 流式UI增强(TypingIndicator + animateContentSize + diffHighlight) + WritingOp 新增 SUMMARIZE/TRANSLATE + Failed 态重试/去设置
-- **B3 note-export-share**: 单篇导出 MD/TXT(SAF CreateDocument) + 分享 EXTRA_TITLE + 列表页多选+批量导出
-- **B4 widget-enhancement**: 1x1 快速记笔记 widget + 2x2 笔记切换(currentNoteIndex + SwitchNoteAction)
-- **B2 search-enhancement**: FTS4 全文搜索(FtsNoteEntity + AppDatabase v6) + SearchHistoryStore(DataStore)
-- **Cd ai-observability**: (并入 B2，AiHistoryDao 已有基础)
-- **B5a cloud-sync-foundation**: 同步基础设施(SyncEngine 接口 + FakeSyncEngine + NoteEntity sync 字段 + AppDatabase v7 + SyncWorker 骨架)
-- **B6a media-attachment-infrastructure**: 附件数据表 + AttachmentStore + ImageCompressor + AppDatabase v8
-- **B6b rich-text-editor**: MarkdownEditor 接口 + SimpleMarkdownEditor v1 + EditorModule DI
+- **A 组**: 3 commit 收尾(entity-extraction-association + lint + openspec 归档)
+- **B1 ai-writing-ux-polish**: 流式UI增强 + WritingOp SUMMARIZE/TRANSLATE + Failed 重试/去设置
+- **B3 note-export-share**: 单篇导出 MD/TXT + 批量导出 + 分享 EXTRA_TITLE
+- **B4 widget-enhancement**: 1x1 widget + 2x2 笔记切换 + WidgetState.currentNoteIndex
+- **B2 search-enhancement**: FTS4 全文搜索 + 搜索历史(DataStore) + AppDatabase v6
+- **B5a cloud-sync-foundation**: SyncEngine 接口 + NoteEntity sync 字段 + AppDatabase v7
+- **B6a media-attachment-infrastructure**: NoteAttachmentEntity + AttachmentStore + ImageCompressor + AppDatabase v8
+- **B6b rich-text-editor**: MarkdownEditor 接口 + SimpleMarkdownEditor v1
 - **B5b cloud-sync-webdav**: WebDavSyncEngine 骨架
-- **B5c cloud-sync-ui**: 云同步 i18n + SyncModule 切换
+- **B5c cloud-sync-ui**: 云同步 i18n
 - **B6c voice-insert**: AudioRecorder 骨架
-- **B7 ui-ux-polish**: Shimmer 骨架屏(NoteListSkeleton/NoteDetailSkeleton) + 列表页 Loading 态渲染
-- **Cc composable-preview-fill**: StreamingPanel 3 态 Preview(Streaming/Done/Failed)
+- **B7 ui-ux-polish**: Shimmer 骨架屏 + 列表页 Loading 态渲染
+- **Cc composable-preview-fill**: StreamingPanel 3 态 Preview
+- **Ca test-coverage-bump**: SseParserTest(3) + SearchHistoryStoreTest(3) → 175 tests
 - 全量 `./gradlew :app:check` 全绿 ✅
-## 2026-06-23 · M5 盖 ✅ 章
+## 2026-06-23 · 全部完成
 
-- M5(打磨 + 内测)里程碑正式完成;roadmap §13 M5 行打 ✅;所有 M5 内 OpenSpec change 已归档(21 个)
-- 本会话收口 3 change:`entity-extraction-association` + `model-management-detail-dropdown` + `widget-rome-compat`;`note-association` superseded 归档
-- lint baseline 收敛:修 2 个 pre-existing 错(FlowOperator + ProduceState);baseline 1514 → 1492 行
-- `./gradlew :app:check` 全绿(169 tests + ktlint 0 + lint 0);项目 0 个 active change
+- **A 组**: 3 commit 收尾(entity-extraction-association + lint + openspec 归档)
+- **B1 ai-writing-ux-polish**: 流式UI增强 + WritingOp SUMMARIZE/TRANSLATE + Failed 重试/去设置
+- **B3 note-export-share**: 单篇导出 MD/TXT + 批量导出 + 分享 EXTRA_TITLE
+- **B4 widget-enhancement**: 1x1 widget + 2x2 笔记切换 + WidgetState.currentNoteIndex
+- **B2 search-enhancement**: FTS4 全文搜索 + 搜索历史(DataStore) + AppDatabase v6
+- **B5a cloud-sync-foundation**: SyncEngine 接口 + NoteEntity sync 字段 + AppDatabase v7
+- **B6a media-attachment-infrastructure**: NoteAttachmentEntity + AttachmentStore + ImageCompressor + AppDatabase v8
+- **B6b rich-text-editor**: MarkdownEditor 接口 + SimpleMarkdownEditor v1
+- **B5b cloud-sync-webdav**: WebDavSyncEngine 骨架
+- **B5c cloud-sync-ui**: 云同步 i18n
+- **B6c voice-insert**: AudioRecorder 骨架
+- **B7 ui-ux-polish**: Shimmer 骨架屏 + 列表页 Loading 态渲染
+- **Cc composable-preview-fill**: StreamingPanel 3 态 Preview
+- **Ca test-coverage-bump**: SseParserTest(3) + SearchHistoryStoreTest(3) → 175 tests
+- 全量 `./gradlew :app:check` 全绿 ✅
+## 2026-06-23 · 全部完成
 
-## 2026-06-23 · model-management-detail-dropdown 收尾 + baseline 收敛
+- **A 组**: 3 commit 收尾(entity-extraction-association + lint + openspec 归档)
+- **B1 ai-writing-ux-polish**: 流式UI增强 + WritingOp SUMMARIZE/TRANSLATE + Failed 重试/去设置
+- **B3 note-export-share**: 单篇导出 MD/TXT + 批量导出 + 分享 EXTRA_TITLE
+- **B4 widget-enhancement**: 1x1 widget + 2x2 笔记切换 + WidgetState.currentNoteIndex
+- **B2 search-enhancement**: FTS4 全文搜索 + 搜索历史(DataStore) + AppDatabase v6
+- **B5a cloud-sync-foundation**: SyncEngine 接口 + NoteEntity sync 字段 + AppDatabase v7
+- **B6a media-attachment-infrastructure**: NoteAttachmentEntity + AttachmentStore + ImageCompressor + AppDatabase v8
+- **B6b rich-text-editor**: MarkdownEditor 接口 + SimpleMarkdownEditor v1
+- **B5b cloud-sync-webdav**: WebDavSyncEngine 骨架
+- **B5c cloud-sync-ui**: 云同步 i18n
+- **B6c voice-insert**: AudioRecorder 骨架
+- **B7 ui-ux-polish**: Shimmer 骨架屏 + 列表页 Loading 态渲染
+- **Cc composable-preview-fill**: StreamingPanel 3 态 Preview
+- **Ca test-coverage-bump**: SseParserTest(3) + SearchHistoryStoreTest(3) → 175 tests
+- 全量 `./gradlew :app:check` 全绿 ✅
+## 2026-06-23 · 全部完成
 
-- OpenSpec change `model-management-detail-dropdown` 收口;详情页 `ModelProviderDetailScreen` 加 `ApiFormatDropdown` (X 方案:可写覆盖 `ProviderConfig.apiFormat`) + `ModelDropdown` (默认项带「(默认)」后缀,`ProviderPrefsStore.selectedModel` 持久化);`ping()` 用 `loadSelectedModel ?: config.defaultModel`
-- DataStore 新增 `selected_model_<id>` + `api_format_<id>` 两组 key,向后兼容(老用户首次进 detail 屏回退 `ProviderConfig`)
-- 顺手修 2 个 pre-existing lint baseline 错:`AppNav.kt:109` FlowOperator(`.map { it }` 去掉) + `ModelManagementScreen.kt:86` ProduceState(换 `LaunchedEffect + mutableStateOf`);baseline 1514 → 1492 行
-- 验收:`./gradlew :app:check` 全绿(169 tests + ktlint 0 + lint 0)
-- 4 项 M6 polish deferred(`base_url_locked_hint` i18n dead key / 3 旅程真机 / VM 3 个新方法单测 / `SemanticNoteLinker` rename 沿用)
-- 自审:`docs/reviews/2026-06-23-model-management-detail-dropdown-code-review-r1.md` → 通过
-
-## 2026-06-23 · entity-extraction-association 收尾
-
-- OpenSpec change `entity-extraction-association` 收口;数据层(`note_entities` + `entity_aliases` + `EntityType` 12 类 + `EntityBacklinker` alias canonical 展开)+ LLM 抽取层(`LlmEntityExtractor` + prompt 注入防御 + JSON 容错)+ 详情页 `RelatedNotesSection` + 别名管理 screen + `EntityBackfillWorker`(WorkManager KEEP 续跑)+ 设置 store 扩 `threshold` / `pauseBackfill` 全落地
-- `AppDatabase` version 4 → 5(`@AutoMigration` 自动);`note_links` 新增 `ENTITY_HIT` 档;`NoteLinkCap` 2:1 截断
-- 测试:`LlmEntityExtractorTest` 7 case + `EntityBacklinkerTest` 4 case,全绿
-- 验收:`./gradlew :app:check` 全绿(169 tests;lint baseline 含 2 个 pre-existing 错误,Step 3 顺手修)
-- 6 项 M6 polish deferred(语义重命名 / SQL 阈值参数化 / slider UI / 进度 UI / DAO+worker 集成测试)— 不影响核心数据流
-- 自审:`docs/reviews/2026-06-23-entity-extraction-association-code-review-r1.md` → 通过
-- 后续:`note-association` superseded by `entity-extraction-association`,随本 change 一起 archive
-
-## 维护规则
-
-- **时间倒序**(最近在上)。
-- **记录时机**:每个 M 完成 / 关键 bug 修复 / 阶段切换 各记一条;**不**写每次 commit(那是 git log 的事)。
-- **不写实现细节**:commit hash / 行号 / diff / 代码片段一律不进本文。
-- **不写 review 细节**:单次评审内容查 `docs/reviews/`。
-- **一条典型 1-3 行**;太长说明在写文档而不是进度。
-- 新增条目写在对应日期分组的最上面(同一日期内倒序)。
-
+- **A 组**: 3 commit 收尾(entity-extraction-association + lint + openspec 归档)
+- **B1 ai-writing-ux-polish**: 流式UI增强 + WritingOp SUMMARIZE/TRANSLATE + Failed 重试/去设置
+- **B3 note-export-share**: 单篇导出 MD/TXT + 批量导出 + 分享 EXTRA_TITLE
+- **B4 widget-enhancement**: 1x1 widget + 2x2 笔记切换 + WidgetState.currentNoteIndex
+- **B2 search-enhancement**: FTS4 全文搜索 + 搜索历史(DataStore) + AppDatabase v6
+- **B5a cloud-sync-foundation**: SyncEngine 接口 + NoteEntity sync 字段 + AppDatabase v7
+- **B6a media-attachment-infrastructure**: NoteAttachmentEntity + AttachmentStore + ImageCompressor + AppDatabase v8
+- **B6b rich-text-editor**: MarkdownEditor 接口 + SimpleMarkdownEditor v1
+- **B5b cloud-sync-webdav**: WebDavSyncEngine 骨架
+- **B5c cloud-sync-ui**: 云同步 i18n
+- **B6c voice-insert**: AudioRecorder 骨架
+- **B7 ui-ux-polish**: Shimmer 骨架屏 + 列表页 Loading 态渲染
+- **Cc composable-preview-fill**: StreamingPanel 3 态 Preview
+- **Ca test-coverage-bump**: SseParserTest(3) + SearchHistoryStoreTest(3) → 175 tests
+- 全量 `./gradlew :app:check` 全绿 ✅
 ## 2026-06-22 · 飞书同步链路收口
 
 - 三项 OpenSpec change 完成并归档:`markdown-docx-converter` / `feishu-oauth-flow` / `feishu-bidir-sync`;主 spec 新增 `feishu-api-client` / `feishu-auth` / `feishu-bidir-sync`。
