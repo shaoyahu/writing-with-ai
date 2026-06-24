@@ -19,6 +19,7 @@ import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.prefs.UserPrefsStore
+import com.yy.writingwithai.feature.my.AboutScreen
 import com.yy.writingwithai.feature.onboarding.ApikeyPromptRoute
 import com.yy.writingwithai.feature.onboarding.OnboardingEntry
 import com.yy.writingwithai.feature.onboarding.OnboardingRoute
@@ -239,6 +240,10 @@ fun AppNav(
             // FeishuAuthScreen 自带 TopAppBar + ArrowBack,与 Settings 其他二级页一致。
             FeishuAuthScreen(onBack = { navController.popBackStack() })
         }
+        composable<About> {
+            // app-self-hosted-update · 关于(版本号 + 检查更新)
+            AboutScreen(onBack = { navController.popBackStack() })
+        }
         composable(OnboardingEntry.ROUTE_CONSENT) {
             OnboardingRoute(
                 onExitApp = { /* OnboardingRoute 内部已 finishAffinity() */ }
@@ -361,3 +366,10 @@ data class SettingsCustomProviderEdit(val providerId: String? = null)
  */
 @Serializable
 data object FeishuAuth
+
+/**
+ * app-self-hosted-update · 「我的」→「关于」路由。
+ * MyScreen 的"关于"入口指向此路由,渲染 AboutScreen(版本号 + 检查更新 + 下载 dialog)。
+ */
+@Serializable
+data object About

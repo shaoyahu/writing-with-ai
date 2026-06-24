@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.WritingAppTheme
 
@@ -88,19 +87,12 @@ fun MyScreen(onNavigate: (MeTabTarget) -> Unit, modifier: Modifier = Modifier) {
                     }
                 }
             }
-            // 卡 4 · 关于(展示,不 navigate)
+            // 卡 4 · 关于(展示 + 跳转「检查更新」)
             item {
                 SectionCard {
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.me_about_title)) },
-                        supportingContent = {
-                            Text(
-                                text = "v" + BuildConfig.VERSION_NAME,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    )
+                    MyListItem(stringResource(R.string.me_about_title)) {
+                        onNavigate(MeTabTarget.About)
+                    }
                 }
             }
         }

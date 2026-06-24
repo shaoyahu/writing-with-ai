@@ -94,6 +94,38 @@
                     android:path="/callback" />
             </intent-filter>
         </activity>
+
+        <!-- app-self-hosted-update · APK 下载完成 broadcast 接收。
+             DownloadManager enqueue 完一个下载任务后会发 ACTION_DOWNLOAD_COMPLETE,
+             receiver 拿到对应 APK 文件 + SHA-256 校验 + 触发系统安装 intent。
+             exported=false:API 26+ 系统 broadcast 可送达,无外暴露面。 -->
+        <receiver
+            android:name=".core.update.UpdateDownloadReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- app-self-hosted-update · FileProvider,把 App-private external 下载目录
+             暴露成 content:// URI 给系统安装器,避开 API 24+ 的 FileUriExposedException。 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
+
+    <!-- app-self-hosted-update · targetSdk 30+ 包可见性:声明调用安装器 intent。
+         否则 ACTION_VIEW + application/vnd.android.package-archive 解析不到安装器。 -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.INSTALL_PACKAGE" />
+        </intent>
+    </queries>
 
 </manifest>

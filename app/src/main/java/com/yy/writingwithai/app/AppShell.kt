@@ -126,6 +126,7 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
                             MeTabTarget.SettingsAliasManagement -> rootNavController.navigate(SettingsAliasManagement)
                             MeTabTarget.Settings -> rootNavController.navigate(Settings)
                             MeTabTarget.FeishuAuth -> rootNavController.navigate(FeishuAuth)
+                            MeTabTarget.About -> rootNavController.navigate(About)
                         }
                     }
                 )

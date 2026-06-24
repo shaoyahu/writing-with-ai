@@ -295,4 +295,18 @@
     <string name="feishu_command_prompt_intro">Available Feishu operations: create_doc / read_doc / update_doc / append_block</string>
     <string name="me_about_title">About</string>
     <string name="me_data_export_all">Export all as ZIP</string>
+
+    <!-- app-self-hosted-update · About screen + update dialog -->
+    <string name="about_title">About</string>
+    <string name="about_current_version">Current version</string>
+    <string name="about_check_update_title">Check for updates</string>
+    <string name="about_check_update_hint">Fetch latest from https://xiaozha.nananxue.cn/app/version.json</string>
+    <string name="about_check_update">Check for updates</string>
+    <string name="about_checking">Checking…</string>
+    <string name="update_dialog_title">New version v%1$s</string>
+    <string name="update_dialog_size">Download size: %1$s</string>
+    <string name="update_dialog_notes_header">Release notes</string>
+    <string name="update_dialog_download">Download</string>
+    <string name="update_dialog_later">Later</string>
+    <string name="common_back">Back</string>
 </resources>

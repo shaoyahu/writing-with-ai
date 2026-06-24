@@ -50,8 +50,21 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
+            // app-self-hosted-update · debug 默认走 mockwebserver / 本地服务器;
+            // 也可用 10.0.2.2 走主机。
+            buildConfigField(
+                "String",
+                "UPDATE_MANIFEST_URL",
+                "\"http://10.0.2.2:8080/app/version.json\""
+            )
         }
         release {
+            // app-self-hosted-update · 生产 manifest
+            buildConfigField(
+                "String",
+                "UPDATE_MANIFEST_URL",
+                "\"https://xiaozha.nananxue.cn/app/version.json\""
+            )
             // release-readiness:开启 R8 混淆 + 资源压缩 + 签名
             isMinifyEnabled = true
             isShrinkResources = true

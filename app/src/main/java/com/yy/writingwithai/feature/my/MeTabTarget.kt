@@ -16,5 +16,8 @@ enum class MeTabTarget {
     Settings,
 
     /** 飞书 OAuth 授权(app_id / app_secret 输入 + 连接/断开) */
-    FeishuAuth
+    FeishuAuth,
+
+    /** 关于(版本号 + 检查更新) */
+    About
 }
