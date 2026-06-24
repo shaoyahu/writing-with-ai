@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>飞书授权回调 · 写作助手</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 20px;
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #fafafa;
+      color: #222;
+      line-height: 1.6;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 22px; margin: 0 0 12px; }
+    p { font-size: 14px; color: #555; }
+    .ok { color: #1ba854; font-weight: 500; }
+    .err { color: #d33; font-weight: 500; }
+    code {
+      background: #f0f0f0;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 13px;
+      word-break: break-all;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid #ccc;
+      border-top-color: #3370ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <h1 id="title"><span class="spinner"></span>正在打开 App...</h1>
+  <p id="hint">如果 App 没有自动打开,<a id="manualLink" href="#">点这里手动打开</a>。</p>
+  <p id="debug"></p>
+
+  <script>
+    (function () {
+      var APP_SCHEME = "com.yy.writingwithai://feishu/callback";
+      var params = new URLSearchParams(window.location.search);
+      var code = params.get("code");
+      var error = params.get("error");
+      var errorDesc = params.get("error_description");
+      var debug = document.getElementById("debug");
+
+      // 错误分支:飞书返回 error,直接展示,不跳 App
+      if (error) {
+        document.getElementById("title").innerHTML =
+          '<span class="err">飞书授权失败</span>';
+        document.getElementById("hint").innerHTML =
+          '错误: <code>' + (error || "") + '</code>' +
+          (errorDesc ? ' &mdash; ' + errorDesc : '');
+        return;
+      }
+
+      if (!code) {
+        document.getElementById("title").innerHTML =
+          '<span class="err">回调缺少 code 参数</span>';
+        document.getElementById("hint").innerHTML =
+          '请重试飞书授权流程,或检查飞书开放后台的 redirect URL 配置。';
+        return;
+      }
+
+      // 正常分支:code → custom scheme → App OAuthCodeReceiver
+      var target = APP_SCHEME + "?code=" + encodeURIComponent(code);
+      debug.innerHTML = '将打开: <code>' + target + '</code>';
+      document.getElementById("manualLink").setAttribute("href", target);
+
+      // 优先 location.replace,有些浏览器对 iframe 内 scheme 跳转更宽松
+      window.location.replace(target);
+    })();
+  </script>
+</body>
+</html>

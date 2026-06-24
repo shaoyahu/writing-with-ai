@@ -39,9 +39,11 @@ constructor() {
     }
 
     companion object {
-        // Custom scheme 直接回跳 OAuthCodeReceiver;无需托管中间页。
-        // 飞书开放后台 → 安全设置 → 重定向 URL 需配此 URI。
-        internal const val REDIRECT_URI = "com.yy.writingwithai://feishu/callback"
+        // 飞书开放后台的 redirect_url 必须填 https URL(不接受 custom scheme)。
+        // 授权完成后飞书跳 https://xiaozha.nananxue.cn/callback/?code=xxx,
+        // 该路径托管一个 HTML 页面(JS)读 code 跳回 custom scheme → OAuthCodeReceiver。
+        internal const val REDIRECT_URI = "https://xiaozha.nananxue.cn/callback"
+        private const val APP_DEEP_LINK = "com.yy.writingwithai://feishu/callback"
         private const val AUTHORIZE_URL = "https://open.feishu.cn/open-apis/authen/v1/authorize"
         private const val SCOPE = "docx:document drive:drive"
         private const val STATE = "app_state"

@@ -115,7 +115,7 @@ fun FeishuAuthScreen(onBack: () -> Unit, viewModel: FeishuAuthViewModel = hiltVi
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error
             )
-            val cbUrl = "com.yy.writingwithai://feishu/callback"
+            val cbUrl = "https://xiaozha.nananxue.cn/callback"
             val cm = LocalClipboardManager.current
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
