@@ -46,6 +46,8 @@ google-services.json
 *.tmp
 *.bak
 *.swp
+# OpenAPI 生成器 scratch(feishu-openapi-kotlin-client 跑出来的输出)
+tmp/
 
 # ----- Node(本地工具,不入库)-----
 node_modules/
