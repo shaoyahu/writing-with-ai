@@ -154,6 +154,8 @@ dependencies {
 
     // ----- Security(M4-4 EncryptedSharedPreferences for AI apikey)-----
     implementation(libs.androidx.security.crypto)
+    // feishu-user-oauth:CustomTabs 拉飞书 OAuth 授权页 + deep link 回跳
+    implementation(libs.androidx.browser)
 
     // ----- Coroutines -----
     implementation(libs.kotlinx.coroutines.android)

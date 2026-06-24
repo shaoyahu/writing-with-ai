@@ -53,6 +53,9 @@ androidx-test-ext = "1.2.1"
 androidx-test-runner = "1.6.2"
 androidx-test-espresso = "3.6.1"
 
+# ----- Browser(CustomTabs for feishu-user-oauth)-----
+browser = "1.7.0"
+
 # ----- Test(Robolectric for Android Framework 桩,M5 polish)-----
 robolectric = "4.13"
 
@@ -97,6 +100,9 @@ androidx-documentfile = { module = "androidx.documentfile:documentfile", version
 
 # ----- Security -----
 androidx-security-crypto = { module = "androidx.security:security-crypto-ktx", version.ref = "security.crypto" }
+
+# ----- Browser(feishu-user-oauth:CustomTabs for OAuth)-----
+androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 
 # ----- Coroutines -----
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }

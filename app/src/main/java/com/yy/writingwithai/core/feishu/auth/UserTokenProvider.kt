@@ -1,0 +1,172 @@
+package com.yy.writingwithai.core.feishu.auth
+
+import com.yy.writingwithai.core.feishu.api.FeishuError
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+
+/**
+ * feishu-user-oauth · 飞书用户 OAuth token 管理(参考官方文档)。
+ *
+ * 流程:
+ * 1. app_access_token: POST /auth/v3/app_access_token/internal + app_id/app_secret
+ * 2. user_access_token: POST /authen/v1/oidc/access_token + Bearer app_token
+ * 3. refresh: POST /authen/v1/oidc/refresh_access_token + Bearer app_token
+ */
+@Singleton
+class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) {
+
+    private val httpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS).build()
+
+    @Volatile private var cachedUser: CachedToken? = null
+
+    @Volatile private var cachedApp: CachedToken? = null
+
+    @Volatile private var invalidated = false
+    private val refreshMutex = Mutex()
+
+    // ---- public API ----
+
+    suspend fun getToken(): String {
+        cachedUser?.takeIf { it.valid() }?.let { return it.token }
+        return refreshMutex.withLock { reentrantFetch() }.token
+    }
+
+    fun invalidate() {
+        cachedUser = null
+        invalidated = true
+    }
+
+    /** 拿 app_access_token,缓存 1.5h(app token 有效期 2h,提前刷) */
+    private suspend fun getAppAccessToken(): String {
+        cachedApp?.takeIf { it.valid() }?.let { return it.token }
+        val (appId, appSecret) = store.getAppIdAndSecret()
+            ?: throw FeishuError.NotAuthorized
+        val body = buildJsonObject {
+            put("app_id", appId)
+            put("app_secret", appSecret)
+        }.toString()
+        val resp = postJson(APP_TOKEN_URL, body, null)
+        cachedApp = CachedToken(
+            resp.str("app_access_token"),
+            // 1.5h
+            System.currentTimeMillis() + APP_TOKEN_TTL_MS
+        )
+        return cachedApp!!.token
+    }
+
+    /** OAuth code → user_access_token */
+    suspend fun exchangeCode(appId: String, appSecret: String, code: String) = withContext(Dispatchers.IO) {
+        store.persistAppSecret(appSecret)
+        val appToken = getAppAccessToken()
+        val body = buildJsonObject {
+            put("grant_type", "authorization_code")
+            put("code", code)
+        }.toString()
+        val data = postJson(TOKEN_URL, body, appToken)
+        persistUserToken(data, appId)
+    }
+
+    // ---- internal ----
+
+    private suspend fun reentrantFetch(): CachedToken {
+        cachedUser?.takeIf { it.valid() }?.let { return it }
+
+        if (!invalidated) {
+            store.getAccessTokenSnapshot()?.let { (access, expires) ->
+                CachedToken(access, expires).takeIf { it.valid() }?.let {
+                    cachedUser = it
+                    return it
+                }
+            }
+        }
+
+        val (appId, refreshToken) = store.getAppIdAndRefreshToken()
+            ?: throw FeishuError.NotAuthorized
+        val appToken = getAppAccessToken()
+        val body = buildJsonObject {
+            put("grant_type", "refresh_token")
+            put("refresh_token", refreshToken)
+        }.toString()
+        val data = postJson(REFRESH_URL, body, appToken)
+        persistUserToken(data, appId)
+        invalidated = false
+        return cachedUser!!
+    }
+
+    /** 把 access_token + refresh_token 落 store + 缓存,并清 transient appSecret。 */
+    private suspend fun persistUserToken(data: JsonObject, appId: String) {
+        val now = System.currentTimeMillis()
+        val tk = CachedToken(
+            token = data.str("access_token"),
+            expiresAt = now + (data.str("expires_in").toLongOrNull() ?: DEFAULT_TOKEN_TTL_S) * 1000L - REFRESH_LEAD_MS
+        )
+        cachedUser = tk
+        store.setOAuthCredentials(
+            appId = appId,
+            accessToken = tk.token,
+            refreshToken = data.str("refresh_token"),
+            expiresAt = tk.expiresAt
+        )
+        store.clearAppSecret()
+    }
+
+    /** POST JSON → 返回 data 层 JsonObject(值可为 Int/String,不用 Map<String,String>) */
+    private suspend fun postJson(url: String, jsonBody: String, bearer: String?): JsonObject =
+        withContext(Dispatchers.IO) {
+            val b = Request.Builder().url(url)
+                .post(jsonBody.toRequestBody(JSON))
+            if (bearer != null) b.header("Authorization", "Bearer $bearer")
+            val resp = try {
+                httpClient.newCall(b.build()).execute()
+            } catch (e: Throwable) {
+                throw FeishuError.NetworkError(e.message ?: "network")
+            }
+            resp.use { r ->
+                val raw = r.body?.string().orEmpty()
+                val root = try {
+                    Json.parseToJsonElement(raw).jsonObject
+                } catch (e: Throwable) {
+                    throw FeishuError.NetworkError("parse: ${e.message}, raw=$raw")
+                }
+                val code = root["code"]?.jsonPrimitive?.intOrNull ?: 0
+                val msg = root["msg"]?.jsonPrimitive?.contentOrNull ?: ""
+                if (code != 0) throw FeishuError.BadRequest(code, msg)
+                root["data"]?.jsonObject ?: root // 若无 data,退回到 root(app_access_token 端点)
+            }
+        }
+
+    private fun JsonObject.str(key: String): String = this[key]?.jsonPrimitive?.contentOrNull ?: ""
+
+    private data class CachedToken(val token: String, val expiresAt: Long) {
+        fun valid() = System.currentTimeMillis() < expiresAt
+    }
+
+    companion object {
+        private const val APP_TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal"
+        private const val TOKEN_URL = "https://open.feishu.cn/open-apis/authen/v1/oidc/access_token"
+        private const val REFRESH_URL = "https://open.feishu.cn/open-apis/authen/v1/oidc/refresh_access_token"
+        private const val REFRESH_LEAD_MS = 5 * 60 * 1000L
+        private const val APP_TOKEN_TTL_MS = 90L * 60 * 1000L // 1.5h
+        private const val DEFAULT_TOKEN_TTL_S = 7000L // 飞书 user_access_token 默认 2h
+        private val JSON = "application/json; charset=utf-8".toMediaType()
+    }
+}

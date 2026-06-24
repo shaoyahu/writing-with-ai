@@ -1,32 +1,31 @@
 package com.yy.writingwithai.feature.settings.feishu
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.yy.writingwithai.core.feishu.api.FeishuError
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthState
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthStore
-import com.yy.writingwithai.core.feishu.auth.TenantTokenProvider
+import com.yy.writingwithai.core.feishu.auth.OAuthLauncher
+import com.yy.writingwithai.core.feishu.auth.UserTokenProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/**
- * feishu-oauth-flow · 设置页「飞书授权」ViewModel。
- *
- * spec: openspec/changes/feishu-oauth-flow/tasks.md §6.2
- */
 @HiltViewModel
 class FeishuAuthViewModel
 @Inject
 constructor(
+    application: Application,
     private val store: FeishuAuthStore,
-    private val tokenProvider: TenantTokenProvider
-) : ViewModel() {
+    private val tokenProvider: UserTokenProvider,
+    private val oauthLauncher: OAuthLauncher
+) : AndroidViewModel(application) {
 
     val authState: StateFlow<FeishuAuthState> = store.authState
 
@@ -39,64 +38,48 @@ constructor(
     private val _appSecretInput = MutableStateFlow("")
     val appSecretInput: StateFlow<String> = _appSecretInput.asStateFlow()
 
-    val savedAppId: StateFlow<String?> = store.appId.stateIn(
-        viewModelScope,
-        SharingStarted.Eagerly,
-        null
-    )
+    private val _folderTokenInput = MutableStateFlow("")
+    val folderTokenInput: StateFlow<String> = _folderTokenInput.asStateFlow()
+
+    val savedAppId: StateFlow<String?> = store.appId.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val savedFolderToken: StateFlow<String?> = store.folderToken.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    init {
+        viewModelScope.launch {
+            val sa = store.appId.first()
+            if (_appIdInput.value.isBlank() && sa != null) _appIdInput.value = sa
+            val sf = store.folderToken.first()
+            if (_folderTokenInput.value.isBlank() && sf != null) _folderTokenInput.value = sf
+        }
+    }
 
     fun onAppIdChange(value: String) {
         _appIdInput.value = value
     }
-
     fun onAppSecretChange(value: String) {
         _appSecretInput.value = value
     }
+    fun onFolderTokenChange(value: String) {
+        _folderTokenInput.value = value
+    }
 
-    /** 保存凭证但不立即取 token;state → CONFIGURED。换凭证后必须 invalidate 否则旧 token 命中缓存。 */
-    fun saveCredentials() {
+    fun startOAuth() {
+        val appId = _appIdInput.value.trim()
+        val appSecret = _appSecretInput.value.trim()
+        val folderToken = _folderTokenInput.value.trim().ifBlank { null }
+        if (appId.isBlank() || appSecret.isBlank()) {
+            _errorMessage.value = "请填写 app_id 和 app_secret"
+            return
+        }
         viewModelScope.launch {
-            store.setCredentials(_appIdInput.value.trim(), _appSecretInput.value.trim())
-            tokenProvider.invalidate() // review r1 HIGH#4:换凭证清旧 token 缓存
-            _appSecretInput.value = "" // 清空 UI 输入框;secret 不再保留
+            // 持久化 app_id + app_secret:浏览器打开期间进程可能被杀
+            store.setOAuthCredentials(appId, "", "", 0L)
+            store.persistAppSecret(appSecret)
+            store.setAuthState(FeishuAuthState.TOKEN_FETCHING)
+            oauthLauncher.launch(getApplication(), appId)
         }
     }
 
-    /** 取 token(design:从已存的 credentials POST) */
-    fun connect() {
-        viewModelScope.launch {
-            _errorMessage.value = null
-            try {
-                tokenProvider.getToken() // 触发 reentrantFetch,失败抛 FeishuError
-            } catch (e: FeishuError) {
-                _errorMessage.value = e.message
-            } catch (e: Throwable) {
-                _errorMessage.value = e.javaClass.simpleName + ": " + (e.message ?: "")
-            }
-        }
-    }
-
-    /**
-     * review r1 HIGH#3:「保存并连接」合并成单个 suspend 流程,保证 setCredentials
-     * 写入完成后再 getToken,避免 connect 的 getCredentialsSnapshot 读到 null。
-     */
-    fun saveAndConnect() {
-        viewModelScope.launch {
-            _errorMessage.value = null
-            try {
-                store.setCredentials(_appIdInput.value.trim(), _appSecretInput.value.trim())
-                tokenProvider.invalidate()
-                _appSecretInput.value = ""
-                tokenProvider.getToken()
-            } catch (e: FeishuError) {
-                _errorMessage.value = e.message
-            } catch (e: Throwable) {
-                _errorMessage.value = e.javaClass.simpleName + ": " + (e.message ?: "")
-            }
-        }
-    }
-
-    /** 断开 → 清所有 + 跳 DISCONNECTED */
     fun disconnect() {
         viewModelScope.launch {
             tokenProvider.invalidate()

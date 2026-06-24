@@ -126,19 +126,20 @@ class FeishuApiClientImplTest {
     fun `createDocument parses document_id and url`() = runTest {
         server.enqueue(
             MockResponse().setBody(
-                """{"code":0,"msg":"ok","data":{"document_id":"docXYZ","url":"https://feishu.cn/docx/docXYZ"}}"""
+                // 飞书 docx create API 响应
+                """{"code":0,"msg":"ok","data":{"document":{"document_id":"docXYZ","url":"https://f.cn/d"}}}"""
             )
         )
         val result = api.createDocument("title")
         assertEquals("docXYZ", result.docId)
-        assertEquals("https://feishu.cn/docx/docXYZ", result.docUrl)
+        assertEquals("https://f.cn/d", result.docUrl)
     }
 
     @Test
     fun `createDocument synthesizes url when missing`() = runTest {
         server.enqueue(
             MockResponse().setBody(
-                """{"code":0,"msg":"ok","data":{"document_id":"docXYZ"}}"""
+                """{"code":0,"msg":"ok","data":{"document":{"document_id":"docXYZ"}}}"""
             )
         )
         val result = api.createDocument("title")

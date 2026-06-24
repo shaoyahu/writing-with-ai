@@ -76,6 +76,24 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_1x1" />
         </receiver>
+
+        <!-- feishu-user-oauth · 回调接收 Activity。
+             OAuthLauncher.REDIRECT_URI 与此处的 scheme/host/path 必须一致。 -->
+        <activity
+            android:name=".core.feishu.auth.OAuthCodeReceiver"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.WritingApp.Translucent">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="com.yy.writingwithai"
+                    android:host="feishu"
+                    android:path="/callback" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

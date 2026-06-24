@@ -12,6 +12,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -40,35 +41,38 @@ constructor(
                 if (folderToken != null) put("folder_token", folderToken)
             }.toString()
             val request = Request.Builder()
-                .url("$BASE_URL/docx/v1/documents")
+                .url(urlFor("docx/v1/documents"))
                 .post(body.toRequestBody(JSON_MEDIA_TYPE))
                 .build()
             val resp = executeRequest(request)
-            val data = resp.data
+            val doc = resp.data["document"]?.jsonObject
+                ?: throw FeishuError.BadRequest(0, "missing data.document in create response")
             DocCreateResult(
-                docId = data.requireString("document_id"),
-                docUrl = data.optionalString("url")
-                    ?: "https://bytedance.feishu.cn/docx/${data.requireString("document_id")}"
+                docId = doc.requireString("document_id"),
+                docUrl = doc.optionalString("url")
+                    ?: "https://bytedance.feishu.cn/docx/${doc.requireString("document_id")}"
             )
         }
 
     override suspend fun getDocument(docId: String): DocMetadata = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url("$BASE_URL/docx/v1/documents/$docId")
+            .url(urlFor("docx/v1/documents/$docId"))
             .get()
             .build()
         val resp = executeRequest(request)
-        val data = resp.data
+        // 飞书 docx get API 响应结构: data.document.document_id / data.document.revision_id / ...
+        val doc = resp.data["document"]?.jsonObject
+            ?: throw FeishuError.BadRequest(0, "missing data.document in get response")
         DocMetadata(
-            docId = data.requireString("document_id"),
-            revisionId = data.requireString("revision_id"),
-            title = data.requireString("title")
+            docId = doc.requireString("document_id"),
+            revisionId = doc.requireString("revision_id"),
+            title = doc.optionalString("title") ?: ""
         )
     }
 
     override suspend fun getBlocks(docId: String): String = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url("$BASE_URL/docx/v1/documents/$docId/blocks")
+            .url(urlFor("docx/v1/documents/$docId/blocks"))
             .get()
             .build()
         executeRequest(request).rawBody
@@ -77,18 +81,19 @@ constructor(
     override suspend fun appendChildren(docId: String, parentBlockId: String, childrenJson: String): String =
         withContext(Dispatchers.IO) {
             val request = Request.Builder()
-                .url("$BASE_URL/docx/v1/documents/$docId/blocks/$parentBlockId/children")
+                .url(urlFor("docx/v1/documents/$docId/blocks/$parentBlockId/children"))
                 .post(childrenJson.toRequestBody(JSON_MEDIA_TYPE))
                 .build()
             executeRequest(request).rawBody
         }
 
-    override suspend fun batchDeleteChildren(docId: String, parentBlockId: String, childIds: String) {
+    override suspend fun batchDeleteChildren(docId: String, parentBlockId: String, startIndex: Int, endIndex: Int) {
         withContext(Dispatchers.IO) {
-            val body = """{"block_ids":"$childIds"}"""
+            // 飞书 docx v1 batch_delete 用 DELETE + start_index/end_index(按索引范围,非 block_id)。
+            val body = """{"start_index":$startIndex,"end_index":$endIndex}"""
             val request = Request.Builder()
-                .url("$BASE_URL/docx/v1/documents/$docId/blocks/$parentBlockId/children/batch_delete")
-                .post(body.toRequestBody(JSON_MEDIA_TYPE))
+                .url(urlFor("docx/v1/documents/$docId/blocks/$parentBlockId/children/batch_delete"))
+                .delete(body.toRequestBody(JSON_MEDIA_TYPE))
                 .build()
             executeRequest(request)
         }
@@ -153,8 +158,99 @@ constructor(
 
     private fun emptyJsonObject(): JsonObject = buildJsonObject { }
 
+    // ---- v2 docs_ai/v1(XML format,参考 larksuite/cli) ----
+
+    override suspend fun createDocumentV2(xmlContent: String, folderToken: String?): DocCreateResultV2 =
+        withContext(Dispatchers.IO) {
+            val bodyObj = buildJsonObject {
+                put("format", "xml")
+                put("content", xmlContent)
+                if (folderToken != null) put("parent_token", folderToken)
+            }
+            val request = Request.Builder()
+                .url(urlFor("docs_ai/v1/documents"))
+                .post(bodyObj.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            val resp = executeRequest(request)
+            val doc = resp.data["document"]?.jsonObject
+                ?: throw FeishuError.BadRequest(0, "missing data.document in v2 create")
+            DocCreateResultV2(
+                docId = doc.requireString("document_id"),
+                docUrl = doc.optionalString("url")
+                    ?: "https://bytedance.feishu.cn/docx/${doc.requireString("document_id")}",
+                revisionId = doc.optionalString("revision_id") ?: ""
+            )
+        }
+
+    override suspend fun updateDocumentV2(docToken: String, xmlContent: String): DocMetadata? =
+        withContext(Dispatchers.IO) {
+            val bodyObj = buildJsonObject {
+                put("format", "xml")
+                put("command", "overwrite")
+                put("content", xmlContent)
+            }
+            val request = Request.Builder()
+                .url(urlFor("docs_ai/v1/documents/$docToken"))
+                .put(bodyObj.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            val resp = executeRequest(request)
+            val doc = resp.data["document"]?.jsonObject
+            if (doc != null) {
+                DocMetadata(
+                    docId = doc.requireString("document_id"),
+                    revisionId = doc.optionalString("revision_id") ?: "",
+                    title = doc.optionalString("title") ?: ""
+                )
+            } else {
+                null
+            }
+        }
+
+    override suspend fun fetchDocumentV2(docToken: String): String = withContext(Dispatchers.IO) {
+        val bodyObj = buildJsonObject { put("format", "markdown") }
+        val request = Request.Builder()
+            .url(urlFor("docs_ai/v1/documents/$docToken/fetch"))
+            .post(bodyObj.toString().toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        val resp = executeRequest(request)
+        resp.data["document"]?.jsonObject?.optionalString("content") ?: ""
+    }
+
+    override suspend fun appendBlockV2(docToken: String, xmlContent: String) {
+        withContext(Dispatchers.IO) {
+            val bodyObj = buildJsonObject {
+                put("format", "xml")
+                put("command", "block_insert_after")
+                put("block_id", "-1")
+                put("content", xmlContent)
+            }
+            val request = Request.Builder()
+                .url(urlFor("docs_ai/v1/documents/$docToken"))
+                .put(bodyObj.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            executeRequest(request)
+        }
+    }
+
+    /**
+     * 构造飞书 API URL。`BASE_HOST` 是硬编码到飞书默认 host(未来若需多租户,
+     * 从 `FeishuAuthStore` 读 `tenant_domain` 拼 host,见 M4 TODO)。
+     * `segments` 内部不再做额外编码:Feishu block_id 是字母数字,无 path 风险。
+     */
+    private fun urlFor(segments: String): String {
+        val safe = segments.trimStart('/')
+        // HttpUrl.Builder 负责 host 校验 + path 拼接,避免字符串拼接失误。
+        return HttpUrl.Builder()
+            .scheme("https")
+            .host(BASE_HOST)
+            .addPathSegments(safe)
+            .build()
+            .toString()
+    }
+
     companion object {
-        internal const val BASE_URL = "https://open.feishu.cn/open-apis"
+        // TODO(feishu-multi-tenant):从 FeishuAuthStore 读 tenant_domain,默认 bytedance。
+        internal const val BASE_HOST = "open.feishu.cn"
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }

@@ -19,30 +19,38 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withContext
 
 /**
- * feishu-oauth-flow · 飞书凭证 + tenant_access_token 加密存储(design D1)。
+ * feishu-user-oauth · 飞书 OAuth user_access_token + refresh_token 加密存储。
  *
- * 独立 EncryptedSharedPreferences 文件 `feishu_oauth_prefs.xml`(与 apikey 文件分开)。
- * key 集合:`feishu_app_id` / `feishu_app_secret` / `feishu_tenant_token` /
- * `feishu_token_expires_at`。
+ * 不持久化 appSecret;exchangeCode 时 `persistAppSecret` 写 transient,refresh 时
+ * `getAppSecretSnapshot` 取,完成后 `clearAppSecret` 清。
  *
- * spec: openspec/changes/feishu-oauth-flow/specs/feishu-auth/spec.md
- * "Tenant access token acquisition" / "Token storage and lifecycle"
+ * 加密 prefs 初始化失败时不会静默降级:暴露 `prefsInitError`,`authState` 切到
+ * [FeishuAuthState.KEYSTORE_UNAVAILABLE],UI 必须显式处理(而不是看着像"未登录")。
  */
 interface FeishuAuthStore {
     val appId: Flow<String?>
-    val appSecret: Flow<String?>
-    val tenantAccessToken: Flow<String?>
+    val folderToken: Flow<String?>
+    val accessToken: Flow<String?>
+    val refreshToken: Flow<String?>
     val expiresAt: Flow<Long?>
     val authState: StateFlow<FeishuAuthState>
 
-    suspend fun setCredentials(appId: String, appSecret: String)
-    suspend fun persistToken(token: String, expiresAt: Long)
+    /** 加密 prefs 初始化异常(为 null 表示 OK)。 */
+    val prefsInitError: Throwable?
+
+    suspend fun setOAuthCredentials(appId: String, accessToken: String, refreshToken: String, expiresAt: Long)
     suspend fun setAuthState(state: FeishuAuthState)
     suspend fun clearAll()
 
-    /** 同步读,用于 TenantTokenProvider cold start 路径(进程内 hot path)。 */
-    fun getCredentialsSnapshot(): Pair<String, String>?
-    fun getTokenSnapshot(): Pair<String, Long>?
+    fun getAccessTokenSnapshot(): Pair<String, Long>?
+    fun getRefreshTokenSnapshot(): String?
+    fun getFolderTokenSnapshot(): String?
+    fun getAppIdAndRefreshToken(): Pair<String, String>?
+
+    suspend fun persistAppSecret(secret: String)
+    suspend fun clearAppSecret()
+    fun getAppSecretSnapshot(): String?
+    fun getAppIdAndSecret(): Pair<String, String>?
 }
 
 @Singleton
@@ -51,36 +59,39 @@ class FeishuAuthStoreImpl
 constructor(
     @ApplicationContext private val context: Context
 ) : FeishuAuthStore {
-    private val prefs: SharedPreferences? =
-        runCatching { openEncryptedPrefs() }.getOrElse { e ->
-            Log.w(TAG, "EncryptedSharedPreferences init failed: ${e.javaClass.simpleName}: ${e.message}")
-            null
-        }
 
     private val stateFlow = MutableStateFlow(FeishuAuthState.DISCONNECTED)
 
+    private val prefs: SharedPreferences? = try {
+        openEncryptedPrefs()
+    } catch (e: Throwable) {
+        Log.e(TAG, "EncryptedSharedPreferences init failed: ${e.javaClass.simpleName}: ${e.message}", e)
+        stateFlow.value = FeishuAuthState.KEYSTORE_UNAVAILABLE
+        null
+    }
+
+    override val prefsInitError: Throwable?
+        get() = if (prefs == null) IllegalStateException("EncryptedSharedPreferences unavailable") else null
+
     override val appId: Flow<String?> = keyFlow(KEY_APP_ID, ::identityString)
-    override val appSecret: Flow<String?> = keyFlow(KEY_APP_SECRET, ::identityString)
-    override val tenantAccessToken: Flow<String?> = keyFlow(KEY_TOKEN, ::identityString)
+    override val folderToken: Flow<String?> = keyFlow(KEY_FOLDER, ::identityString)
+    override val accessToken: Flow<String?> = keyFlow(KEY_ACCESS, ::identityString)
+    override val refreshToken: Flow<String?> = keyFlow(KEY_REFRESH, ::identityString)
     override val expiresAt: Flow<Long?> = keyFlow(KEY_EXPIRES) { it?.toLongOrNull() }
 
     override val authState: StateFlow<FeishuAuthState> = stateFlow.asStateFlow()
 
-    override suspend fun setCredentials(appId: String, appSecret: String) = withContext(Dispatchers.IO) {
-        val p = prefs ?: return@withContext
+    override suspend fun setOAuthCredentials(
+        appId: String,
+        accessToken: String,
+        refreshToken: String,
+        expiresAt: Long
+    ) = withContext(Dispatchers.IO) {
+        val p = requirePrefs() ?: return@withContext
         p.edit()
             .putString(KEY_APP_ID, appId)
-            .putString(KEY_APP_SECRET, appSecret)
-            .apply()
-        if (stateFlow.value !in setOf(FeishuAuthState.CONNECTED, FeishuAuthState.TOKEN_FETCHING)) {
-            stateFlow.value = FeishuAuthState.CONFIGURED
-        }
-    }
-
-    override suspend fun persistToken(token: String, expiresAt: Long) = withContext(Dispatchers.IO) {
-        val p = prefs ?: return@withContext
-        p.edit()
-            .putString(KEY_TOKEN, token)
+            .putString(KEY_ACCESS, accessToken)
+            .putString(KEY_REFRESH, refreshToken)
             .putString(KEY_EXPIRES, expiresAt.toString())
             .apply()
         stateFlow.value = FeishuAuthState.CONNECTED
@@ -91,30 +102,50 @@ constructor(
     }
 
     override suspend fun clearAll() = withContext(Dispatchers.IO) {
-        val p = prefs ?: return@withContext
+        val p = requirePrefs() ?: return@withContext
         p.edit().clear().apply()
         stateFlow.value = FeishuAuthState.DISCONNECTED
     }
 
-    override fun getCredentialsSnapshot(): Pair<String, String>? {
-        val p = prefs ?: return null
-        val id = p.getString(KEY_APP_ID, null) ?: return null
-        val secret = p.getString(KEY_APP_SECRET, null) ?: return null
-        return id to secret
+    override fun getAccessTokenSnapshot(): Pair<String, Long>? {
+        val p = requirePrefs() ?: return null
+        val t = p.getString(KEY_ACCESS, null) ?: return null
+        val e = p.getString(KEY_EXPIRES, null)?.toLongOrNull() ?: return null
+        return t to e
     }
 
-    override fun getTokenSnapshot(): Pair<String, Long>? {
-        val p = prefs ?: return null
-        val token = p.getString(KEY_TOKEN, null) ?: return null
-        val expires = p.getString(KEY_EXPIRES, null)?.toLongOrNull() ?: return null
-        return token to expires
+    override fun getRefreshTokenSnapshot(): String? = requirePrefs()?.getString(KEY_REFRESH, null)
+    override fun getFolderTokenSnapshot(): String? = requirePrefs()?.getString(KEY_FOLDER, null)
+    override fun getAppIdAndRefreshToken(): Pair<String, String>? {
+        val p = requirePrefs() ?: return null
+        val id = p.getString(KEY_APP_ID, null) ?: return null
+        val rt = p.getString(KEY_REFRESH, null) ?: return null
+        return id to rt
     }
+
+    override suspend fun persistAppSecret(secret: String) {
+        withContext(Dispatchers.IO) {
+            requirePrefs()?.edit()?.putString(KEY_SECRET, secret)?.apply()
+        }
+    }
+    override suspend fun clearAppSecret() {
+        withContext(Dispatchers.IO) {
+            requirePrefs()?.edit()?.remove(KEY_SECRET)?.apply()
+        }
+    }
+    override fun getAppSecretSnapshot(): String? = requirePrefs()?.getString(KEY_SECRET, null)
+    override fun getAppIdAndSecret(): Pair<String, String>? {
+        val p = requirePrefs() ?: return null
+        val id = p.getString(KEY_APP_ID, null) ?: return null
+        val sec = p.getString(KEY_SECRET, null) ?: return null
+        return id to sec
+    }
+
+    /** 取 prefs;若 Keystore 不可用返回 null(调用方应继续 fail-safe,不抛错掩盖)。 */
+    private fun requirePrefs(): SharedPreferences? = prefs
 
     private fun openEncryptedPrefs(): SharedPreferences {
-        val masterKey =
-            MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
+        val masterKey = MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
         return EncryptedSharedPreferences.create(
             context,
             PREFS_FILE,
@@ -126,12 +157,9 @@ constructor(
 
     private fun <T> keyFlow(key: String, transform: (String?) -> T?): Flow<T?> = callbackFlow {
         trySend(transform(prefs?.getString(key, null)))
-        val listener =
-            SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
-                if (changedKey == key) {
-                    trySend(transform(prefs?.getString(key, null)))
-                }
-            }
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
+            if (changedKey == key) trySend(transform(prefs?.getString(key, null)))
+        }
         prefs?.registerOnSharedPreferenceChangeListener(listener)
         awaitClose { prefs?.unregisterOnSharedPreferenceChangeListener(listener) }
     }.distinctUntilChanged()
@@ -142,8 +170,10 @@ constructor(
         private const val TAG = "FeishuAuth"
         internal const val PREFS_FILE = "feishu_oauth_prefs"
         private const val KEY_APP_ID = "feishu_app_id"
-        private const val KEY_APP_SECRET = "feishu_app_secret"
-        private const val KEY_TOKEN = "feishu_tenant_token"
+        private const val KEY_ACCESS = "feishu_access_token"
+        private const val KEY_REFRESH = "feishu_refresh_token"
         private const val KEY_EXPIRES = "feishu_token_expires_at"
+        private const val KEY_FOLDER = "feishu_folder_token"
+        private const val KEY_SECRET = "feishu_app_secret"
     }
 }
