@@ -4,6 +4,7 @@ import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
+import com.yy.writingwithai.core.security.PathSafety
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,6 +16,10 @@ import javax.inject.Singleton
  * SHA-256 校验 + 系统安装 intent。
  *
  * 不需要 WRITE_EXTERNAL_STORAGE 权限(DownloadManager 自有下载目录)。
+ *
+ * fix-2026-06-24-review-r1-critical:download destination filename 从 `manifest.apkUrl.substringAfterLast('/')`
+ * (服务器 URL 路径段,attacker-controlled) 改为 `manifest.apkName` + `PathSafety.safeName`,
+ * fallback `"update.apk"`。
  */
 @Singleton
 class ApkDownloader @Inject constructor(
@@ -22,6 +27,7 @@ class ApkDownloader @Inject constructor(
 ) {
 
     fun start(manifest: AppUpdateManifest): Long {
+        val safeFileName = PathSafety.safeName(manifest.apkName, fallback = DEFAULT_APK_NAME)
         val request = DownloadManager.Request(Uri.parse(manifest.apkUrl))
             .setTitle("写作助手 v${manifest.versionName}")
             .setDescription("下载中,完成后自动校验...")
@@ -32,7 +38,7 @@ class ApkDownloader @Inject constructor(
             .setDestinationInExternalFilesDir(
                 context,
                 Environment.DIRECTORY_DOWNLOADS,
-                DOWNLOAD_SUBDIR + manifest.apkUrl.substringAfterLast('/')
+                DOWNLOAD_SUBDIR + safeFileName
             )
         val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         return dm.enqueue(request)
@@ -46,5 +52,6 @@ class ApkDownloader @Inject constructor(
     companion object {
         private const val MIME_APK = "application/vnd.android.package-archive"
         private const val DOWNLOAD_SUBDIR = "app-update/"
+        private const val DEFAULT_APK_NAME = "update.apk"
     }
 }

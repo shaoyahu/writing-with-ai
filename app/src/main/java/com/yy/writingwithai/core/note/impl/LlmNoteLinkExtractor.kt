@@ -3,6 +3,7 @@ package com.yy.writingwithai.core.note.impl
 import android.content.Context
 import com.yy.writingwithai.core.ai.api.AiGateway
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
+import com.yy.writingwithai.core.ai.api.TokenLimitExceeded
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.ai.prompt.NoteAssociationPrompt
 import com.yy.writingwithai.core.data.db.NoteDao
@@ -75,7 +76,14 @@ class LlmNoteLinkExtractor @Inject constructor(
                 modelName = model
             ).toList().forEach { event ->
                 when (event) {
-                    is AiStreamEvent.Delta -> responseText += event.text
+                    is AiStreamEvent.Delta -> {
+                        val t = event.text ?: ""
+                        // fix-2026-06-24-review-r1-critical:防失控 LLM 输出 OOM / 计费炸
+                        if (responseText.length + t.length > MAX_CHARS) {
+                            throw TokenLimitExceeded(MAX_CHARS)
+                        }
+                        responseText += t
+                    }
                     is AiStreamEvent.Failed -> {
                         // M7 修:失败也由 gateway.onCompletion 统一 record,extractor 不再独立 record。
                         return 0
@@ -106,6 +114,10 @@ class LlmNoteLinkExtractor @Inject constructor(
             if (links.isNotEmpty()) noteLinkDao.upsertAll(links)
             ratePrefs.edit().putLong("last_$noteId", now).apply()
             // M7 修:删 recordHistory(...),由 CoreAiGateway.onCompletion 统一 record,避免双重 entry。
+        } catch (e: TokenLimitExceeded) {
+            // fix r1:超 cap 不 record 计费(throw 在 collect 内,history 路径不到)
+            android.util.Log.w(TAG, "LLM output exceeded $MAX_CHARS chars; cap triggered")
+            return 0
         } catch (e: Exception) {
             // M7 修:同样由 gateway 统一 record(失败也走 onCompletion 的 lastError 路径)。
             if (e is kotlinx.coroutines.CancellationException) throw e
@@ -154,5 +166,9 @@ class LlmNoteLinkExtractor @Inject constructor(
     companion object {
         private const val PREFS_RATE = "note_assoc_llm_rate"
         const val RATE_LIMIT_MS = 24 * 60 * 60 * 1000L
+
+        // fix-2026-06-24-review-r1-critical:LLM 输出字符上限 ≈ 4K tokens
+        private const val MAX_CHARS = 16384
+        private const val TAG = "LlmNoteLinkExtractor"
     }
 }

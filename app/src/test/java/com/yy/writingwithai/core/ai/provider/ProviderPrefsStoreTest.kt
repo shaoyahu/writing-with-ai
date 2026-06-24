@@ -12,12 +12,14 @@ import org.junit.jupiter.api.Test
  *
  * 注:真 DataStore round-trip 由 Robolectric 集成测试覆盖(M5 polish CI 验证);
  * 本单测验证 in-memory 行为 + observe Flow。
+ *
+ * fix-2026-06-24-review-r1-critical:默认 provider id 从 `"fake"` 改为 `null`(首次安装未配置)。
  */
 class ProviderPrefsStoreTest {
     @Test
-    fun default_provider_id_is_fake() = runTest {
+    fun default_provider_id_is_null() = runTest {
         val store = FakeProviderPrefsStore()
-        assertEquals("fake", store.getSelectedProviderId())
+        assertEquals(null, store.getSelectedProviderId())
     }
 
     @Test

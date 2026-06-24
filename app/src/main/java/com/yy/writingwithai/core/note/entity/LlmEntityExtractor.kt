@@ -1,6 +1,8 @@
 package com.yy.writingwithai.core.note.entity
 
 import com.yy.writingwithai.core.ai.api.AiGateway
+import com.yy.writingwithai.core.ai.api.AiStreamEvent
+import com.yy.writingwithai.core.ai.api.TokenLimitExceeded
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
@@ -39,15 +41,23 @@ constructor(
             val content = note.title + "\n" + note.content
             if (containsInjection(content)) return@withContext 0
 
-            val prompt = "Title: ${note.title}\nContent: $content"
-            val raw = aiGateway.streamWritingOp(
-                op = WritingOp.EXPAND,
-                sourceText = prompt,
-                providerId = "fake",
-                apikey = "",
-                modelName = null,
-                systemPrompt = ENTITY_EXTRACT_SYSTEM_ZH
-            ).collectText()
+            // fix-2026-06-24-review-r1-critical:fence 用户内容防 prompt 注入
+            val fencedContent = com.yy.writingwithai.core.ai.prompt.SafePromptTemplate
+                .fenceUserContent(content)
+            val prompt = "Title: ${note.title}\nContent: $fencedContent"
+            val raw = try {
+                aiGateway.streamWritingOp(
+                    op = WritingOp.EXPAND,
+                    sourceText = prompt,
+                    providerId = "fake",
+                    apikey = "",
+                    modelName = null,
+                    systemPrompt = ENTITY_EXTRACT_SYSTEM_ZH
+                ).collectText(MAX_CHARS)
+            } catch (e: TokenLimitExceeded) {
+                android.util.Log.w("LlmEntityExtractor", "LLM output exceeded $MAX_CHARS chars; cap triggered")
+                return@withContext 0
+            }
 
             val entities = parseJsonEntities(raw)
             if (entities.isEmpty()) return@withContext 0
@@ -98,13 +108,24 @@ constructor(
         const val ENTITY_EXTRACT_SYSTEM_ZH: String =
             "你是笔记实体抽取助手。从文本中抽取 PERSON / WORK / LOCATION 三类实体。" +
                 "每条输出 JSON 对象 {type,key,surface},仅返回 JSON 数组,key 用小写英文。"
+
+        // fix-2026-06-24-review-r1-critical:LLM 输出字符上限 ≈ 4K tokens
+        private const val MAX_CHARS = 16384
     }
 }
 
-private suspend fun kotlinx.coroutines.flow.Flow<com.yy.writingwithai.core.ai.api.AiStreamEvent>.collectText(): String {
+private suspend fun kotlinx.coroutines.flow.Flow<com.yy.writingwithai.core.ai.api.AiStreamEvent>.collectText(
+    maxChars: Int
+): String {
     val sb = StringBuilder()
     collect { ev ->
-        if (ev is com.yy.writingwithai.core.ai.api.AiStreamEvent.Delta) sb.append(ev.text)
+        if (ev is com.yy.writingwithai.core.ai.api.AiStreamEvent.Delta) {
+            val t = ev.text ?: ""
+            if (sb.length + t.length > maxChars) {
+                throw com.yy.writingwithai.core.ai.api.TokenLimitExceeded(maxChars)
+            }
+            sb.append(t)
+        }
     }
     return sb.toString()
 }

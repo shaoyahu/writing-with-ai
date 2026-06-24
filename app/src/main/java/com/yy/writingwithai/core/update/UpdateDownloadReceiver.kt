@@ -8,6 +8,7 @@ import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import com.yy.writingwithai.core.security.PathSafety
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.InputStream
 import java.security.MessageDigest
@@ -25,6 +26,10 @@ import javax.inject.Inject
  * review r1 修:
  * - 用 ContentResolver 而不是 `File(localUri)` 解析(API 29+ COLUMN_LOCAL_URI 返回 content://)
  * - install 用 FileProvider 而不是 Uri.fromFile(API 24+ 会抛 FileUriExposedException)
+ *
+ * fix-2026-06-24-review-r1-critical 修:
+ * - install Intent filename 从 `manifest.apkName` 派生(走 `PathSafety.safeName`),不再从服务器 URL `substringAfterLast('/')`
+ * - `cursor.getColumnIndex` 返回 -1 时显式 null 检查(防 lint Range error)
  */
 @AndroidEntryPoint
 class UpdateDownloadReceiver : BroadcastReceiver() {
@@ -49,19 +54,31 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
                 return
             }
             val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-            if (statusIdx >= 0 && cursor.getInt(statusIdx) != DownloadManager.STATUS_SUCCESSFUL) {
+            if (statusIdx < 0) {
+                Log.w(TAG, "COLUMN_STATUS missing for id=$downloadId")
+                return
+            }
+            if (cursor.getInt(statusIdx) != DownloadManager.STATUS_SUCCESSFUL) {
                 Log.w(TAG, "download not successful for id=$downloadId status=${cursor.getInt(statusIdx)}")
                 Toast.makeText(context, "下载未成功,请重试", Toast.LENGTH_LONG).show()
                 return
             }
 
-            // 优先 COLUMN_URI(API 24+ 官方入口,返回 content://),fallback COLUMN_LOCAL_URI
-            val uriStr = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_URI))
-                ?: cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
-                ?: run {
-                    Log.w(TAG, "no local uri for id=$downloadId")
+            // fix r1:防 `getColumnIndex` 返回 -1 时直接 `getString(-1)` 抛 ArrayIndexOutOfBoundsException
+            val uriIdx = cursor.getColumnIndex(DownloadManager.COLUMN_URI)
+            val localIdx = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+            val uriStr: String? = when {
+                uriIdx >= 0 -> cursor.getString(uriIdx)
+                localIdx >= 0 -> cursor.getString(localIdx)
+                else -> {
+                    Log.w(TAG, "no COLUMN_URI / COLUMN_LOCAL_URI for id=$downloadId")
                     return
                 }
+            }
+            if (uriStr.isNullOrBlank()) {
+                Log.w(TAG, "empty local uri for id=$downloadId")
+                return
+            }
             val uri = Uri.parse(uriStr)
 
             val actualSha = sha256(context, uri)
@@ -76,7 +93,12 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
                 return
             }
 
-            installIntent(context, uri, uriStr.substringAfterLast('/'))
+            // fix r1:filename 来自 manifest.apkName 走 PathSafety 校验,不再从 URI 派生
+            val safeName = PathSafety.safeName(manifest.apkName, fallback = DEFAULT_APK_NAME)
+            if (safeName != manifest.apkName) {
+                Log.w(TAG, "manifest.apkName='${manifest.apkName}' unsafe, fallback to $DEFAULT_APK_NAME")
+            }
+            installIntent(context, uri, safeName)
         }
     }
 
@@ -125,5 +147,6 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "UpdateDownloadReceiver"
+        private const val DEFAULT_APK_NAME = "update.apk"
     }
 }

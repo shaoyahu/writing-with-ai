@@ -7,16 +7,33 @@ import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * feishu-user-oauth · 启动系统浏览器拉飞书 OAuth 授权页。
+ *
+ * fix-2026-06-24-review-r1-critical:生成随机 `state`,持久化到 [FeishuAuthStore],URL 携带。
+ * [OAuthCodeReceiver] 校验 state 相等 + 未过期才走 token exchange,防 CSRF / code 注入。
  */
 @Singleton
 class OAuthLauncher
 @Inject
-constructor() {
+constructor(
+    private val authStore: FeishuAuthStore
+) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     fun launch(context: Context, appId: String) {
-        val url = buildAuthorizeUrl(appId)
+        // 1. 生成随机 state 并落盘(URL encode 前的原值用于比较)
+        val state = generateState()
+        scope.launch {
+            authStore.persistOAuthState(state)
+        }
+        // 2. 构造授权 URL(URL 编码后给浏览器)
+        val url = buildAuthorizeUrl(appId, state)
         // CustomTabs 已处理启动 flag,不需要手动加 FLAG_ACTIVITY_NEW_TASK。
         val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
         try {
@@ -29,13 +46,15 @@ constructor() {
         }
     }
 
-    private fun buildAuthorizeUrl(appId: String): String {
+    internal fun generateState(): String = java.util.UUID.randomUUID().toString()
+
+    internal fun buildAuthorizeUrl(appId: String, state: String): String {
         val enc = { s: String -> java.net.URLEncoder.encode(s, "UTF-8") }
         return AUTHORIZE_URL +
             "?app_id=" + enc(appId) +
             "&redirect_uri=" + enc(REDIRECT_URI) +
             "&scope=" + enc(SCOPE) +
-            "&state=" + enc(STATE)
+            "&state=" + enc(state)
     }
 
     companion object {
@@ -46,6 +65,5 @@ constructor() {
         private const val APP_DEEP_LINK = "com.yy.writingwithai://feishu/callback"
         private const val AUTHORIZE_URL = "https://open.feishu.cn/open-apis/authen/v1/authorize"
         private const val SCOPE = "docx:document drive:drive"
-        private const val STATE = "app_state"
     }
 }

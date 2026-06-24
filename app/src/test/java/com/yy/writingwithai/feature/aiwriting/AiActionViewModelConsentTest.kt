@@ -64,7 +64,7 @@ class AiActionViewModelConsentTest {
                 consentStore = consent,
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore(),
+                providerPrefsStore = FakeProviderPrefsStore(initial = "fake"),
                 userPrefsStore = FakeUserPrefsStore().apply { seed(true) }
             )
 
@@ -93,7 +93,7 @@ class AiActionViewModelConsentTest {
                 consentStore = consent,
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore(),
+                providerPrefsStore = FakeProviderPrefsStore(initial = "fake"),
                 userPrefsStore = FakeUserPrefsStore().apply { seed(true) }
             )
 
@@ -111,7 +111,7 @@ class AiActionViewModelConsentTest {
             FakeSecureApiKeyStore().apply {
                 runBlocking { save("deepseek", "sk-real") }
             }
-        val providerPrefs = FakeProviderPrefsStore().apply { seed("deepseek") }
+        val providerPrefs = FakeProviderPrefsStore(initial = "fake").apply { seed("deepseek") }
         val gateway = RecordingAiGateway()
         val vm =
             AiActionViewModel(

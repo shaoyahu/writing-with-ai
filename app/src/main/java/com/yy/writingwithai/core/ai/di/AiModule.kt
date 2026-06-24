@@ -28,9 +28,14 @@ object AiModule {
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    /**
+     * fix-2026-06-24-review-r1-critical:仅在 `BuildConfig.DEBUG` 时注册 `FakeAiProvider`,
+     * release build 的 provider map 不含 `"fake"` key,真实用户不会误走 mock 输出。
+     */
     @Provides
     @Singleton
-    fun provideFakeAiProvider(): FakeAiProvider = FakeAiProvider()
+    fun provideFakeAiProvider(): FakeAiProvider? =
+        if (com.yy.writingwithai.BuildConfig.DEBUG) FakeAiProvider() else null
 
     @Provides
     @Singleton
@@ -53,16 +58,16 @@ object AiModule {
     @Provides
     @Singleton
     fun provideAiProviders(
-        fake: FakeAiProvider,
+        fake: FakeAiProvider?,
         @Named("deepseek") deepseek: AnthropicCompatibleAdapter,
         @Named("minimax") minimax: AnthropicCompatibleAdapter,
         @Named("mimo") mimo: AnthropicCompatibleAdapter
-    ): Map<String, @JvmSuppressWildcards AiProvider> = mapOf(
-        "fake" to fake,
-        "deepseek" to deepseek,
-        "minimax" to minimax,
-        "mimo" to mimo
-    )
+    ): Map<String, @JvmSuppressWildcards AiProvider> = buildMap {
+        put("deepseek", deepseek)
+        put("minimax", minimax)
+        put("mimo", mimo)
+        if (fake != null) put("fake", fake)
+    }
 
     @Provides
     @Singleton

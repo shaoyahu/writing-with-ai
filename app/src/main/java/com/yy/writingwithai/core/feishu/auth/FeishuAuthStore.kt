@@ -51,6 +51,25 @@ interface FeishuAuthStore {
     suspend fun clearAppSecret()
     fun getAppSecretSnapshot(): String?
     fun getAppIdAndSecret(): Pair<String, String>?
+
+    /**
+     * fix-2026-06-24-review-r1-critical · OAuth state CSRF 防护持久化。
+     *
+     * @param state 随机字符串(UUID/SecureRandom),OAuthLauncher 写、OAuthCodeReceiver 校验
+     * @param ttlMs 存活时长(默认 5 分钟),超过即视为过期
+     */
+    suspend fun persistOAuthState(state: String, ttlMs: Long = OAUTH_STATE_DEFAULT_TTL_MS)
+
+    /**
+     * 取并清除已存的 OAuth state;返回 stored state,若不存在或过期返回 `null`。
+     * (单 KEY,不支持并发多 flow — 同设备单用户场景足够。)
+     */
+    fun consumeOAuthState(): String?
+
+    companion object {
+        /** fix r1:OAuth state 默认 TTL = 5 分钟。 */
+        const val OAUTH_STATE_DEFAULT_TTL_MS: Long = 5L * 60L * 1000L
+    }
 }
 
 @Singleton
@@ -141,6 +160,30 @@ constructor(
         return id to sec
     }
 
+    override suspend fun persistOAuthState(state: String, ttlMs: Long) {
+        withContext(Dispatchers.IO) {
+            val p = requirePrefs() ?: return@withContext
+            val expiresAt = System.currentTimeMillis() + ttlMs
+            p.edit()
+                .putString(KEY_OAUTH_STATE_VALUE, state)
+                .putLong(KEY_OAUTH_STATE_EXPIRES, expiresAt)
+                .apply()
+        }
+    }
+
+    override fun consumeOAuthState(): String? {
+        val p = requirePrefs() ?: return null
+        val value = p.getString(KEY_OAUTH_STATE_VALUE, null) ?: return null
+        val expiresAt = p.getLong(KEY_OAUTH_STATE_EXPIRES, 0L)
+        // 一次性消费:不论是否过期都清,避免 replay
+        p.edit()
+            .remove(KEY_OAUTH_STATE_VALUE)
+            .remove(KEY_OAUTH_STATE_EXPIRES)
+            .apply()
+        if (System.currentTimeMillis() > expiresAt) return null
+        return value
+    }
+
     /** 取 prefs;若 Keystore 不可用返回 null(调用方应继续 fail-safe,不抛错掩盖)。 */
     private fun requirePrefs(): SharedPreferences? = prefs
 
@@ -175,5 +218,7 @@ constructor(
         private const val KEY_EXPIRES = "feishu_token_expires_at"
         private const val KEY_FOLDER = "feishu_folder_token"
         private const val KEY_SECRET = "feishu_app_secret"
+        private const val KEY_OAUTH_STATE_VALUE = "feishu_oauth_state_value"
+        private const val KEY_OAUTH_STATE_EXPIRES = "feishu_oauth_state_expires_at"
     }
 }

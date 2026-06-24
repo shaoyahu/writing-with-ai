@@ -9,19 +9,18 @@ import kotlinx.coroutines.flow.map
 /**
  * provider-real-integration 单测用 · 内存版 [ProviderPrefsStore]。
  *
- * 默认 `"fake"`(与 [ProviderPrefsStoreImpl.DEFAULT_PROVIDER_ID] 一致),
+ * fix-2026-06-24-review-r1-critical:`initial` 改为 `String?` 默认 `null`,
+ * 与 [ProviderPrefsStoreImpl.DEFAULT_PROVIDER_ID] 一致(首次安装未配置)。
  * 测试可通过 [seed] / [setSelectedProviderId] 改值。
- *
- * model-management-detail-dropdown: 同步加 per-provider selectedModel in-memory 实现。
  */
 class FakeProviderPrefsStore(
-    initial: String = ProviderPrefsStoreImpl.DEFAULT_PROVIDER_ID
+    initial: String? = ProviderPrefsStoreImpl.DEFAULT_PROVIDER_ID
 ) : ProviderPrefsStore {
     private val flow = MutableStateFlow(initial)
     private val selectedModels = MutableStateFlow<Map<String, String>>(emptyMap())
     private val apiFormats = MutableStateFlow<Map<String, ApiFormat>>(emptyMap())
 
-    override suspend fun getSelectedProviderId(): String = flow.value
+    override suspend fun getSelectedProviderId(): String? = flow.value
 
     override suspend fun setSelectedProviderId(providerId: String) {
         flow.value = providerId

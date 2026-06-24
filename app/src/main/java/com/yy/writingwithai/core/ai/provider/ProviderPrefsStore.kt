@@ -24,13 +24,16 @@ import kotlinx.coroutines.flow.map
  * 本 store 仅存"哪个 provider"的明文 id,无敏感数据。
  */
 interface ProviderPrefsStore {
-    /** 当前选定的 providerId;默认 `"fake"`。suspend 因 DataStore IO。 */
-    suspend fun getSelectedProviderId(): String
+    /**
+     * fix-2026-06-24-review-r1-critical:返回 `String?`(null = 未选定,首次安装 / 清数据)。
+     * 旧版本默认 `"fake"` 改为 `null`,避免 release 用户首启默认走 FakeAiProvider。
+     */
+    suspend fun getSelectedProviderId(): String?
 
     suspend fun setSelectedProviderId(providerId: String)
 
-    /** Flow,UI 可订阅实时刷新。 */
-    fun observeSelectedProviderId(): Flow<String>
+    /** Flow,UI 可订阅实时刷新;值可为 `null`。 */
+    fun observeSelectedProviderId(): Flow<String?>
 
     /** per-provider 用户选定的 model 名;无值 = `null`(走 ProviderConfig.defaultModel 兜底)。 */
     suspend fun getSelectedModel(providerId: String): String?
@@ -59,16 +62,16 @@ private val Context.providerPrefsDataStore: DataStore<Preferences> by preference
 class ProviderPrefsStoreImpl(
     private val context: Context
 ) : ProviderPrefsStore {
-    override suspend fun getSelectedProviderId(): String = context.providerPrefsDataStore.data
-        .map { it[KEY_SELECTED_PROVIDER_ID] ?: DEFAULT_PROVIDER_ID }
+    override suspend fun getSelectedProviderId(): String? = context.providerPrefsDataStore.data
+        .map { it[KEY_SELECTED_PROVIDER_ID] }
         .first()
 
     override suspend fun setSelectedProviderId(providerId: String) {
         context.providerPrefsDataStore.edit { it[KEY_SELECTED_PROVIDER_ID] = providerId }
     }
 
-    override fun observeSelectedProviderId(): Flow<String> = context.providerPrefsDataStore.data
-        .map { it[KEY_SELECTED_PROVIDER_ID] ?: DEFAULT_PROVIDER_ID }
+    override fun observeSelectedProviderId(): Flow<String?> = context.providerPrefsDataStore.data
+        .map { it[KEY_SELECTED_PROVIDER_ID] }
 
     override suspend fun getSelectedModel(providerId: String): String? {
         return context.providerPrefsDataStore.data
@@ -112,7 +115,8 @@ class ProviderPrefsStoreImpl(
     }
 
     companion object {
-        const val DEFAULT_PROVIDER_ID = "fake"
+        // fix-2026-06-24-review-r1-critical:默认 null(首次安装需用户主动选 provider)
+        val DEFAULT_PROVIDER_ID: String? = null
         private val KEY_SELECTED_PROVIDER_ID = stringPreferencesKey("selected_provider_id")
         private const val TAG = "ProviderPrefsStore"
         // TAG 与 KEY 合并到同一 companion object,避免拆分导致 IDE / compiler 看不到 const 引用。

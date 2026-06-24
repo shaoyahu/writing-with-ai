@@ -14,6 +14,9 @@ import kotlinx.coroutines.launch
  *
  * 飞书重定向到 com.yy.writingwithai://feishu/callback?code=xxx,
  * 此 Activity 接 code 并触发 token 交换,完成后 finish。
+ *
+ * fix-2026-06-24-review-r1-critical:校验 URL `state` 参数 vs [FeishuAuthStore.consumeOAuthState]
+ * 返回值,相等且未过期才走 exchange;不匹配直接 finish,不调 token 端点(防 CSRF / code 注入)。
  */
 @AndroidEntryPoint
 class OAuthCodeReceiver : ComponentActivity() {
@@ -28,6 +31,7 @@ class OAuthCodeReceiver : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val data = intent.data
         val code = data?.getQueryParameter("code")
+        val receivedState = data?.getQueryParameter("state")
         val errCode = data?.getQueryParameter("error")
         if (errCode != null) {
             Log.w(TAG, "OAuth error from feishu: $errCode")
@@ -36,6 +40,21 @@ class OAuthCodeReceiver : ComponentActivity() {
         }
         if (code == null) {
             Log.w(TAG, "OAuth callback missing code: $data")
+            finish()
+            return
+        }
+
+        // fix r1:state 校验 — 缺失 / 不匹配 / 过期 → 不调 exchange
+        val expectedState = authStore.consumeOAuthState()
+        if (expectedState == null) {
+            Log.w(TAG, "OAuth state validation failed: no stored state (expired or never persisted)")
+            android.widget.Toast.makeText(this, "授权失败: state 已过期或不存在,请重试", android.widget.Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+        if (receivedState == null || receivedState != expectedState) {
+            Log.w(TAG, "OAuth state validation failed: expected=$expectedState received=$receivedState")
+            android.widget.Toast.makeText(this, "授权失败: state 校验失败", android.widget.Toast.LENGTH_LONG).show()
             finish()
             return
         }

@@ -49,7 +49,7 @@ class AiActionViewModelTest {
     }
     private val secureApiKeyStore = FakeSecureApiKeyStore()
     private val promptTemplateStore = FakePromptTemplateStore()
-    private val providerPrefsStore = FakeProviderPrefsStore()
+    private val providerPrefsStore = FakeProviderPrefsStore(initial = "fake")
 
     @BeforeEach
     fun setUp() {

@@ -126,6 +126,11 @@ constructor(
                 // H1 修:4 个 prefs read 全在 suspend 上下文(viewModelScope.launch 内) await,
                 // 删原 gateway.streamWritingOp 内 runBlocking(主线程 ANR)。
                 val providerId = providerPrefsStore.getSelectedProviderId()
+                // fix-2026-06-24-review-r1-critical:null = 未配置 provider → 走 ProviderNotConfigured
+                if (providerId == null) {
+                    _state.value = AiActionUiState.Failed(op = op, error = AiError.ProviderNotConfigured)
+                    return@launch
+                }
                 val apikey = secureApiKeyStore.get(providerId)
                 val apiFormatOverride = providerPrefsStore.getApiFormat(providerId)
                 if (providerId != PROVIDER_ID_FAKE && apikey == null) {

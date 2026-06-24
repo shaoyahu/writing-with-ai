@@ -60,7 +60,8 @@ constructor(
     init {
         viewModelScope.launch {
             val selected = providerPrefsStore.getSelectedProviderId()
-            val hasKey = selected != "fake" && secureApiKeyStore.has(selected)
+            // fix-2026-06-24-review-r1-critical:selected 可能为 null(首次安装未配置)
+            val hasKey = selected != null && selected != "fake" && secureApiKeyStore.has(selected)
             val initialConfigured = secureApiKeyStore.observeConfiguredProviders().first()
             val initialCustom = customProviderStore.getAll()
             _state.update {
@@ -244,7 +245,8 @@ constructor(
     }
 
     /** 测连通。缺 apikey 立即 fail;错误细节从 gateway 直传 UI。用 config.defaultModel。 */
-    fun ping(providerId: String) {
+    fun ping(providerId: String?) {
+        if (providerId == null) return
         viewModelScope.launch {
             _state.update { it.copy(pingResult = PingResult.InProgress) }
             val apikey = secureApiKeyStore.get(providerId)
@@ -289,7 +291,7 @@ constructor(
 }
 
 data class ModelManagementUiState(
-    val selectedProviderId: String = "fake",
+    val selectedProviderId: String? = null,
     val hasApiKeyForSelected: Boolean = false,
     val pingResult: PingResult = PingResult.Idle,
     val configuredProviderIds: Set<String> = emptySet(),

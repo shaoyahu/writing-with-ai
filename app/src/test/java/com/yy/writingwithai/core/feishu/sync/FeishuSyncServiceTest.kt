@@ -53,6 +53,10 @@ class FeishuSyncServiceTest {
         override suspend fun clearAppSecret() {}
         override fun getAppSecretSnapshot(): String? = null
         override fun getAppIdAndSecret(): Pair<String, String>? = null
+
+        // fix-2026-06-24-review-r1-critical:新增 OAuth state API stub
+        override suspend fun persistOAuthState(state: String, ttlMs: Long) {}
+        override fun consumeOAuthState(): String? = null
     }
     private val service = FeishuSyncService(notes, docService, refs, events, fakeAuthStore)
 

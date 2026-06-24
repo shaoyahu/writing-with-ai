@@ -131,7 +131,7 @@
     <string name="settings_data_save_report">TODO(en): settings_data_save_report</string>
     <string name="settings_data_report_saved">TODO(en): settings_data_report_saved</string>
     <string name="settings_data_no_report">TODO(en): settings_data_no_report</string>
-    <string name="settings_data_save_failed">TODO(en): settings_data_save_failed</string>
+    <string name="settings_data_save_failed">Save failed: %1$s</string>
     <string name="import_report_summary">TODO(en): import_report_summary</string>
 
     <!-- ===== M4-4 onboarding-consent(英文 TODO 占位,M5 polish 阶段补齐)===== -->

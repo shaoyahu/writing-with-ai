@@ -2,6 +2,22 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log,单次评审查 `docs/reviews/`,规划查 `docs/plans/`。
 
+## 2026-06-25 · 全量 review r1 critical 修复
+
+- **fix-2026-06-24-review-r1-critical**(`docs/reviews/2026-06-24-full-project-code-review-r1.md` 0-day 阻断项):
+  - **8 项 CRITICAL 全收**:UpdateDownloadReceiver 路径穿越(C1)+ OAuth CSRF state 校验(C2)+ ZipHelper Zip Slip(C3)+ AttachmentStore id 校验(C4)+ WebDavSyncEngine Unsupported 替换 Failure(C5)+ LlmNoteLinkExtractor/LlmEntityExtractor prompt fenced + 16384 char cap(C6+C7)+ FakeAiProvider 限定 `BuildConfig.DEBUG` + `ProviderPrefsStore.DEFAULT_PROVIDER_ID` 默认 null(C8)
+  - **lint 3 error 全消**:UpdateDownloadReceiver.kt:59-60 Range + SettingsDataScreen.kt:79 StringFormatInvalid(en string 补 `%1$s`)
+  - **共享工具**:`core/security/PathSafety` (SAFE_NAME/SAFE_ID/SAFE_EXT + canonical containment) + `core/ai/prompt/SafePromptTemplate` (fenced block) + `TokenLimitExceeded`
+  - **验证**: `./gradlew :app:check` 绿(ktlint 0 + testDebug/testRelease 全 pass + lintDebug 0 error)
+  - **HIGH/MEDIUM/LOW** 留给后续 change 分批
+
+## 2026-06-24 · 自托管应用分发上线
+
+- **app-self-hosted-update**: 服务端脚本(build-version-json / build-index / publish-release) + Nginx /app/download + /app/version.json + /callback 托管页;App 端 AppUpdateChecker(OkHttp + JSON 解析 + 错误分类) + ApkDownloader(DownloadManager 封装) + UpdateDownloadReceiver(FileProvider + SHA-256 校验) + AboutScreen/UpdateDialog UI
+- **e2e 真机验证**: V2509A 安装 debug APK → 触发检查更新 → 下载 → SHA-256 校验通过 → FileProvider content URI → 系统安装器启动,全流程通
+- **debug manifest URL 临时切生产**验证后已切回 10.0.2.2
+- **OpenSpec 归档**: `app-self-hosted-update` → `openspec/changes/archive/2026-06-24-app-self-hosted-update/`
+
 ## 2026-06-23 · 全部完成
 
 - **A 组**: 3 commit 收尾(entity-extraction-association + lint + openspec 归档)

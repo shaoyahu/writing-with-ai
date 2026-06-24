@@ -65,7 +65,7 @@ class AiActionViewModelApikeyPromptTest {
                 consentStore = consent,
                 secureApiKeyStore = FakeSecureApiKeyStore(),
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore(),
+                providerPrefsStore = FakeProviderPrefsStore(initial = "fake"),
                 userPrefsStore = userPrefs
             )
 
@@ -94,7 +94,7 @@ class AiActionViewModelApikeyPromptTest {
                 consentStore = consent,
                 secureApiKeyStore = FakeSecureApiKeyStore(),
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore(),
+                providerPrefsStore = FakeProviderPrefsStore(initial = "fake"),
                 userPrefsStore = userPrefs
             )
 
