@@ -5,4 +5,6 @@
       这里只需要一个"不报错"的主题让 manifest 引用。
     -->
     <style name="Theme.WritingApp" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- feishu-user-oauth:OAuthCodeReceiver 用,透明背景 -->
+    <style name="Theme.WritingApp.Translucent" parent="android:Theme.Translucent.NoTitleBar" />
 </resources>

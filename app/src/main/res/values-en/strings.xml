@@ -121,7 +121,6 @@
 
     <!-- ===== M4-3 数据迁移 data-export-import(英文 TODO 占位)===== -->
     <string name="settings_data_title">TODO(en): settings_data_title</string>
-    <string name="settings_data_export">TODO(en): settings_data_export</string>
     <string name="settings_data_import">TODO(en): settings_data_import</string>
     <string name="settings_data_exporting">TODO(en): settings_data_exporting</string>
     <string name="settings_data_importing">TODO(en): settings_data_importing</string>
@@ -251,6 +250,11 @@
 
     <!-- entity-extraction-association · alias management + threshold + backfill progress -->
     <string name="entity_alias_management_title">Entity alias management</string>
+    <string name="entity_alias_explanation_title">What is an entity alias?</string>
+    <string name="entity_alias_explanation_body">An entity alias merges different spellings of the same real-world entity into one canonical entity. For example, if your notes mention 小明, 小名, and XiaoMing — they are the same person. Merge them to the canonical 小明, and AI association/linking will treat them as one entity, avoiding duplicates and gaps.</string>
+    <string name="entity_alias_example_title">Example</string>
+    <string name="entity_alias_example_body">Type: Person, Alias: 小名, Canonical: 小明. All notes containing 小名 will be extracted to the 小明 entity, and backlink / suggestion will aggregate around 小明.</string>
+    <string name="model_management_menu_add">Add</string>
     <string name="entity_alias_management_desc">Merge same entity under different names (e.g. 小明 / XiaoMing)</string>
     <string name="entity_alias_input_alias">Alias</string>
     <string name="entity_alias_input_canonical">Canonical entity</string>
@@ -274,6 +278,21 @@
     <string name="entity_type_product">Product</string>
     <string name="entity_type_task">Task</string>
     <string name="entity_type_number">Number</string>
-    <string name="quicknote_list_menu_cd">Menu</string>
     <string name="quicknote_detail_add_image">Add image</string>
+
+    <!-- ===== app-bottom-tab-bar · bottom tab bar + Me screen ===== -->
+    <string name="tab_notes">Notes</string>
+    <string name="tab_my">Me</string>
+    <string name="tab_new_note_cd">New note</string>
+    <string name="me_title">Me</string>
+    <string name="me_data_title">Data</string>
+    <string name="me_model_title">AI Models</string>
+    <string name="me_prompt_title">Prompt Template</string>
+    <string name="me_alias_title">Entity Aliases</string>
+    <string name="me_feishu_title">Feishu Sync</string>
+    <string name="me_settings_title">Settings</string>
+    <string name="feishu_auth_title">Feishu Authorization</string>
+    <string name="feishu_command_prompt_intro">Available Feishu operations: create_doc / read_doc / update_doc / append_block</string>
+    <string name="me_about_title">About</string>
+    <string name="me_data_export_all">Export all as ZIP</string>
 </resources>

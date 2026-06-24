@@ -328,6 +328,7 @@ fun QuickNoteDetailScreen(
                                 leadingIcon = { Icon(Icons.Filled.CloudDownload, contentDescription = null) },
                                 onClick = {
                                     menuExpanded = false
+                                    pullUrlInput = feishuRef?.docUrl.orEmpty()
                                     showPullDialog = true
                                 }
                             )
@@ -674,18 +675,32 @@ fun QuickNoteDetailScreen(
         LaunchedEffect(syncMessage) { showSyncMessageDialog = true }
     }
     if (showSyncMessageDialog && syncMessage != null) {
+        val ctx = androidx.compose.ui.platform.LocalContext.current
+        val msg = syncMessage
+        val isSuccess = msg?.startsWith("同步完成:") == true
         AlertDialog(
             onDismissRequest = {
                 showSyncMessageDialog = false
                 viewModel.clearSyncMessage()
             },
-            title = { Text("飞书同步") },
-            text = { Text(syncMessage ?: "") },
+            title = { Text(if (isSuccess) "飞书同步成功" else "飞书同步失败") },
+            text = { Text(msg ?: "") },
             confirmButton = {
+                TextButton(onClick = {
+                    val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                        as android.content.ClipboardManager
+                    // 成功时复制 URL(打开看文档);失败时复制错误消息
+                    val label = if (isSuccess) "feishu_url" else "feishu_error"
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText(label, msg ?: ""))
+                    showSyncMessageDialog = false
+                    viewModel.clearSyncMessage()
+                }) { Text(if (isSuccess) "复制链接" else "复制错误") }
+            },
+            dismissButton = {
                 TextButton(onClick = {
                     showSyncMessageDialog = false
                     viewModel.clearSyncMessage()
-                }) { Text("确定") }
+                }) { Text("关闭") }
             }
         )
     }

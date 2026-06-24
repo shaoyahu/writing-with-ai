@@ -21,17 +21,8 @@ object SettingsEntry {
 
     /** Settings 主屏入口(从 QuickNoteListScreen overflow menu 跳)。 */
     @Composable
-    fun SettingsRoute(
-        onPromptTemplateClick: () -> Unit,
-        onModelManagementClick: () -> Unit = {},
-        onAliasManagementClick: () -> Unit = {},
-        onBack: () -> Unit = {},
-        modifier: Modifier = Modifier
-    ) {
+    fun SettingsRoute(onBack: () -> Unit = {}, modifier: Modifier = Modifier) {
         SettingsScreen(
-            onPromptTemplateClick = onPromptTemplateClick,
-            onModelManagementClick = onModelManagementClick,
-            onAliasManagementClick = onAliasManagementClick,
             onBack = onBack,
             modifier = modifier
         )

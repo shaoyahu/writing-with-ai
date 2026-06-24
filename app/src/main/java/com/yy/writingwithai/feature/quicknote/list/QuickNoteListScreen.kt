@@ -1,8 +1,5 @@
 package com.yy.writingwithai.feature.quicknote.list
 
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -20,19 +17,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,19 +53,25 @@ import com.yy.writingwithai.core.ui.NoteListSkeleton
 import com.yy.writingwithai.feature.quicknote.model.NoteListUiState
 import kotlinx.coroutines.launch
 
+/**
+ * app-bottom-tab-bar · 笔记 tab 根屏。
+ *
+ * 瘦身记录:
+ * - 删 `MoreVert` + `DropdownMenu`(整段)
+ * - 删 `Scaffold.floatingActionButton`(职责上移 `AppShell` 中央 FAB)
+ * - 删 `exportAllLauncher`(导出迁入 `SettingsDataScreen`)
+ * - 删 `onSettingsClick` / `onPromptSettingsClick` 形参(入口下移"我的" tab)
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickNoteListScreen(
     onNoteClick: (id: String) -> Unit,
     onCreateClick: () -> Unit,
-    onSettingsClick: () -> Unit = {},
-    onPromptSettingsClick: () -> Unit = {},
     viewModel: QuickNoteListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val spacing = LocalSpacing.current
     val allTags: List<String> = (state as? NoteListUiState.Content)?.allTags ?: emptyList()
-    var menuOpen by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var searchHistory by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -81,76 +79,11 @@ fun QuickNoteListScreen(
         searchHistory = SearchHistoryStore.getAll(context)
     }
 
-    val exportAllLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/zip")
-    ) { uri ->
-        val ctx = context
-        uri ?: return@rememberLauncherForActivityResult
-        try {
-            ctx.contentResolver.openOutputStream(uri)?.use { os ->
-                val notes = (state as? NoteListUiState.Content)?.notes ?: emptyList()
-                val buf = java.util.zip.ZipOutputStream(os)
-                for (n in notes) {
-                    val note = n.note
-                    buf.putNextEntry(java.util.zip.ZipEntry(note.title.ifBlank { note.id } + ".md"))
-                    buf.write(note.content.toByteArray(Charsets.UTF_8))
-                    buf.closeEntry()
-                }
-                buf.finish()
-            }
-            Toast.makeText(ctx, ctx.getString(R.string.quicknote_export_success), Toast.LENGTH_SHORT).show()
-        } catch (_: Exception) {
-            Toast.makeText(ctx, ctx.getString(R.string.quicknote_export_error), Toast.LENGTH_SHORT).show()
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.quicknote_list_title)) },
-                actions = {
-                    IconButton(onClick = { menuOpen = true }) {
-                        Icon(
-                            Icons.Filled.MoreVert,
-                            contentDescription = stringResource(R.string.quicknote_list_menu_cd)
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = menuOpen,
-                        onDismissRequest = { menuOpen = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.settings_title)) },
-                            onClick = {
-                                menuOpen = false
-                                onPromptSettingsClick()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.settings_data_title)) },
-                            onClick = {
-                                menuOpen = false
-                                onSettingsClick()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.quicknote_list_export_selected)) },
-                            onClick = {
-                                menuOpen = false
-                                exportAllLauncher.launch("notes_export.zip")
-                            }
-                        )
-                    }
-                }
+                title = { Text(stringResource(R.string.quicknote_list_title)) }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreateClick) {
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = stringResource(R.string.quicknote_list_fab_new)
-                )
-            }
         }
     ) { innerPadding ->
         Column(
@@ -158,6 +91,7 @@ fun QuickNoteListScreen(
             Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .padding(top = 0.dp)
         ) {
             OutlinedTextField(
                 value = state.query,
@@ -169,6 +103,10 @@ fun QuickNoteListScreen(
                         contentDescription = stringResource(R.string.quicknote_list_search_hint)
                     )
                 },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.md)
+                    .padding(top = 4.dp, bottom = spacing.sm),
                 trailingIcon = {
                     if (state.query.isNotEmpty()) {
                         IconButton(onClick = { viewModel.setQuery("") }) {
@@ -179,11 +117,7 @@ fun QuickNoteListScreen(
                         }
                     }
                 },
-                singleLine = true,
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.md, vertical = spacing.sm)
+                singleLine = true
             )
             // fix-quicknote-tags-and-search · 当前筛选 banner(仅 selectedTag 非空)
             if (state.selectedTag != null) {
@@ -261,7 +195,8 @@ fun QuickNoteListScreen(
                     )
                 is NoteListUiState.Content ->
                     LazyColumn(
-                        contentPadding = PaddingValues(bottom = 80.dp),
+                        // review r1 L1 修:删底部 80dp padding(FAB 已移走,不再需要让位)。
+                        contentPadding = PaddingValues(bottom = 0.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(items = s.notes, key = { it.note.id }) { item ->

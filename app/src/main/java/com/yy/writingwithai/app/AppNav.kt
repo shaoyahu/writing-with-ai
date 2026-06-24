@@ -24,10 +24,10 @@ import com.yy.writingwithai.feature.onboarding.OnboardingEntry
 import com.yy.writingwithai.feature.onboarding.OnboardingRoute
 import com.yy.writingwithai.feature.quicknote.detail.QuickNoteDetailScreen
 import com.yy.writingwithai.feature.quicknote.edit.QuickNoteEditorScreen
-import com.yy.writingwithai.feature.quicknote.list.QuickNoteListScreen
 import com.yy.writingwithai.feature.settings.SettingsEntry
 import com.yy.writingwithai.feature.settings.alias.AliasManagementScreen
 import com.yy.writingwithai.feature.settings.data.SettingsDataScreen
+import com.yy.writingwithai.feature.settings.feishu.FeishuAuthScreen
 import com.yy.writingwithai.feature.settings.model.ModelManagementEntry
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -37,12 +37,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 
 /**
- * writing-with-ai · 应用 NavHost(M1 接入 quick-note-feature,M4-1 加 widget 启动参数,M4-4 加 consent gate)。
+ * writing-with-ai · 应用 NavHost(M1 接入 quick-note-feature,M4-1 加 widget 启动参数,
+ * M4-4 加 consent gate,app-bottom-tab-bar 改为底部 3 槽 tab shell)。
  *
- * 路由结构:
- * - [QuicknoteList] 列表入口(应用默认目的地)
+ * 路由结构(review r1 L6 修后):
+ * - [AppShell] 底部 tab 容器根路由(应用默认目的地;承载 Notes / Me 两个 tab 根屏)
  * - [QuicknoteDetail] 详情(`id` 为 Note.id)
  * - [QuicknoteEdit] 编辑(`id` 缺省或 "NEW" 视为新建;`prefillFocus` 用于 widget "新建"启动)
+ * - [Notes] / [Me] tab 根屏(由 AppShell 内部子 NavHost 持有,不在根 NavHost 注册 composable)
  * - `onboarding/consent` 同意门(M4-4 新增)
  *
  * M4-4 改动(r1 H1 修):
@@ -51,7 +53,15 @@ import kotlinx.serialization.Serializable
  * - 启动时 `LaunchedEffect(Unit) { consentStore.consentFlow.first() }` → 未同意或版本过期
  *   → `navController.navigate("onboarding/consent") { popUpTo(0) }` 强制走同意页
  * - 同意后 `LaunchedEffect(consentState)` 监听到 `accepted && version >= CURRENT` →
- *   `navigate(QuicknoteList) { popUpTo(0) }` 单向门 + widgetPendingRoute 回放
+ *   `navigate(AppShell) { popUpTo(0) }` 单向门 + widgetPendingRoute 回放
+ *   (review r1 修:原 `QuicknoteList` 改 `AppShell`)
+ *
+ * app-bottom-tab-bar 改动:
+ * - `startDestination = AppShell`(原 `QuicknoteList`)
+ * - widget pending route 回放的 popUpTo 锚点由 `QuicknoteList` 切到 `AppShell`
+ * - `composable<AppShell>` block 渲染 `AppShell(...)`(同 package `com.yy.writingwithai.app`)
+ *
+ * @deprecated `QuicknoteList` route 仍保留作 archive sync 对齐,不推荐新代码引用。
  */
 @EntryPoint
 @InstallIn(ActivityComponent::class)
@@ -135,15 +145,15 @@ fun AppNav(
                                     popUpTo(0) { inclusive = true }
                                 }
                             } else {
-                                navController.navigate(QuicknoteList) { popUpTo(0) { inclusive = true } }
+                                navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
                             }
                         }
                         else -> {
-                            navController.navigate(QuicknoteList) { popUpTo(0) { inclusive = true } }
+                            navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
                         }
                     }
                 } else {
-                    navController.navigate(QuicknoteList) { popUpTo(0) { inclusive = true } }
+                    navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
                 }
             }
         } else if (!consentState.accepted) {
@@ -158,14 +168,12 @@ fun AppNav(
 
     NavHost(
         navController = navController,
-        startDestination = QuicknoteList
+        startDestination = AppShell
     ) {
-        composable<QuicknoteList> {
-            QuickNoteListScreen(
-                onNoteClick = { id -> navController.navigate(QuicknoteDetail(id)) },
-                onCreateClick = { navController.navigate(QuicknoteEdit()) },
-                onSettingsClick = { navController.navigate(SettingsData) },
-                onPromptSettingsClick = { navController.navigate(Settings) }
+        composable<AppShell> {
+            AppShell(
+                rootNavController = navController,
+                onCreateClick = { navController.navigate(QuicknoteEdit()) }
             )
         }
         composable<QuicknoteDetail> {
@@ -193,9 +201,6 @@ fun AppNav(
         }
         composable<Settings> {
             SettingsEntry.SettingsRoute(
-                onPromptTemplateClick = { navController.navigate(SettingsPromptTemplate) },
-                onModelManagementClick = { navController.navigate(SettingsModelManagement) },
-                onAliasManagementClick = { navController.navigate(SettingsAliasManagement) },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -229,6 +234,11 @@ fun AppNav(
                 onBack = { navController.popBackStack() }
             )
         }
+        composable<FeishuAuth> {
+            // 飞书 OAuth 授权(app_id / app_secret)。从 MyScreen "飞书同步" 入口进。
+            // FeishuAuthScreen 自带 TopAppBar + ArrowBack,与 Settings 其他二级页一致。
+            FeishuAuthScreen(onBack = { navController.popBackStack() })
+        }
         composable(OnboardingEntry.ROUTE_CONSENT) {
             OnboardingRoute(
                 onExitApp = { /* OnboardingRoute 内部已 finishAffinity() */ }
@@ -257,15 +267,15 @@ fun AppNav(
                                         popUpTo(0) { inclusive = true }
                                     }
                                 } else {
-                                    navController.navigate(QuicknoteList) { popUpTo(0) { inclusive = true } }
+                                    navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
                                 }
                             }
                             else -> {
-                                navController.navigate(QuicknoteList) { popUpTo(0) { inclusive = true } }
+                                navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
                             }
                         }
                     } else {
-                        navController.navigate(QuicknoteList) { popUpTo(0) { inclusive = true } }
+                        navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
                     }
                 }
             )
@@ -284,14 +294,14 @@ fun AppNav(
                 initialRoute.startsWith("quicknote/edit") -> {
                     val prefill = initialRoute.contains("prefillFocus=true")
                     navController.navigate(QuicknoteEdit(id = "NEW", prefillFocus = prefill)) {
-                        popUpTo(QuicknoteList) { inclusive = true }
+                        popUpTo(AppShell) { inclusive = true }
                     }
                 }
                 initialRoute.startsWith("quicknote/detail/") -> {
                     val id = initialRoute.removePrefix("quicknote/detail/")
                     if (id.isNotBlank()) {
                         navController.navigate(QuicknoteDetail(id)) {
-                            popUpTo(QuicknoteList) { inclusive = true }
+                            popUpTo(AppShell) { inclusive = true }
                         }
                     }
                 }
@@ -302,6 +312,21 @@ fun AppNav(
 
 @Serializable
 data object QuicknoteList
+
+/**
+ * app-bottom-tab-bar · 底部 tab 容器根路由(类型安全)。
+ * - `AppShell` 是根 NavHost 的 startDestination;`composable<AppShell>` 渲染 `AppShell(...)`。
+ * - `Notes` / `Me` 是 AppShell 内部子 NavHost 的 tab 根路由(不由根 NavHost 注册 composable)。
+ *   它们在这里声明,供 `AppShell.kt` 的 typed navigate / popUpTo 引用。
+ */
+@Serializable
+data object AppShell
+
+@Serializable
+data object Notes
+
+@Serializable
+data object Me
 
 @Serializable
 data class QuicknoteDetail(val id: String)
@@ -329,3 +354,10 @@ data class SettingsModelProviderDetail(val providerId: String)
 
 @Serializable
 data class SettingsCustomProviderEdit(val providerId: String? = null)
+
+/**
+ * app-bottom-tab-bar 增量 · 飞书 OAuth 授权屏路由。
+ * MyScreen 的"飞书同步"入口指向此路由,渲染 FeishuAuthScreen(app_id / app_secret 输入 + 连接/断开)。
+ */
+@Serializable
+data object FeishuAuth

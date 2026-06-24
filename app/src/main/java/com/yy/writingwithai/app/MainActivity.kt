@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
@@ -74,6 +75,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 反馈 #6(2026-06-23):启用 edge-to-edge,让 Compose 接管 status bar insets。
+        // 否则 M3 TopAppBar 的 windowInsets(默认含 status bar top)会与系统装饰 double-pad,
+        // 表现为"随手记/我的"标题距屏幕顶部过远。
+        enableEdgeToEdge()
         onBackPressedDispatcher.addCallback(this, backCallback)
         val rawRoute = intent?.getStringExtra(OpenNoteAction.EXTRA_ROUTE)
         handleRawRoute(rawRoute)

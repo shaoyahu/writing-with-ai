@@ -149,7 +149,6 @@
 
     <!-- ===== M4-3 数据迁移 data-export-import ===== -->
     <string name="settings_data_title">数据迁移</string>
-    <string name="settings_data_export">导出全部数据</string>
     <string name="settings_data_import">导入数据</string>
     <string name="settings_data_exporting">导出中...</string>
     <string name="settings_data_importing">导入中...</string>
@@ -335,6 +334,11 @@
 
     <!-- entity-extraction-association · 别名管理 + 关联阈值 + 回填进度 -->
     <string name="entity_alias_management_title">实体别名管理</string>
+    <string name="entity_alias_explanation_title">什么是实体别名?</string>
+    <string name="entity_alias_explanation_body">实体别名 = 把同一个实体的不同写法合并成"标准实体"。例如:笔记里同时出现「小明」「小名」「XiaoMing」其实是同一个人,可以合并到标准实体「小明」,AI 找关联时就只看「小明」,不会漏也不会重复。</string>
+    <string name="entity_alias_example_title">示例</string>
+    <string name="entity_alias_example_body">实体类型:人物,别名:小名,标准实体:小明。之后所有含「小名」的笔记,实体抽取都会归到「小明」,反向链接 / 关联推荐都基于「小明」聚合。</string>
+    <string name="model_management_menu_add">添加</string>
     <string name="entity_alias_management_desc">合并小明 / 小名 / XiaoMing 等同一实体</string>
     <string name="entity_alias_input_alias">别名 (alias)</string>
     <string name="entity_alias_input_canonical">标准实体 (canonical)</string>
@@ -358,6 +362,21 @@
     <string name="entity_type_product">产品</string>
     <string name="entity_type_task">任务</string>
     <string name="entity_type_number">数字</string>
-    <string name="quicknote_list_menu_cd">菜单</string>
     <string name="quicknote_detail_add_image">添加图片</string>
+
+    <!-- ===== app-bottom-tab-bar · 底部 tab 栏 + 我的 ===== -->
+    <string name="tab_notes">笔记</string>
+    <string name="tab_my">我的</string>
+    <string name="tab_new_note_cd">新建笔记</string>
+    <string name="me_title">我的</string>
+    <string name="me_data_title">数据导入导出</string>
+    <string name="me_model_title">AI 模型管理</string>
+    <string name="me_prompt_title">Prompt 模板</string>
+    <string name="me_alias_title">实体别名</string>
+    <string name="me_feishu_title">飞书同步</string>
+    <string name="me_settings_title">设置</string>
+    <string name="feishu_auth_title">飞书授权</string>
+    <string name="feishu_command_prompt_intro">可用飞书操作:create_doc / read_doc / update_doc / append_block</string>
+    <string name="me_about_title">关于</string>
+    <string name="me_data_export_all">导出全部为 ZIP</string>
 </resources>

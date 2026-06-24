@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,6 +45,7 @@ import java.util.Locale
 @Composable
 fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val ctx = LocalContext.current // review r1 H3 修:snackbar 文案走 strings.xml 需 Context
     val exportLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument("application/zip")
@@ -69,11 +71,12 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
         when (val r = saveResult) {
             SaveReportResult.Idle -> Unit
             SaveReportResult.Success -> {
-                snackbarHostState.showSnackbar(message = "报告已保存到所选位置")
+                // review r1 H3 修:snackbar 文案改走 strings.xml(已存在的 key),不再硬编码中文。
+                snackbarHostState.showSnackbar(message = ctx.getString(R.string.settings_data_report_saved))
                 viewModel.resetSaveReportResult()
             }
             is SaveReportResult.Failed -> {
-                snackbarHostState.showSnackbar(message = "保存失败:${r.reason}")
+                snackbarHostState.showSnackbar(message = ctx.getString(R.string.settings_data_save_failed, r.reason))
                 viewModel.resetSaveReportResult()
             }
         }
@@ -114,7 +117,7 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
                             exportLauncher.launch("writing-with-ai-export-$ts.zip")
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(stringResource(R.string.settings_data_export)) }
+                    ) { Text(stringResource(R.string.me_data_export_all)) }
                     if (!canExport) {
                         Spacer(Modifier.height(4.dp))
                         Text(

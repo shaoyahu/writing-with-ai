@@ -34,7 +34,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -89,6 +88,7 @@ fun ModelManagementScreen(
     }
 
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+    var headerMenuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -99,16 +99,30 @@ fun ModelManagementScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
+                },
+                actions = {
+                    // 顶部 3-dot 下拉添加(review r1 修改 2):原 FAB 改为 TopAppBar actions,
+                    // 不再占用底部屏幕空间,Material 3 推荐模式。
+                    IconButton(onClick = { headerMenuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = null)
+                    }
+                    DropdownMenu(
+                        expanded = headerMenuOpen,
+                        onDismissRequest = { headerMenuOpen = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.model_management_menu_add)) },
+                            onClick = {
+                                headerMenuOpen = false
+                                onCreateCustomClick()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Filled.Add, contentDescription = null)
+                            }
+                        )
+                    }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreateCustomClick) {
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = stringResource(R.string.custom_provider_new_title)
-                )
-            }
         }
     ) { innerPadding ->
         Column(
@@ -130,7 +144,9 @@ fun ModelManagementScreen(
                     .map { it.id }
                     .toSet()
             }
-            descriptors.value.forEach { descriptor ->
+            // 过滤 "fake" 内部测试 stub:不展示在用户可见列表(它是 Hilt 默认注入的 fake provider,
+            // 不是用户可配置的模型)。这样默认列表只有真实 builtin + 用户自定义。
+            descriptors.value.filter { it.id != "fake" }.forEach { descriptor ->
                 val isCustom = descriptor.id !in builtinIds
                 ProviderInfoCard(
                     descriptor = descriptor,
