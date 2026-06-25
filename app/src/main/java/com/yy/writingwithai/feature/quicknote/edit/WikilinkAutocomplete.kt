@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,6 +32,9 @@ fun WikilinkAutocomplete(prefix: String, onSelect: (String) -> Unit, modifier: M
     if (prefix.length < 1) return
     val context = LocalContext.current
     var candidates by remember { mutableStateOf<List<NoteEntity>>(emptyList()) }
+    // review r2 修:rememberUpdatedState 保证 clickable lambda 始终持有最新 onSelect,
+    // 避免重组时 onSelect 变化但 clickable 未更新导致调用旧回调。
+    val currentOnSelect by rememberUpdatedState(onSelect)
 
     LaunchedEffect(prefix) {
         withContext(Dispatchers.IO) {
@@ -41,6 +45,8 @@ fun WikilinkAutocomplete(prefix: String, onSelect: (String) -> Unit, modifier: M
                 )
                 val q = "%${prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")}%"
                 candidates = entry.noteDao().searchByTitlePrefix(q, limit = 8)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (_: Exception) { }
         }
     }
@@ -50,7 +56,7 @@ fun WikilinkAutocomplete(prefix: String, onSelect: (String) -> Unit, modifier: M
             if (candidates.isEmpty()) {
                 Text(
                     text = "创建新笔记 \"$prefix\"",
-                    modifier = Modifier.fillMaxWidth().clickable { onSelect(prefix) }.padding(12.dp),
+                    modifier = Modifier.fillMaxWidth().clickable { currentOnSelect(prefix) }.padding(12.dp),
                     style = MaterialTheme.typography.bodySmall
                 )
             } else {
@@ -58,7 +64,7 @@ fun WikilinkAutocomplete(prefix: String, onSelect: (String) -> Unit, modifier: M
                     Text(
                         text = note.title,
                         modifier = Modifier.fillMaxWidth()
-                            .clickable { onSelect(note.title) }.padding(horizontal = 12.dp, vertical = 8.dp),
+                            .clickable { currentOnSelect(note.title) }.padding(horizontal = 12.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 /**
@@ -74,20 +73,13 @@ constructor(
     }
 
     /**
-     * r1 H2 修:VM 构造同步拿权威 consent(避免 `stateIn(Eagerly, EMPTY)` 冷启动 race
-     * 让 `consentFlow.value` 在 DataStore 第一份真值到达前返回 `false` → 已同意用户
-     * 被错误 fail `UserConsentRequired`)。`runBlocking` 阻塞 ~50ms 在主线程,
-     * VM 构造期一次性,等价于 `MainActivity.onCreate` 的同步检查。
+     * review r2 修:删 `runBlocking` 同步读取 consent/ack — 在 ViewModel 构造函数中
+     * runBlocking 阻塞主线程等待 DataStore,冷启动或低端设备上可能 ANR;且构造时快照
+     * 在用户同一会话内完成 onboarding 后仍为 false,AI 调用被错误阻断。
+     * 改为在 start() 内异步读取最新 consent 状态,同时解决 ANR + 快照过期两个问题。
+     * 首次 `consentFlow.first()` 在 DataStore 冷启动时约 50ms,但在 suspend 上下文
+     * 内不阻塞主线程。
      */
-    private val initialConsented: Boolean =
-        runBlocking { consentStore.isConsented(com.yy.writingwithai.BuildConfig.CONSENT_VERSION) }
-
-    /**
-     * onboarding-apikey-prompt:ack 状态同步镜像(避免冷启动 race,同 `initialConsented` 模式)。
-     * VM 构造期一次性 `runBlocking`,等价 `MainActivity.onCreate` 同步检查。
-     */
-    private val initialAckApikeyPrompt: Boolean =
-        runBlocking { userPrefsStore.isApikeyPromptAcked() }
 
     private val _state = MutableStateFlow<AiActionUiState>(AiActionUiState.Idle)
     val state: StateFlow<AiActionUiState> = _state.asStateFlow()
@@ -106,24 +98,20 @@ constructor(
         lastNoteId = noteId
         lastUsage = null
         lastOriginalContent = null
-        // M4-4 consent gate:r1 H2 修后用构造期同步拿的 `initialConsented` 决策,
-        // 避免 `consentFlow.value` 在 DataStore 冷启动 race 下误返 EMPTY.accepted=false。
-        if (!initialConsented) {
-            _state.value = AiActionUiState.Failed(op = op, error = AiError.UserConsentRequired)
-            return
-        }
-        // onboarding-apikey-prompt · 二段门:apikey 教育未 ack → 阻断。
-        // spec: openspec/changes/onboarding-apikey-prompt/specs/onboarding-consent/spec.md
-        // "AI capability guard on first use"
-        if (!initialAckApikeyPrompt) {
-            _state.value = AiActionUiState.Failed(op = op, error = AiError.ApikeyPromptNotAcked)
-            return
-        }
+        // review r2 修:consent/ack gate 改为异步读取最新值(删 runBlocking 同步快照),
+        // 用户在同一详情页会话内完成 onboarding 后,下次 start() 能拿到最新 consent。
         streamJob =
             viewModelScope.launch {
-                // M5 polish · fix-m5-blockers: 同步取 providerId + 真 apikey,
-                // 缺 apikey 阻断 AI 调用,真 apikey 透传 gateway。
-                // H1 修:4 个 prefs read 全在 suspend 上下文(viewModelScope.launch 内) await,
+                val consented = consentStore.isConsented(com.yy.writingwithai.BuildConfig.CONSENT_VERSION)
+                if (!consented) {
+                    _state.value = AiActionUiState.Failed(op = op, error = AiError.UserConsentRequired)
+                    return@launch
+                }
+                val acked = userPrefsStore.isApikeyPromptAcked()
+                if (!acked) {
+                    _state.value = AiActionUiState.Failed(op = op, error = AiError.ApikeyPromptNotAcked)
+                    return@launch
+                }
                 // 删原 gateway.streamWritingOp 内 runBlocking(主线程 ANR)。
                 val providerId = providerPrefsStore.getSelectedProviderId()
                 // fix-2026-06-24-review-r1-critical:null = 未配置 provider → 走 ProviderNotConfigured

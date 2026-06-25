@@ -92,7 +92,10 @@ class MainActivity : ComponentActivity() {
                     // 不是 qualifiedName)。onNavControllerReady 是普通 lambda 不在 @Composable
                     // 上下文里,直接 register listener(只调一次)。
                     nc.addOnDestinationChangedListener { _, dest, _ ->
-                        backCallback.isEnabled = dest.hasRoute(QuicknoteList::class)
+                        // review r2 修:QuicknoteList 已不再是根 NavHost destination(被 AppShell 取代),
+                        // hasRoute(QuicknoteList::class) 永远返回 false,二次确认退出功能完全失效。
+                        // 改为检查 AppShell(底部 tab 容器根路由)。
+                        backCallback.isEnabled = dest.hasRoute(AppShell::class)
                     }
                 }
             )

@@ -189,6 +189,8 @@ constructor(
                         failureReason = event.error.summary()
                     }
                 }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             failureReason = e.message ?: e::class.simpleName ?: "unknown exception"
         }

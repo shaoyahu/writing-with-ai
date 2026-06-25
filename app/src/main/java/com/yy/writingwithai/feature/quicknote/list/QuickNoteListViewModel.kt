@@ -32,8 +32,12 @@ constructor(
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val selectedTag = MutableStateFlow<String?>(null)
-    val selectedIds = MutableStateFlow<Set<String>>(emptySet())
-    val isSelectMode = MutableStateFlow(false)
+
+    // review r2 修:暴露 StateFlow 而非 MutableStateFlow,防止外部直接写入。
+    private val _selectedIds = MutableStateFlow<Set<String>>(emptySet())
+    val selectedIds: StateFlow<Set<String>> = _selectedIds.asStateFlow()
+    private val _isSelectMode = MutableStateFlow(false)
+    val isSelectMode: StateFlow<Boolean> = _isSelectMode.asStateFlow()
 
     val uiState: StateFlow<NoteListUiState> =
         combine(
@@ -71,19 +75,19 @@ constructor(
     }
 
     fun toggleSelect(noteId: String) {
-        isSelectMode.value = true
-        selectedIds.update { ids ->
+        _isSelectMode.value = true
+        _selectedIds.update { ids ->
             if (noteId in ids) ids - noteId else ids + noteId
         }
-        if (selectedIds.value.isEmpty()) isSelectMode.value = false
+        if (_selectedIds.value.isEmpty()) _isSelectMode.value = false
     }
 
     fun clearSelection() {
-        selectedIds.value = emptySet()
-        isSelectMode.value = false
+        _selectedIds.value = emptySet()
+        _isSelectMode.value = false
     }
 
-    fun getSelectedNoteIds(): List<String> = selectedIds.value.toList()
+    fun getSelectedNoteIds(): List<String> = _selectedIds.value.toList()
 
     private val _feishuRefs = MutableStateFlow<Map<String, FeishuRefEntity>>(emptyMap())
     val feishuRefs: StateFlow<Map<String, FeishuRefEntity>> = _feishuRefs.asStateFlow()

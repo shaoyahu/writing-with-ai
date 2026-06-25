@@ -98,7 +98,9 @@ private fun WidgetSmall(notes: List<Note>, noteIndex: Int, context: Context, col
             AddButton(context, colors)
         }
         // Content with padding
-        val note = notes.getOrNull(noteIndex % notes.size) ?: notes.firstOrNull()
+        // review r2 修:notes 为空时 `noteIndex % notes.size` 即 `0 % 0` 抛 ArithmeticException,
+        // 导致 widget 崩溃。先判空,为空时直接走 EmptyState。
+        val note = if (notes.isNotEmpty()) notes.getOrNull(noteIndex % notes.size) ?: notes.firstOrNull() else null
         if (note != null) {
             val params = actionParametersOf(OpenNoteAction.KEY_NOTE_ID to note.id)
             Column(

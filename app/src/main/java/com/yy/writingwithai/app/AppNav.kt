@@ -93,8 +93,12 @@ fun AppNav(
     val resolvedConsentStore: ConsentStore =
         consentStore
             ?: remember(context) {
+                // review r2 修:安全转换 context as? Activity,非 Activity context(如 Preview)
+                // 返回 null 时抛明确异常,而非 ClassCastException。
+                val activity = context as? Activity
+                    ?: error("AppNav requires Activity context, got ${context.javaClass.simpleName}")
                 EntryPointAccessors.fromActivity(
-                    context as Activity,
+                    activity,
                     AppNavEntryPoint::class.java
                 ).consentStore()
             }
@@ -103,8 +107,10 @@ fun AppNav(
     val resolvedUserPrefsStore: UserPrefsStore =
         userPrefsStore
             ?: remember(context) {
+                val activity = context as? Activity
+                    ?: error("AppNav requires Activity context, got ${context.javaClass.simpleName}")
                 EntryPointAccessors.fromActivity(
-                    context as Activity,
+                    activity,
                     AppNavEntryPoint::class.java
                 ).userPrefsStore()
             }
@@ -166,8 +172,12 @@ fun AppNav(
                 }
             }
         } else if (!consentState.accepted) {
-            // 撤回同意 → 强制回 onboarding
-            if (navController.currentDestination?.route?.contains("onboarding") != true) {
+            // review r2 修:DataStore 冷启动时 consentState 仍为初始值 EMPTY(accepted=false),
+            // 已同意用户会短暂进入此分支闪现 onboarding 页。跳过 EMPTY 状态,
+            // 等真实值到达后再决策(第一个 LaunchedEffect(Unit) 用 .first() 已正确等待)。
+            if (consentState != ConsentState.EMPTY &&
+                navController.currentDestination?.route?.contains("onboarding") != true
+            ) {
                 navController.navigate(OnboardingEntry.ROUTE_CONSENT) {
                     popUpTo(0) { inclusive = true }
                 }
@@ -302,8 +312,9 @@ fun AppNav(
     // 在 consent 变 true 后统一处理。见上方"同意后单向门"块)。
     LaunchedEffect(initialRoute) {
         if (initialRoute == null) return@LaunchedEffect
-        // 已同意且 initialRoute 给出 → 直接 navigate
-        val state = resolvedConsentStore.consentFlow.value
+        // review r2 修:consentFlow.value 在 DataStore 冷启动时返回 ConsentState.EMPTY,
+        // 已同意用户从 widget 启动时路由被忽略。改为 .first() 挂起等待真实值。
+        val state = resolvedConsentStore.consentFlow.first()
         if (state.accepted && state.version >= BuildConfig.CONSENT_VERSION) {
             when {
                 initialRoute.startsWith("quicknote/edit") -> {

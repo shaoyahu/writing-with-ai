@@ -123,9 +123,18 @@ constructor(
             val response = client.newCall(httpRequest).execute()
             if (!response.isSuccessful) {
                 val code = response.code
-                // fix H10:cap error body to 1 MiB (readUtf8(long byteCount) is okio.BufferedSource API)
+                // review r2 修:readUtf8(byteCount) 在 body 小于 byteCount 时抛 EOFException,
+                // 导致绝大多数非 1MiB+ 的错误响应详情全部丢失。参照 FeishuApiClientImpl 做
+                // source.request(Long.MAX_VALUE) 拉完 body 到 buffer,再按 buffer.size 决定是否截断。
                 val rawDetail = try {
-                    response.body?.source()?.readUtf8(MAX_RESPONSE_BODY_BYTES) ?: ""
+                    response.body?.source()?.use { src ->
+                        src.request(Long.MAX_VALUE)
+                        if (src.buffer.size > MAX_RESPONSE_BODY_BYTES) {
+                            src.buffer.readUtf8(MAX_RESPONSE_BODY_BYTES)
+                        } else {
+                            src.buffer.readUtf8()
+                        }
+                    } ?: ""
                 } catch (e: Throwable) {
                     ""
                 }
@@ -139,7 +148,12 @@ constructor(
                         when (code) {
                             401, 403 -> AiError.Auth(code, detail)
                             402 -> AiError.InsufficientBalance(detail)
-                            in 500..599 -> AiError.Network(code, detail)
+                            // review r2 修:429 应映射 RateLimited(而非 Unknown),5xx 应映射 ServerError(而非 Network)
+                            429 -> {
+                                val retryAfter = response.header("Retry-After")?.toIntOrNull() ?: 60
+                                AiError.RateLimited(retryAfterSeconds = retryAfter)
+                            }
+                            in 500..599 -> AiError.ServerError(code)
                             else -> AiError.Unknown(code, detail)
                         },
                         recoverable = code !in listOf(401, 403, 402)
@@ -196,6 +210,7 @@ constructor(
                 cause is IOException && cause !is SocketTimeoutException && !emittedDelta.get()
             }
             .catch { e ->
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 when (e) {
                     is SocketTimeoutException ->
                         emit(AiStreamEvent.Failed(AiError.Timeout(e.message ?: "timeout"), true))

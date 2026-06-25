@@ -90,7 +90,11 @@ constructor(
     // 反而容易写漏。Mutex 在主线程 tryLock 失败时也只是一帧延迟,语义不变。
     private val lifecycleLock = Mutex()
     private var lastPauseAt: Long = 0L
-    private val revealStates = mutableMapOf<String, MutableStateFlow<RevealState>>()
+
+    // review r2 修:mutableMapOf 返回 LinkedHashMap 非线程安全。reveal() 从 Main dispatcher
+    // 调用 getOrPut,clear()/clearAll() 从 IO dispatcher 修改 map,并发场景下可能抛
+    // ConcurrentModificationException。改为 ConcurrentHashMap。
+    private val revealStates = java.util.concurrent.ConcurrentHashMap<String, MutableStateFlow<RevealState>>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     init {

@@ -46,6 +46,11 @@ constructor() {
     /**
      * 从 [inputStream] 读 zip;逐 entry resolve 到 [virtualRoot] 之下做 canonical containment check。
      * 不实际写盘 — 仅做内存校验,返回文件名 → 字节内容。
+     *
+     * review r2 修:Android 上 `File.canonicalPath` 可能以 `//` 开头(如 `//data/...`),
+     * 导致 `startsWith("$rootPath/")` 比较失败,拒绝所有合法 entry。改用
+     * `resolved.relativeToOrNull(rootCanonical)` 判断是否在 root 之下 — 语义更清晰,
+     * 且不受路径前缀格式差异影响。
      */
     fun readZip(inputStream: InputStream, virtualRoot: File): Map<String, ByteArray> {
         val result = mutableMapOf<String, ByteArray>()
@@ -58,13 +63,17 @@ constructor() {
                     throw ImportRejected("Zip entry name escapes target: ${entry.name}")
                 }
                 // 2. canonical 必须在 root 之下(主防御层)
+                //    relativeToOrNull 返回非 null → resolved 是 root 的后代(含自身);
+                //    返回 null → resolved 在 root 之外(zip slip)。
                 val resolved = File(virtualRoot, entry.name).canonicalFile
-                val resolvedPath = resolved.path
-                val rootPath = rootCanonical.path
-                if (resolvedPath != rootPath && !resolvedPath.startsWith("$rootPath${File.separator}")) {
-                    throw ImportRejected("Zip entry resolves outside target: ${entry.name} -> $resolvedPath")
+                val relative = resolved.relativeToOrNull(rootCanonical)
+                if (relative == null) {
+                    throw ImportRejected("Zip entry resolves outside target: ${entry.name} -> ${resolved.path}")
                 }
-                result[entry.name] = zip.readBytes()
+                // entry 是目录时跳过(不读内容),但仍然通过上面的 containment check。
+                if (!entry.isDirectory) {
+                    result[entry.name] = zip.readBytes()
+                }
                 zip.closeEntry()
                 entry = zip.nextEntry
             }

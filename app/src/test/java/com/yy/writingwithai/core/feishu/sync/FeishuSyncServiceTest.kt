@@ -140,7 +140,9 @@ class FeishuSyncServiceTest {
 
         val msg = service.pull("doc1", "https://f.cn/d1", titleHint = "from-feishu")
         assertTrue(msg.contains("拉取完成"))
-        val ref = refs.getByDocId("doc1")
+        // review r2 修:pull 现在用 readDoc 从 URL 解析的 docId("d1"),而非参数 docId("doc1")。
+        // extractDocIdFromUrl("https://f.cn/d1") = "d1"
+        val ref = refs.getByDocId("d1")
         assertNotNull(ref)
         assertEquals(FeishuRefStatus.SYNCED, ref?.status)
         // 应调 v2 fetchDocumentV2 拿 markdown(回归 C2:之前 pull 写空)

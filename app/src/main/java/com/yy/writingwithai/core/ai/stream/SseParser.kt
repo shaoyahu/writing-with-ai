@@ -15,9 +15,12 @@ internal object SseParser {
     // M4 修:per-event 长度上限 1MB,避免恶意 / 误配置 provider 发 multi-GB 单事件 OOM crash。
     private const val MAX_EVENT_LEN = 1_048_576
 
+    // r2 修:用 ﻿ 转义取代字面量 BOM,避免 lint ByteOrderMark 报错。
+    private const val UTF8_BOM = "﻿"
+
     fun parse(source: BufferedSource): Flow<SseEvent> = flow {
         var dataBuffer = StringBuilder()
-        // L7 修:首行剥离 UTF-8 BOM(﻿),某些 provider(尤其在 BOM 写入 default
+        // L7 修:首行剥离 UTF-8 BOM (U+FEFF),某些 provider(尤其在 BOM 写入 default
         // charset 的 Windows / .NET 后端)会把 BOM 直接放在首行,导致首个 `data:` 事件
         // startsWith 失败。Okio `readUtf8Line` 不剥 BOM,这里手动处理。
         var firstLine = true
@@ -27,7 +30,7 @@ internal object SseParser {
             val line =
                 if (firstLine) {
                     firstLine = false
-                    rawLine.removePrefix("﻿")
+                    rawLine.removePrefix(UTF8_BOM)
                 } else {
                     rawLine
                 }
@@ -49,8 +52,11 @@ internal object SseParser {
                     // no-op: comment / heartbeat
                 }
                 // L4 修:RFC 允许大小写,`startsWith("data:", ignoreCase = true)` 容错。
+                // review r2 修:`removePrefix("data:")` 大小写敏感,当 provider 返回 `DATA:` 或 `Data:`
+                // 时 removePrefix 不移除前缀,payload 残留 `DATA:...` 导致解析失败。
+                // 改用 substring(5) + trimStart(),与 startsWith 的 ignoreCase 对齐。
                 line.startsWith("data:", ignoreCase = true) -> {
-                    val payload = line.removePrefix("data:").trimStart()
+                    val payload = line.substring(5).trimStart()
                     if (payload == "[DONE]") {
                         emit(SseEvent.Done)
                         return@flow

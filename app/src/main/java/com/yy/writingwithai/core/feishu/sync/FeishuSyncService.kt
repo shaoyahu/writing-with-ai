@@ -64,10 +64,14 @@ constructor(
         if (content.markdown.isBlank()) {
             throw FeishuError.BadRequest(0, "飞书端为空,不覆盖本地")
         }
+        // review r2 修:用 readDoc 从 URL 提取的权威 docId,而非调用方传入的 docId 参数。
+        // 调用方的 extractDocId(正则) 与 FeishuDocService.extractDocIdFromUrl(取末段) 逻辑可能不同,
+        // 导致查不到已有 ref、创建重复 note+ref 记录。
+        val resolvedDocId = content.docId
         val title = content.title.ifBlank { titleHint }
         val markdown = content.markdown
 
-        val existingRef = refDao.getByDocId(docId)
+        val existingRef = refDao.getByDocId(resolvedDocId)
         // M3 修:note + ref 必须在同一事务,避免 crash 留 orphan ref。
         // 走 FeishuRefDao.upsertNoteWithRef 已有 @Transaction 包装。
         val noteId: String = txExecutor.execute {
@@ -107,7 +111,7 @@ constructor(
                 note = noteToWrite.toEntity(),
                 ref = FeishuRefEntity(
                     noteId = resolvedNoteId,
-                    docId = docId,
+                    docId = resolvedDocId,
                     docUrl = docUrl,
                     lastSyncedAt = System.currentTimeMillis(),
                     syncDirection = SyncDirection.PULL,

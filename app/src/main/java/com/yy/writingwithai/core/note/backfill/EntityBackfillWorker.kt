@@ -36,6 +36,13 @@ class EntityBackfillWorker(
             processed++
             setProgress(workDataOf("processed" to processed, "total" to total))
         }
+        // review r2 修:成功后落盘完成标志,避免 BackfillScheduler.scheduleEntityBackfillIfNeeded
+        // 每次调用都发现标志为 false 而反复调度 Worker(与 BackfillWorker 的 C3 修对齐)。
+        applicationContext
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(PREF_ENTITY_BACKFILL_DONE, true)
+            .apply()
         Result.success(workDataOf("processed" to processed, "succeeded" to ok))
     }
 
@@ -44,5 +51,10 @@ class EntityBackfillWorker(
     interface EntityBackfillEntryPoint {
         fun entityExtractor(): EntityExtractor
         fun db(): AppDatabase
+    }
+
+    companion object {
+        private const val PREFS_NAME = "backfill_note_association"
+        private const val PREF_ENTITY_BACKFILL_DONE = "backfill_entity_v1_done"
     }
 }

@@ -142,7 +142,10 @@ constructor(
     }
 
     suspend fun delete(id: String) {
+        // review r2 修:删除笔记时清理附件文件 + DB 行,避免磁盘泄漏。
+        attachmentStore.deleteAllForNote(id)
         db.withTransaction {
+            noteAttachmentDao.deleteForNote(id)
             noteTagDao.removeAllForNote(id)
             noteDao.deleteById(id)
         }

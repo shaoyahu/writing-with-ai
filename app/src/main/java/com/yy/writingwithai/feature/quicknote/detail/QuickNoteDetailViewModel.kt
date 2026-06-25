@@ -154,6 +154,8 @@ constructor(
                 _feishuRef.value = feishuSyncService.getRef(id)
             } catch (e: FeishuError) {
                 _syncMessage.value = "同步失败: ${e.message}"
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 _syncMessage.value = "同步失败: ${e.message}"
             } finally {
@@ -172,6 +174,8 @@ constructor(
                 _syncMessage.value = msg
             } catch (e: FeishuError) {
                 _syncMessage.value = "拉取失败: ${e.message}"
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 _syncMessage.value = "拉取失败: ${e.message}"
             } finally {
@@ -209,6 +213,10 @@ constructor(
                 _showConflictDialog.value = false
                 _syncMessage.value = "已采用飞书版本"
             } catch (e: FeishuError) {
+                _syncMessage.value = "解决冲突失败: ${e.message}"
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
                 _syncMessage.value = "解决冲突失败: ${e.message}"
             }
         }

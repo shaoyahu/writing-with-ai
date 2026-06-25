@@ -10,7 +10,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * feishu-user-oauth · 启动系统浏览器拉飞书 OAuth 授权页。
@@ -29,9 +29,10 @@ constructor(
     fun launch(context: Context, appId: String) {
         // 1. 生成随机 state 并落盘(URL encode 前的原值用于比较)
         val state = generateState()
-        scope.launch {
-            authStore.persistOAuthState(state)
-        }
+        // review r2 修:persistOAuthState 必须在 launchUrl 前同步完成,否则回调到达时
+        // consumeOAuthState() 找不到 state → 用户看到"state expired"假失败。
+        // persistOAuthState 写 EncryptedSharedPreferences,耗时 <5ms,可接受。
+        runBlocking { authStore.persistOAuthState(state) }
         // 2. 构造授权 URL(URL 编码后给浏览器)
         val url = buildAuthorizeUrl(appId, state)
         // CustomTabs 已处理启动 flag,不需要手动加 FLAG_ACTIVITY_NEW_TASK。

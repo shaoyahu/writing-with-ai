@@ -17,13 +17,16 @@ object SafePromptTemplate {
 
     const val BEGIN: String = "<<<USER_NOTE>>>"
     const val END: String = "<<<END>>>"
+    private const val ESCAPED_BEGIN: String = "<ESCAPED_BEGIN>"
     private const val ESCAPED_END: String = "<ESCAPED_END>"
 
     /**
-     * 包住用户内容,防 nested-injection(用户内容里的 `<<<END>>>` 标签转义)。
+     * 包住用户内容,防 nested-injection(用户内容里的 `<<<END>>>` 和 `<<<USER_NOTE>>>` 标签转义)。
+     * review r2 修:原版只转义 END,攻击者可在笔记内容中放入 `<<<USER_NOTE>>>` 伪造 fence 开始边界,
+     * 使 LLM 误解后续内容的角色,绕过 prompt 注入防御。现在 BEGIN 也转义。
      */
     fun fenceUserContent(content: String): String {
-        val safe = content.replace(END, ESCAPED_END)
+        val safe = content.replace(BEGIN, ESCAPED_BEGIN).replace(END, ESCAPED_END)
         return "$BEGIN\n$safe\n$END"
     }
 
@@ -34,6 +37,7 @@ object SafePromptTemplate {
         if (begin < 0 || end < 0) return null
         return text.substring(begin + BEGIN.length, end)
             .trim()
+            .replace(ESCAPED_BEGIN, BEGIN)
             .replace(ESCAPED_END, END)
     }
 }
