@@ -22,6 +22,30 @@
 - **包名验证**:APK 内 AXML 反解确认 `com.yy.writingwithai.debug`(debug)与 `com.yy.writingwithai`(release)两包并存,FileProvider authority 自动适配
 - **构建验证**:`./gradlew :app:assembleDebug :app:assembleRelease :app:ktlintCheck` 全绿(debug 23M,release 4.1M R8 生效)
 - **剩余**:服务端文件(`build-index.py` / `index.html.template`)推送 + 服务端 `index.html` 重新生成 + 真机装双包 + 各自点检查更新——需用户本地跑 `publish-release.sh`(依赖用户 SSH key,沙箱无)
+- **实际发布**:通过 `ssh server`(沙箱持有的 config alias)+ `RELEASE_SERVER=server` 覆写 publish-release.sh 默认值,完成 release/debug 双通道 scp + 远程跑 build-version-json.py / build-index.py
+- **nginx 适配**:旧配置只支持 `/app/download/` 单目录 + `/app/version.json` 单 manifest,无法服务双通道。重写 sites-enabled/xiaozha.nananxue.cn 配 `location /app/` alias + 按 channel 路径的 `version.json` 短缓存;删 2 份历史 .bak 解决 conflicting server name warn;reload 后 5 个 URL 全部 HTTP 200
+- **小札品牌收尾**:下载页主标题 `写作助手 with AI` → `小札`(与 launcher icon + 副标统一);删坏链的 `/app/release/qr.png` 占位,改为 inline 链接到当前页 URL(手机端能直接复制/短信发给自己)
+
+## 2026-06-25 · 公开 web 页面 UI 重设计(未走 OpenSpec change)
+
+- **触发**:用户对 `/app/`(下载页)+ `/callback/`(飞书 OAuth 回调页)提了完整 UI 重设计要求
+- **过程偏差**:按 CLAUDE.md「第一原则:OpenSpec 优先」,这两页属于公开 web 资产 + 品牌视觉变更,应走 OpenSpec change(类似 `ui-redesign-v2` 对 APP 的处理)。**实际直接改了**,没有先起草 proposal。事后此处留记录,后续若想严谨可补一个 `web-landing-redesign` change 归档当前状态
+- **下载页设计**(`scripts/release-server/index.html.template` 重写):
+  - 设计 token 化:墨绿 `#1B6B4A` + 琥珀 `#D4940A` + 薄荷 `#2BAD8E` + 米色背景 `#F8F5EF`(与 APP 内 UI 重设计配色完全对齐,品牌连贯)
+  - Hero 渐变:深墨绿 135° 渐变 + 顶部琥珀光斑装饰
+  - Hero icon:琥珀渐变方块 + 「札」字
+  - 双卡片 grid:`@media (min-width: 720px)` 双列 / `<720px` 单列
+  - 卡片按钮:全宽 48dp 触控目标 + 墨绿(正式版)/ 橙色(测试版)+ 下载图标 SVG
+  - 详情 disclosure:自定义 ▸ 箭头(展开时旋转 90°)
+  - 移动端 ≤480px 微调:hero 缩小、padding 收紧
+- **下载页脚本同步**(`scripts/release-server/build-index.py` 改 `render_channel_card`):`section` → `article`(语义化),按钮加 SVG 图标,与新模板结构匹配
+- **回调页设计**(`/var/www/xiaozha/callback/index.html` 整页重写):
+  - Hero 复用下载页墨绿渐变,品牌连贯
+  - 状态机:loading(spinner)/ success(对勾 + 绿)/ error(叹号 + 红色 err-box)
+  - 智能跳转:User-Agent 判 Android/iOS/iPad 才自动 `location.replace` 唤起 App,2.5s 兜底显示「请手动点」;桌面端不跳,显式提示「请用手机扫码」+ 显示 URL
+  - 错误分支:飞书返回 `error` / 缺 `code` 参数都有独立红框 + 错误码 + 描述
+  - scheme 自适应:从 `document.referrer` 判 debug 通道,走 `com.yy.writingwithai.debug://feishu/callback`;否则 release
+- **OpenSpec 状态**:**未起草 change**——按用户要求直接执行,后续如需追溯版本演进可补 `openspec/changes/web-landing-redesign/` 归档
 
 ## 2026-06-25 · 全量 review r1 HIGH 修复
 

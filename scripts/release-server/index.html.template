@@ -2,144 +2,337 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>写作助手 with AI · 下载</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小札 · 下载</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1B6B4A">
   <link rel="icon" href="/favicon.ico">
   <style>
+    /* ----- Design tokens(沿用 App 内 UI 重设计的墨绿 + 琥珀配色)----- */
+    :root {
+      --c-ink: #1B6B4A;          /* 墨绿 primary */
+      --c-ink-dark: #134e36;
+      --c-amber: #D4940A;        /* 琥珀 secondary */
+      --c-amber-soft: #F4D580;
+      --c-mint: #2BAD8E;         /* 薄荷 tertiary */
+      --c-bg: #F8F5EF;           /* 米色背景 */
+      --c-bg-2: #FFFFFF;
+      --c-line: #E8E1D3;
+      --c-text: #1F2A26;
+      --c-text-soft: #5C6660;
+      --c-release: #2E7D32;      /* 正式版 - 绿 */
+      --c-debug: #F57C00;        /* 测试版 - 橙 */
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-pill: 999px;
+      --shadow-sm: 0 1px 2px rgba(15,30,22,0.04);
+      --shadow-md: 0 2px 8px rgba(15,30,22,0.08);
+      --t-fast: 0.18s ease;
+    }
+
     * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
     body {
-      margin: 0;
-      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: #fafafa;
-      color: #222;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                   "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+      background: var(--c-bg);
+      color: var(--c-text);
       line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
     }
-    main {
-      max-width: 720px;
+
+    /* ----- Hero header(品牌头:渐变 + 大字 + icon)----- */
+    .hero {
+      background: linear-gradient(135deg, var(--c-ink) 0%, var(--c-ink-dark) 60%, #0f3a28 100%);
+      color: #fff;
+      padding: 48px 20px 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      /* 装饰琥珀光斑 */
+      content: "";
+      position: absolute;
+      width: 240px; height: 240px;
+      right: -80px; top: -80px;
+      background: radial-gradient(circle, rgba(244,213,128,0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-inner {
+      max-width: 880px;
       margin: 0 auto;
-      padding: 32px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
     }
-    header h1 { margin: 0 0 4px; font-size: 28px; }
-    header p.lede { color: #555; margin: 0 0 24px; font-size: 14px; }
+    .hero-icon {
+      width: 64px; height: 64px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--c-amber) 0%, #B5780A 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      flex-shrink: 0;
+    }
+    .hero-text h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .hero-text p {
+      margin: 4px 0 0;
+      font-size: 14px;
+      color: rgba(255,255,255,0.78);
+    }
+    .hero-amber-pill {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 4px 12px;
+      background: var(--c-amber);
+      color: #1F2A26;
+      border-radius: var(--r-pill);
+      font-size: 12px;
+      font-weight: 600;
+    }
 
+    /* ----- Main container ----- */
+    main {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--c-text-soft);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin: 8px 0 14px;
+      padding-left: 4px;
+    }
+
+    /* ----- Channel cards grid(桌面 2 列 / 移动 1 列)----- */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 720px) {
+      .cards-grid { grid-template-columns: 1fr 1fr; }
+    }
     .card {
-      background: #fff;
-      border: 1px solid #e5e5e5;
-      border-radius: 12px;
-      padding: 20px 22px;
-      margin-bottom: 20px;
+      background: var(--c-bg-2);
+      border: 1px solid var(--c-line);
+      border-radius: var(--r-lg);
+      padding: 22px 22px 18px;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow var(--t-fast), transform var(--t-fast);
     }
-    .card.badge-release { border-left: 4px solid #2e7d32; }
-    .card.badge-debug   { border-left: 4px solid #f57c00; }
-
+    .card:hover { box-shadow: var(--shadow-md); }
+    .card.badge-release {
+      border-top: 4px solid var(--c-release);
+    }
+    .card.badge-debug {
+      border-top: 4px solid var(--c-debug);
+    }
     .card-head {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
       margin-bottom: 4px;
     }
-    .card-head h2 { margin: 0; font-size: 20px; }
-    .muted { color: #888; font-weight: normal; font-size: 14px; }
+    .card-head h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .muted { color: var(--c-text-soft); font-weight: 400; font-size: 14px; }
 
     .badge {
       display: inline-block;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: var(--r-pill);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
       color: #fff;
     }
-    .badge.badge-release { background: #2e7d32; }
-    .badge.badge-debug   { background: #f57c00; }
+    .badge.badge-release { background: var(--c-release); }
+    .badge.badge-debug   { background: var(--c-debug); }
 
-    .tagline { color: #666; font-size: 13px; margin: 4px 0 14px; }
+    .tagline {
+      color: var(--c-text-soft);
+      font-size: 13px;
+      margin: 4px 0 16px;
+      min-height: 1.6em;
+    }
 
     .btn-download {
-      display: inline-block;
-      background: #3370ff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 24px;
+      background: var(--c-ink);
       color: #fff;
-      padding: 12px 28px;
-      border-radius: 8px;
+      border-radius: var(--r-md);
       text-decoration: none;
       font-size: 15px;
-      font-weight: 500;
+      font-weight: 600;
+      transition: background var(--t-fast), transform var(--t-fast);
+      border: none;
+      cursor: pointer;
     }
-    .btn-download:hover { background: #245bdb; }
+    .btn-download:hover { background: var(--c-ink-dark); }
+    .btn-download:active { transform: scale(0.98); }
+    .card.badge-debug .btn-download { background: var(--c-debug); }
+    .card.badge-debug .btn-download:hover { background: #D96A00; }
+
+    .btn-download svg { width: 18px; height: 18px; flex-shrink: 0; }
 
     .meta {
-      margin-top: 12px;
-      font-size: 13px;
-      color: #555;
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--c-text-soft);
       line-height: 1.8;
     }
     .meta code {
-      background: #f0f0f0;
+      background: var(--c-bg);
       padding: 1px 6px;
-      border-radius: 3px;
-      font-size: 12px;
+      border-radius: 4px;
+      font-size: 11px;
       word-break: break-all;
+      font-family: "SF Mono", "Menlo", "Consolas", monospace;
     }
 
     details {
       margin-top: 12px;
-      border-top: 1px solid #f0f0f0;
-      padding-top: 8px;
+      border-top: 1px solid var(--c-line);
+      padding-top: 10px;
     }
     details summary {
       cursor: pointer;
       font-weight: 500;
       outline: none;
-      color: #444;
-      font-size: 14px;
+      color: var(--c-text);
+      font-size: 13px;
+      padding: 4px 0;
+      user-select: none;
+      list-style: none;
     }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::before {
+      content: "▸";
+      display: inline-block;
+      margin-right: 6px;
+      transition: transform var(--t-fast);
+      color: var(--c-text-soft);
+    }
+    details[open] summary::before { transform: rotate(90deg); }
     details pre, details p {
       margin: 8px 0;
       white-space: pre-wrap;
       font-size: 13px;
+      color: var(--c-text);
     }
     details ul { padding-left: 20px; margin: 8px 0; }
     details li { margin: 4px 0; font-size: 13px; }
+    details li a { color: var(--c-ink); text-decoration: none; }
+    details li a:hover { text-decoration: underline; }
 
-    .qr {
-      margin-top: 24px;
-      font-size: 13px;
-      color: #666;
+    /* ----- 链接分享区 ----- */
+    .share {
+      margin-top: 32px;
+      padding: 20px;
+      background: var(--c-bg-2);
+      border: 1px solid var(--c-line);
+      border-radius: var(--r-lg);
     }
-    .qr img {
-      width: 160px;
-      height: 160px;
+    .share h3 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--c-text-soft);
+      font-weight: 500;
+    }
+    .qr-link {
       display: block;
-      margin-top: 8px;
+      margin-top: 4px;
+      word-break: break-all;
+      color: var(--c-ink);
+      font-size: 13px;
+      text-decoration: none;
+      padding: 8px 12px;
+      background: var(--c-bg);
+      border-radius: var(--r-sm);
+      font-family: "SF Mono", "Menlo", "Consolas", monospace;
     }
+    .qr-link:hover { background: var(--c-amber-soft); }
+
+    /* ----- Footer ----- */
     footer {
-      margin-top: 48px;
-      padding-top: 16px;
-      border-top: 1px solid #e5e5e5;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 24px 20px 32px;
+      text-align: center;
       font-size: 12px;
-      color: #999;
+      color: var(--c-text-soft);
+    }
+    footer a { color: var(--c-ink); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ----- 移动端微调 ----- */
+    @media (max-width: 480px) {
+      .hero { padding: 36px 16px 44px; }
+      .hero-icon { width: 52px; height: 52px; font-size: 26px; border-radius: 14px; }
+      .hero-text h1 { font-size: 26px; }
+      .hero-text p { font-size: 13px; }
+      main { padding: 20px 16px 40px; }
+      .card { padding: 18px 18px 16px; }
     }
   </style>
 </head>
 <body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-icon" aria-hidden="true">札</div>
+      <div class="hero-text">
+        <h1>小札</h1>
+        <p>原生 Android 笔记 + AI 助手,自托管 APK 分发</p>
+        <span class="hero-amber-pill">v0.2.0 双通道内测</span>
+      </div>
+    </div>
+  </header>
+
   <main>
-    <header>
-      <h1>写作助手 with AI</h1>
-      <p class="lede">原生 Android 笔记 + AI 助手,自托管 APK 分发。</p>
-    </header>
+    <div class="section-title">下载通道</div>
+    <div class="cards-grid">
+      {{CHANNEL_CARDS}}
+    </div>
 
-    {{CHANNEL_CARDS}}
-
-    <p class="qr">
-      扫码下载 ↓(扫描当前页 URL)
-      <br>
-      <img src="/app/release/qr.png" alt="下载二维码">
-    </p>
-
-    <footer>
-      <p>本应用走自托管 APK 分发,仅供内测使用。详见
-      <a href="https://github.com/shaoyahu/writing-with-ai">项目主页</a>。</p>
-    </footer>
+    <div class="share">
+      <h3>手机访问本页链接直接下载</h3>
+      <a id="page-link" class="qr-link" href=""></a>
+    </div>
   </main>
+
+  <footer>
+    <p>本应用走自托管 APK 分发,仅供内测使用 · 详见
+    <a href="https://github.com/shaoyahu/writing-with-ai">项目主页</a></p>
+  </footer>
+
+  <script>
+    // 显示当前页 URL,方便手机端复制 / 短信发给自己
+    (function() {
+      var a = document.getElementById('page-link');
+      a.href = window.location.href;
+      a.textContent = window.location.href;
+    })();
+  </script>
 </body>
 </html>

@@ -154,17 +154,18 @@ def collect_channel(channel: str) -> dict | None:
 
 def render_channel_card(c: dict) -> str:
     return f"""
-    <section class="card {c['badge_class']}">
+    <article class="card {c['badge_class']}">
       <div class="card-head">
         <span class="badge {c['badge_class']}">{c['label']}</span>
         <h2>v{c['code']} <span class="muted">· {c['release_date']}</span></h2>
       </div>
       <p class="tagline">{c['tagline']}</p>
-      <p>
-        <a class="btn-download" href="/app/{c['channel']}/{c['apk_name']}" download>
-          下载 APK ({c['apk_size']})
-        </a>
-      </p>
+      <a class="btn-download" href="/app/{c['channel']}/{c['apk_name']}" download>
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 1 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.42L11 12.6V4a1 1 0 0 1 1-1zM5 17a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z"/>
+        </svg>
+        下载 APK ({c['apk_size']})
+      </a>
       <div class="meta">
         <div>文件名:<code>{c['apk_name']}</code></div>
         <div>SHA-256:<code title="{c['sha256']}">{c['sha256_short']}</code></div>
@@ -177,7 +178,7 @@ def render_channel_card(c: dict) -> str:
         <summary>历史版本</summary>
         <ul>{c['history_html']}</ul>
       </details>
-    </section>
+    </article>
     """
 
 
