@@ -1,5 +1,6 @@
 package com.yy.writingwithai.core.feishu.sync
 
+import com.yy.writingwithai.core.data.mapper.toEntity
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.data.repo.NoteRepository
 import com.yy.writingwithai.core.feishu.api.FeishuError
@@ -19,6 +20,11 @@ import kotlinx.coroutines.withContext
  * spec: openspec/changes/feishu-bidir-sync/specs/feishu-bidir-sync/spec.md
  * refactor: openspec/changes/feishu-doc-service-refactor (M3)
  */
+/** M3:事务执行器接口,prod 走 Room withTransaction,test 可传 passthrough。 */
+interface TransactionExecutor {
+    suspend fun <R> execute(block: suspend () -> R): R
+}
+
 @Singleton
 class FeishuSyncService
 @Inject
@@ -27,7 +33,9 @@ constructor(
     private val docService: FeishuDocService,
     private val refDao: FeishuRefDao,
     private val eventDao: FeishuSyncEventDao,
-    private val authStore: FeishuAuthStore
+    private val authStore: FeishuAuthStore,
+    private val noteDao: com.yy.writingwithai.core.data.db.NoteDao,
+    private val txExecutor: TransactionExecutor
 ) {
     /**
      * push 工作流(design D2):委托 `FeishuDocService.createDoc` / `.updateDoc`。
@@ -60,43 +68,57 @@ constructor(
         val markdown = content.markdown
 
         val existingRef = refDao.getByDocId(docId)
-        val noteId: String
-        if (existingRef != null) {
-            noteId = existingRef.noteId
-            val existingNote = noteRepository.getNote(noteId)
-            if (existingNote != null) {
-                noteRepository.upsert(
-                    existingNote.copy(content = markdown, title = title),
-                    emptyList()
+        // M3 修:note + ref 必须在同一事务,避免 crash 留 orphan ref。
+        // 走 FeishuRefDao.upsertNoteWithRef 已有 @Transaction 包装。
+        val noteId: String = txExecutor.execute {
+            val resolvedNoteId: String
+            val noteToWrite: Note
+            if (existingRef != null) {
+                resolvedNoteId = existingRef.noteId
+                val existingNote = noteRepository.getNote(resolvedNoteId)
+                if (existingNote != null) {
+                    noteToWrite = existingNote.copy(content = markdown, title = title)
+                } else {
+                    noteToWrite = Note(
+                        id = resolvedNoteId,
+                        title = title,
+                        content = markdown,
+                        createdAt = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis(),
+                        isPinned = false,
+                        lastAiOp = null,
+                        lastAiAt = null
+                    )
+                }
+            } else {
+                resolvedNoteId = UUID.randomUUID().toString()
+                noteToWrite = Note(
+                    id = resolvedNoteId,
+                    title = title,
+                    content = markdown,
+                    createdAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis(),
+                    isPinned = false,
+                    lastAiOp = null,
+                    lastAiAt = null
                 )
             }
-        } else {
-            val newNote = Note(
-                id = UUID.randomUUID().toString(),
-                title = title,
-                content = markdown,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis(),
-                isPinned = false,
-                lastAiOp = null,
-                lastAiAt = null
+            refDao.upsertNoteWithRef(
+                note = noteToWrite.toEntity(),
+                ref = FeishuRefEntity(
+                    noteId = resolvedNoteId,
+                    docId = docId,
+                    docUrl = docUrl,
+                    lastSyncedAt = System.currentTimeMillis(),
+                    syncDirection = SyncDirection.PULL,
+                    localRevision = System.currentTimeMillis(),
+                    remoteRevision = content.revisionId,
+                    status = FeishuRefStatus.SYNCED
+                ),
+                noteDao = noteDao
             )
-            noteRepository.upsert(newNote, emptyList())
-            noteId = newNote.id
+            resolvedNoteId
         }
-
-        refDao.upsert(
-            FeishuRefEntity(
-                noteId = noteId,
-                docId = docId,
-                docUrl = docUrl,
-                lastSyncedAt = System.currentTimeMillis(),
-                syncDirection = SyncDirection.PULL,
-                localRevision = System.currentTimeMillis(),
-                remoteRevision = content.revisionId,
-                status = FeishuRefStatus.SYNCED
-            )
-        )
 
         recordEventSafe(noteId, SyncDirection.PULL, "OK", null)
         "拉取完成: $title"

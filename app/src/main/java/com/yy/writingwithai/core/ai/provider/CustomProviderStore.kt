@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import java.util.concurrent.CopyOnWriteArraySet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -22,8 +23,11 @@ import kotlinx.serialization.json.Json
  * spec: 用户创建的自定义模型与内置模型平等展示, 可选中 / 测试连通 / 编辑 / 删除。
  *
  * 写操作(read-modify-write)全部在 `edit { }` lambda 内,DataStore 串行化写,
- * 避免两个并发 save/delete 互相覆盖。回调 [onInvalidate] 让
+ * 避免两个并发 save/delete 互相覆盖。回调 [addInvalidateListener] 让
  * [com.yy.writingwithai.core.ai.CoreAiGateway] 在每次写入后清 adapter 缓存。
+ *
+ * review r1 M1:用 CopyOnWriteArraySet 维护多 listener,支持多 caller 订阅且线程安全,
+ * 替代原来单一 `var onInvalidate: ...` 在 Hilt 多次创建时互相覆盖。
  */
 interface CustomProviderStore {
     /** 全部自定义配置(同步取首次值)。 */
@@ -41,8 +45,11 @@ interface CustomProviderStore {
     /** Flow 实时刷新,UI 可订阅观察。 */
     fun observeAll(): Flow<List<ProviderConfig>>
 
-    /** 写操作完成后回调(providerId = "" 表示全量变化,适用于 delete 不可枚举时)。 */
-    var onInvalidate: (providerId: String) -> Unit
+    /** 注册一个 invalidate 监听;同一 listener 多次添加只算一次。 */
+    fun addInvalidateListener(listener: (providerId: String) -> Unit)
+
+    /** 移除一个先前注册的 invalidate 监听。 */
+    fun removeInvalidateListener(listener: (providerId: String) -> Unit)
 }
 
 private val Context.customProviderDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -54,7 +61,22 @@ class CustomProviderStoreImpl(
 ) : CustomProviderStore {
     private val json = Json { ignoreUnknownKeys = true }
 
-    override var onInvalidate: (String) -> Unit = {}
+    private val invalidateListeners = CopyOnWriteArraySet<(String) -> Unit>()
+
+    override fun addInvalidateListener(listener: (String) -> Unit) {
+        invalidateListeners.add(listener)
+    }
+
+    override fun removeInvalidateListener(listener: (String) -> Unit) {
+        invalidateListeners.remove(listener)
+    }
+
+    private fun fireInvalidate(providerId: String) {
+        invalidateListeners.forEach { listener ->
+            runCatching { listener(providerId) }
+                .onFailure { Log.w(TAG, "invalidate listener threw: ${it.javaClass.simpleName}") }
+        }
+    }
 
     private fun decode(raw: String?): List<ProviderConfig> {
         if (raw.isNullOrBlank()) return emptyList()
@@ -79,7 +101,7 @@ class CustomProviderStoreImpl(
             if (idx >= 0) list[idx] = config else list.add(config)
             prefs[KEY_CUSTOM_PROVIDERS] = json.encodeToString(list.toList())
         }
-        onInvalidate(config.id)
+        fireInvalidate(config.id)
     }
 
     override suspend fun delete(id: String) {
@@ -87,7 +109,7 @@ class CustomProviderStoreImpl(
             val list = decode(prefs[KEY_CUSTOM_PROVIDERS]).filterNot { it.id == id }
             prefs[KEY_CUSTOM_PROVIDERS] = json.encodeToString(list)
         }
-        onInvalidate(id)
+        fireInvalidate(id)
     }
 
     override fun observeAll(): Flow<List<ProviderConfig>> = context.customProviderDataStore.data

@@ -57,3 +57,6 @@ yarn-error.log*
 .pnpm-debug.log*
 package-lock.json.cortex/
 release.keystore
+
+# Claude Code worktree ephemeral dirs(每个 worktree 自带 .git,不进主 repo)
+.claude/worktrees/

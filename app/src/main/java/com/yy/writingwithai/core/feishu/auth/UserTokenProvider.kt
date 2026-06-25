@@ -78,15 +78,17 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
     }
 
     /** OAuth code → user_access_token */
-    suspend fun exchangeCode(appId: String, appSecret: String, code: String) = refreshMutex.withLock(Dispatchers.IO) {
-        store.persistAppSecret(REQUEST_ID_OAUTH, appSecret)
-        val appToken = getAppAccessTokenLocked()
-        val body = buildJsonObject {
-            put("grant_type", "authorization_code")
-            put("code", code)
-        }.toString()
-        val data = postJson(TOKEN_URL, body, appToken)
-        persistUserTokenLocked(data, appId)
+    suspend fun exchangeCode(appId: String, appSecret: String, code: String) = withContext(Dispatchers.IO) {
+        refreshMutex.withLock {
+            store.persistAppSecret(REQUEST_ID_OAUTH, appSecret)
+            val appToken = getAppAccessTokenLocked()
+            val body = buildJsonObject {
+                put("grant_type", "authorization_code")
+                put("code", code)
+            }.toString()
+            val data = postJson(TOKEN_URL, body, appToken)
+            persistUserTokenLocked(data, appId)
+        }
     }
 
     // ---- internal ----

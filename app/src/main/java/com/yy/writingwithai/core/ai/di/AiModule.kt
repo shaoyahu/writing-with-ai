@@ -67,7 +67,7 @@ object AiModule {
         put("minimax", minimax)
         put("mimo", mimo)
         if (fake != null) put("fake", fake)
-    }
+    }.toMap()
 
     @Provides
     @Singleton

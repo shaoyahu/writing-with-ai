@@ -3,11 +3,15 @@ package com.yy.writingwithai.core.feishu.auth
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.lifecycle.lifecycleScope
 import com.yy.writingwithai.core.feishu.api.FeishuError
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * feishu-user-oauth · OAuth 回调接收 Activity。
@@ -73,15 +77,19 @@ class OAuthCodeReceiver : ComponentActivity() {
             finish()
             return
         }
-        lifecycleScope.launch {
-            val ctx = this@OAuthCodeReceiver
+        // review r1 H11:Activity 立即 finish,token 交换在 applicationContext-scoped 协程里跑,
+        // 避免 finish() 触发 lifecycleScope 取消导致 token 写一半被丢。
+        val ctx = this@OAuthCodeReceiver
+        GlobalScope.launch(SupervisorJob() + Dispatchers.IO) {
             try {
-                tokenProvider.exchangeCode(
-                    appId = appId,
-                    appSecret = appSecret,
-                    code = code
-                )
-                // appSecret 清理由 exchangeCode 内部完成(见 UserTokenProvider.persistUserToken)
+                withContext(NonCancellable) {
+                    tokenProvider.exchangeCode(
+                        appId = appId,
+                        appSecret = appSecret,
+                        code = code
+                    )
+                    // appSecret 清理由 exchangeCode 内部完成(见 UserTokenProvider.persistUserToken)
+                }
                 android.widget.Toast.makeText(ctx, "飞书授权成功", android.widget.Toast.LENGTH_SHORT).show()
             } catch (e: FeishuError) {
                 Log.e(TAG, "OAuth exchange failed: ${e.message}", e)
@@ -97,10 +105,9 @@ class OAuthCodeReceiver : ComponentActivity() {
                     "授权失败: 网络异常 ${e.message ?: ""}",
                     android.widget.Toast.LENGTH_LONG
                 ).show()
-            } finally {
-                finish()
             }
         }
+        finish()
     }
 
     companion object {

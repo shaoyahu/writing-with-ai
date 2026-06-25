@@ -50,15 +50,18 @@ constructor(
     /** 动态 adapter 缓存:providerId → AnthropicCompatibleAdapter。 */
     private val customAdapterCache = ConcurrentHashMap<String, AnthropicCompatibleAdapter>()
 
-    init {
-        // store 写时清对应 adapter 缓存,避免 stale config
-        customProviderStore.onInvalidate = { id ->
-            if (id.isBlank()) {
-                customAdapterCache.clear()
-            } else {
-                customAdapterCache.remove(id)
-            }
+    // review r1 M1:用 listener 模式替代直接 `onInvalidate = { ... }` 赋值,
+    // 避免 Hilt 多次创建 CoreAiGateway 时 lambda 互相覆盖导致回调静默失效。
+    private val customInvalidateListener: (String) -> Unit = { id ->
+        if (id.isBlank()) {
+            customAdapterCache.clear()
+        } else {
+            customAdapterCache.remove(id)
         }
+    }
+
+    init {
+        customProviderStore.addInvalidateListener(customInvalidateListener)
     }
 
     override suspend fun listProviders(): List<ProviderDescriptor> {
@@ -166,7 +169,11 @@ constructor(
         apiFormatOverride: ApiFormat?
     ): String? {
         val provider = resolveProvider(providerId) ?: return "provider $providerId not registered"
-        if (provider.id == "fake") return null
+        if (provider.id == "fake") {
+            // review r1 M5:fake provider 不应被静默返 null(看上去像"成功"),改抛 AiError.ProviderNotConfigured
+            // 让 UI 进入"未配置"分支,引导用户到设置 → 模型管理配真实 apikey。
+            throw IllegalStateException(AiError.ProviderNotConfigured.summary())
+        }
         val effectiveModel = provider.supportedModels.firstOrNull() ?: modelName
         // X 方案:ping 也走用户选的 apiFormat,endpoint 跟着切。
         // H1 修:ping 是 suspend,可在函数顶部 await providerPrefsStore.getApiFormat 而无需 runBlocking。

@@ -12,6 +12,7 @@ import com.yy.writingwithai.core.ai.stream.SseEvent
 import com.yy.writingwithai.core.ai.stream.SseParser
 import java.io.IOException
 import java.net.SocketTimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
@@ -52,155 +53,159 @@ constructor(
         // L12 修:不写 encodeDefaults,避免显式 `max_tokens=2048` 被某些 OpenAI proxy 400。
     }
 
-    override fun stream(request: AiRequest, credentials: AiCredentials): Flow<AiStreamEvent> = flow {
-        val baseUrl = credentials.baseUrlOverride ?: config.baseUrl
-        // model-management-detail-dropdown X 方案:用户在详情页可切 OpenAI/Anthropic,endpoint path 跟着切
-        val effectiveApiFormat = request.apiFormatOverride ?: config.apiFormat
-        val path = when (effectiveApiFormat) {
-            ApiFormat.OPENAI -> "/chat/completions"
-            ApiFormat.ANTHROPIC -> "/anthropic/v1/messages"
-        }
-        val url = "$baseUrl$path"
-        // fix-2026-06-24-review-r1-high H9:strip role-marker + cap length 8192
-        val systemPrompt = sanitizeSystemPrompt(request.systemPrompt ?: systemPromptFor(request.op))
+    override fun stream(request: AiRequest, credentials: AiCredentials): Flow<AiStreamEvent> {
+        // M4 修:用 AtomicBoolean 在 flow lambda 和 retry predicate 之间共享状态。
+        // 必须在 flow lambda 外声明,retry predicate 链在 flow lambda 外,看不到内部 var。
+        val emittedDelta = AtomicBoolean(false)
+        return flow {
+            val baseUrl = credentials.baseUrlOverride ?: config.baseUrl
+            // model-management-detail-dropdown X 方案:用户在详情页可切 OpenAI/Anthropic,endpoint path 跟着切
+            val effectiveApiFormat = request.apiFormatOverride ?: config.apiFormat
+            val path = when (effectiveApiFormat) {
+                ApiFormat.OPENAI -> "/chat/completions"
+                ApiFormat.ANTHROPIC -> "/anthropic/v1/messages"
+            }
+            val url = "$baseUrl$path"
+            // fix-2026-06-24-review-r1-high H9:strip role-marker + cap length 8192
+            val systemPrompt = sanitizeSystemPrompt(request.systemPrompt ?: systemPromptFor(request.op))
 
-        @Serializable
-        data class ChatMessage(val role: String, val content: String)
+            @Serializable
+            data class ChatMessage(val role: String, val content: String)
 
-        @Serializable
-        data class AnthropicBody(
-            val model: String,
-            val max_tokens: Int = 2048,
-            val stream: Boolean = true,
-            val system: String,
-            val messages: List<ChatMessage>
-        )
+            @Serializable
+            data class AnthropicBody(
+                val model: String,
+                val max_tokens: Int = 2048,
+                val stream: Boolean = true,
+                val system: String,
+                val messages: List<ChatMessage>
+            )
 
-        @Serializable
-        data class OpenAiBody(
-            val model: String,
-            val max_tokens: Int = 2048,
-            val stream: Boolean = true,
-            val messages: List<ChatMessage>
-        )
+            @Serializable
+            data class OpenAiBody(
+                val model: String,
+                val max_tokens: Int = 2048,
+                val stream: Boolean = true,
+                val messages: List<ChatMessage>
+            )
 
-        val isOpenAi = effectiveApiFormat == ApiFormat.OPENAI
-        val body =
-            if (isOpenAi) {
-                json.encodeToString(
-                    OpenAiBody.serializer(),
-                    OpenAiBody(
-                        model = request.model,
-                        messages = listOf(
-                            ChatMessage("system", systemPrompt),
-                            ChatMessage("user", request.sourceText)
+            val isOpenAi = effectiveApiFormat == ApiFormat.OPENAI
+            val body =
+                if (isOpenAi) {
+                    json.encodeToString(
+                        OpenAiBody.serializer(),
+                        OpenAiBody(
+                            model = request.model,
+                            messages = listOf(
+                                ChatMessage("system", systemPrompt),
+                                ChatMessage("user", request.sourceText)
+                            )
                         )
                     )
-                )
-            } else {
-                json.encodeToString(
-                    AnthropicBody.serializer(),
-                    AnthropicBody(
-                        model = request.model,
-                        system = systemPrompt,
-                        messages = listOf(ChatMessage("user", request.sourceText))
+                } else {
+                    json.encodeToString(
+                        AnthropicBody.serializer(),
+                        AnthropicBody(
+                            model = request.model,
+                            system = systemPrompt,
+                            messages = listOf(ChatMessage("user", request.sourceText))
+                        )
+                    )
+                }
+
+            val httpRequest =
+                Request.Builder()
+                    .url(url)
+                    .post(body.toRequestBody("application/json".toMediaType()))
+                    .apply { addAuthHeaders(this, credentials) }
+                    .build()
+
+            val response = client.newCall(httpRequest).execute()
+            if (!response.isSuccessful) {
+                val code = response.code
+                // fix H10:cap error body to 1 MiB (readUtf8(long byteCount) is okio.BufferedSource API)
+                val rawDetail = try {
+                    response.body?.source()?.readUtf8(MAX_RESPONSE_BODY_BYTES) ?: ""
+                } catch (e: Throwable) {
+                    ""
+                }
+                response.close()
+                // M3 修:截断 raw body 长度(provider 5xx 经常返回 KB 级 HTML,可能含 Authorization header 回显),
+                // 脱敏 apikey / Bearer / x-api-key pattern(避免 provider 把请求 header 回显到错误页)。
+                val detail = sanitizeErrorDetail(rawDetail)
+                emit(
+                    AiStreamEvent.Failed(
+                        error =
+                        when (code) {
+                            401, 403 -> AiError.Auth(code, detail)
+                            402 -> AiError.InsufficientBalance(detail)
+                            in 500..599 -> AiError.Network(code, detail)
+                            else -> AiError.Unknown(code, detail)
+                        },
+                        recoverable = code !in listOf(401, 403, 402)
                     )
                 )
-            }
-
-        val httpRequest =
-            Request.Builder()
-                .url(url)
-                .post(body.toRequestBody("application/json".toMediaType()))
-                .apply { addAuthHeaders(this, credentials) }
-                .build()
-
-        val response = client.newCall(httpRequest).execute()
-        if (!response.isSuccessful) {
-            val code = response.code
-            // fix H10:cap error body to 1 MiB (readUtf8(long byteCount) is okio.BufferedSource API)
-            val rawDetail = try {
-                response.body?.source()?.readUtf8(MAX_RESPONSE_BODY_BYTES) ?: ""
-            } catch (e: Throwable) {
-                ""
-            }
-            response.close()
-            // M3 修:截断 raw body 长度(provider 5xx 经常返回 KB 级 HTML,可能含 Authorization header 回显),
-            // 脱敏 apikey / Bearer / x-api-key pattern(避免 provider 把请求 header 回显到错误页)。
-            val detail = sanitizeErrorDetail(rawDetail)
-            emit(
-                AiStreamEvent.Failed(
-                    error =
-                    when (code) {
-                        401, 403 -> AiError.Auth(code, detail)
-                        402 -> AiError.InsufficientBalance(detail)
-                        in 500..599 -> AiError.Network(code, detail)
-                        else -> AiError.Unknown(code, detail)
-                    },
-                    recoverable = code !in listOf(401, 403, 402)
-                )
-            )
-            return@flow
-        }
-
-        emit(AiStreamEvent.Started)
-
-        val source =
-            response.body?.source() ?: run {
-                response.close()
-                emit(AiStreamEvent.Failed(AiError.Unknown(null, "empty response body"), false))
                 return@flow
             }
 
-        // fix H12:retry only when no Delta has been emitted
-        var emittedDelta = false
-        try {
-            SseParser.parse(source).collect { sse ->
-                currentCoroutineContext().ensureActive() // fix H11:cooperative cancel
-                when (sse) {
-                    is SseEvent.Data -> {
-                        val delta = parseDelta(sse.content, effectiveApiFormat)
-                        if (delta != null) {
-                            emit(AiStreamEvent.Delta(delta))
-                            emittedDelta = true
+            emit(AiStreamEvent.Started)
+
+            val source =
+                response.body?.source() ?: run {
+                    response.close()
+                    emit(AiStreamEvent.Failed(AiError.Unknown(null, "empty response body"), false))
+                    return@flow
+                }
+
+            try {
+                SseParser.parse(source).collect { sse ->
+                    currentCoroutineContext().ensureActive() // fix H11:cooperative cancel
+                    when (sse) {
+                        is SseEvent.Data -> {
+                            val delta = parseDelta(sse.content, effectiveApiFormat)
+                            if (delta != null) {
+                                emit(AiStreamEvent.Delta(delta))
+                                emittedDelta.set(true)
+                            }
+                            val usage = parseUsage(sse.content, effectiveApiFormat)
+                            if (usage != null) {
+                                emit(usage)
+                            }
                         }
-                        val usage = parseUsage(sse.content, effectiveApiFormat)
-                        if (usage != null) {
-                            emit(usage)
+                        is SseEvent.Done -> {
+                            emit(AiStreamEvent.Done)
                         }
-                    }
-                    is SseEvent.Done -> {
-                        emit(AiStreamEvent.Done)
-                    }
-                    is SseEvent.Error -> {
-                        emit(
-                            AiStreamEvent.Failed(
-                                AiError.Network(-1, sse.cause.message ?: "SSE error"),
-                                true
+                        is SseEvent.Error -> {
+                            emit(
+                                AiStreamEvent.Failed(
+                                    AiError.Network(-1, sse.cause.message ?: "SSE error"),
+                                    true
+                                )
                             )
-                        )
+                        }
                     }
                 }
+            } finally {
+                response.close()
             }
-        } finally {
-            response.close()
         }
+            .flowOn(Dispatchers.IO)
+            // fix H12 + M4:skip retry after Delta emitted (avoids duplicate UI text).
+            // emittedDelta 用 AtomicBoolean 在 flow lambda 和 retry predicate 之间共享。
+            .retry(1) { cause ->
+                cause is IOException && cause !is SocketTimeoutException && !emittedDelta.get()
+            }
+            .catch { e ->
+                when (e) {
+                    is SocketTimeoutException ->
+                        emit(AiStreamEvent.Failed(AiError.Timeout(e.message ?: "timeout"), true))
+                    is IOException ->
+                        emit(AiStreamEvent.Failed(AiError.Network(-1, e.message ?: "network error"), true))
+                    else ->
+                        emit(AiStreamEvent.Failed(AiError.Unknown(null, e.message ?: "unknown"), false))
+                }
+            }
     }
-        .flowOn(Dispatchers.IO)
-        // fix H12:skip retry after Delta emitted (avoids duplicate UI text)
-        .retry(1) { cause ->
-            cause is IOException && cause !is SocketTimeoutException
-        }
-        .catch { e ->
-            when (e) {
-                is SocketTimeoutException ->
-                    emit(AiStreamEvent.Failed(AiError.Timeout(e.message ?: "timeout"), true))
-                is IOException ->
-                    emit(AiStreamEvent.Failed(AiError.Network(-1, e.message ?: "network error"), true))
-                else ->
-                    emit(AiStreamEvent.Failed(AiError.Unknown(null, e.message ?: "unknown"), false))
-            }
-        }
 
     private fun addAuthHeaders(request: Request.Builder, credentials: AiCredentials) {
         when (config.authStyle) {

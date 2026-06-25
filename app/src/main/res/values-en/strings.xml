@@ -98,6 +98,9 @@
     <string name="aiwriting_error_balance">TODO(en): aiwriting_error_balance</string>
     <string name="aiwriting_error_timeout">TODO(en): aiwriting_error_timeout</string>
     <string name="aiwriting_error_unknown">TODO(en): aiwriting_error_unknown</string>
+    <string name="aiwriting_error_rate_limited">Requests too frequent, please try later</string>
+    <string name="aiwriting_error_server">Server error</string>
+    <string name="aiwriting_error_cancelled">Cancelled</string>
 
     <!-- ===== M4-1 桌面小组件 home-screen-widget(英文 TODO 占位,M5 polish 阶段补齐)===== -->
     <string name="widget_2x2_title">TODO(en): widget_2x2_title</string>
@@ -317,6 +320,17 @@
     <string name="about_check_update_hint">Fetch latest from https://xiaozha.nananxue.cn/app/version.json</string>
     <string name="about_check_update">Check for updates</string>
     <string name="about_checking">Checking…</string>
+    <!-- H8 · AboutScreen 状态文案 / 错误 -->
+    <string name="about_state_up_to_date_fmt">Up to date v%1$s</string>
+    <string name="about_state_downloading_fmt">Downloading... v%1$s, see system notification for progress</string>
+    <string name="about_state_available_fmt">New version available v%1$s</string>
+    <string name="about_error_network">Check failed: network error</string>
+    <string name="about_error_http_fmt">Check failed: server error (%1$d)</string>
+    <string name="about_error_parse">Check failed: response format error</string>
+    <string name="about_error_checksum">Downloaded file is corrupted, please retry</string>
+    <!-- H8 · FeishuAuthScreen 权限说明 -->
+    <string name="feishu_oauth_authorization_intro">Authorize with your Feishu account. Documents you create will appear under "My Documents".</string>
+    <string name="feishu_oauth_required_permissions">Required permissions: docx:document, drive:drive. Enable them in Feishu Open Platform → Permission Management. Takes about 1 minute to take effect.</string>
     <string name="update_dialog_title">New version v%1$s</string>
     <string name="update_dialog_size">Download size: %1$s</string>
     <string name="update_dialog_notes_header">Release notes</string>

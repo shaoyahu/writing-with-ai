@@ -139,6 +139,10 @@
     <string name="aiwriting_error_balance">账户余额不足</string>
     <string name="aiwriting_error_timeout">请求超时,请稍后重试</string>
     <string name="aiwriting_error_unknown">出错了,请稍后重试</string>
+    <!-- L5 修:R5 review 新增 RateLimited / ServerError / Cancellation 专属文案 -->
+    <string name="aiwriting_error_rate_limited">请求过于频繁,请稍后再试</string>
+    <string name="aiwriting_error_server">AI 服务暂时不可用,请稍后重试</string>
+    <string name="aiwriting_error_cancelled">已取消</string>
 
     <!-- ===== M4-1 桌面小组件 home-screen-widget ===== -->
     <string name="widget_2x2_title">随手记</string>
@@ -404,6 +408,19 @@
     <string name="about_check_update_hint">从 https://xiaozha.nananxue.cn/app/version.json 拉最新版本</string>
     <string name="about_check_update">检查更新</string>
     <string name="about_checking">检查中…</string>
+    <!-- H8 · AboutScreen 状态文案 / 错误 -->
+    <string name="about_state_up_to_date_fmt">已是最新 v%1$s</string>
+    <string name="about_state_downloading_fmt">下载中... v%1$s,系统通知栏查看进度</string>
+    <string name="about_state_available_fmt">发现新版本 v%1$s</string>
+    <string name="about_error_network">检查失败:网络异常</string>
+    <string name="about_error_http_fmt">检查失败:服务端错误(%1$d)</string>
+    <string name="about_error_parse">检查失败:响应格式错误</string>
+    <string name="about_error_checksum">下载文件损坏,请重试</string>
+    <!-- H8 · FeishuAuthScreen 权限说明 -->
+    <string name="feishu_oauth_authorization_intro">用飞书账号授权,创建的文档会出现在你的「我的文档」中。</string>
+    <string name="feishu_oauth_required_permissions">需要开通的权限: docx:document、drive:drive。在飞书开放后台 → 权限管理 中开通后约 1 分钟生效。</string>
+    <!-- H8 · AliasManagementViewModel 提示消息 — 复用已有 entity_alias_*_toast keys(同语义) -->
+    <!-- (无新增,VM 改用 R.string.entity_alias_merged_toast / entity_alias_unmerged_toast) -->
     <string name="update_dialog_title">发现新版本 v%1$s</string>
     <string name="update_dialog_size">下载大小:%1$s</string>
     <string name="update_dialog_notes_header">更新日志</string>

@@ -21,4 +21,24 @@ data class ProviderConfig(
     val supportedModels: List<String>,
     val customHeaders: Map<String, String> = emptyMap(),
     val apiFormat: ApiFormat = ApiFormat.ANTHROPIC
-)
+) {
+    init {
+        // L4 修:customAuthHeaderName 不得为保留 header name,大小写不敏感。
+        // 防止用户填 "Authorization" 把 apikey 覆盖到标准 header,然后被 OkHttp 二次处理 / provider 误以为 token refresh。
+        customAuthHeaderName?.let { name ->
+            require(name.isNotBlank()) { "customAuthHeaderName must not be blank" }
+            require(name.lowercase() !in RESERVED_AUTH_HEADERS) {
+                "customAuthHeaderName=$name collides with reserved auth header"
+            }
+        }
+    }
+
+    companion object {
+        /** L4 修:reserved auth header 白名单,customAuthHeaderName 不允许撞。 */
+        val RESERVED_AUTH_HEADERS: Set<String> = setOf(
+            "authorization",
+            "cookie",
+            "set-cookie"
+        )
+    }
+}

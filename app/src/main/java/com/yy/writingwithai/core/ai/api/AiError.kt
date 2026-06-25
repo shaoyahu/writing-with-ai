@@ -38,6 +38,22 @@ sealed interface AiError {
      */
     data object ApikeyPromptNotAcked : AiError
 
+    /**
+     * L5 修:provider 显式返 429(独立于 `Network`,UI 给"限流"专属文案 + 退避提示)。
+     */
+    data class RateLimited(val retryAfterSeconds: Int) : AiError
+
+    /**
+     * L5 修:provider 显式返 5xx(独立于 `Network`,UI 给"服务异常"专属文案)。
+     */
+    data class ServerError(val code: Int) : AiError
+
+    /**
+     * L5 修:用户主动取消(流式 chunk 中途点关闭 / 离开屏幕触发 viewModelScope cancel)。
+     * 不算"错误"但仍走 `Failed` 态显示,文案用中性"已取消"避免惊扰。
+     */
+    data object Cancellation : AiError
+
     /** 供 AiHistory 落库用的单行摘要。 */
     fun summary(): String = when (this) {
         is Network -> "Network($code): $detail"
@@ -50,5 +66,8 @@ sealed interface AiError {
         is UserConsentRequired -> "UserConsentRequired"
         is ProviderNotConfigured -> "ProviderNotConfigured"
         is ApikeyPromptNotAcked -> "ApikeyPromptNotAcked"
+        is RateLimited -> "RateLimited(retryAfter=${retryAfterSeconds}s)"
+        is ServerError -> "ServerError($code)"
+        is Cancellation -> "Cancellation"
     }
 }

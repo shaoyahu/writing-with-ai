@@ -1,6 +1,8 @@
 package com.yy.writingwithai.core.feishu.api
 
+import android.util.Log
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,6 +19,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okio.use
 
 /**
  * feishu-oauth-flow · FeishuApiClient OkHttp 实现。
@@ -31,7 +34,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 class FeishuApiClientImpl
 @Inject
 constructor(
-    private val httpClient: OkHttpClient
+    @Named("feishu") private val httpClient: OkHttpClient
 ) : FeishuApiClient {
 
     override suspend fun createDocument(title: String, folderToken: String?): DocCreateResult =
@@ -113,7 +116,24 @@ constructor(
             throw FeishuError.NetworkError(detail = e.javaClass.simpleName + ": " + (e.message ?: ""))
         }
         return response.use { resp ->
-            val body = resp.body?.string().orEmpty()
+            // F2 fix H12:review r1 body OOM — resp.body.string() 一次性把整段 body 读进 heap,
+            // 飞书服务端如果返回 MB 级大文档(理论上不受限)会 OOM。统一 1 MiB cap,与
+            // AnthropicCompatibleAdapter.MAX_RESPONSE_BODY_BYTES 对齐。
+            // 用 okio source.request(Long.MAX_VALUE) 拉完所有 body 到 buffer,再判断
+            // buffer.size 决定是否截断到 MAX_BODY。避开 readUtf8(byteCount) 在源不足时
+            // 抛 EOFException 的坑。
+            val body = resp.body?.source()?.use { source ->
+                source.request(Long.MAX_VALUE)
+                if (source.buffer.size > MAX_BODY) {
+                    Log.w(
+                        "FeishuApi",
+                        "response body exceeded ${MAX_BODY} bytes for ${request.url.encodedPath}, truncating"
+                    )
+                    source.buffer.readUtf8(MAX_BODY)
+                } else {
+                    source.buffer.readUtf8()
+                }
+            }.orEmpty()
             when (resp.code) {
                 in 200..299 -> {
                     val parsed = try {
@@ -251,6 +271,11 @@ constructor(
     companion object {
         // TODO(feishu-multi-tenant):从 FeishuAuthStore 读 tenant_domain,默认 bytedance。
         internal const val BASE_HOST = "open.feishu.cn"
+
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+
+        // F2 fix: 与 AnthropicCompatibleAdapter.MAX_RESPONSE_BODY_BYTES(1 MiB)对齐,
+        // 避免恶意/异常 endpoint 返回 MB 级 body 触发 OOM。
+        private const val MAX_BODY: Long = 1L * 1024 * 1024
     }
 }

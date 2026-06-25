@@ -1,16 +1,20 @@
 package com.yy.writingwithai.core.feishu.di
 
+import androidx.room.withTransaction
+import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.feishu.api.AuthInterceptor
 import com.yy.writingwithai.core.feishu.api.FeishuApiClient
 import com.yy.writingwithai.core.feishu.api.FeishuApiClientImpl
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthStore
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthStoreImpl
+import com.yy.writingwithai.core.feishu.sync.TransactionExecutor
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 import okhttp3.OkHttpClient
 
@@ -26,8 +30,10 @@ import okhttp3.OkHttpClient
 @InstallIn(SingletonComponent::class)
 object FeishuModule {
 
+    // H10 修:显式 @Named("feishu") 限定,避免与 AiModule 的 @Named("ai") 串包。
     @Provides
     @Singleton
+    @Named("feishu")
     fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
         val client = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
@@ -36,6 +42,13 @@ object FeishuModule {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
         return client
+    }
+
+    // M3:prod 事务执行器走 Room withTransaction。test 通过构造器注入 passthrough。
+    @Provides
+    @Singleton
+    fun provideTransactionExecutor(db: AppDatabase): TransactionExecutor = object : TransactionExecutor {
+        override suspend fun <R> execute(block: suspend () -> R): R = db.withTransaction { block() }
     }
 }
 

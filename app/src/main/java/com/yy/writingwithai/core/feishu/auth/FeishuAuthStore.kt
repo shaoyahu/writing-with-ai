@@ -128,6 +128,8 @@ constructor(
     override suspend fun clearAll() = withContext(Dispatchers.IO) {
         val p = requirePrefs() ?: return@withContext
         p.edit().clear().apply()
+        // L2 修:切到 DISCONNECTED 时清掉 in-memory appSecret 缓存,避免 stale secret。
+        secretCache.clear()
         stateFlow.value = FeishuAuthState.DISCONNECTED
     }
 

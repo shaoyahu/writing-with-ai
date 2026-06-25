@@ -17,9 +17,20 @@ internal object SseParser {
 
     fun parse(source: BufferedSource): Flow<SseEvent> = flow {
         var dataBuffer = StringBuilder()
+        // L7 修:首行剥离 UTF-8 BOM(﻿),某些 provider(尤其在 BOM 写入 default
+        // charset 的 Windows / .NET 后端)会把 BOM 直接放在首行,导致首个 `data:` 事件
+        // startsWith 失败。Okio `readUtf8Line` 不剥 BOM,这里手动处理。
+        var firstLine = true
 
         while (!source.exhausted()) {
-            val line = source.readUtf8Line() ?: break
+            val rawLine = source.readUtf8Line() ?: break
+            val line =
+                if (firstLine) {
+                    firstLine = false
+                    rawLine.removePrefix("﻿")
+                } else {
+                    rawLine
+                }
 
             when {
                 line.isEmpty() -> {
@@ -31,6 +42,11 @@ internal object SseParser {
                 line == "[DONE]" -> {
                     emit(SseEvent.Done)
                     return@flow
+                }
+                // L7 修:RFC 8895 规定 `:` 开头的行是注释 / heartbeat(如 `:keep-alive`),
+                // 应被忽略(`startsWith("data:")` 自然 fall through)。
+                line.startsWith(":", ignoreCase = true) -> {
+                    // no-op: comment / heartbeat
                 }
                 // L4 修:RFC 允许大小写,`startsWith("data:", ignoreCase = true)` 容错。
                 line.startsWith("data:", ignoreCase = true) -> {
