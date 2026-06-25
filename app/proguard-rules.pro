@@ -36,3 +36,6 @@
 # ----- App 入口(应用类 + Activity 不能混淆) -----
 -keep class com.yy.writingwithai.app.WritingApp
 -keep class com.yy.writingwithai.app.MainActivity
+
+# ----- Tink 间接引用(errorprone annotations 仅编译期,R8 可安全跳过) -----
+-dontwarn com.google.errorprone.annotations.**
