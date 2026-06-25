@@ -65,9 +65,29 @@ fun AboutScreen(onBack: () -> Unit, viewModel: AboutViewModel = hiltViewModel())
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(stringResource(R.string.about_current_version), style = MaterialTheme.typography.bodySmall)
+                    // 通道标识:debug 走 applicationIdSuffix=.debug,据此判断
+                    val isDebug = BuildConfig.APPLICATION_ID.endsWith(".debug")
+                    val versionText = if (isDebug) {
+                        "v${BuildConfig.VERSION_NAME}-debug"
+                    } else {
+                        "v${BuildConfig.VERSION_NAME}"
+                    }
                     Text(
-                        text = "v${BuildConfig.VERSION_NAME} (code ${BuildConfig.VERSION_CODE})",
+                        text = "$versionText (code ${BuildConfig.VERSION_CODE})",
                         style = MaterialTheme.typography.titleMedium
+                    )
+                    val channelColor = when (isDebug) {
+                        true -> MaterialTheme.colorScheme.tertiary
+                        false -> MaterialTheme.colorScheme.primary
+                    }
+                    val channelText = when (isDebug) {
+                        true -> stringResource(R.string.about_channel_debug)
+                        false -> stringResource(R.string.about_channel_release)
+                    }
+                    Text(
+                        text = channelText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = channelColor
                     )
                 }
             }

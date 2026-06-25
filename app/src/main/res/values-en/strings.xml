@@ -311,6 +311,8 @@
     <!-- app-self-hosted-update · About screen + update dialog -->
     <string name="about_title">About</string>
     <string name="about_current_version">Current version</string>
+    <string name="about_channel_release">Release channel</string>
+    <string name="about_channel_debug">Debug channel</string>
     <string name="about_check_update_title">Check for updates</string>
     <string name="about_check_update_hint">Fetch latest from https://xiaozha.nananxue.cn/app/version.json</string>
     <string name="about_check_update">Check for updates</string>

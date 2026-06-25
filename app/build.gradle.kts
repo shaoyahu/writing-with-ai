@@ -50,19 +50,20 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
-            // app-self-hosted-update · debug 也走生产 manifest(真机可检查更新)
+            // debug 双通道:不同包名可同装,独立检查更新
+            applicationIdSuffix = ".debug"
             buildConfigField(
                 "String",
                 "UPDATE_MANIFEST_URL",
-                "\"https://xiaozha.nananxue.cn/app/version.json\""
+                "\"https://xiaozha.nananxue.cn/app/debug/version.json\""
             )
         }
         release {
-            // app-self-hosted-update · 生产 manifest
+            // release 双通道:独立检查更新
             buildConfigField(
                 "String",
                 "UPDATE_MANIFEST_URL",
-                "\"https://xiaozha.nananxue.cn/app/version.json\""
+                "\"https://xiaozha.nananxue.cn/app/release/version.json\""
             )
             // release-readiness:开启 R8 混淆 + 资源压缩 + 签名
             isMinifyEnabled = true

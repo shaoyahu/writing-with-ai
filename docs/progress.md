@@ -11,6 +11,18 @@
 - **OpenSpec 归档**: `ui-redesign-v2` → `openspec/changes/archive/2026-06-25-ui-redesign-v2/`(同步修复 ai-streaming-ux / quick-note main spec 的 delta-header 污染)
 - **验证**: `./gradlew :app:ktlintCheck :app:assembleDebug :app:testDebugUnitTest` 全绿
 
+## 2026-06-25 · Debug/Release 双通道分发
+
+- **目标**:debug 与 release 用不同 `applicationId` → 可同装,各自检查各自通道的 `version.json`
+- **`app/build.gradle.kts`**:debug 加 `applicationIdSuffix = ".debug"`,两 buildType 各自 `UPDATE_MANIFEST_URL`(`.../app/debug/version.json` vs `.../app/release/version.json`)
+- **服务端脚本**:`build-version-json.py` 与 `build-index.py` 改 argparse `--channel`,分别扫 `debug/` 与 `release/` 目录,APK pattern 按通道区分(`writing-with-ai-debug-N.apk` vs `writing-with-ai-N.apk`);`publish-release.sh` 加 5 参 `[debug|release]`(默认 release),发布时串行 4 步:scp APK → scp notes → 重生 `version.json` → 重生 `index.html`
+- **下载页双卡片**:`index.html.template` 重写为 `{{CHANNEL_CARDS}}` 单占位符 + 循环渲染 release/debug 两 section(正式版绿色 / 测试版橙色 badge),输出到 `/var/www/xiaozha/app/index.html`(合并入口而非子目录)
+- **关于页通道标识**:`AboutScreen` 用 `BuildConfig.APPLICATION_ID.endsWith(".debug")` 判断,主版本号后缀加 `-debug`,配 `tertiary`(薄荷绿)色 + 通道文案
+- **字符串资源**:`about_channel_release` / `about_channel_debug`(zh + en 双语)
+- **包名验证**:APK 内 AXML 反解确认 `com.yy.writingwithai.debug`(debug)与 `com.yy.writingwithai`(release)两包并存,FileProvider authority 自动适配
+- **构建验证**:`./gradlew :app:assembleDebug :app:assembleRelease :app:ktlintCheck` 全绿(debug 23M,release 4.1M R8 生效)
+- **剩余**:服务端文件(`build-index.py` / `index.html.template`)推送 + 服务端 `index.html` 重新生成 + 真机装双包 + 各自点检查更新——需用户本地跑 `publish-release.sh`(依赖用户 SSH key,沙箱无)
+
 ## 2026-06-25 · 全量 review r1 HIGH 修复
 
 - **fix-2026-06-24-review-r1-high**(`docs/reviews/2026-06-24-full-project-code-review-r1.md` 22 项 HIGH):

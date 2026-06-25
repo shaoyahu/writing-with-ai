@@ -20,20 +20,55 @@
       padding: 32px 20px;
     }
     header h1 { margin: 0 0 4px; font-size: 28px; }
-    .version { color: #666; margin: 0 0 24px; font-size: 14px; }
+    header p.lede { color: #555; margin: 0 0 24px; font-size: 14px; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 20px;
+    }
+    .card.badge-release { border-left: 4px solid #2e7d32; }
+    .card.badge-debug   { border-left: 4px solid #f57c00; }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .card-head h2 { margin: 0; font-size: 20px; }
+    .muted { color: #888; font-weight: normal; font-size: 14px; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #fff;
+    }
+    .badge.badge-release { background: #2e7d32; }
+    .badge.badge-debug   { background: #f57c00; }
+
+    .tagline { color: #666; font-size: 13px; margin: 4px 0 14px; }
+
     .btn-download {
       display: inline-block;
       background: #3370ff;
       color: #fff;
-      padding: 14px 32px;
+      padding: 12px 28px;
       border-radius: 8px;
       text-decoration: none;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 500;
     }
     .btn-download:hover { background: #245bdb; }
+
     .meta {
-      margin-top: 16px;
+      margin-top: 12px;
       font-size: 13px;
       color: #555;
       line-height: 1.8;
@@ -45,31 +80,27 @@
       font-size: 12px;
       word-break: break-all;
     }
+
     details {
-      margin-top: 32px;
-      background: #fff;
-      border: 1px solid #e5e5e5;
-      border-radius: 6px;
-      padding: 12px 16px;
+      margin-top: 12px;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 8px;
     }
     details summary {
       cursor: pointer;
       font-weight: 500;
       outline: none;
+      color: #444;
+      font-size: 14px;
     }
     details pre, details p {
       margin: 8px 0;
       white-space: pre-wrap;
       font-size: 13px;
     }
-    h2 {
-      margin-top: 40px;
-      font-size: 18px;
-      border-bottom: 1px solid #e5e5e5;
-      padding-bottom: 8px;
-    }
-    ul { padding-left: 20px; }
-    li { margin: 4px 0; }
+    details ul { padding-left: 20px; margin: 8px 0; }
+    details li { margin: 4px 0; font-size: 13px; }
+
     .qr {
       margin-top: 24px;
       font-size: 13px;
@@ -94,36 +125,15 @@
   <main>
     <header>
       <h1>写作助手 with AI</h1>
-      <p class="version">
-        最新版本 v{{LATEST_VERSION_CODE}} · {{LATEST_RELEASE_DATE}}
-      </p>
+      <p class="lede">原生 Android 笔记 + AI 助手,自托管 APK 分发。</p>
     </header>
 
-    <p>
-      <a class="btn-download" href="/app/download/{{LATEST_APK_NAME}}" download>
-        下载 APK ({{LATEST_APK_SIZE}})
-      </a>
-    </p>
-
-    <div class="meta">
-      <div>文件名:<code>{{LATEST_APK_NAME}}</code></div>
-      <div>SHA-256:<code title="{{LATEST_SHA256}}">{{LATEST_SHA256_SHORT}}</code>(<a href="/app/download/{{LATEST_APK_NAME}}.sha256">查看完整</a>)</div>
-    </div>
-
-    <details open>
-      <summary>更新日志</summary>
-      {{LATEST_NOTES_HTML}}
-    </details>
-
-    <h2>历史版本</h2>
-    <ul>
-      {{HISTORY_LIST}}
-    </ul>
+    {{CHANNEL_CARDS}}
 
     <p class="qr">
       扫码下载 ↓(扫描当前页 URL)
       <br>
-      <img src="/app/download/qr.png" alt="下载二维码">
+      <img src="/app/release/qr.png" alt="下载二维码">
     </p>
 
     <footer>
