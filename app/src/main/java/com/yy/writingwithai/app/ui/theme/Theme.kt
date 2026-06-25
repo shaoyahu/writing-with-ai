@@ -7,30 +7,39 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/** C5:成功状态色 token 集合,业务侧通过 MaterialTheme.customColors.success 引用。 */
+/**
+ * ui-redesign-v2 · 语义色 token 集合,业务侧通过 MaterialTheme.customColors.success / warning 引用。
+ */
 data class CustomColors(
     val success: Color,
-    val successDark: Color
+    val successDark: Color,
+    val warning: Color,
+    val warningDark: Color
 )
 
 // 默认 token 实例:顶层 val 保证 App 生命周期内单例,避免 Theme.kt 在重组里反复 new。
-// 业务需要覆盖可在 WritingAppTheme 外 CompositionLocalProvider 嵌套。
 private val DefaultSpacing = Spacing()
 private val DefaultCornerRadius = CornerRadius()
 private val DefaultLightCustomColors = CustomColors(
     success = SuccessGreenLight,
-    successDark = SuccessGreenDarkLight
+    successDark = SuccessGreenDarkLight,
+    warning = WarningAmberLight,
+    warningDark = WarningAmberDarkLight
 )
 private val DefaultDarkCustomColors = CustomColors(
     success = SuccessGreenDarkTheme,
-    successDark = SuccessGreenDarkDarkTheme
+    successDark = SuccessGreenDarkDarkTheme,
+    warning = WarningAmberDarkTheme,
+    warningDark = WarningAmberDarkDarkTheme
 )
-private val LocalCustomColors = compositionLocalOf { DefaultLightCustomColors }
 
-/** 业务 Composable 通过 MaterialTheme.customColors 读取成功色 token。 */
+// M7 fix: 改为 staticCompositionLocalOf,值仅在主题切换时变化(全量重组),跳过读追踪
+private val LocalCustomColors = staticCompositionLocalOf { DefaultLightCustomColors }
+
+/** 业务 Composable 通过 MaterialTheme.customColors 读取语义色 token。 */
 val MaterialTheme.customColors: CustomColors
     @Composable
     @ReadOnlyComposable
@@ -40,9 +49,8 @@ val MaterialTheme.customColors: CustomColors
  * writing-with-ai · Material 3 主题入口。
  *
  * - 默认跟随系统 dark/light(`isSystemInDarkTheme()`)。
- * - M0 不暴露"强制明亮 / 强制暗黑 / 跟随系统"切换 UI;M5 打磨阶段补设置项。
- *
- * 提供 `LocalSpacing` / `LocalCornerRadius` 两个自定义 token,业务 Composable 通过它们读取。
+ * - 提供 `LocalSpacing` / `LocalCornerRadius` 两个自定义 token,业务 Composable 通过它们读取。
+ * - ui-redesign-v2: 种子色从蓝 #3B82F6 改为墨绿 #1B6B4A。
  */
 @Composable
 fun WritingAppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {

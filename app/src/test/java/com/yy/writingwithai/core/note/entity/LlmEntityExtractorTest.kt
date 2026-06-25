@@ -86,7 +86,8 @@ class LlmEntityExtractorTest {
     }
 
     @Test
-    fun `extract tolerates markdown code fence around JSON`() = runTest {
+    fun `extract rejects markdown code fence around JSON`() = runTest {
+        // fix-2026-06-24-review-r1-high H20:strict JSON parser不再 tolerate markdown fence
         coEvery { noteDao.getById("n1") } returns sampleNote("提到了小明")
         val wrapped = "```json\n[{\"type\":\"PERSON\",\"key\":\"xiaoming\",\"surface\":\"小明\"}]\n```"
         coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } returns
@@ -94,8 +95,8 @@ class LlmEntityExtractorTest {
 
         val n = extractor.extractAndPersist("n1")
 
-        assertEquals(1, n)
-        coVerify { entityDao.upsertAll(match { it.size == 1 }) }
+        assertEquals(0, n)
+        coVerify(exactly = 0) { entityDao.upsertAll(any()) }
     }
 
     @Test

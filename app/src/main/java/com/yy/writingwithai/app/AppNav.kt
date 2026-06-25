@@ -19,6 +19,7 @@ import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.prefs.UserPrefsStore
+import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
 import com.yy.writingwithai.feature.my.AboutScreen
 import com.yy.writingwithai.feature.onboarding.ApikeyPromptRoute
 import com.yy.writingwithai.feature.onboarding.OnboardingEntry
@@ -182,7 +183,9 @@ fun AppNav(
                 onBack = { navController.popBackStack() },
                 onEdit = { id -> navController.navigate(QuicknoteEdit(id)) },
                 onDeleted = { navController.popBackStack() },
-                navController = navController
+                onNavigateToNote = { id -> navController.navigate(QuicknoteDetail(id)) },
+                onNavigateToSettings = { navController.navigate(Settings) },
+                onRequestConsent = { AiwritingEntry.requestConsent(navController) }
             )
         }
         composable<QuicknoteEdit> { backStackEntry ->

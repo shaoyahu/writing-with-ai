@@ -41,7 +41,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -70,9 +69,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
 import com.yy.writingwithai.R
-import com.yy.writingwithai.app.QuicknoteDetail
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.data.model.Note
@@ -111,9 +108,14 @@ fun QuickNoteDetailScreen(
     onBack: () -> Unit,
     onEdit: (id: String) -> Unit,
     onDeleted: () -> Unit,
-    navController: NavController,
+    onNavigateToNote: (id: String) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onRequestConsent: () -> Unit,
     viewModel: QuickNoteDetailViewModel = hiltViewModel()
 ) {
+    // feishu clip labels 提升到 Composable 顶部 scope,供 onClick lambda 使用
+    val feishuClipUrlLabel = stringResource(R.string.feishu_clip_label_url)
+    val feishuClipErrorLabel = stringResource(R.string.feishu_clip_label_error)
     // M4-4:详情屏 consent 闸门(UI 层二次防御,与 ViewModel.start() 一致)
     val context = androidx.compose.ui.platform.LocalContext.current
     val consentStore =
@@ -351,7 +353,7 @@ fun QuickNoteDetailScreen(
                             // feishu-bidir-sync:远程已删恢复入口
                             if (feishuRef?.status == FeishuRefStatus.REMOTE_DELETED) {
                                 DropdownMenuItem(
-                                    text = { Text("重新同步为新文档") },
+                                    text = { Text(stringResource(R.string.quicknote_detail_resync_as_new)) },
                                     leadingIcon = { Icon(Icons.Filled.Cloud, contentDescription = null) },
                                     onClick = {
                                         menuExpanded = false
@@ -365,66 +367,59 @@ fun QuickNoteDetailScreen(
             )
         },
         floatingActionButton = {
-            // 仅无选区时显示 Share FAB(避免系统 selection toolbar 拦截点击)
-            if (current != null && fabState.selectionEmpty) {
-                FloatingActionButton(
-                    onClick = { context.shareNoteMarkdown(current.note.note) }
-                ) {
-                    Icon(
-                        Icons.Filled.Share,
-                        contentDescription = stringResource(R.string.quicknote_detail_share)
-                    )
-                }
-            }
+            // ui-redesign-v2: FAB 已移除,操作走底部栏
         },
         bottomBar = {
-            // 有选区时用固定底部栏替代 FAB,避开系统 selection toolbar 区域
-            if (current != null && !fabState.selectionEmpty && noteId != null && aiVm != null) {
-                Surface(shadowElevation = 8.dp) {
+            // ui-redesign-v2 · 固定底部操作栏:Share + AI 两个常驻图标
+            if (current != null && noteId != null) {
+                Surface(shadowElevation = 2.dp, tonalElevation = 0.dp) {
                     Row(
-                        modifier =
-                        Modifier
+                        modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 12.dp),
+                            .padding(horizontal = 24.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         IconButton(onClick = { context.shareNoteMarkdown(current.note.note) }) {
                             Icon(
                                 Icons.Filled.Share,
-                                contentDescription = stringResource(R.string.quicknote_detail_share)
+                                contentDescription = stringResource(R.string.quicknote_detail_share),
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
-                        Box {
-                            IconButton(
-                                onClick = {
-                                    if (consentFlow.accepted) {
-                                        actionMenuOpen = true
-                                    } else {
-                                        AiwritingEntry.requestConsent(navController)
+                        if (aiVm != null) {
+                            Box {
+                                IconButton(
+                                    onClick = {
+                                        if (consentFlow.accepted) {
+                                            actionMenuOpen = true
+                                        } else {
+                                            onRequestConsent()
+                                        }
                                     }
+                                ) {
+                                    Icon(
+                                        Icons.Filled.AutoAwesome,
+                                        contentDescription = stringResource(R.string.aiwriting_action_menu),
+                                        tint = MaterialTheme.colorScheme.secondary
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    Icons.Filled.AutoAwesome,
-                                    contentDescription = stringResource(R.string.aiwriting_action_menu)
+                                val sourceText =
+                                    if (selection.collapsed) {
+                                        current.note.note.content
+                                    } else {
+                                        current.note.note.content.substring(selection.min, selection.max)
+                                    }
+                                AiwritingEntry.ActionSheetRoute(
+                                    expanded = actionMenuOpen,
+                                    onDismiss = { actionMenuOpen = false },
+                                    onExpand = { aiVm.start(WritingOp.EXPAND, sourceText, noteId) },
+                                    onPolish = { aiVm.start(WritingOp.POLISH, sourceText, noteId) },
+                                    onOrganize = { aiVm.start(WritingOp.ORGANIZE, sourceText, noteId) },
+                                    onSummarize = { aiVm.start(WritingOp.SUMMARIZE, sourceText, noteId) },
+                                    onTranslate = { aiVm.start(WritingOp.TRANSLATE, sourceText, noteId) },
+                                    onCopy = { AiwritingEntry.copyToClipboard(context, sourceText) }
                                 )
                             }
-                            val sourceText =
-                                if (selection.collapsed) {
-                                    current.note.note.content
-                                } else {
-                                    current.note.note.content.substring(selection.min, selection.max)
-                                }
-                            AiwritingEntry.ActionSheetRoute(
-                                expanded = actionMenuOpen,
-                                onDismiss = { actionMenuOpen = false },
-                                onExpand = { aiVm.start(WritingOp.EXPAND, sourceText, noteId) },
-                                onPolish = { aiVm.start(WritingOp.POLISH, sourceText, noteId) },
-                                onOrganize = { aiVm.start(WritingOp.ORGANIZE, sourceText, noteId) },
-                                onSummarize = { aiVm.start(WritingOp.SUMMARIZE, sourceText, noteId) },
-                                onTranslate = { aiVm.start(WritingOp.TRANSLATE, sourceText, noteId) },
-                                onCopy = { AiwritingEntry.copyToClipboard(context, sourceText) }
-                            )
                         }
                     }
                 }
@@ -467,7 +462,7 @@ fun QuickNoteDetailScreen(
                 ) {
                     Text(
                         text = s.note.note.title.ifBlank { s.note.note.content.take(Note.TITLE_FALLBACK_LEN) },
-                        style = MaterialTheme.typography.headlineSmall
+                        style = MaterialTheme.typography.headlineLarge
                     )
                     aiMeta?.let { meta ->
                         Text(
@@ -572,9 +567,7 @@ fun QuickNoteDetailScreen(
                     RelatedNotesSection(
                         noteId = currentNoteId,
                         noteLinker = noteLinker,
-                        onNavigate = { targetId ->
-                            navController.navigate(QuicknoteDetail(targetId))
-                        },
+                        onNavigate = onNavigateToNote,
                         onAiTrigger = {
                             detailEntry.llmExtractor()?.extractAndPersist(
                                 currentNoteId,
@@ -596,7 +589,7 @@ fun QuickNoteDetailScreen(
             onRegenerate = { aiVm.regenerate() },
             onClose = { aiVm.dismiss() },
             onRetry = { aiVm.retry() },
-            onNavigateToSettings = { navController.navigate(com.yy.writingwithai.app.Settings) },
+            onNavigateToSettings = onNavigateToSettings,
             onDismiss = { aiVm.dismiss() },
             onUndo = { aiVm.undo() },
             onDismissReplace = { aiVm.dismiss() }
@@ -630,7 +623,7 @@ fun QuickNoteDetailScreen(
                 OutlinedTextField(
                     value = pullUrlInput,
                     onValueChange = { pullUrlInput = it },
-                    label = { Text("https://bytedance.feishu.cn/docx/...") },
+                    label = { Text(stringResource(R.string.quicknote_feishu_pull_url_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -642,7 +635,7 @@ fun QuickNoteDetailScreen(
                         viewModel.pullFromFeishu(pullUrlInput.trim())
                         pullUrlInput = ""
                     }
-                }) { Text("拉取") }
+                }) { Text(stringResource(R.string.quicknote_feishu_pull_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = {
@@ -663,7 +656,7 @@ fun QuickNoteDetailScreen(
         val localContent = current?.note?.note?.content.orEmpty()
         ConflictResolutionDialog(
             localPreview = localContent,
-            remotePreview = "(飞书端内容,需 pull 拉取)",
+            remotePreview = stringResource(R.string.quicknote_feishu_conflict_remote_placeholder),
             onResolveKeepLocal = viewModel::resolveConflictKeepLocal,
             onResolveKeepRemote = viewModel::resolveConflictKeepRemote,
             onCancel = viewModel::cancelConflictResolution
@@ -683,24 +676,44 @@ fun QuickNoteDetailScreen(
                 showSyncMessageDialog = false
                 viewModel.clearSyncMessage()
             },
-            title = { Text(if (isSuccess) "飞书同步成功" else "飞书同步失败") },
+            title = {
+                Text(
+                    if (isSuccess) {
+                        stringResource(
+                            R.string.quicknote_feishu_sync_success
+                        )
+                    } else {
+                        stringResource(R.string.quicknote_feishu_sync_fail)
+                    }
+                )
+            },
             text = { Text(msg ?: "") },
             confirmButton = {
                 TextButton(onClick = {
                     val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
                         as android.content.ClipboardManager
                     // 成功时复制 URL(打开看文档);失败时复制错误消息
-                    val label = if (isSuccess) "feishu_url" else "feishu_error"
+                    val label = if (isSuccess) feishuClipUrlLabel else feishuClipErrorLabel
                     cm.setPrimaryClip(android.content.ClipData.newPlainText(label, msg ?: ""))
                     showSyncMessageDialog = false
                     viewModel.clearSyncMessage()
-                }) { Text(if (isSuccess) "复制链接" else "复制错误") }
+                }) {
+                    Text(
+                        if (isSuccess) {
+                            stringResource(
+                                R.string.quicknote_feishu_copy_link
+                            )
+                        } else {
+                            stringResource(R.string.quicknote_feishu_copy_error)
+                        }
+                    )
+                }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showSyncMessageDialog = false
                     viewModel.clearSyncMessage()
-                }) { Text("关闭") }
+                }) { Text(stringResource(R.string.quicknote_feishu_close)) }
             }
         )
     }

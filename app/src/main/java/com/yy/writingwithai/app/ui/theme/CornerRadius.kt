@@ -5,12 +5,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * 统一圆角 token。Modifier.clip / cornerSize 走这里,业务代码不写裸 `.dp` 圆角。
+ * ui-redesign-v2 · 统一圆角 token(5 档)。Modifier.clip / cornerSize 走这里,业务代码不写裸 `.dp` 圆角。
  */
 data class CornerRadius(
-    val sm: Dp = 4.dp,
-    val md: Dp = 8.dp,
-    val lg: Dp = 16.dp
+    val xs: Dp = 4.dp,
+    val sm: Dp = 8.dp,
+    val md: Dp = 12.dp,
+    val lg: Dp = 16.dp,
+    val xl: Dp = 24.dp
 )
 
 /**

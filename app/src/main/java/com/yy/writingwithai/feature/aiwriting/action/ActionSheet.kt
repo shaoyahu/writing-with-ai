@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -68,7 +69,7 @@ fun ActionSheet(
         ) {
             // Menu card
             Surface(
-                shape = MaterialTheme.shapes.medium,
+                shape = RoundedCornerShape(12.dp),
                 color = containerColor,
                 shadowElevation = 6.dp
             ) {
@@ -155,7 +156,7 @@ private fun ActionSheetItem(icon: @Composable () -> Unit, text: String, onClick:
         ) {
             icon()
             Spacer(Modifier.width(12.dp))
-            Text(text = text, style = MaterialTheme.typography.bodyLarge)
+            Text(text = text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

@@ -205,8 +205,8 @@ private fun AppTabBar(
         FloatingActionButton(
             onClick = onCenterFabClick,
             shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.onSecondary,
             elevation = FloatingActionButtonDefaults.elevation(
                 defaultElevation = 8.dp,
                 pressedElevation = 12.dp

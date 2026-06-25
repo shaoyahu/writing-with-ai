@@ -13,12 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 
@@ -36,9 +36,9 @@ fun ShimmerBox(modifier: Modifier = Modifier, widthFraction: Float = 1f, height:
     )
 
     val shimmerColors = listOf(
-        Color(0xFFE0E0E0),
-        Color(0xFFF5F5F5),
-        Color(0xFFE0E0E0)
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f),
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
     )
 
     Box(

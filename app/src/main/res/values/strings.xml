@@ -46,6 +46,18 @@
     <string name="quicknote_feishu_status_conflict">冲突</string>
     <string name="quicknote_feishu_status_remote_deleted">远程已删</string>
     <string name="quicknote_feishu_syncing">同步中…</string>
+    <string name="quicknote_detail_resync_as_new">重新同步为新文档</string>
+    <string name="quicknote_feishu_pull_confirm">拉取</string>
+    <string name="quicknote_feishu_sync_success">飞书同步成功</string>
+    <string name="quicknote_feishu_sync_fail">飞书同步失败</string>
+    <string name="quicknote_feishu_copy_link">复制链接</string>
+    <string name="quicknote_feishu_copy_error">复制错误</string>
+    <string name="quicknote_feishu_close">关闭</string>
+    <string name="quicknote_feishu_pull_url_label">https://bytedance.feishu.cn/docx/...</string>
+    <string name="quicknote_feishu_conflict_remote_placeholder">(飞书端内容,需 pull 拉取)</string>
+    <string name="feishu_clip_label_url">feishu_url</string>
+    <string name="feishu_clip_label_error">feishu_error</string>
+    <string name="note_association_signal_entity">实体</string>
 
     <!-- 编辑 -->
     <string name="quicknote_editor_title_new">新建笔记</string>
@@ -369,6 +381,9 @@
     <string name="tab_my">我的</string>
     <string name="tab_new_note_cd">新建笔记</string>
     <string name="me_title">我的</string>
+    <string name="me_section_ai_config">AI 配置</string>
+    <string name="me_section_data">数据管理</string>
+    <string name="me_section_about">关于</string>
     <string name="me_data_title">数据导入导出</string>
     <string name="me_model_title">AI 模型管理</string>
     <string name="me_prompt_title">Prompt 模板</string>

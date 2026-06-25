@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 
 /** feishu-bidir-sync · feishu_ref DAO(tasks §1.3)。 */
 @Dao
@@ -28,4 +29,15 @@ interface FeishuRefDao {
 
     @Query("DELETE FROM feishu_ref")
     suspend fun deleteAll()
+
+    // fix-2026-06-24-review-r1-high H15:原子写 note + ref(防孤儿)
+    @Transaction
+    suspend fun upsertNoteWithRef(
+        note: com.yy.writingwithai.core.data.db.entity.NoteEntity,
+        ref: FeishuRefEntity,
+        noteDao: com.yy.writingwithai.core.data.db.NoteDao
+    ) {
+        noteDao.upsert(note)
+        upsert(ref)
+    }
 }

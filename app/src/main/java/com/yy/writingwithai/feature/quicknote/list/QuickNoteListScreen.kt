@@ -1,5 +1,6 @@
 package com.yy.writingwithai.feature.quicknote.list
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -28,7 +31,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -47,7 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
+import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
+import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.prefs.SearchHistoryStore
 import com.yy.writingwithai.core.ui.NoteListSkeleton
 import com.yy.writingwithai.feature.quicknote.model.NoteListUiState
@@ -93,31 +97,16 @@ fun QuickNoteListScreen(
                 .padding(innerPadding)
                 .padding(top = 0.dp)
         ) {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = viewModel::setQuery,
-                placeholder = { Text(stringResource(R.string.quicknote_list_search_hint)) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Search,
-                        contentDescription = stringResource(R.string.quicknote_list_search_hint)
-                    )
-                },
+            // ui-redesign-v2 · 填充背景圆角搜索框(胶囊形)
+            val cornerRadius = LocalCornerRadius.current
+            CapsuleSearchBar(
+                query = state.query,
+                onQueryChange = viewModel::setQuery,
+                placeholder = stringResource(R.string.quicknote_list_search_hint),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = spacing.md)
-                    .padding(top = 4.dp, bottom = spacing.sm),
-                trailingIcon = {
-                    if (state.query.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.setQuery("") }) {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = stringResource(R.string.quicknote_search_clear_cd)
-                            )
-                        }
-                    }
-                },
-                singleLine = true
+                    .padding(top = spacing.xs, bottom = spacing.sm)
             )
             // fix-quicknote-tags-and-search · 当前筛选 banner(仅 selectedTag 非空)
             if (state.selectedTag != null) {
@@ -193,22 +182,48 @@ fun QuickNoteListScreen(
                         onCreateClick = onCreateClick,
                         modifier = Modifier.fillMaxSize()
                     )
-                is NoteListUiState.Content ->
+                is NoteListUiState.Content -> {
+                    // H1 fix: feishuRefsMap 提升到 LazyColumn 外部,避免每 item 创建独立 Flow 订阅
+                    val feishuRefsMap by viewModel.feishuRefs.collectAsStateWithLifecycle()
+                    // H2 fix: 预解析 FeishuRefStatus→string 资源(Composable scope 内)
+                    val statusSynced = stringResource(R.string.quicknote_feishu_status_synced)
+                    val statusDirty = stringResource(R.string.quicknote_feishu_status_dirty)
+                    val statusConflict = stringResource(R.string.quicknote_feishu_status_conflict)
+                    val statusRemoteDeleted = stringResource(R.string.quicknote_feishu_status_remote_deleted)
+                    // L4 fix: 加 horizontal 边距和 item 间距,卡片不贴屏幕边缘
                     LazyColumn(
-                        // review r1 L1 修:删底部 80dp padding(FAB 已移走,不再需要让位)。
-                        contentPadding = PaddingValues(bottom = 0.dp),
+                        contentPadding = PaddingValues(
+                            horizontal = spacing.md,
+                            vertical = spacing.sm
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(spacing.sm),
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(items = s.notes, key = { it.note.id }) { item ->
-                            val feishuRefsMap = viewModel.feishuRefs.collectAsStateWithLifecycle().value
+                            val syncLabel = feishuRefsMap[item.note.id]?.status?.let { status ->
+                                when (status) {
+                                    FeishuRefStatus.SYNCED -> statusSynced
+                                    FeishuRefStatus.DIRTY -> statusDirty
+                                    FeishuRefStatus.CONFLICT -> statusConflict
+                                    FeishuRefStatus.REMOTE_DELETED -> statusRemoteDeleted
+                                }
+                            }
                             NoteRow(
-                                item = item,
-                                onClick = onNoteClick,
-                                onTagClick = { tag -> viewModel.selectTag(tag) },
-                                feishuStatus = feishuRefsMap[item.note.id]?.status
+                                title = item.note.title.ifBlank {
+                                    item.note.content.take(com.yy.writingwithai.core.data.model.Note.TITLE_FALLBACK_LEN)
+                                },
+                                content = item.note.content,
+                                tags = item.tags,
+                                syncStatus = syncLabel,
+                                onClick = { onNoteClick(item.note.id) },
+                                isPinned = item.note.isPinned,
+                                updatedAt = com.yy.writingwithai.feature.quicknote.list.formatUpdatedAt(
+                                    item.note.updatedAt
+                                )
                             )
                         }
                     }
+                }
             }
         }
     }
@@ -268,6 +283,71 @@ private fun TagFilterRow(allTags: List<String>, selectedTag: String?, onTagSelec
     }
 }
 
+/**
+ * ui-redesign-v2 · 胶囊形填充搜索框:surfaceVariant 背景 + xl(24dp) 圆角 + leadingIcon。
+ */
+@Composable
+private fun CapsuleSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier
+) {
+    val cornerRadius = LocalCornerRadius.current
+    Row(
+        modifier = modifier
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(cornerRadius.xl)
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Filled.Search,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.size(8.dp))
+        // M1 fix: 用 decorationBox 模式正确对齐 placeholder 与输入文本
+        BasicTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            decorationBox = { innerTextField ->
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (query.isEmpty()) {
+                        Text(
+                            text = placeholder,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+        if (query.isNotEmpty()) {
+            // M9 fix: 移除 Modifier.size(20.dp),恢复 48dp 触摸目标
+            IconButton(onClick = { onQueryChange("") }) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.quicknote_search_clear_cd),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * ui-redesign-v2 · 品牌感空状态:64dp 大图标 + 品牌文案 + primary CTA 按钮。
+ */
 @Composable
 private fun EmptyState(onCreateClick: () -> Unit, modifier: Modifier = Modifier) {
     val spacing = LocalSpacing.current
@@ -277,6 +357,12 @@ private fun EmptyState(onCreateClick: () -> Unit, modifier: Modifier = Modifier)
             verticalArrangement = Arrangement.spacedBy(spacing.md),
             modifier = Modifier.padding(spacing.lg)
         ) {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            )
             Text(
                 text = stringResource(R.string.quicknote_list_empty),
                 style = MaterialTheme.typography.titleMedium,
@@ -285,6 +371,7 @@ private fun EmptyState(onCreateClick: () -> Unit, modifier: Modifier = Modifier)
             Text(
                 text = stringResource(R.string.quicknote_list_empty_cta),
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Button(onClick = onCreateClick) {
@@ -292,4 +379,20 @@ private fun EmptyState(onCreateClick: () -> Unit, modifier: Modifier = Modifier)
             }
         }
     }
+}
+
+/**
+ * 将笔记 updatedAt(epoch millis)格式化为简短日期字符串。
+ * 格式: 同年内 MM-dd HH:mm,跨年 yyyy-MM-dd
+ */
+private fun formatUpdatedAt(epochMillis: Long): String {
+    val now = java.util.Calendar.getInstance()
+    val date = java.util.Calendar.getInstance().apply { timeInMillis = epochMillis }
+    val sameYear = now.get(java.util.Calendar.YEAR) == date.get(java.util.Calendar.YEAR)
+    val sdf = if (sameYear) {
+        java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
+    } else {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+    }
+    return sdf.format(java.util.Date(epochMillis))
 }

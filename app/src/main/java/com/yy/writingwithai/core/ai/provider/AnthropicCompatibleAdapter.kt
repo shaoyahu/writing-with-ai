@@ -16,6 +16,8 @@ import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
@@ -59,8 +61,8 @@ constructor(
             ApiFormat.ANTHROPIC -> "/anthropic/v1/messages"
         }
         val url = "$baseUrl$path"
-        // custom-prompt-template:用户自定义 prompt 优先,null 走 fallback 默认
-        val systemPrompt = request.systemPrompt ?: systemPromptFor(request.op)
+        // fix-2026-06-24-review-r1-high H9:strip role-marker + cap length 8192
+        val systemPrompt = sanitizeSystemPrompt(request.systemPrompt ?: systemPromptFor(request.op))
 
         @Serializable
         data class ChatMessage(val role: String, val content: String)
@@ -116,7 +118,12 @@ constructor(
         val response = client.newCall(httpRequest).execute()
         if (!response.isSuccessful) {
             val code = response.code
-            val rawDetail = response.body?.string() ?: ""
+            // fix H10:cap error body to 1 MiB (readUtf8(long byteCount) is okio.BufferedSource API)
+            val rawDetail = try {
+                response.body?.source()?.readUtf8(MAX_RESPONSE_BODY_BYTES) ?: ""
+            } catch (e: Throwable) {
+                ""
+            }
             response.close()
             // M3 修:截断 raw body 长度(provider 5xx 经常返回 KB 级 HTML,可能含 Authorization header 回显),
             // 脱敏 apikey / Bearer / x-api-key pattern(避免 provider 把请求 header 回显到错误页)。
@@ -141,17 +148,21 @@ constructor(
         val source =
             response.body?.source() ?: run {
                 response.close()
-                emit(AiStreamEvent.Failed(AiError.Unknown(null, "empty response body"), true))
+                emit(AiStreamEvent.Failed(AiError.Unknown(null, "empty response body"), false))
                 return@flow
             }
 
+        // fix H12:retry only when no Delta has been emitted
+        var emittedDelta = false
         try {
             SseParser.parse(source).collect { sse ->
+                currentCoroutineContext().ensureActive() // fix H11:cooperative cancel
                 when (sse) {
                     is SseEvent.Data -> {
                         val delta = parseDelta(sse.content, effectiveApiFormat)
                         if (delta != null) {
                             emit(AiStreamEvent.Delta(delta))
+                            emittedDelta = true
                         }
                         val usage = parseUsage(sse.content, effectiveApiFormat)
                         if (usage != null) {
@@ -176,6 +187,7 @@ constructor(
         }
     }
         .flowOn(Dispatchers.IO)
+        // fix H12:skip retry after Delta emitted (avoids duplicate UI text)
         .retry(1) { cause ->
             cause is IOException && cause !is SocketTimeoutException
         }
@@ -201,8 +213,23 @@ constructor(
                 request.header(name, credentials.apikey)
             }
         }
+        // fix H13:validate customHeaders keys against reserved list + RFC-7230 token check
         config.customHeaders.forEach { (k, v) ->
+            require(!RESERVED_HEADERS.contains(k.lowercase())) { "reserved header: $k" }
+            require(HEADER_NAME_REGEX.matches(k)) { "invalid header name: $k" }
             request.header(k, v)
+        }
+    }
+
+    /**
+     * fix-2026-06-24-review-r1-high H9:strip role-marker patterns + cap length.
+     */
+    internal fun sanitizeSystemPrompt(s: String): String {
+        val stripped = ROLE_MARKERS.replace(s, "[redacted]:")
+        return if (stripped.length > MAX_SYSTEM_PROMPT_LEN) {
+            stripped.substring(0, MAX_SYSTEM_PROMPT_LEN)
+        } else {
+            stripped
         }
     }
 
@@ -279,6 +306,29 @@ constructor(
 
     private companion object {
         const val MAX_ERROR_DETAIL_LEN = 200
+
+        // fix H10:cap upstream response body reads to 1 MiB
+        const val MAX_RESPONSE_BODY_BYTES = 1L shl 20
+
+        // fix H9:cap system prompt length
+        const val MAX_SYSTEM_PROMPT_LEN = 8192
+
+        // fix H9:strip role-marker abuse
+        val ROLE_MARKERS = Regex("""(?i)\b(role|system|assistant|user)\s*:\s*""")
+
+        // fix H13:reserved headers that user must not override
+        val RESERVED_HEADERS = setOf(
+            "host",
+            "authorization",
+            "content-length",
+            "transfer-encoding",
+            "connection",
+            "cookie"
+        )
+
+        // RFC-7230 token: tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." /
+        //   "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
+        val HEADER_NAME_REGEX = Regex("^[A-Za-z0-9!#\\$%&'*+\\-.^_`|~]+\$")
         val SENSITIVE_PATTERNS = listOf(
             Regex("""sk-[A-Za-z0-9_\-]{16,}"""),
             Regex("""(?i)Bearer\s+[A-Za-z0-9_\-\.=]{16,}"""),

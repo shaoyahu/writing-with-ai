@@ -2,6 +2,25 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log,单次评审查 `docs/reviews/`,规划查 `docs/plans/`。
 
+## 2026-06-25 · UI 整体重设计(ui-redesign-v2)
+
+- **设计系统重建**:种子色从纯蓝 #3B82F6 → 墨绿 #1B6B4A + 琥珀 #D4940A + 薄荷 #2BAD8E;Spacing 5→9 档 / CornerRadius 3→5 档;新增 warning/success semantic CustomColors;Shape.kt 统一 4/8/12/16/24dp 五档
+- **核心页面**:笔记列表(胶囊搜索框 + border-card + 左侧彩色竖条 + 64dp 大图标空状态) / 详情(headlineLarge 标题 + 固定底栏 Share+AI + RelatedNotes Surface 包裹) / 编辑器(BasicTextField 无边框 + Tag Surface 分离) / 我的(12dp 圆角 + section header + leading icon) / Onboarding(品牌头 + 条款 Surface)
+- **代码质量全量修复**(`docs/reviews/2026-06-25-ui-redesign-v2-code-review-r1.md`):3 HIGH(LazyColumn Flow 订阅泄漏 / 硬编码中文绕过 i18n / SectionCard Float↔Dp 双重转换)+ 10 MEDIUM(BasicTextField decorationBox / NoteRow 恢复 isPinned+updatedAt / SuggestionChip 空点击 / LocalCustomColors 静态化 / NavController 参数重构等)+ 3 LOW + 二次 review 新发现 3 处遗漏硬编码
+- **AppNav 解耦**:QuickNoteDetailScreen 不再持有 NavController,改为 onNavigateToNote/onNavigateToSettings/onRequestConsent 三个稳定 lambda,避免不稳定类型导致额外重组
+- **OpenSpec 归档**: `ui-redesign-v2` → `openspec/changes/archive/2026-06-25-ui-redesign-v2/`(同步修复 ai-streaming-ux / quick-note main spec 的 delta-header 污染)
+- **验证**: `./gradlew :app:ktlintCheck :app:assembleDebug :app:testDebugUnitTest` 全绿
+
+## 2026-06-25 · 全量 review r1 HIGH 修复
+
+- **fix-2026-06-24-review-r1-high**(`docs/reviews/2026-06-24-full-project-code-review-r1.md` 22 项 HIGH):
+  - **AI 鲁棒性**:AnthropicAdapter system prompt 截断 + role-marker strip(H9)+ body cap 1 MiB(H10)+ SSE ensureActive(H11)+ retry Delta-guard(H12)+ customHeaders RFC-7230 校验(H13)
+  - **Token 生命周期**:AuthInterceptor `Dispatchers.IO + withTimeoutOrNull(5s)`(H5)+ UserTokenProvider 单 Mutex 包 token state(H6)+ expires_in fallback 60s(H7)+ appSecret 改 in-memory map 替代 EncryptedSharedPreferences 持久化(H8)
+  - **异步一致性**:SyncWorker runAttemptCount 守卫 + SyncEngine EntryPoint 注入(H14)+ FeishuRefDao `@Transaction upsertNoteWithRef`(H15)+ BackfillScheduler flag 移到 Worker 成功回调(H16)+ Entity backfill 加 `.addTag`(H17)+ WritingApp `CoroutineScope(SupervisorJob + Dispatchers.IO).launch`(H23)
+  - **资源 + UX**:ImageCompressor `ExifInterface` + `Matrix.postRotate` + `RGB_565` 防 OOM(H19)+ LlmEntityExtractor 严格 `Json.parseToJsonElement`(H20)
+  - **跳过**(后续 change):H21 wikilink race + H22 apikey redact + H24 SavedStateHandle + H25 feishuRef StateFlow + Robolectric 测试 + ExtractionMetrics 接口
+  - **验证**: `./gradlew :app:check` 全绿(ktlint 0 + test 208 全 pass + lintDebug 0)
+
 ## 2026-06-25 · 全量 review r1 critical 修复
 
 - **fix-2026-06-24-review-r1-critical**(`docs/reviews/2026-06-24-full-project-code-review-r1.md` 0-day 阻断项):

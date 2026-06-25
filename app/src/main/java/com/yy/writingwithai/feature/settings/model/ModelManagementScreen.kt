@@ -300,7 +300,7 @@ private fun ProviderInfoCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = if (isSelected) {
-            BorderStroke(3.dp, MaterialTheme.customColors.success)
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
         } else {
             null
         },

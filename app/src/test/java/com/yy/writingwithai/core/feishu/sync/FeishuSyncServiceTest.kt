@@ -49,10 +49,10 @@ class FeishuSyncServiceTest {
         override fun getRefreshTokenSnapshot(): String? = null
         override fun getFolderTokenSnapshot(): String? = null
         override fun getAppIdAndRefreshToken(): Pair<String, String>? = null
-        override suspend fun persistAppSecret(secret: String) {}
-        override suspend fun clearAppSecret() {}
-        override fun getAppSecretSnapshot(): String? = null
-        override fun getAppIdAndSecret(): Pair<String, String>? = null
+        override suspend fun persistAppSecret(requestId: String, secret: String) {}
+        override suspend fun clearAppSecret(requestId: String) {}
+        override fun getAppSecretSnapshot(requestId: String): String? = null
+        override fun getAppIdAndSecret(requestId: String): Pair<String, String>? = null
 
         // fix-2026-06-24-review-r1-critical:新增 OAuth state API stub
         override suspend fun persistOAuthState(state: String, ttlMs: Long) {}

@@ -30,8 +30,7 @@ class BackfillScheduler @Inject constructor(
 
         WorkManager.getInstance(context)
             .enqueueUniqueWork(WORK_NAME_NOTE, ExistingWorkPolicy.KEEP, request)
-
-        prefs.edit().putBoolean(PREF_BACKFILL_DONE, true).apply()
+        // fix-2026-06-24-review-r1-high H16:flag 移到 Worker.doWork 成功后写;此处不写
     }
 
     /** entity-extraction-association §7.2:AppDatabase 升级后 enqueue 实体抽取回填(5s 延后)。 */
@@ -43,15 +42,16 @@ class BackfillScheduler @Inject constructor(
             .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
             .build()
 
+        // fix H17:加 .addTag(ENTITY_BACKFILL_TAG),cancel tag 真正生效
         val request = OneTimeWorkRequestBuilder<EntityBackfillWorker>()
             .setInitialDelay(5, TimeUnit.SECONDS)
             .setConstraints(constraints)
+            .addTag(ENTITY_BACKFILL_TAG)
             .build()
 
         WorkManager.getInstance(context)
             .enqueueUniqueWork(WORK_NAME_ENTITY, ExistingWorkPolicy.KEEP, request)
-
-        prefs.edit().putBoolean(PREF_ENTITY_BACKFILL_DONE, true).apply()
+        // fix H16:同上 flag 不在这里写
     }
 
     /** entity-extraction-association §7.6:取消实体回填(用户在设置页暂停)。 */

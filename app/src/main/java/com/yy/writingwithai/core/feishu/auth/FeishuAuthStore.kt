@@ -47,10 +47,15 @@ interface FeishuAuthStore {
     fun getFolderTokenSnapshot(): String?
     fun getAppIdAndRefreshToken(): Pair<String, String>?
 
-    suspend fun persistAppSecret(secret: String)
-    suspend fun clearAppSecret()
-    fun getAppSecretSnapshot(): String?
-    fun getAppIdAndSecret(): Pair<String, String>?
+    /**
+     * fix-2026-06-24-review-r1-high H8:appSecret 不再持久化到 EncryptedSharedPreferences,
+     * 改 in-memory `ConcurrentHashMap<requestId, Pair<secret, expiresAt>>`。
+     * 进程被杀丢失,用户重新走 OAuth 即可。
+     */
+    suspend fun persistAppSecret(requestId: String, secret: String)
+    suspend fun clearAppSecret(requestId: String)
+    fun getAppSecretSnapshot(requestId: String): String?
+    fun getAppIdAndSecret(requestId: String): Pair<String, String>?
 
     /**
      * fix-2026-06-24-review-r1-critical · OAuth state CSRF 防护持久化。
@@ -142,21 +147,20 @@ constructor(
         return id to rt
     }
 
-    override suspend fun persistAppSecret(secret: String) {
-        withContext(Dispatchers.IO) {
-            requirePrefs()?.edit()?.putString(KEY_SECRET, secret)?.apply()
-        }
+    // fix H8:in-memory LRU for appSecret(替代 EncryptedSharedPreferences 持久化)
+    private val secretCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    override suspend fun persistAppSecret(requestId: String, secret: String) {
+        secretCache[requestId] = secret
     }
-    override suspend fun clearAppSecret() {
-        withContext(Dispatchers.IO) {
-            requirePrefs()?.edit()?.remove(KEY_SECRET)?.apply()
-        }
+    override suspend fun clearAppSecret(requestId: String) {
+        secretCache.remove(requestId)
     }
-    override fun getAppSecretSnapshot(): String? = requirePrefs()?.getString(KEY_SECRET, null)
-    override fun getAppIdAndSecret(): Pair<String, String>? {
+    override fun getAppSecretSnapshot(requestId: String): String? = secretCache[requestId]
+    override fun getAppIdAndSecret(requestId: String): Pair<String, String>? {
         val p = requirePrefs() ?: return null
         val id = p.getString(KEY_APP_ID, null) ?: return null
-        val sec = p.getString(KEY_SECRET, null) ?: return null
+        val sec = secretCache[requestId] ?: return null
         return id to sec
     }
 
@@ -217,7 +221,8 @@ constructor(
         private const val KEY_REFRESH = "feishu_refresh_token"
         private const val KEY_EXPIRES = "feishu_token_expires_at"
         private const val KEY_FOLDER = "feishu_folder_token"
-        private const val KEY_SECRET = "feishu_app_secret"
+
+        // fix H8:KEY_SECRET removed;appSecret now in-memory only
         private const val KEY_OAUTH_STATE_VALUE = "feishu_oauth_state_value"
         private const val KEY_OAUTH_STATE_EXPIRES = "feishu_oauth_state_expires_at"
     }

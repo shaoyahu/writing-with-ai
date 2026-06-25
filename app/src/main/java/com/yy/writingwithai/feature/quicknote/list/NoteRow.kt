@@ -1,14 +1,18 @@
-@file:Suppress("unused", "FunctionNaming")
-
 package com.yy.writingwithai.feature.quicknote.list
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,160 +25,164 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.yy.writingwithai.R
+import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
-import com.yy.writingwithai.core.data.model.Note
-import com.yy.writingwithai.core.data.model.NoteWithTags
-import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
-import java.text.DateFormat
-import java.util.Date
 
 /**
- * 列表单行(spec §"List ordering"):左侧 pin 图标、标题、标题右侧最多 2 个 tag chip、正文预览、时间。
- *
- * fix-m6-note-row-tag-inline · tag 从第二行 FlowRow 改为标题右侧内联小 chip,
- * 高度与 titleMedium 接近;超过 [MAX_INLINE_TAGS] 个的 tag 不再显示,只追加「+N」。
+ * ui-redesign-v2 · 笔记行组件:Card 改为 border-card(elevation=0 + 1dp outlineVariant border + md 12dp 圆角),
+ * 左侧 3dp 彩色竖条(tag 色或 primary)。
  */
-private const val MAX_INLINE_TAGS = 2
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun NoteRow(
-    item: NoteWithTags,
-    onClick: (noteId: String) -> Unit,
-    onTagClick: (String) -> Unit = {},
-    feishuStatus: FeishuRefStatus? = null,
-    modifier: Modifier = Modifier
+    title: String,
+    content: String,
+    tags: List<String>,
+    syncStatus: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
+    updatedAt: String? = null
 ) {
-    val note = item.note
     val spacing = LocalSpacing.current
+    val cornerRadius = LocalCornerRadius.current
+    // M3 fix: remember(tags) 缓存颜色,避免每次重组重新计算 Color.hsl()
+    val isDark = isSystemInDarkTheme()
+    val accentColor = remember(tags, isDark) { tagAccentColor(tags, isDark) }
+
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = spacing.md, vertical = spacing.xs),
-        onClick = { onClick(note.id) },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(cornerRadius.md),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.md, vertical = spacing.sm)
+        // M8 fix: 用 IntrinsicSize.Min 让竖条高度跟随内容
+        Row(
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
         ) {
-            // 标题行:pin + 标题(weight=1f,塞不下 ellipsis) + 最多 2 个 tag + 溢出 +N
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (note.isPinned) {
-                    Icon(
-                        imageVector = Icons.Filled.PushPin,
-                        contentDescription = stringResource(R.string.quicknote_detail_pin),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(spacing.sm))
+            // 左侧彩色竖条
+            Spacer(
+                modifier = Modifier
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(topStart = cornerRadius.md, bottomStart = cornerRadius.md))
+                    .background(accentColor)
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = spacing.md, vertical = spacing.sm)
+            ) {
+                // M4 fix: 恢复 isPinned 指示器 + updatedAt 时间戳
+                if (isPinned || updatedAt != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.xs)
+                    ) {
+                        if (isPinned) {
+                            Icon(
+                                imageVector = Icons.Filled.PushPin,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        if (updatedAt != null) {
+                            Text(
+                                text = updatedAt,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(spacing.xs))
                 }
                 Text(
-                    text = note.title.ifBlank { note.content.take(Note.TITLE_FALLBACK_LEN) },
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    overflow = TextOverflow.Ellipsis
                 )
-                // feishu-bidir-sync:飞书同步状态 chip
-                if (feishuStatus != null) {
-                    Spacer(Modifier.width(spacing.xs))
-                    val (labelRes, chipColor) = when (feishuStatus) {
-                        FeishuRefStatus.SYNCED ->
-                            R.string.quicknote_feishu_status_synced to MaterialTheme.colorScheme.outlineVariant
-                        FeishuRefStatus.DIRTY ->
-                            R.string.quicknote_feishu_status_dirty to MaterialTheme.colorScheme.tertiary
-                        FeishuRefStatus.CONFLICT ->
-                            R.string.quicknote_feishu_status_conflict to MaterialTheme.colorScheme.error
-                        FeishuRefStatus.REMOTE_DELETED ->
-                            R.string.quicknote_feishu_status_remote_deleted to MaterialTheme.colorScheme.outlineVariant
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(chipColor)
-                            .padding(horizontal = 6.dp, vertical = 1.dp)
+                if (content.isNotBlank()) {
+                    Spacer(Modifier.height(spacing.xs))
+                    Text(
+                        text = content,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (tags.isNotEmpty()) {
+                    Spacer(Modifier.height(spacing.xs))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Text(
-                            text = stringResource(labelRes),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
+                        tags.take(3).forEach { tag ->
+                            // M5 fix: SuggestionChip 改为非交互式 Text+背景,避免误导可点击
+                            Text(
+                                text = tag,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                        if (tags.size > 3) {
+                            Text(
+                                text = "+${tags.size - 3}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(start = spacing.xs)
+                            )
+                        }
                     }
                 }
-                if (item.tags.isNotEmpty()) {
-                    Spacer(Modifier.width(spacing.sm))
-                    item.tags.take(MAX_INLINE_TAGS).forEach { tagName ->
-                        InlineTagChip(tagName = tagName, onClick = { onTagClick(tagName) })
-                        Spacer(Modifier.width(spacing.xs))
-                    }
-                    val overflow = item.tags.size - MAX_INLINE_TAGS
-                    if (overflow > 0) {
-                        Text(
-                            text = "+$overflow",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                if (syncStatus != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = syncStatus,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-            if (note.content.isNotBlank()) {
-                Text(
-                    text = note.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-            Text(
-                text =
-                DateFormat
-                    .getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                    .format(Date(note.updatedAt)),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = spacing.sm / 2)
-            )
         }
     }
 }
 
 /**
- * 标题右侧内联 tag chip:小高度,labelSmall 字号,与 titleMedium 同字级基线对齐,
- * 走 secondaryContainer 背景;点击触发 [onClick]。
+ * 从第一个 tag 名推导竖条颜色:tag 为空则用 primary。
+ * 暗色模式用更高 lightness 保证对比度。
  */
-@Composable
-private fun InlineTagChip(tagName: String, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .clickable(onClick = onClick)
-            .semantics { role = Role.Button }
-            .padding(horizontal = 8.dp, vertical = 1.dp)
-    ) {
-        Text(
-            text = "#$tagName",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            maxLines = 1
-        )
+private fun tagAccentColor(tags: List<String>, isDark: Boolean): Color {
+    if (tags.isEmpty()) {
+        return if (isDark) {
+            // 暗色下 primary 已是亮色变体(8CD8AB),直接用
+            Color(0xFF8CD8AB)
+        } else {
+            Color(0xFF1B6B4A) // 亮色下 primary
+        }
     }
+    val hue = tags.first().hashCode().toFloat().mod(360f).let { if (it < 0) it + 360f else it }
+    val lightness = if (isDark) 0.6f else 0.45f
+    return Color.hsl(hue, 0.6f, lightness)
 }
-
-/** spec §"Note entity schema":空 title 时由正文前 30 字派生 — 常量见 [Note.TITLE_FALLBACK_LEN]。 */

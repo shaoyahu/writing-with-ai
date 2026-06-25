@@ -8,8 +8,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -21,27 +28,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yy.writingwithai.R
+import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.WritingAppTheme
 
 /**
- * app-bottom-tab-bar · "我的" tab 根屏。
- *
- * 反馈(2026-06-23):按功能类型 4 分组:
- * - 卡 1:「AI 配置」— AI 模型管理 + Prompt 模板,类内横线分隔,无边距
- * - 卡 2:「实体别名」— 独立 Card
- * - 卡 3:「同步 / 数据」— 数据导入导出 + 飞书同步 + 设置,类内横线
- * - 卡 4:「关于」— 版本号展示
- *
- * 页面背景浅灰(surfaceVariant),Card 白色(surface),类间浅灰间距自然形成分隔。
- * Card 无左右边距,只有上下间距。
+ * ui-redesign-v2 · "我的" tab 根屏:
+ * - SectionCard 12dp 圆角 + 每项 leading icon
+ * - Section 间标题标签(AI 配置 / 数据管理 / 关于)
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MyScreen(onNavigate: (MeTabTarget) -> Unit, modifier: Modifier = Modifier) {
+    val cornerRadius = LocalCornerRadius.current
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = { TopAppBar(title = { Text(stringResource(R.string.me_title)) }) },
@@ -51,72 +55,104 @@ fun MyScreen(onNavigate: (MeTabTarget) -> Unit, modifier: Modifier = Modifier) {
             modifier = Modifier.padding(padding),
             contentPadding = PaddingValues(vertical = 12.dp)
         ) {
-            // 卡 1 · AI 配置:AI 模型管理 + Prompt 模板,同一类,横线分隔
+            // Section 1 · AI 配置
             item {
-                SectionCard {
-                    MyListItem(stringResource(R.string.me_model_title)) {
-                        onNavigate(MeTabTarget.SettingsModelManagement)
-                    }
+                SectionHeader(stringResource(R.string.me_section_ai_config))
+            }
+            item {
+                SectionCard(cornerRadius = cornerRadius.md) {
+                    MyListItem(
+                        title = stringResource(R.string.me_model_title),
+                        icon = Icons.Filled.SmartToy,
+                        onClick = { onNavigate(MeTabTarget.SettingsModelManagement) }
+                    )
                     HorizontalDivider()
-                    MyListItem(stringResource(R.string.me_prompt_title)) {
-                        onNavigate(MeTabTarget.SettingsPromptTemplate)
-                    }
+                    MyListItem(
+                        title = stringResource(R.string.me_prompt_title),
+                        icon = Icons.Filled.SmartToy,
+                        onClick = { onNavigate(MeTabTarget.SettingsPromptTemplate) }
+                    )
                 }
             }
-            // 卡 2 · 实体别名(独立)
+            // Section 2 · 数据管理
             item {
-                SectionCard {
-                    MyListItem(stringResource(R.string.me_alias_title)) {
-                        onNavigate(MeTabTarget.SettingsAliasManagement)
-                    }
+                SectionHeader(stringResource(R.string.me_section_data))
+            }
+            item {
+                SectionCard(cornerRadius = cornerRadius.md) {
+                    MyListItem(
+                        title = stringResource(R.string.me_alias_title),
+                        icon = Icons.Filled.LocalOffer,
+                        onClick = { onNavigate(MeTabTarget.SettingsAliasManagement) }
+                    )
+                    HorizontalDivider()
+                    MyListItem(
+                        title = stringResource(R.string.me_data_title),
+                        icon = Icons.Filled.Storage,
+                        onClick = { onNavigate(MeTabTarget.SettingsData) }
+                    )
+                    HorizontalDivider()
+                    MyListItem(
+                        title = stringResource(R.string.me_feishu_title),
+                        icon = Icons.Filled.Cloud,
+                        onClick = { onNavigate(MeTabTarget.FeishuAuth) }
+                    )
+                    HorizontalDivider()
+                    MyListItem(
+                        title = stringResource(R.string.me_settings_title),
+                        icon = Icons.Filled.Settings,
+                        onClick = { onNavigate(MeTabTarget.Settings) }
+                    )
                 }
             }
-            // 卡 3 · 数据 + 飞书同步 + 设置
+            // Section 3 · 关于
             item {
-                SectionCard {
-                    MyListItem(stringResource(R.string.me_data_title)) {
-                        onNavigate(MeTabTarget.SettingsData)
-                    }
-                    HorizontalDivider()
-                    MyListItem(stringResource(R.string.me_feishu_title)) {
-                        onNavigate(MeTabTarget.FeishuAuth)
-                    }
-                    HorizontalDivider()
-                    MyListItem(stringResource(R.string.me_settings_title)) {
-                        onNavigate(MeTabTarget.Settings)
-                    }
-                }
+                SectionHeader(stringResource(R.string.me_section_about))
             }
-            // 卡 4 · 关于(展示 + 跳转「检查更新」)
             item {
-                SectionCard {
-                    MyListItem(stringResource(R.string.me_about_title)) {
-                        onNavigate(MeTabTarget.About)
-                    }
+                SectionCard(cornerRadius = cornerRadius.md) {
+                    MyListItem(
+                        title = stringResource(R.string.me_about_title),
+                        icon = Icons.Filled.Info,
+                        onClick = { onNavigate(MeTabTarget.About) }
+                    )
                 }
             }
         }
     }
 }
 
-/** 白色 Card 包裹:填满宽度,无左右边距,垂直 12dp 间距。 */
+/** Section 标题标签。 */
 @Composable
-private fun SectionCard(content: @Composable () -> Unit) {
+private fun SectionHeader(label: String) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+/** 白色圆角 Card 包裹。 */
+@Composable
+private fun SectionCard(cornerRadius: Dp, content: @Composable () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp, bottom = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+        shape = RoundedCornerShape(cornerRadius),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         content()
     }
 }
 
 @Composable
-private fun MyListItem(title: String, onClick: () -> Unit) {
+private fun MyListItem(title: String, icon: ImageVector, onClick: () -> Unit) {
     ListItem(
         headlineContent = { Text(title) },
+        leadingContent = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
         trailingContent = {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
         },

@@ -74,7 +74,7 @@ constructor(
         viewModelScope.launch {
             // 持久化 app_id + app_secret:浏览器打开期间进程可能被杀
             store.setOAuthCredentials(appId, "", "", 0L)
-            store.persistAppSecret(appSecret)
+            store.persistAppSecret("oauth", appSecret)
             store.setAuthState(FeishuAuthState.TOKEN_FETCHING)
             oauthLauncher.launch(getApplication(), appId)
         }

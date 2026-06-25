@@ -48,5 +48,7 @@ class BackfillWorker(
 
     companion object {
         private const val BATCH_SIZE = 50
+        private const val PREFS_NAME = "backfill_note_association"
+        private const val PREF_BACKFILL_DONE_NOTE = "backfill_v1_done"
     }
 }

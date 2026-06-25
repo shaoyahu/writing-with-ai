@@ -67,7 +67,7 @@ class OAuthCodeReceiver : ComponentActivity() {
             return
         }
 
-        val appSecret = authStore.getAppSecretSnapshot()
+        val appSecret = authStore.getAppSecretSnapshot("oauth")
         if (appSecret == null) {
             Log.w(TAG, "OAuth callback but appSecret missing from store")
             finish()

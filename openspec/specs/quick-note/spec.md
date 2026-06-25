@@ -508,8 +508,6 @@ M4-3 MUST NOT 改 QuickNoteListScreen 其他功能(搜索 / 列表 / 分享 / pi
 - **WHEN** grep `QuickNoteListScreen.kt` "PushPin"
 - **THEN** M1 既有 pin/unpin 逻辑保留(代码未改)
 
-## ADDED Requirements (voice-input)
-
 ### Requirement: Note editor delegates voice input to system IME
 
 `QuickNoteEditorScreen` MUST 走标准 Compose `OutlinedTextField` / `TextField` 落地标题 + 正文输入(已 M1 落地),不修改其 `Modifier` / `value` / `onValueChange` / `keyboardOptions` / `keyboardActions` 等属性以"屏蔽 IME 语音输入";系统 IME 自带的"麦克风"按钮触发 ASR 出文字后,通过 `InputConnection.commitText()` 注入到光标位置,应用层零感知。
@@ -544,4 +542,41 @@ App MUST NOT 在 `AndroidManifest.xml` 声明 `<uses-permission android:name="an
 #### Scenario: 编辑器 TextField 不绕过 IME
 - **WHEN** `grep -rE "(interceptKey|onKeyEvent|InputConnection.*rawInput)" app/src/main/java/com/yy/writingwithai/feature/quicknote/edit/`
 - **THEN** 0 匹配(编辑器不拦截 IME 事件,IME 协议完整透传)
+
+### Requirement: Wikilink autocomplete prefix recomputed on content change
+
+`feature/quicknote/edit/QuickNoteEditorScreen` wikilink autocomplete MUST recompute `lastOpen` (the index of `[[` in the current content) when `content` state changes via `remember(content) { content.lastIndexOf("[[") }`. The `onSelect` callback MUST derive the prefix from the *current* `content` snapshot at click time, not from any captured `lastOpen` value at recompute time. This prevents stale-prefix corruption when user types between recompute and selection.
+
+#### Scenario: Content typed between recompute and select
+- **WHEN** `lastOpen` is computed for content "abc [[" and then user types "def" before clicking an autocomplete suggestion
+- **THEN** `onSelect` derives prefix from current content "abc [[def" (not from stale "abc [[")
+
+### Requirement: QuickNoteDetailViewModel exposes feishuRef as StateFlow
+
+`feature/quicknote/detail/QuickNoteDetailViewModel` MUST expose `_feishuRef: StateFlow<FeishuRefEntity?>` derived from `refDao.observeForNote(noteId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)` rather than a one-shot `getRef(id)` call. The chip in the detail UI MUST update when sync / pull / push operations modify the ref row.
+
+#### Scenario: Push changes ref state visible
+- **WHEN** user taps "同步到飞书" and `FeishuSyncService.push(noteId)` writes a new `feishu_ref` row
+- **THEN** the detail screen's feishu chip transitions from "未同步" to "已同步" without manual refresh
+
+### Requirement: Quick note list screen uses new design tokens
+QuickNoteListScreen SHALL use the filled capsule search bar (surfaceVariant background, xl 24dp corner radius). NoteRow SHALL use border-card style (12dp corner radius, 1dp outlineVariant border, 0 elevation). EmptyState SHALL show 64dp icon + brand tagline + primary CTA.
+
+#### Scenario: Note list uses capsule search and border cards
+- **WHEN** the note list screen is displayed
+- **THEN** the search bar is a capsule (surfaceVariant background, 24dp corner radius) and note rows are border cards (12dp radius, no shadow)
+
+### Requirement: Quick note detail screen uses new layout
+QuickNoteDetailScreen SHALL display headlineLarge title, FlowRow tags, and a fixed bottom bar with Share + AutoAwesome icons. RelatedNotesSection SHALL be wrapped in Surface(surfaceVariant, 12dp radius).
+
+#### Scenario: Note detail uses new layout
+- **WHEN** note detail screen is displayed
+- **THEN** title uses headlineLarge, bottom bar shows Share + AI icons, related notes in Surface card
+
+### Requirement: Quick note editor uses borderless TextFields
+QuickNoteEditorScreen SHALL use BasicTextField for title (headlineMedium, no border) and content (bodyLarge, weight(1f)). Tag section SHALL be wrapped in Surface(surfaceVariant).
+
+#### Scenario: Editor uses borderless fields
+- **WHEN** the editor is displayed
+- **THEN** title field has no border outline, content field fills remaining height, tags in Surface card
 

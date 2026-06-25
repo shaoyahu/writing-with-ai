@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
@@ -21,11 +22,13 @@ import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -81,67 +84,74 @@ fun RelatedNotesSection(
         backlinks = noteLinker.getBacklinks(noteId)
     }
 
-    Column(modifier = modifier.fillMaxWidth()) {
-        // Section header
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.Hub,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.note_association_section_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-        Spacer(Modifier.height(12.dp))
+    // ui-redesign-v2 · 外层 Surface 卡片包裹 + 圆角
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+            // Section header
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Outlined.Hub,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.note_association_section_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(Modifier.height(12.dp))
 
-        if (related.isEmpty() && backlinks.isEmpty()) {
-            // Capture Composable-dependent values outside coroutine scope
-            val errorUnknown = stringResource(R.string.note_association_ai_error_unknown)
-            EmptyState(
-                aiState = aiState,
-                showAiButton = showAiButton,
-                onAiTrigger = {
-                    aiState = AiExtractState.Loading
-                    scope.launch {
-                        try {
-                            val count = onAiTrigger()
-                            aiState = AiExtractState.Success(count)
-                            // Refresh the list after AI extraction
-                            related = noteLinker.getRelated(noteId)
-                            backlinks = noteLinker.getBacklinks(noteId)
-                        } catch (e: Exception) {
-                            if (e is kotlinx.coroutines.CancellationException) throw e
-                            aiState = AiExtractState.Error(
-                                e.message ?: errorUnknown
-                            )
+            if (related.isEmpty() && backlinks.isEmpty()) {
+                // Capture Composable-dependent values outside coroutine scope
+                val errorUnknown = stringResource(R.string.note_association_ai_error_unknown)
+                EmptyState(
+                    aiState = aiState,
+                    showAiButton = showAiButton,
+                    onAiTrigger = {
+                        aiState = AiExtractState.Loading
+                        scope.launch {
+                            try {
+                                val count = onAiTrigger()
+                                aiState = AiExtractState.Success(count)
+                                // Refresh the list after AI extraction
+                                related = noteLinker.getRelated(noteId)
+                                backlinks = noteLinker.getBacklinks(noteId)
+                            } catch (e: Exception) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
+                                aiState = AiExtractState.Error(
+                                    e.message ?: errorUnknown
+                                )
+                            }
                         }
                     }
+                )
+            } else {
+                if (related.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.note_association_related_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    related.forEach { r -> NoteLinkCard(r, onNavigate) }
+                    if (backlinks.isNotEmpty()) Spacer(Modifier.height(8.dp))
                 }
-            )
-        } else {
-            if (related.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.note_association_related_title),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                related.forEach { r -> NoteLinkCard(r, onNavigate) }
-                if (backlinks.isNotEmpty()) Spacer(Modifier.height(8.dp))
-            }
-            if (backlinks.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.note_association_backlinks_title),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                )
-                backlinks.forEach { r -> NoteLinkCard(r, onNavigate, isBacklink = true) }
+                if (backlinks.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.note_association_backlinks_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                    )
+                    backlinks.forEach { r -> NoteLinkCard(r, onNavigate, isBacklink = true) }
+                }
             }
         }
     }
@@ -150,11 +160,14 @@ fun RelatedNotesSection(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit, isBacklink: Boolean = false) {
-    ElevatedCard(
+    Card(
         onClick = { onNavigate(note.noteId) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp)
+            .padding(vertical = 3.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -206,7 +219,7 @@ private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit, isBack
                     SignalChip(text = stringResource(R.string.note_association_signal_content))
                 }
                 if (note.signals.contains(LinkType.ENTITY_HIT)) {
-                    SignalChip(text = "Entity")
+                    SignalChip(text = stringResource(R.string.note_association_signal_entity))
                 }
                 if (note.signals.contains(LinkType.LLM_EXTRACT)) {
                     SignalChip(text = stringResource(R.string.note_association_signal_ai))

@@ -247,6 +247,18 @@
     <string name="quicknote_feishu_status_conflict">Conflict</string>
     <string name="quicknote_feishu_status_remote_deleted">Remote deleted</string>
     <string name="quicknote_feishu_syncing">Syncing…</string>
+    <string name="quicknote_detail_resync_as_new">Re-sync as new document</string>
+    <string name="quicknote_feishu_pull_confirm">Pull</string>
+    <string name="quicknote_feishu_sync_success">Feishu sync succeeded</string>
+    <string name="quicknote_feishu_sync_fail">Feishu sync failed</string>
+    <string name="quicknote_feishu_copy_link">Copy link</string>
+    <string name="quicknote_feishu_copy_error">Copy error</string>
+    <string name="quicknote_feishu_close">Close</string>
+    <string name="quicknote_feishu_pull_url_label">https://bytedance.feishu.cn/docx/...</string>
+    <string name="quicknote_feishu_conflict_remote_placeholder">(Remote content, pull to load)</string>
+    <string name="feishu_clip_label_url">feishu_url</string>
+    <string name="feishu_clip_label_error">feishu_error</string>
+    <string name="note_association_signal_entity">Entity</string>
 
     <!-- entity-extraction-association · alias management + threshold + backfill progress -->
     <string name="entity_alias_management_title">Entity alias management</string>

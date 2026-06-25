@@ -13,7 +13,10 @@ import com.yy.writingwithai.core.widget.QuickNoteWidgetWorker
 import dagger.hilt.android.HiltAndroidApp
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * writing-with-ai · Application 入口。
@@ -41,6 +44,9 @@ class WritingApp : Application() {
     @Inject
     lateinit var backfillScheduler: BackfillScheduler
 
+    // fix-2026-06-24-review-r1-high H23:异步 IO scope,不阻塞 Application.onCreate
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
         // 1) 把 Hilt 单例桥接到 widget host process 可读的静态字段
@@ -49,7 +55,7 @@ class WritingApp : Application() {
         // r1 H3 修:CONSENT_GATE_ENABLED=false 回滚逃生口 — 同步写默认 consent
         // (卸载重装即重置,避免永久卡 onboarding 屏)
         if (!BuildConfig.CONSENT_GATE_ENABLED) {
-            runBlocking {
+            appScope.launch {
                 consentStore.setAccepted(
                     version = BuildConfig.CONSENT_VERSION,
                     at = System.currentTimeMillis()

@@ -89,11 +89,12 @@ constructor(
     }
 
     private fun parseJsonEntities(raw: String): List<Triple<EntityType, String, String>> {
-        val bracketStart = raw.indexOf('[')
-        val bracketEnd = raw.lastIndexOf(']')
-        if (bracketStart < 0 || bracketEnd <= bracketStart) return emptyList()
-        val cleaned = raw.substring(bracketStart, bracketEnd + 1)
-        val arr = runCatching { Json.parseToJsonElement(cleaned) as JsonArray }.getOrNull() ?: return emptyList()
+        // fix-2026-06-24-review-r1-high H20:严格 JSON.parseToJsonElement 解析(替代 substring `[...]`)
+        val element = runCatching { Json.parseToJsonElement(raw) }.getOrNull() ?: run {
+            android.util.Log.w(TAG, "LLM raw not valid JSON, prefix=${raw.take(80)}")
+            return emptyList()
+        }
+        val arr = element as? JsonArray ?: return emptyList()
         return arr.mapNotNull { el ->
             val obj = runCatching { el.jsonObject }.getOrNull() ?: return@mapNotNull null
             val typeStr = obj["type"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
@@ -111,6 +112,7 @@ constructor(
 
         // fix-2026-06-24-review-r1-critical:LLM 输出字符上限 ≈ 4K tokens
         private const val MAX_CHARS = 16384
+        private const val TAG = "LlmEntityExtractor"
     }
 }
 
