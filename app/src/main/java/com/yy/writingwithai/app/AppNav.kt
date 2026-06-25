@@ -76,7 +76,11 @@ internal interface AppNavEntryPoint {
 fun AppNav(
     initialRoute: String? = null,
     widgetPendingRoute: MutableState<String?> = remember { mutableStateOf<String?>(null) },
-    onNavControllerReady: (androidx.navigation.NavController) -> Unit = {}
+    onNavControllerReady: (androidx.navigation.NavController) -> Unit = {},
+    // fix-2026-06-25-review-r1 C5:让测试能注入 fake(默认走 Hilt EntryPoint)。
+    // 不传时仍从 Activity EntryPoint 拿,MainActivity 走默认路径不变。
+    consentStore: ConsentStore? = null,
+    userPrefsStore: UserPrefsStore? = null
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -84,27 +88,30 @@ fun AppNav(
     // fix-global-back-nav-and-gesture: 把 navController 传给 Activity 层(用于 OnBackPressedCallback)
     androidx.compose.runtime.SideEffect { onNavControllerReady(navController) }
 
-    // M4-4 · 从 Activity 拿 ConsentStore(避免在 Composable 显式传 hiltViewModel)
-    val consentStore =
-        remember(context) {
-            EntryPointAccessors.fromActivity(
-                context as Activity,
-                AppNavEntryPoint::class.java
-            ).consentStore()
-        }
+    // M4-4 · ConsentStore:测试优先用入参(避免 Robolectric 跑 Hilt EntryPoint);
+    // 运行时 / MainActivity 走 Hilt ActivityComponent EntryPoint。
+    val resolvedConsentStore: ConsentStore =
+        consentStore
+            ?: remember(context) {
+                EntryPointAccessors.fromActivity(
+                    context as Activity,
+                    AppNavEntryPoint::class.java
+                ).consentStore()
+            }
 
-    // onboarding-apikey-prompt · 同样从 Activity 拿 UserPrefsStore(走 EntryPoint)
-    val userPrefsStore =
-        remember(context) {
-            EntryPointAccessors.fromActivity(
-                context as Activity,
-                AppNavEntryPoint::class.java
-            ).userPrefsStore()
-        }
+    // onboarding-apikey-prompt · 同上,UserPrefsStore 支持测试入参。
+    val resolvedUserPrefsStore: UserPrefsStore =
+        userPrefsStore
+            ?: remember(context) {
+                EntryPointAccessors.fromActivity(
+                    context as Activity,
+                    AppNavEntryPoint::class.java
+                ).userPrefsStore()
+            }
 
     // M4-4 · 启动时强制 gate:未同意或版本过期 → navigate onboarding + 清栈
     LaunchedEffect(Unit) {
-        val state = consentStore.consentFlow.first()
+        val state = resolvedConsentStore.consentFlow.first()
         val needsOnboarding = !state.accepted || state.version < BuildConfig.CONSENT_VERSION
         if (needsOnboarding) {
             navController.navigate(OnboardingEntry.ROUTE_CONSENT) {
@@ -114,9 +121,9 @@ fun AppNav(
     }
 
     // M4-4 · 同意后单向门 + widget route 回放(r1 H1 修)
-    val consentState by consentStore.consentFlow.collectAsState(initial = ConsentState.EMPTY)
+    val consentState by resolvedConsentStore.consentFlow.collectAsState(initial = ConsentState.EMPTY)
     // onboarding-apikey-prompt · ack 状态镜像(用于二段门)
-    val ackApikeyPrompt by userPrefsStore.ackApikeyPromptFlow
+    val ackApikeyPrompt by resolvedUserPrefsStore.ackApikeyPromptFlow
         .collectAsState(initial = false)
     LaunchedEffect(consentState.accepted, consentState.version, ackApikeyPrompt) {
         if (consentState.accepted && consentState.version >= BuildConfig.CONSENT_VERSION) {
@@ -296,7 +303,7 @@ fun AppNav(
     LaunchedEffect(initialRoute) {
         if (initialRoute == null) return@LaunchedEffect
         // 已同意且 initialRoute 给出 → 直接 navigate
-        val state = consentStore.consentFlow.value
+        val state = resolvedConsentStore.consentFlow.value
         if (state.accepted && state.version >= BuildConfig.CONSENT_VERSION) {
             when {
                 initialRoute.startsWith("quicknote/edit") -> {

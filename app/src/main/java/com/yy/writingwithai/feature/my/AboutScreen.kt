@@ -44,6 +44,7 @@ import com.yy.writingwithai.core.update.UpdateError
 fun AboutScreen(onBack: () -> Unit, viewModel: AboutViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -144,11 +145,13 @@ fun AboutScreen(onBack: () -> Unit, viewModel: AboutViewModel = hiltViewModel())
     LaunchedEffect(state) {
         when (val s = state) {
             is AboutUiState.UpToDate -> {
-                snackbarHostState.showSnackbar("已是最新 v${s.remoteVersionName}")
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.about_state_up_to_date_fmt, s.remoteVersionName)
+                )
                 viewModel.resetToIdle()
             }
             is AboutUiState.Failed -> {
-                snackbarHostState.showSnackbar(failedMessage(s.error))
+                snackbarHostState.showSnackbar(failedMessage(context, s.error))
                 viewModel.resetToIdle()
             }
             else -> Unit
@@ -160,12 +163,12 @@ fun AboutScreen(onBack: () -> Unit, viewModel: AboutViewModel = hiltViewModel())
 private fun StateFeedback(state: AboutUiState) {
     when (state) {
         is AboutUiState.Downloading -> Text(
-            "下载中... v${state.versionName},系统通知栏查看进度",
+            stringResource(R.string.about_state_downloading_fmt, state.versionName),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary
         )
         is AboutUiState.Available -> Text(
-            "发现新版本 v${state.manifest.versionName}",
+            stringResource(R.string.about_state_available_fmt, state.manifest.versionName),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary
         )
@@ -173,11 +176,11 @@ private fun StateFeedback(state: AboutUiState) {
     }
 }
 
-private fun failedMessage(err: UpdateError): String = when (err) {
-    is UpdateError.Network -> "检查失败:网络异常"
-    is UpdateError.Http -> "检查失败:服务端错误(${err.code})"
-    is UpdateError.Parse -> "检查失败:响应格式错误"
-    is UpdateError.ChecksumMismatch -> "下载文件损坏,请重试"
+private fun failedMessage(context: android.content.Context, err: UpdateError): String = when (err) {
+    is UpdateError.Network -> context.getString(R.string.about_error_network)
+    is UpdateError.Http -> context.getString(R.string.about_error_http_fmt, err.code)
+    is UpdateError.Parse -> context.getString(R.string.about_error_parse)
+    is UpdateError.ChecksumMismatch -> context.getString(R.string.about_error_checksum)
 }
 
 @androidx.compose.ui.tooling.preview.Preview(name = "About", showBackground = true)

@@ -107,11 +107,11 @@ fun FeishuAuthScreen(onBack: () -> Unit, viewModel: FeishuAuthViewModel = hiltVi
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                "用飞书账号授权,创建的文档会出现在你的「我的文档」中。",
+                stringResource(R.string.feishu_oauth_authorization_intro),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                "需要开通的权限: docx:document、drive:drive。在飞书开放后台 → 权限管理 中开通后约 1 分钟生效。",
+                stringResource(R.string.feishu_oauth_required_permissions),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error
             )

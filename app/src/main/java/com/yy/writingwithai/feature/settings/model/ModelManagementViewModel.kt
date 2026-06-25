@@ -124,12 +124,17 @@ constructor(
         }
     }
 
-    /** 保存 apikey + 切换 selected providerId;可选 model 同步落 selectedModel。 */
+    /** 保存 apikey + 切换 selected providerId;可选 model 同步落 selectedModel。
+     *  H7 修:先 setSelectedProviderId → 再 save apikey。
+     *  setSelected 失败时,apikey 尚未写入,无需 rollback;setSelected 成功但 save 失败时,
+     *  显式回滚 selected 到原值,避免 UI 误以为新 provider 已生效。
+     */
     fun saveProvider(providerId: String, apiKey: String, model: String? = null) {
         viewModelScope.launch {
             _state.update { it.copy(lastSaveResult = SaveResult.InProgress) }
+            val previousSelected = _state.value.selectedProviderId
             try {
-                secureApiKeyStore.save(providerId, apiKey)
+                providerPrefsStore.setSelectedProviderId(providerId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -143,11 +148,21 @@ constructor(
                 return@launch
             }
             try {
-                providerPrefsStore.setSelectedProviderId(providerId)
+                secureApiKeyStore.save(providerId, apiKey)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
+                // 回滚 selected 到原值,避免 UI 误显示新 provider
+                try {
+                    if (previousSelected != null) {
+                        providerPrefsStore.setSelectedProviderId(previousSelected)
+                    } else {
+                        providerPrefsStore.setSelectedProviderId("fake")
+                    }
+                } catch (_: Exception) {
+                    // 静默:rollback 失败不影响主错误反馈
+                }
                 val result = SaveResult.Failed(
                     messageRes = R.string.model_management_error_unknown,
                     rawDetail = e.message

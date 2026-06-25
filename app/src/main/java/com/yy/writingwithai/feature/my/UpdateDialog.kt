@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.yy.writingwithai.R
 import com.yy.writingwithai.core.update.AppUpdateManifest
 
@@ -29,6 +30,14 @@ import com.yy.writingwithai.core.update.AppUpdateManifest
 fun UpdateDialog(manifest: AppUpdateManifest, onDownload: () -> Unit, onLater: () -> Unit) {
     AlertDialog(
         onDismissRequest = { if (!manifest.mandatory) onLater() },
+        properties = if (manifest.mandatory) {
+            DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        } else {
+            DialogProperties()
+        },
         title = {
             Column {
                 Text(stringResource(R.string.update_dialog_title, manifest.versionName))

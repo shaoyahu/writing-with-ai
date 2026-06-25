@@ -255,7 +255,14 @@ internal fun formatRelativeTimeCompact(context: Context, epochMs: Long): String 
 
 private const val SNIPPET_LEN = 30
 
-/** Returns Intent with route extra — Glance fires it on click, no premature launch. */
+/**
+ * Returns Intent with route extra — Glance fires it on click, no premature launch.
+ *
+ * L3 修:去掉 [Intent.FLAG_ACTIVITY_CLEAR_TASK] —— CLEAR_TASK 会清空 launcher 任务栈,
+ * 进而杀掉 consent 闸门 Activity(若用户已同意但系统重新创建 task)造成流程旁路。
+ * 对照 `WidgetIntentHelpers.launchWithTaskStack` 的 flag 选择 — 那边走
+ * [androidx.core.app.TaskStackBuilder] 显式构造回退栈,本路径只设 NEW_TASK。
+ */
 internal fun createNoteIntent(context: Context): Intent = Intent(context, MainActivity::class.java)
     .putExtra("route", "quicknote/edit?prefillFocus=true")
-    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

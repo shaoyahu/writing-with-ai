@@ -37,8 +37,7 @@ class AboutViewModel @Inject constructor(
     val state: StateFlow<AboutUiState> = _state.asStateFlow()
 
     fun checkForUpdate(localVersionCode: Int) {
-        if (_state.value is AboutUiState.Checking) return
-        _state.value = AboutUiState.Checking
+        _state.update { if (it is AboutUiState.Checking) it else AboutUiState.Checking }
         viewModelScope.launch {
             checker.fetch().fold(
                 onSuccess = { manifest ->

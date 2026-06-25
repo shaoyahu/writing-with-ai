@@ -3,6 +3,7 @@ package com.yy.writingwithai.feature.quicknote.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.data.repo.NoteRepository
 import com.yy.writingwithai.feature.quicknote.model.NoteEditorUiState
@@ -161,7 +162,9 @@ constructor(
                     updatedAt = now
                 )
             val tagsToSave = tagsFlow.value
-            android.util.Log.d("EditorVM", "save noteId=${note.id} tags=$tagsToSave")
+            if (BuildConfig.DEBUG) {
+                android.util.Log.d("EditorVM", "save noteId=${note.id} tags=$tagsToSave")
+            }
             repository.upsert(note, tagsToSave)
             savingFlow.update { false }
             onSaved(note.id)

@@ -41,7 +41,7 @@ import com.yy.writingwithai.R
 import com.yy.writingwithai.core.ai.api.AiError
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.WritingOp
-import com.yy.writingwithai.feature.aiwriting.error.toDisplayMessage
+import com.yy.writingwithai.feature.aiwriting.error.toDisplayMessageRes
 
 /**
  * AI 流式操作面板(M3 + ai-writing-ux-polish)。
@@ -152,7 +152,7 @@ fun StreamingPanel(
                 is AiActionUiState.Failed -> {
                     val ctx = LocalContext.current
                     HeaderRow(title = stringResource(R.string.aiwriting_panel_failed_title), usage = null)
-                    ScrollableBody(text = state.error.toDisplayMessage(ctx))
+                    ScrollableBody(text = ctx.getString(state.error.toDisplayMessageRes()))
                     FailedActionRow(
                         error = state.error,
                         onRetry = onRetry,
