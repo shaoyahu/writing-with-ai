@@ -3,6 +3,7 @@ package com.yy.writingwithai.core.data.db.entity
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -10,6 +11,9 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "note_attachments",
+    // fix-2026-06-25-review-r1 H1:JOIN attachments ON noteId = ? 走全表扫,
+    // 加 `Index("noteId")` 让查询走索引。
+    indices = [Index("noteId")],
     foreignKeys = [
         ForeignKey(
             entity = NoteEntity::class,

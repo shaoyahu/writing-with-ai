@@ -14,11 +14,11 @@ class WikilinkIndexer @Inject constructor(
 ) {
     suspend fun index(srcNoteId: String): List<NoteLinkEntity> {
         val src = noteDao.getById(srcNoteId) ?: return emptyList()
-        val titles = WikilinkParser.parse(src.content)
-        if (titles.isEmpty()) return emptyList()
+        val matches = WikilinkParser.parse(src.content)
+        if (matches.isEmpty()) return emptyList()
         val now = System.currentTimeMillis()
-        return titles.mapNotNull { title ->
-            val dst = noteDao.resolveByTitle(title) ?: return@mapNotNull null
+        return matches.mapNotNull { match ->
+            val dst = noteDao.resolveByTitle(match.target) ?: return@mapNotNull null
             NoteLinkEntity(
                 srcNoteId = srcNoteId,
                 dstNoteId = dst.id,

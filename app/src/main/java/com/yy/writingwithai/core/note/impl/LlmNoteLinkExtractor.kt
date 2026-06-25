@@ -157,7 +157,13 @@ class LlmNoteLinkExtractor @Inject constructor(
     private fun sanitize(c: String) = c.replace(Regex("[\"'`*\\[\\]]"), " ")
         .replace(Regex("\\s+"), " ").trim().take(200)
 
-    private fun estimateTokens(text: String): Int = (text.length / 3.5).toInt().coerceAtLeast(1)
+    // fix-2026-06-25-review-r1 H4:英文约 1 tok / 4 char,CJK 约 1.5 tok / 1 char;
+    // 之前 (length / 3.5) 把 1000 字中文估成 285,实际 1500,系统低估 5x 影响费用感知。
+    private fun estimateTokens(text: String): Int {
+        val cjk = text.count { it in '一'..'鿿' }
+        val other = text.length - cjk
+        return (other / 4) + (cjk * 3 / 2)
+    }
 
     /** M5:LLM 关联抽取 evidence 序列化(替代手动 JSON 拼接)。 */
     @Serializable

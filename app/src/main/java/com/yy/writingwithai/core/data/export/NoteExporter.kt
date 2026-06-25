@@ -53,6 +53,8 @@ constructor(
         entries["meta.json"] = json.encodeToString(ExportMeta.serializer(), meta).toByteArray(Charsets.UTF_8)
         // Markdown 可读副本
         notes.forEach { note ->
+            // L8 修:note.id 必须经 PathSafety 校验,避免 zip slip / 路径遍历。
+            com.yy.writingwithai.core.security.PathSafety.requireSafeId(note.id, "note.id")
             val md = "# ${note.title.ifBlank { "Untitled" }}\n\n${note.content}"
             entries["notes/${note.id}.md"] = md.toByteArray(Charsets.UTF_8)
         }

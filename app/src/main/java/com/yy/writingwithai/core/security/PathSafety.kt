@@ -11,8 +11,10 @@ import java.io.File
  */
 object PathSafety {
 
-    /** 文件名安全字符(扩展名前缀也算安全,因为扩展名通常 `apk` / `md`)。 */
-    val SAFE_NAME: Regex = Regex("^[A-Za-z0-9._-]{1,128}$")
+    // fix-2026-06-25-review-r1 M7:加 negative lookahead 拒 leading `.` / 子串 `..` /
+    // `.` 字符(防止 `.bashrc` / `..` 目录逃逸、`a.b` 这种把 `.` 当扩展名绕过)。
+    // 例:`writing-with-ai-1.2.3.apk` 不再通过,需先 strip 扩展名后再校验 / 或 fallback 到 `default`。
+    val SAFE_NAME: Regex = Regex("^(?!\\.)(?!.*\\.\\.)[A-Za-z0-9_-]{1,128}$")
 
     /** id 安全字符(noteId / attachmentId / docId)。无 `.` 无 `/` 无 `\`,只允许字母数字下划线连字符。 */
     val SAFE_ID: Regex = Regex("^[A-Za-z0-9_-]{1,64}$")

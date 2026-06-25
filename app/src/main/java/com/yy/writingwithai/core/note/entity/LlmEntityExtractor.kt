@@ -7,9 +7,11 @@ import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.db.entity.entity.NoteEntityRow
+import com.yy.writingwithai.core.prefs.SecureApiKeyStore
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -32,7 +34,8 @@ class LlmEntityExtractor
 constructor(
     private val noteDao: NoteDao,
     private val entityDao: NoteEntityDao,
-    private val aiGateway: AiGateway
+    private val aiGateway: AiGateway,
+    private val secureApiKeyStore: SecureApiKeyStore
 ) : EntityExtractor {
 
     override suspend fun extractAndPersist(noteId: String, bypassRateLimit: Boolean): Int =
@@ -40,6 +43,13 @@ constructor(
             val note = noteDao.getById(noteId) ?: return@withContext 0
             val content = note.title + "\n" + note.content
             if (containsInjection(content)) return@withContext 0
+
+            // review r1 C1:与 LlmNoteLinkExtractor 对齐,走 secureApiKeyStore 取真实 provider + apikey;
+            // release 构建 fake provider 不在 map 中,硬编码 "fake" 会全量静默失败。
+            val providers = secureApiKeyStore.observeConfiguredProviders().first()
+            val providerId = providers.firstOrNull()
+                ?: if (com.yy.writingwithai.BuildConfig.DEBUG) "fake" else return@withContext 0
+            val apikey = if (providerId == "fake") "" else secureApiKeyStore.get(providerId) ?: return@withContext 0
 
             // fix-2026-06-24-review-r1-critical:fence 用户内容防 prompt 注入
             val fencedContent = com.yy.writingwithai.core.ai.prompt.SafePromptTemplate
@@ -49,8 +59,8 @@ constructor(
                 aiGateway.streamWritingOp(
                     op = WritingOp.EXPAND,
                     sourceText = prompt,
-                    providerId = "fake",
-                    apikey = "",
+                    providerId = providerId,
+                    apikey = apikey,
                     modelName = null,
                     systemPrompt = ENTITY_EXTRACT_SYSTEM_ZH
                 ).collectText(MAX_CHARS)

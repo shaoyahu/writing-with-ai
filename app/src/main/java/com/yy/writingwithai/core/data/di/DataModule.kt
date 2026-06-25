@@ -42,29 +42,38 @@ object DataModule {
     }
 
     @Provides
+    @Singleton
     fun provideNoteDao(db: AppDatabase): NoteDao = db.noteDao()
 
     @Provides
+    @Singleton
     fun provideNoteTagDao(db: AppDatabase): NoteTagDao = db.noteTagDao()
 
     @Provides
+    @Singleton
     fun provideAiHistoryDao(db: AppDatabase): AiHistoryDao = db.aiHistoryDao()
 
     @Provides
+    @Singleton
     fun provideNoteLinkDao(db: AppDatabase): NoteLinkDao = db.noteLinkDao()
 
     @Provides
+    @Singleton
     fun provideFeishuRefDao(db: AppDatabase): FeishuRefDao = db.feishuRefDao()
 
     @Provides
+    @Singleton
     fun provideFeishuSyncEventDao(db: AppDatabase): FeishuSyncEventDao = db.feishuSyncEventDao()
 
     @Provides
+    @Singleton
     fun provideNoteEntityDao(db: AppDatabase): NoteEntityDao = db.noteEntityDao()
 
     @Provides
+    @Singleton
     fun provideEntityAliasDao(db: AppDatabase): EntityAliasDao = db.entityAliasDao()
 
     @Provides
+    @Singleton
     fun provideNoteAttachmentDao(db: AppDatabase): NoteAttachmentDao = db.noteAttachmentDao()
 }

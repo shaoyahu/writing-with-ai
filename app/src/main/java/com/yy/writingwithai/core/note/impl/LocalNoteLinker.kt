@@ -71,11 +71,36 @@ constructor(
         fun sanitizeForSearch(c: String) = c.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_").take(50)
 
         fun keywordOverlapWeight(src: String, dst: String): Float {
-            val srcWords = src.split(Regex("\\s+")).map { it.lowercase().trim() }.filter { it.length > 1 }
-            if (srcWords.isEmpty()) return 0f
+            val srcTokens = tokenize(src)
+            if (srcTokens.isEmpty()) return 0f
             val dstLower = dst.lowercase()
-            val hits = srcWords.count { dstLower.contains(it) }
-            return (hits.toFloat() / srcWords.size).coerceIn(0f, 1f)
+            // fix-2026-06-25-review-r1 H3:CJK 大段(中文不分词)也要算 token,
+            // 否则纯中文笔记 overlap=0,本地链接完全失效(LLM 抽取又被 C1 冻住)。
+            val hits = srcTokens.count { dstLower.contains(it) }
+            return (hits.toFloat() / srcTokens.size).coerceIn(0f, 1f)
+        }
+
+        /**
+         * CJK-aware tokenizer:空白分词 + CJK 连续段抽 bigram(2-gram)。
+         * 例:"今天 天气好" → ["今天","天天","气好", "今天", "天气好"] (后两是空白词,前者是 CJK bigram)。
+         * 英文 / 数字 token 仍走 [a-z0-9]+ 段。
+         */
+        internal fun tokenize(text: String): List<String> {
+            if (text.isEmpty()) return emptyList()
+            val tokens = mutableListOf<String>()
+            val lower = text.lowercase()
+            // 1) 英文 / 数字 / 下划线 段(空白分词)。
+            Regex("[a-z0-9_\\-]+").findAll(lower).forEach { m ->
+                if (m.value.length > 1) tokens += m.value
+            }
+            // 2) CJK 段:从连续汉字里抽 bigram。
+            val cjkRuns = Regex("[一-鿿]+").findAll(lower).map { it.value }.toList()
+            cjkRuns.forEach { run ->
+                if (run.length >= 2) {
+                    for (i in 0..run.length - 2) tokens += run.substring(i, i + 2)
+                }
+            }
+            return tokens
         }
 
         fun buildTagEvidence(sharedTags: List<String>): String {

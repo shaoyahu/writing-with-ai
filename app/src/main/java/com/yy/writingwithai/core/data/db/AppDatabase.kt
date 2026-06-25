@@ -3,6 +3,7 @@ package com.yy.writingwithai.core.data.db
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
@@ -50,7 +51,7 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         SyncMetaEntity::class,
         NoteAttachmentEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -58,9 +59,13 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         AutoMigration(from = 4, to = 5),
         AutoMigration(from = 5, to = 6),
         AutoMigration(from = 6, to = 7),
-        AutoMigration(from = 7, to = 8)
+        AutoMigration(from = 7, to = 8),
+        // F3 fix L1:review r1 syncStatus String → SyncStatus enum。SQLite 列类型仍是 TEXT,
+        // 列名/默认值/索引都不变,AutoMigration 跑通无 schema diff。
+        AutoMigration(from = 8, to = 9)
     ]
 )
+@TypeConverters(SyncStatusConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
 

@@ -58,7 +58,7 @@ constructor(
     private val recomputeFlow = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
     /** AI replace 触发通知:detail ViewModel 收集,收到 noteId 后强刷。 */
-    val noteUpdateEvents = MutableSharedFlow<String>(extraBufferCapacity = 32, replay = 1)
+    val noteUpdateEvents = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 32)
 
     init {
         scope.launch {
@@ -116,9 +116,10 @@ constructor(
      * - 把传入的 tag 集合逐个写入(去重 + 去空)
      */
     suspend fun upsert(note: Note, tags: List<String>) {
+        // M6 修:仅记 tags.size,不打印 noteId / tags 内容(隐私)。
         // C6 修:BuildConfig.DEBUG gate,release 包不打 noteId + tags 到 logcat(隐私)。
         if (BuildConfig.DEBUG) {
-            android.util.Log.d("NoteRepo", "upsert noteId=${note.id} tags=$tags")
+            android.util.Log.d("NoteRepo", "upsert noteId=${note.id} tags.size=${tags.size}")
         }
         db.withTransaction {
             noteDao.upsert(note.toEntity())
@@ -130,7 +131,7 @@ constructor(
                 .distinct()
                 .toList()
             if (BuildConfig.DEBUG) {
-                android.util.Log.d("NoteRepo", "cleaned tags to insert: $cleaned")
+                android.util.Log.d("NoteRepo", "cleaned tags to insert: size=${cleaned.size}")
             }
             cleaned.forEach { tag -> noteTagDao.add(NoteTagCrossRef(noteId = note.id, tag = tag)) }
         }

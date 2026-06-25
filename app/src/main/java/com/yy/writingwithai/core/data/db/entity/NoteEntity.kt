@@ -31,7 +31,9 @@ data class NoteEntity(
     val lastAiOp: String? = null,
     val lastAiAt: Long? = null,
     val syncRevision: String? = null,
+    // F3 fix L1:syncStatus String → SyncStatus enum。ColumnInfo defaultValue 仍写 "local",
+    // 与 SyncStatusConverter.toSyncStatus("local") == LOCAL 对齐,旧 schema 不动。
     @androidx.room.ColumnInfo(defaultValue = "local")
-    val syncStatus: String = "local",
+    val syncStatus: SyncStatus = SyncStatus.LOCAL,
     val lastSyncedAt: Long? = null
 )

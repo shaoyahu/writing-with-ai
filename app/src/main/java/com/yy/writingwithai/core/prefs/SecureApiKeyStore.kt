@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -79,7 +81,14 @@ constructor(
             null
         }
 
-    @Volatile
+    // F1 fix H5:review r1 lastPauseAt race — 用 Mutex 包读 + 写,@Volatile 不够:
+    // onActivityPaused(主线程同步)与 updateRevealState(suspend 协程)分属两条调度路径,
+    // 仅靠 volatile 仍有"pause 写入和 expiresAt 计算交错"的窗口(读到的 lastPauseAt 比
+    // 实际 pause 时刻晚几 ms,expiresAt 也就短几 ms,UI 倒计时跳秒)。
+    // 选 Mutex 而非 AtomicLong 的原因:临界区是复合操作(读 lastPauseAt + 计算 pausedFor),
+    // Mutex.withLock 一条锁链搞定;AtomicLong 还要再加一道对 pausedFor 的算术保护,
+    // 反而容易写漏。Mutex 在主线程 tryLock 失败时也只是一帧延迟,语义不变。
+    private val lifecycleLock = Mutex()
     private var lastPauseAt: Long = 0L
     private val revealStates = mutableMapOf<String, MutableStateFlow<RevealState>>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -95,7 +104,16 @@ constructor(
                 override fun onActivityResumed(activity: Activity) = Unit
 
                 override fun onActivityPaused(activity: Activity) {
-                    lastPauseAt = System.currentTimeMillis()
+                    // F1 fix: 写入 lastPauseAt 走 lifecycleLock,让 updateRevealState 看到一致的快照。
+                    // 主线程用 tryLock 不阻塞 lifecycle 调度;失败时 next pause 会覆盖,语义不变。
+                    val now = System.currentTimeMillis()
+                    if (lifecycleLock.tryLock()) {
+                        try {
+                            lastPauseAt = now
+                        } finally {
+                            lifecycleLock.unlock()
+                        }
+                    }
                 }
 
                 override fun onActivityStopped(activity: Activity) = Unit
@@ -168,8 +186,12 @@ constructor(
             flow.value = RevealState.KeystoreFailed
             return
         }
+        // F1 fix: 读 lastPauseAt 走 lifecycleLock.withLock,与 onActivityPaused 写入互斥,
+        // pausedFor 计算时 lastPauseAt 不会被并发改写 → expiresAt 偏差消除。
         val now = System.currentTimeMillis()
-        val pausedFor = if (lastPauseAt == 0L) 0L else now - lastPauseAt
+        val pausedFor = lifecycleLock.withLock {
+            if (lastPauseAt == 0L) 0L else now - lastPauseAt
+        }
         if (pausedFor >= REVEAL_TIMEOUT_MS) {
             flow.value = RevealState.Hidden
             return
