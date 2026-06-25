@@ -9,7 +9,17 @@ import javax.inject.Singleton
  * v2 API 用 XML body 创建/编辑文档,格式:<document><title>...</title><p>...</p></document>。
  * 本 converter 取满篇 Markdown + title,产出符合 v2 create/update API 格式的 XML 字符串。
  *
- * 支持:标题 / 段落 / 加粗 / 代码块 / 引用。
+ * 支持:标题 / 段落 / 加粗 / 代码块 / 引用 / 行内 code / wikilink。
+ *
+ * fix-2026-06-25-review-r1 M10:inline marker(`**` / `_` / `` ` `` / `[[]]`)由顺序
+ * `replace(...)` 多 pass 改写为单 pass tokenizer —— 解决两个 r1 修前 bug:
+ * 1. `# **bold heading**` 在原版仅走 `removePrefix("# ")` 后 `escape(...)`,
+ *    inline 标记没机会被解析 → heading 文本里的 `**` 原样出现。
+ * 2. 多 pass 顺序 `replace` 在嵌套场景(`**`code`**` / `**`bold & `code`**`)
+ *    可能让后面 regex 把前面生成的 tag 内容改坏。
+ *
+ * 单 pass 走 char by char + 状态机(`BOLD` / `ITALIC` / `CODE`),所有 handler
+ * 共享一个 `StringBuilder` 输出,从根本上避免"前 pass 输出被后 pass 当输入"。
  */
 @Singleton
 open class MarkdownToXmlConverter
@@ -34,16 +44,21 @@ constructor() {
                 trimmed.startsWith("```") -> i = appendCodeBlock(sb, lines, i)
                 trimmed.startsWith(">") -> {
                     val q = trimmed.removePrefix(">").trimStart()
-                    sb.append("<blockquote><p>").append(escape(q)).append("</p></blockquote>")
+                    // fix-M10:quote 内容也走 inline tokenizer(M10:嵌套 marker 修复)
+                    sb.append("<blockquote><p>").append(convertInline(q)).append("</p></blockquote>")
                 }
                 trimmed.startsWith("### ") -> {
-                    sb.append("<h3>").append(escape(trimmed.removePrefix("### ").trim())).append("</h3>")
+                    val t = trimmed.removePrefix("### ").trim()
+                    sb.append("<h3>").append(convertInline(t)).append("</h3>")
                 }
                 trimmed.startsWith("## ") -> {
-                    sb.append("<h2>").append(escape(trimmed.removePrefix("## ").trim())).append("</h2>")
+                    val t = trimmed.removePrefix("## ").trim()
+                    sb.append("<h2>").append(convertInline(t)).append("</h2>")
                 }
                 trimmed.startsWith("# ") -> {
-                    sb.append("<h1>").append(escape(trimmed.removePrefix("# ").trim())).append("</h1>")
+                    val t = trimmed.removePrefix("# ").trim()
+                    // fix-M10:`# **bold heading**` 现在会被转成 `<h1><b>bold heading</b></h1>`
+                    sb.append("<h1>").append(convertInline(t)).append("</h1>")
                 }
                 else -> {
                     sb.append("<p>").append(convertInline(trimmed)).append("</p>")
@@ -66,13 +81,79 @@ constructor() {
         return i
     }
 
+    /**
+     * fix-M10 · 单 pass inline tokenizer。
+     *
+     * 状态机:每次根据当前字符切到对应 handler:
+     * - `**`(且非紧跟空白)→ BOLD start / end
+     * - `_` → ITALIC start / end
+     * - `` ` `` → CODE start / end
+     * - `[[...]]` → wikilink 文本(展开为纯文本,feishu 不支持 wikilink)
+     * - 其他 → 累加到 buffer
+     *
+     * 关键不变量:**所有输出都通过同一个 [out] `StringBuilder` 追加**,
+     * 没有"先转成中间字符串再被下一 pass 改写"的阶段。
+     */
     private fun convertInline(text: String): String {
-        var s = text
-        s = s.replace(Regex("\\*\\*(.+?)\\*\\*")) { "<b>${escape(it.groupValues[1])}</b>" }
-        s = s.replace(Regex("_(.+?)_")) { "<em>${escape(it.groupValues[1])}</em>" }
-        s = s.replace(Regex("`(.+?)`")) { "<code>${escape(it.groupValues[1])}</code>" }
-        s = s.replace(Regex("\\[\\[(.+?)\\]\\]")) { escape(it.groupValues[1]) }
-        return s
+        val out = StringBuilder()
+        var i = 0
+        val n = text.length
+        while (i < n) {
+            val c = text[i]
+            when {
+                // `**bold**` — 配对识别(不要把 `*foo*` 错配)
+                c == '*' && i + 1 < n && text[i + 1] == '*' -> {
+                    val end = text.indexOf("**", i + 2)
+                    if (end > i + 2) {
+                        val inner = text.substring(i + 2, end)
+                        out.append("<b>").append(convertInline(inner)).append("</b>")
+                        i = end + 2
+                        continue
+                    }
+                    // 找不到配对 → 当字面量输出
+                    out.append(escape("**"))
+                    i += 2
+                }
+                c == '`' -> {
+                    val end = text.indexOf('`', i + 1)
+                    if (end > i + 1) {
+                        val inner = text.substring(i + 1, end)
+                        out.append("<code>").append(escape(inner)).append("</code>")
+                        i = end + 1
+                        continue
+                    }
+                    out.append(escape("`"))
+                    i++
+                }
+                c == '_' -> {
+                    val end = text.indexOf('_', i + 1)
+                    if (end > i + 1) {
+                        val inner = text.substring(i + 1, end)
+                        out.append("<em>").append(convertInline(inner)).append("</em>")
+                        i = end + 1
+                        continue
+                    }
+                    out.append(escape("_"))
+                    i++
+                }
+                c == '[' && i + 1 < n && text[i + 1] == '[' -> {
+                    val end = text.indexOf("]]", i + 2)
+                    if (end > i + 2) {
+                        val inner = text.substring(i + 2, end)
+                        out.append(escape(inner))
+                        i = end + 2
+                        continue
+                    }
+                    out.append(escape("[["))
+                    i += 2
+                }
+                else -> {
+                    out.append(escape(c.toString()))
+                    i++
+                }
+            }
+        }
+        return out.toString()
     }
 
     private fun escape(s: String): String = s

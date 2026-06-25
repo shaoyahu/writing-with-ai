@@ -115,6 +115,15 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
             // 兜底:用 DownloadManager 拿到的原始 URI(可能已经是 content://)
             uri
         }
+        // review r1 M8:MIUI/EMUI 等国产 ROM 的包安装器需要显式 grantUriPermission,
+        // 否则 FLAG_GRANT_READ_URI_PERMISSION 不一定透传到目标安装器。
+        runCatching {
+            context.grantUriPermission(
+                "com.android.packageinstaller",
+                contentUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }.onFailure { Log.w(TAG, "grantUriPermission(packageinstaller) failed: ${it.javaClass.simpleName}") }
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(contentUri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)

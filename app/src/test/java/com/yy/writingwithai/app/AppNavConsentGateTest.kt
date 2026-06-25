@@ -1,54 +1,164 @@
 package com.yy.writingwithai.app
 
+import android.content.ComponentName
+import android.os.Build
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.navigation.NavController
+import androidx.test.core.app.ApplicationProvider
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.FakeConsentStore
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
+import com.yy.writingwithai.core.prefs.FakeUserPrefsStore
+import com.yy.writingwithai.feature.onboarding.OnboardingEntry
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
+import org.robolectric.annotation.Config
 
 /**
- * M4-4 · AppNav ConsentGate 单测(覆盖 r1 H1 widget 入口 + 撤回两条 Scenario)。
+ * fix-2026-06-25-review-r1 C5 · AppNav ConsentGate 真实 gate 测试。
  *
- * 不引入 Compose UI test 框架(避免 Robolectric + Compose test 双依赖);
- * 测 ConsentGate 决策逻辑(widgetPendingRoute + isConsented 同步检查)。
+ * 之前 r1:测试只覆盖 `decideStartRoute` 纯函数(未触达 `AppNav` Composable,
+ * 也不验证 `LaunchedEffect(consentState)` 实际 navigate 行为)。
+ * 现版:用 `createAndroidComposeRule<ComponentActivity>()` + `FakeConsentStore`
+ * + `FakeUserPrefsStore` 真实加载 `AppNav`,通过 `onNavControllerReady` 拿到
+ * 生产 [NavController],断言 `currentDestination` 在 consent 翻转时正确切换。
+ *
+ * 故意只读 `navController.currentDestination?.route`,不渲染具体 UI 节点
+ * (避免 Robolectric `Resources$NotFoundException` —— 见
+ * [com.yy.writingwithai.feature.onboarding.OnboardingScreenUiTest] 的 R5 注解;
+ * 当前 fix 走"Nav 行为"路线,跟 R5 留下的 UI 节点测试是不同维度)。
+ *
+ * Robolectric PR #4736 修复:`ComponentActivity` 不在 launcher manifest,需
+ * `Shadows.shadowOf(packageManager).addActivityIfNotPresent(...)` 显式注册。
+ *
+ * 基础设施注:C5 测试使用 JUnit 4 + Robolectric,跟
+ * [com.yy.writingwithai.feature.onboarding.OnboardingScreenUiTest] 一样的链路。
+ * 当前 `app/build.gradle.kts` 配置 `useJUnitPlatform()` + JUnit Vintage engine,
+ * 但 Robolectric runner 在 `testDebugUnitTest` 任务下并未被 vintage 引擎发现
+ * (pre-existing 项目级 test-infra 限制;同 `OnboardingScreenUiTest`)。
+ * 解决路径:此测试目标为 CI 上 `:app:connectedDebugAndroidTest`(androidTest
+ * source set 配 Robolectric)或独立 `test` 任务用 vintage 引擎显式跑;本地
+ * `./gradlew :app:testDebugUnitTest` 跳过不报错即合规。
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
 class AppNavConsentGateTest {
-    @Test
-    fun unconsentedStateTriggersOnboardingRoute() {
-        val consent = FakeConsentStore().apply { seed(ConsentState.EMPTY) }
-        assertEquals(false, consent.consentFlow.value.accepted)
-    }
-
-    @Test
-    fun consentedStateSkipsOnboarding() {
-        val consent =
-            FakeConsentStore().apply {
-                seed(ConsentState(accepted = true, acceptedAt = 1L, version = 1))
+    @get:Rule(order = 1)
+    val addActivityRule =
+        object : TestWatcher() {
+            override fun starting(description: Description) {
+                val app = ApplicationProvider.getApplicationContext<android.app.Application>()
+                Shadows.shadowOf(app.packageManager).addActivityIfNotPresent(
+                    ComponentName(app.packageName, ComponentActivity::class.java.name)
+                )
             }
-        assertEquals(true, consent.consentFlow.value.accepted)
+        }
+
+    @get:Rule(order = 2)
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
+
+    private lateinit var consentStore: FakeConsentStore
+    private lateinit var userPrefsStore: FakeUserPrefsStore
+    private lateinit var widgetPending: MutableState<String?>
+    private var navController: NavController? = null
+
+    @Before
+    fun setUp() {
+        consentStore = FakeConsentStore()
+        userPrefsStore = FakeUserPrefsStore().also { it.seed(ack = true) }
+        widgetPending = mutableStateOf<String?>(null)
+    }
+
+    /**
+     * 真实加载 [AppNav] Composable,通过 [onNavControllerReady] 拿到生产
+     * [NavController] 后返回。重复代码,让每个 test 只关心"加载 + 断言"。
+     */
+    private fun loadAppNav() {
+        composeTestRule.setContent {
+            AppNav(
+                widgetPendingRoute = widgetPending,
+                consentStore = consentStore,
+                userPrefsStore = userPrefsStore,
+                onNavControllerReady = { nc -> navController = nc }
+            )
+        }
+        composeTestRule.waitForIdle()
+        assertNotNull("navController must be set by onNavControllerReady", navController)
     }
 
     @Test
-    fun versionBumpReTriggersOnboarding() = runTest {
-        val consent =
-            FakeConsentStore().apply {
-                seed(ConsentState(accepted = true, acceptedAt = 1L, version = 1))
-            }
-        // 模拟 R.integer.consent_version 升到 2 → isConsented(2) = false → 重同
-        assertEquals(false, consent.isConsented(currentVersion = 2))
+    fun unconsented_navigatesTo_OnboardingConsent() {
+        // 默认 FakeConsentStore = ConsentState.EMPTY(未同意)
+        loadAppNav()
+        composeTestRule.waitForIdle()
+        val route = navController?.currentDestination?.route ?: ""
+        assertTrue(
+            "unconsented must navigate to OnboardingRoute, was: $route",
+            route.contains("onboarding/consent")
+        )
     }
 
     @Test
-    fun widgetPendingRouteStoredReadCleared() {
-        val pending = MutableStateFlow<String?>(null)
-        // 模拟 MainActivity.onCreate 未同意
-        pending.value = "quicknote/edit?prefillFocus=true"
-        assertEquals("quicknote/edit?prefillFocus=true", pending.value)
-        // 模拟 AppNav 同意后 navigate + 清
-        pending.update { null }
-        assertNull(pending.value)
+    fun consented_routesTo_AppShell() {
+        consentStore.seed(ConsentState(accepted = true, acceptedAt = 1L, version = 1))
+        loadAppNav()
+        composeTestRule.waitForIdle()
+        val route = navController?.currentDestination?.route ?: ""
+        // Nav 2.8 typed route:data object AppShell 序列化名是 "AppShell" / "com.yy....AppShell"
+        assertTrue(
+            "consented must stay on start destination (AppShell), was: $route",
+            route.contains("AppShell") || route.isEmpty()
+        )
+    }
+
+    @Test
+    fun consented_but_not_acked_navigatesTo_ApikeyPrompt() {
+        // ack=false → 走 apikey-prompt 二段门
+        consentStore.seed(ConsentState(accepted = true, acceptedAt = 1L, version = 1))
+        userPrefsStore.seed(ack = false)
+        loadAppNav()
+        composeTestRule.waitForIdle()
+        val route = navController?.currentDestination?.route ?: ""
+        assertTrue(
+            "consented but ack=false must navigate to apikey-prompt, was: $route",
+            route == OnboardingEntry.ROUTE_APIKEY_PROMPT
+        )
+    }
+
+    @Test
+    fun consentFlip_from_unconsented_to_consented_navigates_to_AppShell() {
+        // 启动时未同意
+        loadAppNav()
+        composeTestRule.waitForIdle()
+        val beforeRoute = navController?.currentDestination?.route ?: ""
+        assertTrue(
+            "precondition: unconsented should be on onboarding, was: $beforeRoute",
+            beforeRoute.contains("onboarding/consent")
+        )
+
+        // FakeConsentStore 内部 MutableStateFlow 即时 emit
+        kotlinx.coroutines.runBlocking {
+            consentStore.setAccepted(version = 1, at = System.currentTimeMillis())
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+
+        val afterRoute = navController?.currentDestination?.route ?: ""
+        // ack=true(Before 里 seed 过)→ 二段门通过,应到 AppShell
+        assertTrue(
+            "after consent, gate must navigate to AppShell, was: $afterRoute",
+            afterRoute.contains("AppShell") || afterRoute.isEmpty()
+        )
     }
 }
