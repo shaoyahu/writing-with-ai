@@ -58,7 +58,21 @@ class FeishuSyncServiceTest {
         override suspend fun persistOAuthState(state: String, ttlMs: Long) {}
         override fun consumeOAuthState(): String? = null
     }
-    private val service = FeishuSyncService(notes, docService, refs, events, fakeAuthStore)
+    private val noteDao = mockk<com.yy.writingwithai.core.data.db.NoteDao>(relaxed = true)
+
+    // M3:txExecutor passthrough,fake DAO 不需真实 Room 事务
+    private val passthroughTx = object : TransactionExecutor {
+        override suspend fun <R> execute(block: suspend () -> R): R = block()
+    }
+    private val service = FeishuSyncService(
+        notes,
+        docService,
+        refs,
+        events,
+        fakeAuthStore,
+        noteDao,
+        passthroughTx
+    )
 
     @Test
     fun `push with no existing ref creates new feishu doc via v2`() = runTest {

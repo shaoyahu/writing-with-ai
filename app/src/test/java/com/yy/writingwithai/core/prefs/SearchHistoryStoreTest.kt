@@ -5,7 +5,15 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+// C6 修:`SearchHistoryStore` 走 `Context.preferencesDataStore` 必须 Robolectric 提供
+// 真实 `Context`。JUnit5 vintage engine 桥接后 `@RunWith(RobolectricTestRunner::class)`
+// 才能在 `useJUnitPlatform()` 环境跑起来。
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class SearchHistoryStoreTest {
     @Test
     fun `add and getAll`() = runTest {

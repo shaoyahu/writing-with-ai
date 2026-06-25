@@ -10,10 +10,35 @@ class PathSafetyTest {
     // ----- safeName -----
 
     @Test
-    fun `safeName accepts alphanumeric dot dash underscore`() {
-        assertEquals("writing-with-ai-1.2.3.apk", PathSafety.safeName("writing-with-ai-1.2.3.apk"))
-        assertEquals("update.apk", PathSafety.safeName("update.apk"))
-        assertEquals("a_b-c.d", PathSafety.safeName("a_b-c.d"))
+    fun `safeName accepts alphanumeric dash underscore`() {
+        // fix-2026-06-25-review-r1 M7:SAFE_NAME 不再允许 `.`,
+        // 故更新测试用例只覆盖字母数字 + dash/underscore。
+        assertEquals("writing-with-ai", PathSafety.safeName("writing-with-ai"))
+        assertEquals("update", PathSafety.safeName("update"))
+        assertEquals("a_b-c", PathSafety.safeName("a_b-c"))
+    }
+
+    @Test
+    fun `safeName rejects names containing dot`() {
+        // fix-2026-06-25-review-r1 M7:dot 不再属于 SAFE_NAME 安全字符,
+        // `update.apk` 这种应改走 stripExt 路径或 fallback。
+        assertEquals("default", PathSafety.safeName("update.apk"))
+        assertEquals("default", PathSafety.safeName("writing-with-ai-1.2.3.apk"))
+        assertEquals("default", PathSafety.safeName("a.b"))
+    }
+
+    @Test
+    fun `safeName rejects leading dot`() {
+        // fix-2026-06-25-review-r1 M7:`.bashrc` / `.htaccess` 隐藏文件应 fallback。
+        assertEquals("default", PathSafety.safeName(".bashrc"))
+        assertEquals("default", PathSafety.safeName(".env"))
+    }
+
+    @Test
+    fun `safeName rejects consecutive dotdot`() {
+        // fix-2026-06-25-review-r1 M7:子串 `..` 一律拒,即便前后无 `/`。
+        assertEquals("default", PathSafety.safeName("a..b"))
+        assertEquals("default", PathSafety.safeName("name..tar"))
     }
 
     @Test

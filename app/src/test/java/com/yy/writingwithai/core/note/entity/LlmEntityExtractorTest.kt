@@ -5,6 +5,7 @@ import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.db.entity.NoteEntity
+import com.yy.writingwithai.core.prefs.SecureApiKeyStore
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -30,6 +31,7 @@ class LlmEntityExtractorTest {
     private lateinit var noteDao: NoteDao
     private lateinit var entityDao: NoteEntityDao
     private lateinit var aiGateway: AiGateway
+    private lateinit var secureApiKeyStore: SecureApiKeyStore
     private lateinit var extractor: LlmEntityExtractor
 
     @BeforeEach
@@ -37,7 +39,10 @@ class LlmEntityExtractorTest {
         noteDao = mockk()
         entityDao = mockk(relaxed = true)
         aiGateway = mockk()
-        extractor = LlmEntityExtractor(noteDao, entityDao, aiGateway)
+        secureApiKeyStore = mockk(relaxed = true)
+        coEvery { secureApiKeyStore.observeConfiguredProviders() } returns flowOf(setOf("test-provider"))
+        coEvery { secureApiKeyStore.get("test-provider") } returns "test-key"
+        extractor = LlmEntityExtractor(noteDao, entityDao, aiGateway, secureApiKeyStore)
     }
 
     @Test
