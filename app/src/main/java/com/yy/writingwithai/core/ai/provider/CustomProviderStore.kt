@@ -73,8 +73,16 @@ class CustomProviderStoreImpl(
 
     private fun fireInvalidate(providerId: String) {
         invalidateListeners.forEach { listener ->
-            runCatching { listener(providerId) }
-                .onFailure { Log.w(TAG, "invalidate listener threw: ${it.javaClass.simpleName}") }
+            // fix-review-r3-medium M5:`runCatching` 会吞 CancellationException,导致
+            // 协程取消传播到 listener 时被截断;改成显式 catch 普通异常,让 CancellationException
+            // 沿调用栈往外抛(由 save/delete 的 suspend caller 接收)。
+            try {
+                listener(providerId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Log.w(TAG, "invalidate listener threw: ${e.javaClass.simpleName}")
+            }
         }
     }
 

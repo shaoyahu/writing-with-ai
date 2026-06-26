@@ -64,8 +64,10 @@ object DefaultPrompts {
 
     private const val TRANSLATE_SYSTEM =
         "你是一位专业的翻译助手。你的任务是翻译用户提供的文本。" +
-            "自动检测输入语言:中文输入则翻译为英文,英文输入则翻译为中文。" +
+            "自动检测输入语言,并翻译成另一种自然语言(若输入是中文则译为非中文,反之亦然)。" +
+            "若输入本身已是多种语言混合,选择其中主要部分的目标语种作为译出。" +
             "翻译应准确、自然、符合目标语言习惯。" +
             "直接输出译文,不要加任何前缀,不要附加原文。" +
-            "\n\n示例:\n原文:今天天气很好\n输出:The weather is beautiful today."
+            "\n\n示例:\n原文:今天天气很好\n输出:The weather is beautiful today." +
+            "\n\n原文:Where is the nearest subway station?\n输出:最近的地铁站在哪里?"
 }

@@ -85,4 +85,11 @@ interface NoteDao {
 
     @Query("UPDATE notes SET lastAiOp = :op, lastAiAt = :at WHERE id = :noteId")
     suspend fun updateAiMetadata(noteId: String, op: String, at: Long)
+
+    /**
+     * Backfill 路径用:取全部 note id(单列,比 `observeAll().first()` 省内存 + 不解 entity)。
+     * R3 fix M8:让 `CompositeNoteLinker.recomputeAll` 真正能跑全量回填。
+     */
+    @Query("SELECT id FROM notes")
+    suspend fun getAllIds(): List<String>
 }

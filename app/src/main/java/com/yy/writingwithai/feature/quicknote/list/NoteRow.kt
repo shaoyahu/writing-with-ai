@@ -170,19 +170,29 @@ fun NoteRow(
 }
 
 /**
+ * fix-2026-06-26-review-r3 LOW:竖条颜色命名常量,替代 magic hex。
+ * 暗色 primary 亮色变体 / 亮色 primary,来自 ColorScheme 定义但 Compose 不暴露
+ * 具体色值常量,这里显式记录实际值便于视觉校验。
+ */
+private val TAG_ACCENT_DARK = Color(0xFF8CD8AB)
+private val TAG_ACCENT_LIGHT = Color(0xFF1B6B4A)
+
+/**
  * 从第一个 tag 名推导竖条颜色:tag 为空则用 primary。
  * 暗色模式用更高 lightness 保证对比度。
+ *
+ * fix-2026-06-26-review-r3 M10:用 `kotlin.math.abs` 替代 `mod(360f)` 把 hash 映射到
+ * `[0, 360)` 区间。原 `Int.mod(Float)` 实现对负数先做 `%`,再用 `let { if (it < 0) ... }`
+ * 二次校正,语义上等价但读起来绕;改写为单次无分支映射更直观。同时把 `hashCode` 先
+ * 转 `UInt` 再取模,避免 `Int.MIN_VALUE` 在 `% 360` 时被解释成负数后再校正。
  */
 private fun tagAccentColor(tags: List<String>, isDark: Boolean): Color {
     if (tags.isEmpty()) {
-        return if (isDark) {
-            // 暗色下 primary 已是亮色变体(8CD8AB),直接用
-            Color(0xFF8CD8AB)
-        } else {
-            Color(0xFF1B6B4A) // 亮色下 primary
-        }
+        return if (isDark) TAG_ACCENT_DARK else TAG_ACCENT_LIGHT
     }
-    val hue = tags.first().hashCode().toFloat().mod(360f).let { if (it < 0) it + 360f else it }
+    val rawHash = tags.first().hashCode()
+    // UInt 转换 → 无符号 32-bit → % 360 → [0, 360)
+    val hue = (rawHash.toUInt() % 360u).toFloat()
     val lightness = if (isDark) 0.6f else 0.45f
     return Color.hsl(hue, 0.6f, lightness)
 }

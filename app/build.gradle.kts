@@ -179,9 +179,12 @@ dependencies {
     // ----- Test(JUnit5 + MockK + Turbine + Compose Test + Robolectric) -----
     testImplementation(libs.bundles.junit5)
     testRuntimeOnly(libs.junit.jupiter.engine)
-    // M5:JUnit Vintage engine for Robolectric runner。首次运行时下载 ~500MB runtime
-    // 依赖,当前 CI 需预缓存。取消注释后跑 Robolectric test:
-    // testRuntimeOnly(libs.junit.vintage.engine)
+    // fix-2026-06-26-review-r3-test:启用 JUnit Vintage engine。
+    // 原因:Robolectric 的 @RunWith(RobolectricTestRunner::class) 是 JUnit4 注解,
+    // JUnit5 platform 通过 Vintage engine 才能跑 JUnit4 写法的 Robolectric 测试。
+    // 重写 NoteRepositoryDeleteOrderTest 用 Robolectric + Room.inMemoryDatabaseBuilder
+    // 消除 MockK coEvery { throws ... } coAnswers { ... } 死锁。
+    testRuntimeOnly(libs.junit.vintage.engine)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)

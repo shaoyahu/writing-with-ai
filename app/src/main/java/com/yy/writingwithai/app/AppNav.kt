@@ -20,7 +20,6 @@ import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.prefs.UserPrefsStore
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
-import com.yy.writingwithai.feature.my.AboutScreen
 import com.yy.writingwithai.feature.onboarding.ApikeyPromptRoute
 import com.yy.writingwithai.feature.onboarding.OnboardingEntry
 import com.yy.writingwithai.feature.onboarding.OnboardingRoute
@@ -29,7 +28,6 @@ import com.yy.writingwithai.feature.quicknote.edit.QuickNoteEditorScreen
 import com.yy.writingwithai.feature.settings.SettingsEntry
 import com.yy.writingwithai.feature.settings.alias.AliasManagementScreen
 import com.yy.writingwithai.feature.settings.data.SettingsDataScreen
-import com.yy.writingwithai.feature.settings.feishu.FeishuAuthScreen
 import com.yy.writingwithai.feature.settings.model.ModelManagementEntry
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -255,15 +253,6 @@ fun AppNav(
                 onBack = { navController.popBackStack() }
             )
         }
-        composable<FeishuAuth> {
-            // 飞书 OAuth 授权(app_id / app_secret)。从 MyScreen "飞书同步" 入口进。
-            // FeishuAuthScreen 自带 TopAppBar + ArrowBack,与 Settings 其他二级页一致。
-            FeishuAuthScreen(onBack = { navController.popBackStack() })
-        }
-        composable<About> {
-            // app-self-hosted-update · 关于(版本号 + 检查更新)
-            AboutScreen(onBack = { navController.popBackStack() })
-        }
         composable(OnboardingEntry.ROUTE_CONSENT) {
             OnboardingRoute(
                 onExitApp = { /* OnboardingRoute 内部已 finishAffinity() */ }
@@ -380,17 +369,3 @@ data class SettingsModelProviderDetail(val providerId: String)
 
 @Serializable
 data class SettingsCustomProviderEdit(val providerId: String? = null)
-
-/**
- * app-bottom-tab-bar 增量 · 飞书 OAuth 授权屏路由。
- * MyScreen 的"飞书同步"入口指向此路由,渲染 FeishuAuthScreen(app_id / app_secret 输入 + 连接/断开)。
- */
-@Serializable
-data object FeishuAuth
-
-/**
- * app-self-hosted-update · 「我的」→「关于」路由。
- * MyScreen 的"关于"入口指向此路由,渲染 AboutScreen(版本号 + 检查更新 + 下载 dialog)。
- */
-@Serializable
-data object About

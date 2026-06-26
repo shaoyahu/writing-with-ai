@@ -65,9 +65,18 @@ constructor(
             recomputeFlow
                 .debounce(DEBOUNCE_MS)
                 .collect { noteId ->
+                    // R3 fix M4 + M10:之前 `catch (_: Exception)` 既吞 CancellationException
+                    // 又静默 drop 业务异常。分层捕获:
+                    // 1) CancellationException 必须 rethrow —— fire-and-forget scope 取消时
+                    //    不应被当"重算失败"。
+                    // 2) 其他异常:log warning 让失败可观测(原来完全无声)。
                     try {
                         noteLinker.recomputeForNote(noteId)
-                    } catch (_: Exception) { /* fire-and-forget */ }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        android.util.Log.w("NoteRepo", "recomputeForNote failed for noteId=$noteId", e)
+                    }
                 }
         }
     }
@@ -143,11 +152,22 @@ constructor(
 
     suspend fun delete(id: String) {
         // review r2 修:删除笔记时清理附件文件 + DB 行,避免磁盘泄漏。
-        attachmentStore.deleteAllForNote(id)
+        // review r3 修 H5:文件清理必须**在 DB 事务之后**,否则 DB 行指向不存在的 localPath。
+        // 顺序:DB 事务先删行(attachment row + tag row + note row),再删文件。
+        // 若文件删除失败,DB 已删,下次 attach-less delete 是干净的;文件会成 orphan,
+        // 但 orphan attachment dir 没 DB 行引用,后续 cleanup 仍能回收。
         db.withTransaction {
             noteAttachmentDao.deleteForNote(id)
             noteTagDao.removeAllForNote(id)
             noteDao.deleteById(id)
+        }
+        try {
+            attachmentStore.deleteAllForNote(id)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // 文件删除失败不阻塞业务(DB 已删),但要 log 出来便于 orphan 排查
+            android.util.Log.w("NoteRepo", "delete: attachment cleanup failed for noteId=$id", e)
         }
         // H3 修:同上,NonCancellable 包 widget 刷新。
         withContext(NonCancellable) { widgetUpdater.updateAll(context) }

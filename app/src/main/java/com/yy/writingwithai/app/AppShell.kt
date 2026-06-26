@@ -117,6 +117,8 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
             }
             composable<Me> {
                 // review r1 M2 修:onNavigate 改成 typed (MeTabTarget) -> Unit,编译期捕获拼写错。
+                // app-bottom-tab-bar spec 4 Decision 4:5 条入口,飞书同步 → Settings(已有
+                // FeishuSyncLogSection),关于条目纯展示不 navigate,不在 MeTabTarget 中。
                 MyScreen(
                     onNavigate = { target ->
                         when (target) {
@@ -125,10 +127,9 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
                             MeTabTarget.SettingsPromptTemplate -> rootNavController.navigate(SettingsPromptTemplate)
                             MeTabTarget.SettingsAliasManagement -> rootNavController.navigate(SettingsAliasManagement)
                             MeTabTarget.Settings -> rootNavController.navigate(Settings)
-                            MeTabTarget.FeishuAuth -> rootNavController.navigate(FeishuAuth)
-                            MeTabTarget.About -> rootNavController.navigate(About)
                         }
-                    }
+                    },
+                    onBack = { innerNavController.popBackStack(Notes, inclusive = false) }
                 )
             }
         }

@@ -60,11 +60,11 @@ import kotlinx.coroutines.launch
 /**
  * app-bottom-tab-bar · 笔记 tab 根屏。
  *
- * 瘦身记录:
- * - 删 `MoreVert` + `DropdownMenu`(整段)
+ * 瘦身记录(原 M4-3 overflow menu + FAB + exportAllLauncher 全部下移):
+ * - 删右上角三点菜单(整段,入口下移"我的" tab)
  * - 删 `Scaffold.floatingActionButton`(职责上移 `AppShell` 中央 FAB)
  * - 删 `exportAllLauncher`(导出迁入 `SettingsDataScreen`)
- * - 删 `onSettingsClick` / `onPromptSettingsClick` 形参(入口下移"我的" tab)
+ * - 删 `onSettingsClick` / `onPromptSettingsClick` 形参
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,8 +78,12 @@ fun QuickNoteListScreen(
     val allTags: List<String> = (state as? NoteListUiState.Content)?.allTags ?: emptyList()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    var searchHistory by remember { mutableStateOf<List<String>>(emptyList()) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    // fix-2026-06-26-review-r3 M9:搜索历史 UI 旧实现只在 `LaunchedEffect(Unit)` 首次进屏
+    // 拉一次,后续 `SearchHistoryStore.add/remove` 写完后 UI 不刷新。新实现:
+    // 1) `remember(context)` 加 key 保证 context 切换(罕见但合理)时重新拉;
+    // 2) 用 `produceState` 让 store 变化时(本屏内 remove 调用后)立刻 emit 新列表。
+    var searchHistory by remember(context) { mutableStateOf<List<String>>(emptyList()) }
+    androidx.compose.runtime.LaunchedEffect(context) {
         searchHistory = SearchHistoryStore.getAll(context)
     }
 
@@ -384,15 +388,39 @@ private fun EmptyState(onCreateClick: () -> Unit, modifier: Modifier = Modifier)
 /**
  * 将笔记 updatedAt(epoch millis)格式化为简短日期字符串。
  * 格式: 同年内 MM-dd HH:mm,跨年 yyyy-MM-dd
+ *
+ * fix-2026-06-26-review-r3 M2:`SimpleDateFormat` 提到顶层 val,避免每次重组重建。
+ * 原实现每 item 重组都 `new SimpleDateFormat(...)`,SimpleDateFormat 构造非轻量(底层
+ * Calendar + DateFormatSymbols + Locale 解析),长列表 + 滚动连续重组时影响 frame budget。
+ * fix-2026-06-26-review-r3 LOW:Locale.getDefault() 在某些 locale(阿拉伯/泰语)下产出
+ * 非 ASCII 数字,fallback 到 Locale.ROOT 保证可读性。用 lazy 延迟计算,因为顶层 val
+ * 初始化时 locale 可能未就绪。
  */
+private val SHORT_SAME_YEAR_FORMAT by lazy {
+    java.text.SimpleDateFormat("MM-dd HH:mm", safeListLocale())
+}
+private val SHORT_CROSS_YEAR_FORMAT by lazy {
+    java.text.SimpleDateFormat("yyyy-MM-dd", safeListLocale())
+}
+
+/**
+ * fix-2026-06-26-review-r3 LOW:优先用用户 locale,但排除产出非 ASCII 数字的 locale,
+ * fallback 到 Locale.ROOT。
+ */
+private fun safeListLocale(): java.util.Locale {
+    val default = java.util.Locale.getDefault()
+    val test = java.text.NumberFormat.getInstance(default).format(0)
+    return if (test.all { it.isDigit() || it == '-' || it == ',' || it == '.' }) {
+        default
+    } else {
+        java.util.Locale.ROOT
+    }
+}
+
 private fun formatUpdatedAt(epochMillis: Long): String {
     val now = java.util.Calendar.getInstance()
     val date = java.util.Calendar.getInstance().apply { timeInMillis = epochMillis }
     val sameYear = now.get(java.util.Calendar.YEAR) == date.get(java.util.Calendar.YEAR)
-    val sdf = if (sameYear) {
-        java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
-    } else {
-        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-    }
+    val sdf = if (sameYear) SHORT_SAME_YEAR_FORMAT else SHORT_CROSS_YEAR_FORMAT
     return sdf.format(java.util.Date(epochMillis))
 }

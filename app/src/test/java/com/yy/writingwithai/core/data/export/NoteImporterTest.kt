@@ -37,19 +37,26 @@ class NoteImporterTest {
         )
 
     /** 构造测试用 zip(包含 notes.json + tags.json,无 ai_history.json)。 */
-    private fun buildZipBytes(notes: List<ExportNote>, tags: Map<String, List<String>> = emptyMap()): ByteArray {
+    private fun buildZipBytes(
+        notes: List<ExportNote>,
+        tags: Map<String, List<String>> = emptyMap(),
+        aiHistories: List<ExportAiHistory> = emptyList()
+    ): ByteArray {
         val out = ByteArrayOutputStream()
-        zipHelper.writeZip(
-            mapOf(
-                "notes.json" to
-                    ExportJsonFormat.encodeToString(ExportNoteListSerializer, notes)
-                        .toByteArray(Charsets.UTF_8),
-                "tags.json" to
-                    ExportJsonFormat.encodeToString(ExportTags.serializer(), ExportTags(tags))
-                        .toByteArray(Charsets.UTF_8)
-            ),
-            out
-        )
+        val entries = mutableMapOf<String, ByteArray>()
+        entries["notes.json"] =
+            ExportJsonFormat.encodeToString(ExportNoteListSerializer, notes)
+                .toByteArray(Charsets.UTF_8)
+        entries["tags.json"] =
+            ExportJsonFormat.encodeToString(ExportTags.serializer(), ExportTags(tags))
+                .toByteArray(Charsets.UTF_8)
+        if (aiHistories.isNotEmpty()) {
+            entries["ai_history.json"] =
+                ExportJsonFormat
+                    .encodeToString(ExportAiHistoryListSerializer, aiHistories)
+                    .toByteArray(Charsets.UTF_8)
+        }
+        zipHelper.writeZip(entries, out)
         return out.toByteArray()
     }
 

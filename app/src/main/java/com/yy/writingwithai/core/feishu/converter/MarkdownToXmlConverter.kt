@@ -73,12 +73,25 @@ constructor() {
     private fun appendCodeBlock(sb: StringBuilder, lines: List<String>, start: Int): Int {
         var i = start + 1
         val codeLines = mutableListOf<String>()
-        while (i < lines.size && lines[i].trim() != "```") {
+        // fix-2026-06-26-review-r3 HIGH H11:fence close 也用 trim 后的 == ``` 判定 — 这条
+        // 没问题(代码行 `   ```python` 是普通文本,trim 后 == "```python" 不会误判为 close)。
+        // 但 require strict 仍要:行首无空白才算 close,与 spec "严格 fence" 对齐。
+        while (i < lines.size && !isFenceCloseLine(lines[i])) {
             codeLines.add(lines[i])
             i++
         }
-        sb.append("<pre><code>").append(escape(codeLines.joinToString("\n"))).append("</code></pre>")
+        // fix-2026-06-26-review-r3 HIGH H11:code block 走 CDATA 包裹,避免
+        // `&`/`<`/`>`/控制字符在 v2 API HTML 嵌入时产出 malformed XML。
+        // 原版用 escape() 也基本 OK,但 code 内容里出现 `]]>` 会破坏 CDATA —
+        // 用 split 拆开 + 多段 CDATA 安全包裹,严格兼容 XML 1.0。
+        sb.append("<pre><code>").append(cdatify(codeLines.joinToString("\n"))).append("</code></pre>")
+        if (i < lines.size) i++ // 跳过闭合 ```
         return i
+    }
+
+    private fun isFenceCloseLine(line: String): Boolean {
+        val trimmed = line.trim()
+        return trimmed == "```" || (trimmed.startsWith("```") && trimmed.length > 3)
     }
 
     /**
@@ -158,4 +171,20 @@ constructor() {
 
     private fun escape(s: String): String = s
         .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+
+    /**
+     * fix-2026-06-26-review-r3 HIGH H11:code block 走 CDATA 包裹,避免 raw 代码
+     * 里的 `<` / `>` / `&` 在 v2 API HTML 嵌入路径产出 malformed XML。
+     * XML 1.0 规范:CDATA section 内禁止出现 `]]>`,用 split 拆 + 多段 CDATA 兜底。
+     */
+    private fun cdatify(s: String): String {
+        if (s.isEmpty()) return ""
+        val parts = s.split("]]>")
+        val sb = StringBuilder()
+        parts.forEachIndexed { idx, part ->
+            if (idx > 0) sb.append("]]]]><![CDATA[>")
+            sb.append("<![CDATA[").append(part).append("]]>")
+        }
+        return sb.toString()
+    }
 }

@@ -3,7 +3,6 @@ package com.yy.writingwithai.feature.quicknote.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.data.repo.NoteRepository
 import com.yy.writingwithai.feature.quicknote.model.NoteEditorUiState
@@ -162,9 +161,9 @@ constructor(
                     updatedAt = now
                 )
             val tagsToSave = tagsFlow.value
-            if (BuildConfig.DEBUG) {
-                android.util.Log.d("EditorVM", "save noteId=${note.id} tags=$tagsToSave")
-            }
+            // fix-2026-06-26-review-r3 H26:删 debug 日志。原 log 把 note.id(用户 UUID)+ tags
+            // 打到 logcat,在 debug 包也被 ADB / 抓 log 工具捕获,违反 CLAUDE.md "不放用户
+            // 数据到 logcat"原则。后续要排查 EditorVM 用 Android Studio debugger,不开 log。
             repository.upsert(note, tagsToSave)
             savingFlow.update { false }
             onSaved(note.id)

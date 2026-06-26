@@ -41,6 +41,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * fix-2026-06-26-review-r3 M2:SimpleDateFormat 提到顶层共享单例,避免每次重组 / 按钮 click
+ * 重新构造。原实现内嵌在 `onClick` lambda 内,虽然 lambda 只在 click 触发时执行,但两个按钮
+ * 各自 new 一份独立对象,格式化样式共享本应一份。
+ */
+private val FILE_TS_FORMAT = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hiltViewModel()) {
@@ -112,8 +119,7 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
                     Button(
                         enabled = canExport,
                         onClick = {
-                            val ts =
-                                SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date())
+                            val ts = FILE_TS_FORMAT.format(Date())
                             exportLauncher.launch("writing-with-ai-export-$ts.zip")
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -183,8 +189,7 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
                         OutlinedButton(
                             enabled = canSave,
                             onClick = {
-                                val ts =
-                                    SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(Date())
+                                val ts = FILE_TS_FORMAT.format(Date())
                                 saveReportLauncher.launch("import-report-$ts.zip")
                             },
                             modifier = Modifier.fillMaxWidth()

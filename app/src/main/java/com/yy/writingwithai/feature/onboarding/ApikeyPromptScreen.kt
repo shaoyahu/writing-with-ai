@@ -3,9 +3,7 @@
 package com.yy.writingwithai.feature.onboarding
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,8 +12,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -190,32 +186,5 @@ private fun AbilityCostRow(ability: AiAbilityCost) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-/**
- * 兜底:内嵌一个全屏 LazyColumn 版本,Compose 1.6 之前 `verticalScroll` + `Column.weight` 有时不灵。
- * 保留此 entry 备查,目前未在 NavHost 中使用。
- */
-@Suppress("unused")
-@Composable
-private fun ApikeyPromptBodyLazy(modifier: Modifier = Modifier) {
-    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-    Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            state = listState,
-            contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item {
-                Text(
-                    text = stringResource(R.string.apikey_prompt_intro),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            items(AiCostReference.abilities, key = { it.name }) { ability ->
-                AbilityCostRow(ability = ability)
-            }
-        }
     }
 }

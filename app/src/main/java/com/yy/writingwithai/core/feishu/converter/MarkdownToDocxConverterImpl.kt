@@ -31,7 +31,9 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
             }
 
             // 代码块:连续 ``` 包围
-            if (line.startsWith("```")) {
+            // fix-2026-06-26-review-r3 HIGH H10:open fence 也用 isFenceOpen 校验,要求行首
+            // 无缩进,避免误把 4+ 空格缩进的 ``` 当作代码块开始。
+            if (isFenceOpen(raw)) {
                 val (codeBlock, next) = parseCodeBlock(lines, i)
                 blocks += codeBlock
                 i = next
@@ -118,7 +120,11 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
         val language = openLine.removePrefix("```").trim()
         val sb = StringBuilder()
         var i = start + 1
-        while (i < lines.size && !lines[i].trimStart().startsWith("```")) {
+        // fix-2026-06-26-review-r3 HIGH H10:code-fence close 必须行首无空白。
+        // CommonMark 规范:缩进的 ``` (4 空格) 是普通文本,不是 fence close。
+        // 之前 `lines[i].trimStart().startsWith("```")` 会把 `    ```rust` 误判为 close,
+        // 导致代码块在缩进 fence 行提前终止。
+        while (i < lines.size && !isFenceClose(lines[i])) {
             if (sb.isNotEmpty()) sb.append('\n')
             sb.append(lines[i])
             i++
@@ -153,7 +159,8 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
     private fun isParagraphContinuation(line: String): Boolean {
         if (line.isBlank()) return false
         val trimmed = line.trimStart()
-        if (trimmed.startsWith("```")) return false
+        // fix-2026-06-26-review-r3 HIGH H10:与 fence 检测保持一致 — 只在行首无空白时算 fence
+        if (isFenceOpen(line)) return false
         if (HEADING.matches(trimmed)) return false
         if (DIVIDER.matches(trimmed.trim())) return false
         if (BULLET.matches(trimmed)) return false
@@ -161,6 +168,16 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
         if (trimmed.startsWith(">")) return false
         return true
     }
+
+    /**
+     * fix-2026-06-26-review-r3 HIGH H10:code-fence 判定。
+     * CommonMark 规范:open/close fence 行首最多 3 空格缩进;4+ 空格是普通文本。
+     * 此处要求行首无空白,与 spec "严格 fence" 一致 — 避免误把缩进段落当作 fence。
+     */
+    private fun isFenceOpen(line: String): Boolean =
+        !line.isBlank() && line.startsWith("```") && !line.startsWith("    ```")
+
+    private fun isFenceClose(line: String): Boolean = isFenceOpen(line)
 
     private fun parseImage(line: String): FeishuBlock {
         val match = Regex("""!\[([^\]]*)\]\(([^)]+)\)""").find(line)

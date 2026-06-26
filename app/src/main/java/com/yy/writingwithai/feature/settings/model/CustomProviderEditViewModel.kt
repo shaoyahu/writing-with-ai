@@ -103,14 +103,28 @@ constructor(
      * 显示名称变化时自动生成 providerId(kebab-case)。
      * - 新建模式:实时跟随,生成一次就锁定避免用户编辑 id 时被覆盖
      * - 编辑模式:不动(保留原 id)
+     *
+     * fix-2026-06-26-review-r3 H16:regex `[^a-z0-9\\s-]` 在中英混合输入时把中文段全部删掉,
+     * 极端情况下(`我的笔记`)name 完全是中文 → 派生 id 是空字符串 → 落库后 provider.id 冲突。
+     * 改为"派生 id 为空时,基于 name 的 hash + 短随机后缀兜底",保证 id 始终非空且不可预测。
      */
     fun onDisplayNameChanged(name: String) {
         val current = _state.value
         val newId = if (!current.isEditMode && !current.idLocked) {
-            name.lowercase()
+            val derived = name.lowercase()
                 .replace(Regex("[^a-z0-9\\s-]"), "")
                 .replace(Regex("\\s+"), "-")
                 .trim('-')
+            if (derived.isBlank()) {
+                // H16 fix:派生 id 为空(全中文 / 全符号)→ 用 name 的稳定 hash + 短随机
+                // 后缀兜底,避免空 id 写入 store。
+                val salt = (0..3)
+                    .map { kotlin.random.Random.nextInt(0, RANDOM_SALT_MASK).toString(16).padStart(4, '0') }
+                    .joinToString("")
+                "provider-${name.hashCode().toString(16).removePrefix("-")}-$salt"
+            } else {
+                derived
+            }
         } else {
             current.providerId
         }
@@ -229,13 +243,27 @@ constructor(
             return
         }
         viewModelScope.launch {
+            // fix-2026-06-26-review-r3 H17:原顺序 `save(config) → save(key) → setSelected` —
+            // 第二步失败 → config 已落库 + key 缺失,UI 假成功。
+            // 改为:key 先 → config 后 → selectedProviderId 最后;失败时回滚已成功步骤。
+            var keySaved = false
+            var configSaved = false
             try {
-                customProviderStore.save(config)
                 secureApiKeyStore.save(config.id, apiKey)
+                keySaved = true
+                customProviderStore.save(config)
+                configSaved = true
                 providerPrefsStore.setSelectedProviderId(config.id)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                // 回滚:已落盘的 key / config 撤回,避免用户界面假成功但 store 半挂。
+                if (configSaved) {
+                    runCatching { customProviderStore.delete(config.id) }
+                }
+                if (keySaved) {
+                    runCatching { secureApiKeyStore.clear(config.id) }
+                }
                 _events.tryEmit(
                     CustomProviderEditEvent.SaveFailed(
                         Res(R.string.model_management_error_unknown, e.message)
@@ -279,6 +307,9 @@ constructor(
 
     companion object {
         val BUILTIN_IDS = setOf("deepseek", "minimax", "mimo")
+
+        // fix-2026-06-26-review-r3 LOW:随机盐掩码常量,避免 magic number 0xFFFF。
+        private const val RANDOM_SALT_MASK = 0xFFFF
     }
 }
 

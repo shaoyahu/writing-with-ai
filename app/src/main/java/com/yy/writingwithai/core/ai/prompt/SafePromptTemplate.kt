@@ -32,9 +32,16 @@ object SafePromptTemplate {
 
     /** 检测字符串是否在 fence 内(给 LLM 输出后处理用,可选)。trim 前后空白与换行。 */
     fun extractFenced(text: String): String? {
+        // fix-review-r3-medium M9:edge cases:
+        //  - begin < 0 → 直接返回 null(原代码虽然也返 null,但 indexOf 第二个参数传负数
+        //    在某些实现上行为模糊,这里显式早退)。
+        //  - 多对 fence(LLM 输出里偶然复制了用户内容):只取第一对(原行为)。
+        //  - BEGIN 后立刻是 END(fence 为空):返回空字符串(原行为,这里加 trim 后还是空,
+        //    caller 自行判空)。
         val begin = text.indexOf(BEGIN)
+        if (begin < 0) return null
         val end = text.indexOf(END, startIndex = begin + BEGIN.length)
-        if (begin < 0 || end < 0) return null
+        if (end < 0) return null
         return text.substring(begin + BEGIN.length, end)
             .trim()
             .replace(ESCAPED_BEGIN, BEGIN)

@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.glance.appwidget.updateAll
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * M4-1 · widget 刷新器(主路径)。
@@ -15,16 +13,16 @@ import kotlinx.coroutines.withContext
  * - `QuickNoteDetailViewModel.delete` 后
  * - AI `AiActionViewModel.acceptReplace` 在 `_state.value = Idle` **之前**调
  *
- * 走 `Dispatchers.IO` 避免阻塞 caller 线程;`updateAll(context)` 是 Glance
- * 内部 `WorkManager`-style 异步任务,自己调度 widget 渲染。
+ * fix-2026-06-26-review-r3 H24:`updateAll` 是 Glance 1.x 内部的 `WorkManager` 风格异步任务,
+ * 其内部已自带 IO 调度。前一层 `withContext(Dispatchers.IO)` 让 update 任务注册发生在
+ * 协程上下文中,可能与 widget host process 里的并发 updateAll 产生 race。
+ * 移除 `withContext(IO)`,直接调 `updateAll(context)`,由 Glance 自带 scheduler 串行化。
  */
 @Singleton
 class QuickNoteWidgetUpdater
 @Inject
 constructor() {
     suspend fun updateAll(context: Context) {
-        withContext(Dispatchers.IO) {
-            QuickNoteWidget().updateAll(context)
-        }
+        QuickNoteWidget().updateAll(context)
     }
 }

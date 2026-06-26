@@ -48,7 +48,10 @@ constructor(
 
     private suspend fun computeContentSim(srcNoteId: String, srcContent: String): List<LocalLinkCandidate> {
         if (srcContent.isBlank()) return emptyList()
-        val escaped = sanitizeForSearch(srcContent.take(50))
+        // R3 fix M1:escape BEFORE take(50) — 避免 take 落在反斜杠或 `%` 上,后续 escape
+        // 把字符串挤长,LIKE 边界与 ESCAPE 对不齐。先 escape 完,再裁到 50,
+        // 保证 `LIKE :q ESCAPE '\'` 的转义有效长度精确。
+        val escaped = sanitizeForSearch(srcContent).take(LIKE_PREFIX_LEN)
         val q = "%$escaped%"
         val matches = noteDao.search(q).first().filter { it.id != srcNoteId }
         if (matches.isEmpty()) return emptyList()
@@ -68,7 +71,12 @@ constructor(
     companion object {
         const val LIKE_TOP_K = 20
 
-        fun sanitizeForSearch(c: String) = c.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_").take(50)
+        // R3 fix M1:escape 后裁剪的可见字符上限。原始 50 是"取 50 后 escape",
+        // 现在是"escape 后取 50",所以不需要再 take 一次(escape 已保证 LIKE 安全) —
+        // 这里仍然设上限防止极长 content 把 LIKE pattern 撑成几百 KB。
+        const val LIKE_PREFIX_LEN = 50
+
+        fun sanitizeForSearch(c: String): String = c.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
         fun keywordOverlapWeight(src: String, dst: String): Float {
             val srcTokens = tokenize(src)
@@ -81,9 +89,13 @@ constructor(
         }
 
         /**
-         * CJK-aware tokenizer:空白分词 + CJK 连续段抽 bigram(2-gram)。
-         * 例:"今天 天气好" → ["今天","天天","气好", "今天", "天气好"] (后两是空白词,前者是 CJK bigram)。
+         * CJK-aware tokenizer:空白分词 + CJK 连续段抽 unigram + bigram(1 + 2-gram)。
+         * 例:"今天天气好" → ["今","今天","天","天天","气","天气","好","气好"]。
          * 英文 / 数字 token 仍走 [a-z0-9]+ 段。
+         *
+         * R3 fix M2:之前只抽 bigram,导致单字 CJK 笔记(例:"人")完全没 token,
+         * keyword overlap = 0,本地链接失效。现在每个汉字先入 unigram,再叠 bigram,
+         * 短 / 长 CJK 都覆盖。
          */
         internal fun tokenize(text: String): List<String> {
             if (text.isEmpty()) return emptyList()
@@ -93,9 +105,10 @@ constructor(
             Regex("[a-z0-9_\\-]+").findAll(lower).forEach { m ->
                 if (m.value.length > 1) tokens += m.value
             }
-            // 2) CJK 段:从连续汉字里抽 bigram。
+            // 2) CJK 段:unigram(每字) + bigram(相邻字)。
             val cjkRuns = Regex("[一-鿿]+").findAll(lower).map { it.value }.toList()
             cjkRuns.forEach { run ->
+                run.forEach { ch -> tokens += ch.toString() }
                 if (run.length >= 2) {
                     for (i in 0..run.length - 2) tokens += run.substring(i, i + 2)
                 }

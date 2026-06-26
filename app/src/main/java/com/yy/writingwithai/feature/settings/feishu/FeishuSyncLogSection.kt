@@ -25,6 +25,14 @@ import java.text.DateFormat
 import java.util.Date
 
 /**
+ * fix-2026-06-26-review-r3 M2:`DateFormat` 实例提到顶层,避免 `SyncEventRow` 每行 / 每次
+ * 重组重新构造。`DateFormat.getDateTimeInstance` 内部用 `Calendar.getInstance` + 缓存
+ * `DateFormatSymbols`,构造开销小但频繁;顶部同步日志滚动时常驻可见。
+ */
+private val SYNC_EVENT_TIME_FORMAT =
+    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM)
+
+/**
  * feishu-bidir-sync · 设置页「飞书同步日志」section(tasks §7)。
  *
  * 显示最近 20 条 sync event;每条:时间 / 方向 / 状态 / 错误。
@@ -74,8 +82,7 @@ private fun SyncEventRow(event: FeishuSyncEventEntity) {
         SyncDirection.PULL -> "拉取"
         SyncDirection.BIDIR -> "双向"
     }
-    val timeText = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM)
-        .format(Date(event.createdAt))
+    val timeText = SYNC_EVENT_TIME_FORMAT.format(Date(event.createdAt))
 
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Column(modifier = Modifier.weight(1f)) {

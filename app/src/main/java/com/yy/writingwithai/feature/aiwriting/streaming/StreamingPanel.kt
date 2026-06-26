@@ -27,7 +27,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -94,10 +98,25 @@ fun StreamingPanel(
                             stringResource(R.string.aiwriting_panel_streaming),
                         usage = null
                     )
-                    if (state.partialText.isEmpty()) {
+                    // H21 fix:Streaming 态只 emit 单次增量 delta;UI 用 remember 累加拼接,
+                    // 不再依赖整段 partialText 整段 recompose。`accumulatedLength` 改 0 时
+                    // (新一轮 start / reset) 同步重置本地累加缓冲。
+                    var accumulated by remember { mutableStateOf("") }
+                    LaunchedEffect(state.accumulatedLength) {
+                        if (state.accumulatedLength == 0 && accumulated.isNotEmpty()) {
+                            accumulated = ""
+                        }
+                    }
+                    LaunchedEffect(state.delta) {
+                        if (state.delta.isNotEmpty()) {
+                            accumulated = accumulated + state.delta
+                        }
+                    }
+                    val displayText = accumulated
+                    if (displayText.isEmpty()) {
                         TypingIndicator()
                     } else {
-                        ScrollableBody(text = state.partialText)
+                        ScrollableBody(text = displayText)
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -396,7 +415,7 @@ private fun opTitleRes(op: WritingOp): Int = when (op) {
 private fun StreamingPanelStreamingPreview() {
     MaterialTheme {
         StreamingPanel(
-            state = AiActionUiState.Streaming(op = WritingOp.EXPAND, partialText = "正在扩写中..."),
+            state = AiActionUiState.Streaming(op = WritingOp.EXPAND, delta = "正在扩写中...", accumulatedLength = 6),
             onAccept = {},
             onReject = {},
             onCancel = {},

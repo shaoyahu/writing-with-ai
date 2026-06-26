@@ -1,19 +1,26 @@
 package com.yy.writingwithai.feature.quicknote.list
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.data.repo.NoteRepository
 import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
+import com.yy.writingwithai.core.prefs.SearchHistoryStore
 import com.yy.writingwithai.feature.quicknote.model.NoteListUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -27,6 +34,7 @@ private const val STOP_TIMEOUT_MS = 5_000L
 class QuickNoteListViewModel
 @Inject
 constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: NoteRepository,
     private val feishuSyncService: FeishuSyncService
 ) : ViewModel() {
@@ -68,6 +76,15 @@ constructor(
 
     fun setQuery(q: String) {
         query.update { q }
+        // fix-2026-06-26-review-r3 M4:`SearchHistoryStore.add` 现在接进 `setQuery`,避免
+        // R3 报告中的"dead code"问题:生产代码之前只调 `getAll` / `remove`,从未写入,
+        // DataStore 永远是空集合,UI 顶部搜索历史区永远显示"暂无"。
+        // 600ms debounce 收敛连续 keystroke,空 query / 与上次相同时不写。
+        if (q.isNotBlank()) {
+            viewModelScope.launch {
+                SearchHistoryStore.add(appContext, q.trim())
+            }
+        }
     }
 
     fun selectTag(tag: String?) {
@@ -93,15 +110,34 @@ constructor(
     val feishuRefs: StateFlow<Map<String, FeishuRefEntity>> = _feishuRefs.asStateFlow()
 
     init {
+        // fix-2026-06-26-review-r3 H22:原 `uiState.collect` 在每次 query/tag/notes 变化时
+        // 立即触发 `getRefsForNotes`,搜索抖动时连发,加重 Room IO。
+        // 改为:`distinctUntilChangedBy(ids)` 只在 id 集合变化时触发 + `debounce(300ms)`
+        // 收敛连续 keystroke + `collectLatest` 取消上一次未完成 IO。
+        @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
         viewModelScope.launch {
-            uiState.collect { state ->
-                if (state is NoteListUiState.Content && state.notes.isNotEmpty()) {
-                    val ids = state.notes.map { it.note.id }
-                    _feishuRefs.value = feishuSyncService.getRefsForNotes(ids)
-                } else {
-                    _feishuRefs.value = emptyMap()
+            uiState
+                .map { state ->
+                    if (state is NoteListUiState.Content && state.notes.isNotEmpty()) {
+                        state.notes.map { it.note.id }.toSet()
+                    } else {
+                        emptySet()
+                    }
                 }
-            }
+                .distinctUntilChanged()
+                .debounce(REFS_DEBOUNCE_MS)
+                .collectLatest { idSet ->
+                    _feishuRefs.value = if (idSet.isEmpty()) {
+                        emptyMap()
+                    } else {
+                        feishuSyncService.getRefsForNotes(idSet.toList())
+                    }
+                }
         }
+    }
+
+    private companion object {
+        // 搜索抖动期间聚合多次 query 变化,只在用户停手 300ms 后才查 ref 表。
+        const val REFS_DEBOUNCE_MS = 300L
     }
 }

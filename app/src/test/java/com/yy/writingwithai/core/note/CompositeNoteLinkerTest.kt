@@ -1,5 +1,6 @@
 package com.yy.writingwithai.core.note
 
+import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import com.yy.writingwithai.core.data.db.dao.RelatedRow
 import com.yy.writingwithai.core.data.db.entity.LinkType
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test
  */
 class CompositeNoteLinkerTest {
     private lateinit var noteLinkDao: NoteLinkDao
+    private lateinit var noteDao: NoteDao
     private lateinit var local: LocalNoteLinker
     private lateinit var wiki: WikilinkIndexer
     private lateinit var entity: EntityBacklinker
@@ -39,6 +41,7 @@ class CompositeNoteLinkerTest {
     @BeforeEach
     fun setup() {
         noteLinkDao = mockk(relaxed = true)
+        noteDao = mockk()
         local = mockk()
         wiki = mockk()
         entity = mockk()
@@ -46,7 +49,10 @@ class CompositeNoteLinkerTest {
         settings = mockk()
         every { settings.isEnabled() } returns false
         coEvery { entity.compute(any()) } returns emptyList()
-        linker = CompositeNoteLinker(noteLinkDao, local, wiki, entity, llm, settings)
+        // 默认:每个 noteId 的 local/wiki/entity 都返空,这样 recomputeForNote 安全 noop。
+        coEvery { local.compute(any()) } returns emptyList()
+        coEvery { wiki.index(any()) } returns emptyList()
+        linker = CompositeNoteLinker(noteLinkDao, noteDao, local, wiki, entity, llm, settings)
     }
 
     @Test
@@ -143,5 +149,41 @@ class CompositeNoteLinkerTest {
         assertEquals(1, backlinks.size)
         assertEquals("n0", backlinks[0].noteId)
         assertTrue(LinkType.WIKILINK in backlinks[0].signals)
+    }
+
+    /**
+     * R3 fix M8 回归:recomputeAll 不再是 `return 0` 的死 SPI。
+     * 期望:遍历 noteDao.getAllIds() 返回的每个 id,逐条调 recomputeForNote,
+     * 返回成功处理的 count。
+     */
+    @Test
+    fun `recomputeAll iterates all ids and returns success count`() = runTest {
+        coEvery { noteDao.getAllIds() } returns listOf("n1", "n2", "n3")
+        // setup() 已默认 local/wiki/entity 返回空行,recomputeForNote 安全 noop。
+
+        val processed = linker.recomputeAll()
+
+        assertEquals(3, processed)
+        coVerify(exactly = 1) { noteDao.getAllIds() }
+        coVerify(exactly = 1) { noteLinkDao.deleteBySrc("n1") }
+        coVerify(exactly = 1) { noteLinkDao.deleteBySrc("n2") }
+        coVerify(exactly = 1) { noteLinkDao.deleteBySrc("n3") }
+    }
+
+    /**
+     * R3 fix M8 + H8 教训:单条 poisoned note 不应 abort 整批。
+     * 期望:n2 抛异常 → n1 成功 + n2 跳过 + n3 仍继续,返回 2。
+     */
+    @Test
+    fun `recomputeAll skips poisoned note and continues`() = runTest {
+        coEvery { noteDao.getAllIds() } returns listOf("n1", "n2", "n3")
+        coEvery { noteLinkDao.deleteBySrc("n2") } throws RuntimeException("simulated UNIQUE")
+
+        val processed = linker.recomputeAll()
+
+        assertEquals(2, processed, "n2 失败应被跳过,n1/n3 仍计入")
+        coVerify(exactly = 1) { noteLinkDao.deleteBySrc("n1") }
+        coVerify(exactly = 1) { noteLinkDao.deleteBySrc("n2") }
+        coVerify(exactly = 1) { noteLinkDao.deleteBySrc("n3") }
     }
 }

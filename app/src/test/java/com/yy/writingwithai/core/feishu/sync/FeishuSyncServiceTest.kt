@@ -57,6 +57,11 @@ class FeishuSyncServiceTest {
         // fix-2026-06-24-review-r1-critical:新增 OAuth state API stub
         override suspend fun persistOAuthState(state: String, ttlMs: Long) {}
         override fun consumeOAuthState(): String? = null
+
+        // fix-2026-06-26-review-r3 C2:新增 PendingExchange API stub
+        override suspend fun persistPendingExchange(code: String, appId: String, secret: String, requestId: String) {}
+        override fun consumePendingExchange(): com.yy.writingwithai.core.feishu.auth.PendingExchange? = null
+        override fun hasPendingExchange(): Boolean = false
     }
     private val noteDao = mockk<com.yy.writingwithai.core.data.db.NoteDao>(relaxed = true)
 
@@ -171,6 +176,71 @@ class FeishuSyncServiceTest {
 
         val refAfter = refs.getByNoteId("n1")
         assertEquals(FeishuRefStatus.SYNCED, refAfter?.status)
+    }
+
+    /**
+     * fix-2026-06-26-review-r3 HIGH H12:pull 不应把 localRevision 重置为 now。
+     * localRevision 必须等于 noteToWrite.updatedAt,与 push 走同源。
+     * 之前 `localRevision = System.currentTimeMillis()` 导致 pull 后永远
+     * localRev > lastSyncedAt,下次 conflict 检测 LOCAL>REMOTE 假阳性。
+     */
+    @Test
+    fun `pull localRevision equals note updatedAt not currentTimeMillis`() = runTest {
+        val existingUpdatedAt = 5000L
+        // docUrl "https://f.cn/docx/doc-existing" 经 extractDocIdFromUrl 得 "doc-existing",
+        // 与 ref.docId 对齐,R2 H8 fix 用 content.docId 查找。
+        val docUrl = "https://f.cn/docx/doc-existing"
+        coEvery { notes.getNote("n1") } returns sampleNote("n1", content = "old", title = "old-title")
+            .copy(updatedAt = existingUpdatedAt)
+        coEvery { notes.upsert(any(), any()) } returns Unit
+        refs.upsert(
+            FeishuRefEntity(
+                noteId = "n1",
+                docId = "doc-existing",
+                docUrl = docUrl,
+                lastSyncedAt = 100L,
+                syncDirection = SyncDirection.PULL,
+                localRevision = 100L,
+                remoteRevision = "rev-old",
+                status = FeishuRefStatus.SYNCED
+            )
+        )
+        api.markdownToReturn = "new-from-feishu"
+
+        service.pull("doc-existing", docUrl, titleHint = "updated")
+
+        val refAfter = refs.getByNoteId("n1")!!
+        // H12 修:localRevision 应等于 note.updatedAt(同源 push)
+        assertEquals(existingUpdatedAt, refAfter.localRevision)
+    }
+
+    /**
+     * fix-2026-06-26-review-r3 HIGH H13:REMOTE_DELETED 死代码补完。
+     * 远端 doc 删除 → markRemoteDeleted 把 ref 切到 REMOTE_DELETED,note 保留。
+     */
+    @Test
+    fun `markRemoteDeleted sets status to REMOTE_DELETED and preserves ref`() = runTest {
+        refs.upsert(
+            FeishuRefEntity(
+                noteId = "n1",
+                docId = "d1",
+                docUrl = "u",
+                lastSyncedAt = 100L,
+                syncDirection = SyncDirection.PUSH,
+                localRevision = 100L,
+                remoteRevision = "rev1",
+                status = FeishuRefStatus.SYNCED
+            )
+        )
+        val updated = service.markRemoteDeleted("n1")
+        assertEquals(1, updated)
+        val ref = refs.getByNoteId("n1")!!
+        assertEquals(FeishuRefStatus.REMOTE_DELETED, ref.status)
+    }
+
+    @Test
+    fun `markRemoteDeleted returns 0 when ref missing`() = runTest {
+        assertEquals(0, service.markRemoteDeleted("nope"))
     }
 }
 

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 
 /**
  * provider-real-integration 单测用 · 内存版 [ProviderPrefsStore]。
@@ -33,7 +34,9 @@ class FakeProviderPrefsStore(
     }
 
     override suspend fun setSelectedModel(providerId: String, model: String) {
-        selectedModels.value = selectedModels.value + (providerId to model)
+        // fix-review-r3-medium M6:用 update{} 原子读-改-写,避免 read-modify-write
+        // 与观察者并发时丢更新(原版先 get 后 set,中间窗口竞态)。
+        selectedModels.update { it + (providerId to model) }
     }
 
     override fun observeSelectedModel(providerId: String): Flow<String?> {
@@ -45,7 +48,8 @@ class FakeProviderPrefsStore(
     }
 
     override suspend fun setApiFormat(providerId: String, format: ApiFormat) {
-        apiFormats.value = apiFormats.value + (providerId to format)
+        // fix-review-r3-medium M6:同上,update{} 原子。
+        apiFormats.update { it + (providerId to format) }
     }
 
     override fun observeApiFormat(providerId: String): Flow<ApiFormat?> {

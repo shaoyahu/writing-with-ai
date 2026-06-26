@@ -6,88 +6,84 @@ import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthState
 import com.yy.writingwithai.core.feishu.auth.FeishuAuthStore
 import com.yy.writingwithai.core.feishu.auth.OAuthLauncher
-import com.yy.writingwithai.core.feishu.auth.UserTokenProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * feishu-user-oauth · 飞书授权 ViewModel。
+ *
+ * 状态机(由 [FeishuAuthStore.authState] 驱动):
+ * - DISCONNECTED:无 appId / 无 refreshToken,显示"登录飞书"按钮
+ * - CONFIGURED:有 appId 但 token 未取过
+ * - TOKEN_FETCHING:正在 POST 取 token
+ * - CONNECTED:token 有效
+ * - FAILED:最近一次取 token 失败
+ * - KEYSTORE_UNAVAILABLE:EncryptedSharedPreferences 初始化失败
+ *
+ * 删除原 appSecret / folderToken 输入框(走 OAuth 隐式收集凭证);
+ * [startOAuth] 触发 [OAuthLauncher] 跳系统浏览器。
+ */
 @HiltViewModel
-class FeishuAuthViewModel
-@Inject
-constructor(
+class FeishuAuthViewModel @Inject constructor(
     application: Application,
-    private val store: FeishuAuthStore,
-    private val tokenProvider: UserTokenProvider,
+    private val authStore: FeishuAuthStore,
     private val oauthLauncher: OAuthLauncher
 ) : AndroidViewModel(application) {
 
-    val authState: StateFlow<FeishuAuthState> = store.authState
+    val authState: StateFlow<FeishuAuthState> = authStore.authState
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = FeishuAuthState.DISCONNECTED
+        )
 
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    /** 一次性操作状态(startOAuth 失败 / pending exchange 状态) */
+    private val _oneShot = MutableStateFlow<OneShotEvent?>(null)
+    val oneShot: StateFlow<OneShotEvent?> = _oneShot.asStateFlow()
 
-    private val _appIdInput = MutableStateFlow("")
-    val appIdInput: StateFlow<String> = _appIdInput.asStateFlow()
-
-    private val _appSecretInput = MutableStateFlow("")
-    val appSecretInput: StateFlow<String> = _appSecretInput.asStateFlow()
-
-    private val _folderTokenInput = MutableStateFlow("")
-    val folderTokenInput: StateFlow<String> = _folderTokenInput.asStateFlow()
-
-    val savedAppId: StateFlow<String?> = store.appId.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    val savedFolderToken: StateFlow<String?> = store.folderToken.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
-    init {
-        viewModelScope.launch {
-            val sa = store.appId.first()
-            if (_appIdInput.value.isBlank() && sa != null) _appIdInput.value = sa
-            val sf = store.folderToken.first()
-            if (_folderTokenInput.value.isBlank() && sf != null) _folderTokenInput.value = sf
-        }
-    }
-
-    fun onAppIdChange(value: String) {
-        _appIdInput.value = value
-    }
-    fun onAppSecretChange(value: String) {
-        _appSecretInput.value = value
-    }
-    fun onFolderTokenChange(value: String) {
-        _folderTokenInput.value = value
-    }
-
-    fun startOAuth() {
-        val appId = _appIdInput.value.trim()
-        val appSecret = _appSecretInput.value.trim()
-        val folderToken = _folderTokenInput.value.trim().ifBlank { null }
-        if (appId.isBlank() || appSecret.isBlank()) {
-            _errorMessage.value = "请填写 app_id 和 app_secret"
+    /**
+     * 启动飞书 OAuth 流程。
+     *
+     * 流程:
+     * 1. 生成随机 state(CSRF 防护) → 落 EncryptedSharedPreferences
+     * 2. 构造飞书授权 URL + Custom Tabs 启动
+     * 3. 用户在浏览器同意 → 飞书重定向到 [OAuthCodeReceiver]
+     * 4. Receiver 校验 state → 调 [com.yy.writingwithai.core.feishu.auth.UserTokenProvider.exchangeCode]
+     *
+     * 失败:设置 [OneShotEvent.OAuthFailed] 让 UI 显示 toast。
+     */
+    fun startOAuth(appId: String) {
+        if (appId.isBlank()) {
+            _oneShot.value = OneShotEvent.OAuthFailed("appId 不能为空")
             return
         }
         viewModelScope.launch {
-            // 持久化 app_id + app_secret:浏览器打开期间进程可能被杀
-            store.setOAuthCredentials(appId, "", "", 0L)
-            store.persistAppSecret("oauth", appSecret)
-            store.setAuthState(FeishuAuthState.TOKEN_FETCHING)
-            oauthLauncher.launch(getApplication(), appId)
+            try {
+                oauthLauncher.launch(getApplication(), appId)
+            } catch (e: Throwable) {
+                _oneShot.value = OneShotEvent.OAuthFailed(e.message ?: "启动飞书授权失败")
+            }
         }
     }
 
+    /** 清除 token + 重置到 DISCONNECTED。 */
     fun disconnect() {
         viewModelScope.launch {
-            tokenProvider.invalidate()
-            store.clearAll()
+            authStore.clearAll()
         }
     }
 
-    fun clearError() {
-        _errorMessage.value = null
+    fun consumeOneShot() {
+        _oneShot.value = null
+    }
+
+    sealed interface OneShotEvent {
+        data class OAuthFailed(val message: String) : OneShotEvent
     }
 }

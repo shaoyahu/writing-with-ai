@@ -1,6 +1,5 @@
 package com.yy.writingwithai.core.data.export
 
-import com.yy.writingwithai.core.data.db.NoteTagDao
 import com.yy.writingwithai.core.data.repo.AiHistoryRepository
 import com.yy.writingwithai.core.data.repo.NoteRepository
 import javax.inject.Inject
@@ -20,7 +19,6 @@ class NoteExporter
 constructor(
     private val noteRepository: NoteRepository,
     private val aiHistoryRepository: AiHistoryRepository,
-    private val noteTagDao: NoteTagDao,
     private val zipHelper: ZipHelper
 ) {
     private val json = ExportJsonFormat
@@ -32,11 +30,15 @@ constructor(
      * @return 实际导出的 note 条数(供 SettingsDataViewModel 显示 Done 文案,X = notes.size)。
      */
     suspend fun exportToJsonZip(outputStream: java.io.OutputStream): Int {
-        val notes = noteRepository.observeNotesWithTags(null, null).first().map { it.note }
+        // R3 fix M5:之前 `noteRepository.observeNotesWithTags(null, null).first()` 内部
+        // 已经 `combine(notesFlow, noteTagDao.observeAllCrossRefs())`,然后又单独
+        // 调 `noteTagDao.observeAllCrossRefs().first()` 再 groupBy —— 两次全表 crossRef
+        // 读。现在直接复用 `NoteWithTags.tags`,组 tags map 在内存里(已经是按 note 摊开的)。
+        val withTags = noteRepository.observeNotesWithTags(null, null).first()
+        val notes = withTags.map { it.note }
         val aiHistories = aiHistoryRepository.observeAll(Int.MAX_VALUE).first()
-        val crossRefs = noteTagDao.observeAllCrossRefs().first()
         val tags: Map<String, List<String>> =
-            crossRefs.groupBy({ it.noteId }, { it.tag })
+            withTags.associate { it.note.id to it.tags }
         val now =
             java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.ROOT)
                 .format(java.util.Date())
@@ -49,7 +51,10 @@ constructor(
             json
                 .encodeToString(ExportAiHistoryListSerializer, aiHistories.map { it.toExport() })
                 .toByteArray(Charsets.UTF_8)
-        entries["tags.json"] = json.encodeToString(ExportTags.serializer(), ExportTags(tags)).toByteArray(Charsets.UTF_8)
+        val tagsJson = json
+            .encodeToString(ExportTags.serializer(), ExportTags(tags))
+            .toByteArray(Charsets.UTF_8)
+        entries["tags.json"] = tagsJson
         entries["meta.json"] = json.encodeToString(ExportMeta.serializer(), meta).toByteArray(Charsets.UTF_8)
         // Markdown 可读副本
         notes.forEach { note ->

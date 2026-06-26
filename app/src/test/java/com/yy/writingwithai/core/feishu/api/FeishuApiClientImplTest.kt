@@ -146,4 +146,51 @@ class FeishuApiClientImplTest {
         assertEquals("docXYZ", result.docId)
         assertTrue(result.docUrl.contains("docXYZ"))
     }
+
+    /**
+     * fix-2026-06-26-review-r3 HIGH H9:1 MiB cap 必须流式截断,不能先把整段 body 缓存到 heap。
+     * 之前 `source.request(Long.MAX_VALUE)` 把整段 body 拉进 buffer 再判断截断 — 已经 OOM 了。
+     * 修后用 `readByteArray(MAX_BODY)` — okio 在达到上限后停止从 socket 读。
+     *
+     * 截断后 body 很可能不再是有效 JSON,所以应抛 NetworkError("JSON parse failed")—
+     * 这正是保护性截断的语义:超大响应直接拒收,而不是把残缺数据返回给 caller。
+     */
+    @Test
+    fun `H9 large body is stream-truncated to 1 MiB cap`() = runTest {
+        // 拼一个 > 1 MiB 的 body,JSON 中段是 1.5 MiB padding 让截断点刚好切在 padding 中
+        val huge = "{\"code\":0,\"msg\":\"ok\",\"data\":{\"items\":[\""
+        val padding = "x".repeat((2 * 1024 * 1024) - huge.length - 20) // 总长 ~ 2 MiB
+        val tail = "\"}}]}}"
+        val fullBody = huge + padding + tail
+        server.enqueue(MockResponse().setBody(fullBody))
+
+        // 截断 + 后续 JSON parse 失败 → NetworkError。这是保护性截断的正确语义。
+        val ex = assertThrows(FeishuError.NetworkError::class.java) {
+            kotlinx.coroutines.runBlocking { api.getBlocks("doc123") }
+        }
+        assertTrue(
+            ex.detail?.contains("JSON parse failed") == true,
+            "expected JSON parse failure from truncation, got: ${ex.detail}"
+        )
+    }
+
+    /**
+     * fix-2026-06-26-review-r3 HIGH(re-scan):200 响应的 `data` 字段不是 JsonObject 时
+     * 的强转异常也应包装为 NetworkError,而不是让 IllegalArgumentException 逃逸
+     * 破坏调用方异常处理。
+     */
+    @Test
+    fun `H-extra data cast failure on 200 response is wrapped as NetworkError`() = runTest {
+        // emit valid 200 + body code=0 + data 是 string(不是 object)→ jsonObject 强转抛
+        server.enqueue(
+            MockResponse().setBody("""{"code":0,"msg":"ok","data":"not-an-object"}""")
+        )
+        val ex = assertThrows(FeishuError.NetworkError::class.java) {
+            kotlinx.coroutines.runBlocking { api.getDocument("doc-parse-fail") }
+        }
+        assertTrue(
+            ex.detail?.contains("data is not a JSON object") == true,
+            "expected data-cast-failure detail, got: ${ex.detail}"
+        )
+    }
 }

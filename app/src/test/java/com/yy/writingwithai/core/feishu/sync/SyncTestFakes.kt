@@ -79,6 +79,12 @@ internal class FakeFeishuRefDao : FeishuRefDao {
         store.remove(noteId)
     }
 
+    override suspend fun markRemoteDeleted(noteId: String): Int {
+        val ref = store[noteId] ?: return 0
+        store[noteId] = ref.copy(status = FeishuRefStatus.REMOTE_DELETED)
+        return 1
+    }
+
     override suspend fun listAll(): List<FeishuRefEntity> = store.values.toList()
 
     override suspend fun deleteAll() {

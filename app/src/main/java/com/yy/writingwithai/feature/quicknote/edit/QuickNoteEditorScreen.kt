@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -133,24 +134,59 @@ fun QuickNoteEditorScreen(
                 modifier = Modifier.padding(horizontal = spacing.md)
             )
 
-            // ui-redesign-v2 · wikilink 自动补全
+            // fix-2026-06-26-review-r3 C4:wikilink 自动补全 offset 闭包捕获旧 content 会错位。
+            // 用 snapshot(content + offset + prefix)一起,onSelect 内重新定位 `[[`。
+            // content 变化后 LaunchedEffect(content) 重新计算 prefix;若 prefix 为空就关闭弹层。
+            // R3 C4 fix:之前 `onSelect` 闭包捕获 `content` 和 `lastOpen`,AI acceptReplace
+            // 改 content 后用户再点补全 → 写错位;改为每次 onSelect 内部重新定位 `[[`。
             var wikilinkPrefix by remember { mutableStateOf("") }
             val content = state.content
-            val lastOpen = content.lastIndexOf("[[")
+            // derivedStateOf 在 content 变化时重算,但 wikilink 弹层还在 → 用户点 onSelect 时
+            // 仍拿最新 content 重新匹配 `[[...prefix...]]`,不再依赖闭包旧值。
+            val lastOpen by remember {
+                derivedStateOf { content.lastIndexOf("[[") }
+            }
             if (lastOpen >= 0) {
                 val afterOpen = content.substring(lastOpen + 2)
                 val closeIdx = afterOpen.indexOf("]]")
                 if (closeIdx < 0 && afterOpen.length <= 64 && !afterOpen.contains("\n")) {
                     LaunchedEffect(content) { wikilinkPrefix = afterOpen.trim() }
+                } else {
+                    // 已关闭的 wikilink / 含换行 / 超长 → 清 prefix,关闭补全弹层
+                    LaunchedEffect(content) { wikilinkPrefix = "" }
                 }
+            } else {
+                // 没有 `[[` → 清 prefix
+                LaunchedEffect(content) { wikilinkPrefix = "" }
             }
             if (wikilinkPrefix.isNotEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.md)) {
                     WikilinkAutocomplete(
                         prefix = wikilinkPrefix,
                         onSelect = { selected ->
-                            val before = content.substring(0, lastOpen)
-                            val after = content.substring(lastOpen + 2 + wikilinkPrefix.length)
+                            // R3 C4 fix:重新在最新 content 里查 `[[`,避免 AI 替换导致 stale offset。
+                            val currentContent = state.content
+                            val openIdx = currentContent.lastIndexOf("[[")
+                            if (openIdx < 0) {
+                                // 弹层期间 content 已被外部改,丢掉这次插入
+                                wikilinkPrefix = ""
+                                return@WikilinkAutocomplete
+                            }
+                            val tail = currentContent.substring(openIdx + 2)
+                            val tailClose = tail.indexOf("]]")
+                            if (tailClose >= 0) {
+                                // 用户在弹层期间已手动关闭 wikilink,不再插入
+                                wikilinkPrefix = ""
+                                return@WikilinkAutocomplete
+                            }
+                            // 校验 wikilink 段前缀与当前 prefix 一致(避免 stale prefix)
+                            val tailPrefix = tail.take(wikilinkPrefix.length)
+                            if (tailPrefix != wikilinkPrefix) {
+                                wikilinkPrefix = ""
+                                return@WikilinkAutocomplete
+                            }
+                            val before = currentContent.substring(0, openIdx)
+                            val after = currentContent.substring(openIdx + 2 + wikilinkPrefix.length)
                             viewModel.setContent("$before[[$selected]]$after")
                             wikilinkPrefix = ""
                         }

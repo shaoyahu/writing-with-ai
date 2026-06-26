@@ -1,6 +1,5 @@
 package com.yy.writingwithai.core.data.export
 
-import com.yy.writingwithai.core.data.db.NoteTagDao
 import com.yy.writingwithai.core.data.model.AiHistory
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.data.model.NoteWithTags
@@ -30,13 +29,11 @@ import org.junit.jupiter.api.Test
 class NoteExporterTest {
     private val noteRepository: NoteRepository = mockk()
     private val aiHistoryRepository: AiHistoryRepository = mockk()
-    private val noteTagDao: NoteTagDao = mockk()
     private val zipHelper = ZipHelper()
     private val exporter =
         NoteExporter(
             noteRepository = noteRepository,
             aiHistoryRepository = aiHistoryRepository,
-            noteTagDao = noteTagDao,
             zipHelper = zipHelper
         )
 
@@ -88,7 +85,6 @@ class NoteExporterTest {
                     )
                 )
             )
-        every { noteTagDao.observeAllCrossRefs() } returns flowOf(emptyList())
 
         val out = ByteArrayOutputStream()
         val count = exporter.exportToJsonZip(out)
@@ -135,7 +131,6 @@ class NoteExporterTest {
     fun exportToJsonZip_empty_notes_returns_zero_and_no_markdown() = runTest {
         every { noteRepository.observeNotesWithTags(null, null) } returns flowOf(emptyList())
         every { aiHistoryRepository.observeAll(Int.MAX_VALUE) } returns flowOf(emptyList())
-        every { noteTagDao.observeAllCrossRefs() } returns flowOf(emptyList())
 
         val out = ByteArrayOutputStream()
         val count = exporter.exportToJsonZip(out)
@@ -151,5 +146,44 @@ class NoteExporterTest {
         }
         assertEquals(4, entries.size, "无 notes 时 MUST 只有 4 个 JSON,无 notes/*.md")
         assertTrue(entries.keys.none { it.startsWith("notes/") })
+    }
+
+    /**
+     * R3 fix M5 回归:tags 必须从 `observeNotesWithTags` 的 `NoteWithTags.tags` 派生,
+     * 不再单独读 `noteTagDao.observeAllCrossRefs()` —— 验证后者没被调,且 tag 内容正确。
+     */
+    @Test
+    fun exportToJsonZip_tags_come_from_NoteWithTags_not_separate_dao_read() = runTest {
+        val note = Note(
+            id = "n1",
+            title = "t",
+            content = "c",
+            createdAt = 1L,
+            updatedAt = 1L,
+            isPinned = false,
+            lastAiOp = null,
+            lastAiAt = null
+        )
+        every { noteRepository.observeNotesWithTags(null, null) } returns
+            flowOf(listOf(NoteWithTags(note, listOf("alpha", "beta"))))
+        every { aiHistoryRepository.observeAll(Int.MAX_VALUE) } returns flowOf(emptyList())
+
+        val out = ByteArrayOutputStream()
+        exporter.exportToJsonZip(out)
+
+        val entries = mutableMapOf<String, ByteArray>()
+        ZipInputStream(ByteArrayInputStream(out.toByteArray())).use { zin ->
+            var e = zin.nextEntry
+            while (e != null) {
+                entries[e.name] = zin.readBytes()
+                e = zin.nextEntry
+            }
+        }
+        val tags =
+            ExportJsonFormat.decodeFromString(
+                ExportTags.serializer(),
+                entries["tags.json"]!!.toString(Charsets.UTF_8)
+            )
+        assertEquals(listOf("alpha", "beta"), tags.noteIdToTags["n1"])
     }
 }

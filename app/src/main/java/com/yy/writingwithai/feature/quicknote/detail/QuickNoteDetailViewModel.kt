@@ -213,10 +213,13 @@ constructor(
                 _showConflictDialog.value = false
                 _syncMessage.value = "已采用飞书版本"
             } catch (e: FeishuError) {
+                // fix-2026-06-26-review-r3 H20:catch 块也要关 dialog,避免解决失败时 dialog 仍开。
+                _showConflictDialog.value = false
                 _syncMessage.value = "解决冲突失败: ${e.message}"
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                _showConflictDialog.value = false
                 _syncMessage.value = "解决冲突失败: ${e.message}"
             }
         }
@@ -269,15 +272,15 @@ constructor(
     fun addAttachment(uri: android.net.Uri) {
         val id = noteId ?: return
         viewModelScope.launch {
+            var sourceFile: java.io.File? = null
             try {
                 val attachmentId = java.util.UUID.randomUUID().toString()
-                val sourceFile = java.io.File(appContext.cacheDir, "tmp_$attachmentId.jpg")
+                sourceFile = java.io.File(appContext.cacheDir, "tmp_$attachmentId.jpg")
                 appContext.contentResolver.openInputStream(uri)?.use { input ->
-                    sourceFile.outputStream().use { output -> input.copyTo(output) }
+                    sourceFile!!.outputStream().use { output -> input.copyTo(output) }
                 } ?: return@launch
                 val destFile = attachmentStore.getAttachmentFile(id, attachmentId, "jpg")
                 imageCompressor.compress(sourceFile, destFile)
-                sourceFile.delete()
                 noteAttachmentDao.insert(
                     com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity(
                         id = attachmentId,
@@ -288,10 +291,16 @@ constructor(
                         createdAt = System.currentTimeMillis()
                     )
                 )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 if (com.yy.writingwithai.BuildConfig.DEBUG) {
                     android.util.Log.e("DetailVM", "addAttachment failed", e)
                 }
+            } finally {
+                // fix-2026-06-26-review-r3 H19:compress() 抛异常时也要删 sourceFile,
+                // 否则 cache 目录累积 tmp_*.jpg。
+                sourceFile?.takeIf { it.exists() }?.delete()
             }
         }
     }
@@ -301,7 +310,23 @@ constructor(
 data class AiMetaDisplay(val opKey: String, val opAt: String)
 
 // M3 修:SimpleDateFormat hoist 到顶层,避免每次 map { formatLocalDateTime(...) } 重建。
+// fix-2026-06-26-review-r3 LOW:Locale.getDefault() 在某些 locale(阿拉伯/泰语)下产出非 ASCII 数字,
+// 日期显示应 fallback 到 Locale.ROOT 保证可读性。
 private fun formatLocalDateTime(epochMillis: Long): String {
-    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", safeLocale())
     return sdf.format(Date(epochMillis))
+}
+
+/**
+ * fix-2026-06-26-review-r3 LOW:优先用用户 locale 格式化日期,但排除产出非 ASCII 数字的 locale
+ * (阿拉伯/泰语/孟加拉等),这些 locale 下日期对中文用户不可读,fallback 到 Locale.ROOT。
+ */
+private fun safeLocale(): Locale {
+    val default = Locale.getDefault()
+    val test = java.text.NumberFormat.getInstance(default).format(0)
+    return if (test.all { it.isDigit() || it == '-' || it == ',' || it == '.' }) {
+        default
+    } else {
+        Locale.ROOT
+    }
 }

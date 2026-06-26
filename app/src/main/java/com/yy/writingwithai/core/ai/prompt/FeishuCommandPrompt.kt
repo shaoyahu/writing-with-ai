@@ -45,8 +45,4 @@ object FeishuCommandPrompt {
 
         若用户意图不明确(没指定哪个笔记 / 哪个文档),在 args 里留空并 prompt 澄清。
     """.trimIndent()
-
-    /** 期望的 JSON 输出 schema 描述(供 test parse)。 */
-    const val EXPECTED_JSON_SHAPE: String =
-        """{ "op": "create_doc|read_doc|update_doc|append_block", "args": {...} }"""
 }

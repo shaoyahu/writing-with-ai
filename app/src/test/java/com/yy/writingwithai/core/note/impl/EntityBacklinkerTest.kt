@@ -1,6 +1,5 @@
 package com.yy.writingwithai.core.note.impl
 
-import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import com.yy.writingwithai.core.data.db.dao.entity.EntityAliasDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.db.entity.entity.EntityAliasRow
@@ -27,15 +26,14 @@ import org.junit.jupiter.api.Test
 class EntityBacklinkerTest {
     private lateinit var entityDao: NoteEntityDao
     private lateinit var aliasDao: EntityAliasDao
-    private lateinit var linkDao: NoteLinkDao
     private lateinit var linker: EntityBacklinker
 
     @BeforeEach
     fun setup() {
         entityDao = mockk()
         aliasDao = mockk()
-        linkDao = mockk(relaxed = true)
-        linker = EntityBacklinker(entityDao, aliasDao, linkDao)
+        // R3 fix M11:移除死字段 noteLinkDao。
+        linker = EntityBacklinker(entityDao, aliasDao)
     }
 
     @Test

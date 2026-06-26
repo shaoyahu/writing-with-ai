@@ -85,6 +85,12 @@ constructor(
     val state: StateFlow<AiActionUiState> = _state.asStateFlow()
 
     private var streamJob: Job? = null
+
+    // fix-2026-06-26-review-r3 M6:`streamJob?.cancel()` 之后旧协程可能还在 `_state.update`
+    // 调用栈上(cancel 是异步),新协程已置 Streaming → 旧协程在取消检查点前最后 emit
+    // 一条 Delta / Failed 覆盖新状态。加一个 generation 计数器,emit 前比对,不一致就丢。
+    @Volatile
+    private var streamGeneration: Int = 0
     private var lastOp: WritingOp? = null
     private var lastSourceText: String? = null
     private var lastNoteId: String? = null
@@ -93,6 +99,9 @@ constructor(
 
     fun start(op: WritingOp, sourceText: String, noteId: String) {
         streamJob?.cancel()
+        // M6 fix:bump generation,旧协程(若仍在跑)将被 generation 比对拒绝写状态。
+        val currentGeneration = streamGeneration + 1
+        streamGeneration = currentGeneration
         lastOp = op
         lastSourceText = sourceText
         lastNoteId = noteId
@@ -104,28 +113,38 @@ constructor(
             viewModelScope.launch {
                 val consented = consentStore.isConsented(com.yy.writingwithai.BuildConfig.CONSENT_VERSION)
                 if (!consented) {
-                    _state.value = AiActionUiState.Failed(op = op, error = AiError.UserConsentRequired)
+                    if (streamGeneration == currentGeneration) {
+                        _state.value = AiActionUiState.Failed(op = op, error = AiError.UserConsentRequired)
+                    }
                     return@launch
                 }
                 val acked = userPrefsStore.isApikeyPromptAcked()
                 if (!acked) {
-                    _state.value = AiActionUiState.Failed(op = op, error = AiError.ApikeyPromptNotAcked)
+                    if (streamGeneration == currentGeneration) {
+                        _state.value = AiActionUiState.Failed(op = op, error = AiError.ApikeyPromptNotAcked)
+                    }
                     return@launch
                 }
                 // 删原 gateway.streamWritingOp 内 runBlocking(主线程 ANR)。
                 val providerId = providerPrefsStore.getSelectedProviderId()
                 // fix-2026-06-24-review-r1-critical:null = 未配置 provider → 走 ProviderNotConfigured
                 if (providerId == null) {
-                    _state.value = AiActionUiState.Failed(op = op, error = AiError.ProviderNotConfigured)
+                    if (streamGeneration == currentGeneration) {
+                        _state.value = AiActionUiState.Failed(op = op, error = AiError.ProviderNotConfigured)
+                    }
                     return@launch
                 }
                 val apikey = secureApiKeyStore.get(providerId)
                 val apiFormatOverride = providerPrefsStore.getApiFormat(providerId)
                 if (providerId != PROVIDER_ID_FAKE && apikey == null) {
-                    _state.value = AiActionUiState.Failed(op = op, error = AiError.ProviderNotConfigured)
+                    if (streamGeneration == currentGeneration) {
+                        _state.value = AiActionUiState.Failed(op = op, error = AiError.ProviderNotConfigured)
+                    }
                     return@launch
                 }
-                _state.value = AiActionUiState.Streaming(op = op)
+                if (streamGeneration == currentGeneration) {
+                    _state.value = AiActionUiState.Streaming(op = op)
+                }
                 val systemPrompt =
                     promptTemplateStore.getForOp(op) ?: DefaultPrompts.forOp(op)
                 val builder = StringBuilder()
@@ -139,14 +158,21 @@ constructor(
                         systemPrompt = systemPrompt,
                         apiFormatOverride = apiFormatOverride
                     ).collect { event ->
+                        // M6 fix:emit 前比对 generation;旧协程 race emit 直接丢弃。
+                        if (streamGeneration != currentGeneration) {
+                            return@collect
+                        }
                         when (event) {
                             is AiStreamEvent.Started -> Unit
                             is AiStreamEvent.Delta -> {
+                                // H21 fix:不再 `builder.toString()` 整段 emit,改为单次
+                                // delta chunk + 累加长度;UI 自行拼接,O(n) 内存。
                                 builder.append(event.text)
                                 _state.update {
                                     AiActionUiState.Streaming(
                                         op = op,
-                                        partialText = builder.toString()
+                                        delta = event.text,
+                                        accumulatedLength = builder.length
                                     )
                                 }
                             }
@@ -189,10 +215,14 @@ constructor(
         val op = current.op
         val aiText = current.finalText
         viewModelScope.launch {
+            // fix-2026-06-26-review-r3 H18:原实现 return@withContext 只跳出 NonCancellable,
+            // 外层仍执行 `_state.value = Replaced` 覆盖内层已写入的 Failed。
+            // 改为整个状态机决策放在 NonCancellable 内部,内层统一返回 success/failure 标志。
+            val outcome: Boolean
             try {
-                withContext(NonCancellable) {
+                outcome = withContext(NonCancellable) {
                     val existingFlow = noteRepository.observeNoteWithTags(noteId)
-                    val existing = existingFlow.first() ?: return@withContext
+                    val existing = existingFlow.first() ?: return@withContext false
                     val now = System.currentTimeMillis()
                     val originalContent = existing.note.content
                     // H6 修:`String.replace(sourceText, aiText)` 在原文不含 / 多次匹配时静默,
@@ -203,14 +233,14 @@ constructor(
                             op = op,
                             error = AiError.Unknown(null, "原文已被修改,请重新生成")
                         )
-                        return@withContext
+                        return@withContext false
                     }
                     if (originalContent.indexOf(sourceText, idx + sourceText.length) >= 0) {
                         _state.value = AiActionUiState.Failed(
                             op = op,
                             error = AiError.Unknown(null, "原文有多处匹配,请手动选择")
                         )
-                        return@withContext
+                        return@withContext false
                     }
                     val updatedContent = originalContent.replaceRange(idx, idx + sourceText.length, aiText)
                     lastOriginalContent = originalContent
@@ -218,11 +248,8 @@ constructor(
                     noteRepository.upsert(updated, existing.tags)
                     noteRepository.updateAiMetadata(noteId, op.name.lowercase(), now)
                     widgetUpdater.updateAll(context)
+                    true
                 }
-                // H7 修:删 `delay(150)` + `tryEmit` 强刷 + 误导 Log.d。
-                // Room Flow 是 single source of truth,`NonCancellable { upsert }` 退栈时
-                // invalidation 已传播,detail VM 主路径 Flow 自然收到更新,无需 push 强刷。
-                _state.value = AiActionUiState.Replaced(op = op)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -231,6 +258,14 @@ constructor(
                     op = op,
                     error = AiError.Unknown(null, e.message ?: "unknown")
                 )
+                return@launch
+            }
+            // H7 修:删 `delay(150)` + `tryEmit` 强刷 + 误导 Log.d。
+            // Room Flow 是 single source of truth,`NonCancellable { upsert }` 退栈时
+            // invalidation 已传播,detail VM 主路径 Flow 自然收到更新,无需 push 强刷。
+            // H18 fix:仅当 NonCancellable 块返回 true 才置 Replaced,避免覆盖 Failed。
+            if (outcome) {
+                _state.value = AiActionUiState.Replaced(op = op)
             }
         }
     }

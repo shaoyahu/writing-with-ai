@@ -81,13 +81,25 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
     suspend fun exchangeCode(appId: String, appSecret: String, code: String) = withContext(Dispatchers.IO) {
         refreshMutex.withLock {
             store.persistAppSecret(REQUEST_ID_OAUTH, appSecret)
-            val appToken = getAppAccessTokenLocked()
-            val body = buildJsonObject {
-                put("grant_type", "authorization_code")
-                put("code", code)
-            }.toString()
-            val data = postJson(TOKEN_URL, body, appToken)
-            persistUserTokenLocked(data, appId)
+            try {
+                val appToken = getAppAccessTokenLocked()
+                val body = buildJsonObject {
+                    put("grant_type", "authorization_code")
+                    put("code", code)
+                }.toString()
+                val data = postJson(TOKEN_URL, body, appToken)
+                persistUserTokenLocked(data, appId)
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                // fix-MEDIUM(feishu M4):进程被杀导致取消,保留 appSecret 让下次冷启动
+                // resume pending exchange 时仍能完成 token 交换(与 OAuthCodeReceiver.persistPendingExchange 配合)。
+                throw e
+            } catch (e: Throwable) {
+                // fix-MEDIUM(feishu M4):exchange 失败时清掉 stale appSecret —
+                // 否则下次启动 store.getAppSecretSnapshot("oauth") 仍能拿到旧 secret,
+                // 但对应 code/refreshToken 已失效,造成"看上去授权完成但实际用旧 secret"的语义错乱。
+                store.clearAppSecret(REQUEST_ID_OAUTH)
+                throw e
+            }
         }
     }
 
@@ -146,6 +158,8 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
             if (bearer != null) b.header("Authorization", "Bearer $bearer")
             val resp = try {
                 httpClient.newCall(b.build()).execute()
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 throw FeishuError.NetworkError(e.message ?: "network")
             }
@@ -153,6 +167,8 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
                 val raw = r.body?.string().orEmpty()
                 val root = try {
                     Json.parseToJsonElement(raw).jsonObject
+                } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
                 } catch (e: Throwable) {
                     throw FeishuError.NetworkError("parse: ${e.message}, raw=$raw")
                 }

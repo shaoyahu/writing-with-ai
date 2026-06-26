@@ -107,15 +107,21 @@ constructor(
                     lastAiAt = null
                 )
             }
+            // fix-2026-06-26-review-r3 HIGH H12:localRevision 不应被 pull 重置为 now。
+            // pull 是 "远端覆盖本地",ref.localRevision 反映 "本地 last write 时刻",
+            // 应当等于本次 noteToWrite.updatedAt —— 与 push 走同样的 note.updatedAt 一致。
+            // 之前 `localRevision = System.currentTimeMillis()` 导致 pull 后 localRev
+            // 永远 > lastSyncedAt,下次 conflict 检测永远 LOCAL > REMOTE,BOTH_DIRTY 假阳性。
+            val pullTimestamp = System.currentTimeMillis()
             refDao.upsertNoteWithRef(
                 note = noteToWrite.toEntity(),
                 ref = FeishuRefEntity(
                     noteId = resolvedNoteId,
                     docId = resolvedDocId,
                     docUrl = docUrl,
-                    lastSyncedAt = System.currentTimeMillis(),
+                    lastSyncedAt = pullTimestamp,
                     syncDirection = SyncDirection.PULL,
-                    localRevision = System.currentTimeMillis(),
+                    localRevision = noteToWrite.updatedAt,
                     remoteRevision = content.revisionId,
                     status = FeishuRefStatus.SYNCED
                 ),
@@ -136,6 +142,13 @@ constructor(
 
     suspend fun getRefsForNotes(noteIds: List<String>): Map<String, FeishuRefEntity> =
         refDao.getByNoteIds(noteIds).associateBy { it.noteId }
+
+    /**
+     * fix-2026-06-26-review-r3 HIGH H13:标记 ref 为 REMOTE_DELETED,补完死代码路径。
+     * 调用方(同步引擎 / 飞书侧 410 处理)检测到远端 doc 已删除时调用,
+     * 把 ref.status 切到 REMOTE_DELETED,本地 note 保留(用户决定是否重传)。
+     */
+    suspend fun markRemoteDeleted(noteId: String): Int = refDao.markRemoteDeleted(noteId)
 
     /**
      * 断开所有同步:清 refs + events(容错 events 清理失败不阻塞 refs 清空)。

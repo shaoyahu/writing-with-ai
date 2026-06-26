@@ -158,6 +158,9 @@ data class FeishuDocContent(
 
 private fun extractDocIdFromUrl(url: String): String? {
     val trimmed = url.trim().trimEnd('/')
-    val last = trimmed.substringAfterLast('/')
-    return if (last.isNotBlank() && !last.contains("?")) last else null
+    // fix-2026-06-26-review-r3 HIGH H14:split `?` 之前先去掉 query/fragment,避免
+    // 形如 `https://f.cn/docx/d1?from=copy` 被误判为 last segment 含 `?` → null。
+    val withoutQuery = trimmed.substringBefore('?').substringBefore('#')
+    val last = withoutQuery.substringAfterLast('/')
+    return last.takeIf { it.isNotBlank() }
 }

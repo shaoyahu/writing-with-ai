@@ -120,7 +120,14 @@ constructor(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // ai_history 失败:不计入 note failedNotes。M5 polish 加 aiHistoryFailed 字段到 ImportReport。
+                // R3 fix M6:之前完全无声 — 调试 / 审计 / 历史完整性都查不到为什么少了一条 history。
+                // 不计入 note failedNotes(语义不同),但要 log 出 id + 原因便于事后排查。
+                // M5 polish 加 aiHistoryFailed 字段到 ImportReport 时再升级为结构化报告。
+                android.util.Log.w(
+                    "NoteImporter",
+                    "ai_history record failed for noteId=${history.noteId} providerId=${history.providerId}",
+                    e
+                )
             }
         }
 

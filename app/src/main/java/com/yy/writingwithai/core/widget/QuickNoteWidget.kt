@@ -17,7 +17,6 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -38,7 +37,14 @@ import kotlinx.coroutines.flow.first
 class QuickNoteWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val notes = QuickNoteWidgetHiltBridge.repository?.observeRecent(LIMIT)?.first() ?: emptyList()
+        // fix-2026-06-26-review-r3 H25:widget 每次 update(系统级 15-30min 周期 / 用户主动
+        // updateAll)都会 `observeRecent(LIMIT).first()` 触发 Room 读 → 加载最近 3 条全部行。
+        // 加 <N 秒级 TTL 缓存:30s 内复用上次结果;>30s 才重读 Room。
+        // 主动 save/delete 路径仍走 updateAll 强制刷新;被动周期 widget 用缓存降低 IO。
+        val now = System.currentTimeMillis()
+        val notes = QuickNoteWidgetCache.getOrLoad(LIMIT, now) {
+            QuickNoteWidgetHiltBridge.repository?.observeRecent(LIMIT)?.first() ?: emptyList()
+        }
         val noteIndex = WidgetStateStore.current(context).currentNoteIndex
         provideContent {
             GlanceTheme { WidgetContent(notes = notes, noteIndex = noteIndex, context = context) }
@@ -64,7 +70,9 @@ private fun AddButton(context: Context, colors: WidgetColors) {
     Box(
         GlanceModifier
             .background(colors.widgetPrimary)
-            .clickable(actionStartActivity(createNoteIntent(context)))
+            // R3 C5 fix:走 launchWithTaskStack,与 OpenNoteAction 共用 TaskStackBuilder 回退栈,
+            // 跨 AOSP / 国产 ROM widget 入口 back 行为一致。
+            .clickable { context.launchWithTaskStack("quicknote/edit?prefillFocus=true") }
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -258,12 +266,17 @@ internal fun formatRelativeTimeCompact(context: Context, epochMs: Long): String 
 private const val SNIPPET_LEN = 30
 
 /**
- * Returns Intent with route extra — Glance fires it on click, no premature launch.
+ * fix-2026-06-26-review-r3 C5:统一 widget 入口的回退栈行为。
  *
- * L3 修:去掉 [Intent.FLAG_ACTIVITY_CLEAR_TASK] —— CLEAR_TASK 会清空 launcher 任务栈,
- * 进而杀掉 consent 闸门 Activity(若用户已同意但系统重新创建 task)造成流程旁路。
- * 对照 `WidgetIntentHelpers.launchWithTaskStack` 的 flag 选择 — 那边走
- * [androidx.core.app.TaskStackBuilder] 显式构造回退栈,本路径只设 NEW_TASK。
+ * 与 `OpenNoteAction.onAction` / `CreateNoteFromWidgetAction.onAction` 一致,点击 "+"
+ * 后通过 [Context.launchWithTaskStack] 启动 MainActivity,使用 [TaskStackBuilder] 显式
+ * 构造 launcher → MainActivity 回退栈,跨 AOSP / 国产 ROM 行为一致。
+ *
+ * 不再返回 Intent 给 `actionStartActivity` —— 那样 caller 路径会跳过 TaskStackBuilder,
+ * 与 launchWithTaskStack 路径行为不一致(R2 L3 删了 `FLAG_ACTIVITY_CLEAR_TASK` 避免杀
+ * consent 闸门,但缺少 TaskStackBuilder 又会让 back 行为回退到旧 ROM 不一致问题)。
+ *
+ * Caller(`AddButton` / `Widget1x4Content` "+")改为 `clickable { context.launchWithTaskStack(...) }`。
  */
 internal fun createNoteIntent(context: Context): Intent = Intent(context, MainActivity::class.java)
     .putExtra("route", "quicknote/edit?prefillFocus=true")

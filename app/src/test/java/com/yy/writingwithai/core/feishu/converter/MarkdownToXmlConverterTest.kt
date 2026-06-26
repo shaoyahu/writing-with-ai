@@ -68,8 +68,13 @@ class MarkdownToXmlConverterTest {
 
     @Test
     fun `code fence wraps multi-line in pre code`() {
+        // fix-2026-06-26-review-r3 HIGH H11:code block 走 CDATA 包裹,避免
+        // `&`/`<`/`>`/控制字符在 v2 API HTML 嵌入时产出 malformed XML。
         val xml = converter.convert("```\nval x = 1\nval y = 2\n```", title = "T")
-        assertTrue(xml.contains("<pre><code>val x = 1\nval y = 2</code></pre>"), "actual: $xml")
+        assertTrue(
+            xml.contains("<pre><code><![CDATA[val x = 1\nval y = 2]]></code></pre>"),
+            "actual: $xml"
+        )
     }
 
     @Test

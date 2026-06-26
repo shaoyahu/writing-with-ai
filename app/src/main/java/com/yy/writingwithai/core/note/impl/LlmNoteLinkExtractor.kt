@@ -174,7 +174,8 @@ class LlmNoteLinkExtractor @Inject constructor(
         const val RATE_LIMIT_MS = 24 * 60 * 60 * 1000L
 
         // fix-2026-06-24-review-r1-critical:LLM 输出字符上限 ≈ 4K tokens
-        private const val MAX_CHARS = 16384
+        // fix-2026-06-26-review-r3 LOW:去重到 AiConstants.LLM_MAX_OUTPUT_CHARS
+        private const val MAX_CHARS = com.yy.writingwithai.core.ai.api.LLM_MAX_OUTPUT_CHARS
         private const val TAG = "LlmNoteLinkExtractor"
     }
 }

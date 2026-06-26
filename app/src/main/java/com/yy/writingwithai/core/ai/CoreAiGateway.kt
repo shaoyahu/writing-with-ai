@@ -65,17 +65,18 @@ constructor(
     }
 
     override suspend fun listProviders(): List<ProviderDescriptor> {
-        val builtin = providers
-            .map { (key, provider) ->
-                ProviderDescriptor(
-                    id = provider.id,
-                    displayName = provider.displayName,
-                    models = provider.supportedModels,
-                    isConfigured = true
-                )
-            }
-            .distinctBy { it.id }
-
+        // fix-review-r3-medium M7:原版 builtin.distinctBy 后直接 + custom,如果用户在
+        // CustomProviderStore 存了一个 id 跟内置 provider 撞的(custom 落到 builtin 之后),
+        // UI 会看到两条同 id 的 ProviderDescriptor,后续 onClick 不知道选哪个。改成在合并后
+        // 一次性 distinctBy,custom 优先级更高(用户配置覆盖)。
+        val builtin = providers.map { (_, provider) ->
+            ProviderDescriptor(
+                id = provider.id,
+                displayName = provider.displayName,
+                models = provider.supportedModels,
+                isConfigured = true
+            )
+        }
         val custom = customProviderStore.getAll().map { config ->
             ProviderDescriptor(
                 id = config.id,
@@ -84,7 +85,7 @@ constructor(
                 isConfigured = true
             )
         }
-        return builtin + custom
+        return (custom + builtin).distinctBy { it.id }
     }
 
     /** 按 providerId 取 AiProvider(内置优先,未命中查自定义)。suspend,无 runBlocking。 */
@@ -114,7 +115,20 @@ constructor(
                 )
             )
 
-        val model = modelName ?: provider.supportedModels.firstOrNull() ?: "unknown"
+        // fix-review-r3-high H4:之前 `: "unknown"` 把 "unknown" 字符串静默发到 provider,
+        // 大多数 provider 会返 400/422(模型不存在),错误信息混淆 provider 真错 vs
+        // 配置错。现在 modelName + supportedModels 都为空时直接 emit ProviderNotConfigured,
+        // 让 caller 一眼看出是配置问题。
+        val resolvedModel = modelName ?: provider.supportedModels.firstOrNull()
+        if (resolvedModel == null) {
+            return flowOf(
+                AiStreamEvent.Failed(
+                    AiError.ProviderNotConfigured,
+                    false
+                )
+            )
+        }
+        val model = resolvedModel
         // H1 修:`apiFormatOverride` 由 caller(Vm) 在 suspend 上下文读 prefs 后传入,
         // 删原 `runBlocking { providerPrefsStore.getApiFormat(providerId) }`(主线程 ANR)。
         val request = AiRequest(op, sourceText, model, systemPrompt, apiFormatOverride)
@@ -170,9 +184,11 @@ constructor(
     ): String? {
         val provider = resolveProvider(providerId) ?: return "provider $providerId not registered"
         if (provider.id == "fake") {
-            // review r1 M5:fake provider 不应被静默返 null(看上去像"成功"),改抛 AiError.ProviderNotConfigured
-            // 让 UI 进入"未配置"分支,引导用户到设置 → 模型管理配真实 apikey。
-            throw IllegalStateException(AiError.ProviderNotConfigured.summary())
+            // fix-review-r3-high H2:契约是 `@return null 表示成功`,fake provider 不应被静默
+            // 返 null(看上去像"成功")——也不应抛 IllegalStateException 打断契约。
+            // 返回 ProviderNotConfigured 摘要,让 UI 进入"未配置"分支,引导用户到
+            // 设置 → 模型管理配真实 apikey。
+            return AiError.ProviderNotConfigured.summary()
         }
         val effectiveModel = provider.supportedModels.firstOrNull() ?: modelName
         // X 方案:ping 也走用户选的 apiFormat,endpoint 跟着切。

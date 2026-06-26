@@ -125,20 +125,26 @@ constructor(
     }
 
     /** 保存 apikey + 切换 selected providerId;可选 model 同步落 selectedModel。
-     *  H7 修:先 setSelectedProviderId → 再 save apikey。
-     *  setSelected 失败时,apikey 尚未写入,无需 rollback;setSelected 成功但 save 失败时,
-     *  显式回滚 selected 到原值,避免 UI 误以为新 provider 已生效。
+     *
+     * fix-2026-06-26-review-r3 H23:原实现 setSelectedProviderId 失败回滚时,自己的 try-catch
+     * 静默吞;且 setSelectedProviderId 已在第一步持久化,失败回滚到旧值,可能在旧值
+     * 与新值都已落盘后,用户看到不一致。改为"先 backup → 内存态 → 全成功才持久化":
+     * 把 selectedProviderId 的更新推迟到最后一步;中间任何一步失败 → 不持久化 selected,
+     * 内存态同步回到原值。
      */
     fun saveProvider(providerId: String, apiKey: String, model: String? = null) {
         viewModelScope.launch {
             _state.update { it.copy(lastSaveResult = SaveResult.InProgress) }
             val previousSelected = _state.value.selectedProviderId
+            // 仅更新内存态,先不持久化。
+            _state.update { it.copy(selectedProviderId = providerId) }
             try {
-                providerPrefsStore.setSelectedProviderId(providerId)
+                secureApiKeyStore.save(providerId, apiKey)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) throw e
+                // 内存态回滚到原值;不持久化任何东西。
+                _state.update { it.copy(selectedProviderId = previousSelected) }
                 val result = SaveResult.Failed(
                     messageRes = R.string.model_management_error_unknown,
                     rawDetail = e.message
@@ -147,22 +153,20 @@ constructor(
                 _saveEvents.tryEmit(result)
                 return@launch
             }
+            // apikey 落盘成功 → 才落 selected。
             try {
-                secureApiKeyStore.save(providerId, apiKey)
+                providerPrefsStore.setSelectedProviderId(providerId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) throw e
-                // 回滚 selected 到原值,避免 UI 误显示新 provider
-                try {
-                    if (previousSelected != null) {
-                        providerPrefsStore.setSelectedProviderId(previousSelected)
-                    } else {
-                        providerPrefsStore.setSelectedProviderId("fake")
-                    }
-                } catch (_: Exception) {
-                    // 静默:rollback 失败不影响主错误反馈
-                }
+                // setSelected 失败:apikey 已落 → 内存态 selected 回滚,UI 反映旧 selected;
+                // 但 apikey 已存,下次重启仍会用 providerId,需 Log 告知用户。
+                _state.update { it.copy(selectedProviderId = previousSelected) }
+                android.util.Log.e(
+                    "ModelMgmtVM",
+                    "setSelectedProviderId($providerId) failed; apikey persisted without selection",
+                    e
+                )
                 val result = SaveResult.Failed(
                     messageRes = R.string.model_management_error_unknown,
                     rawDetail = e.message

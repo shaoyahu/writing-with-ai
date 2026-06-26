@@ -54,20 +54,51 @@ sealed interface AiError {
      */
     data object Cancellation : AiError
 
-    /** 供 AiHistory 落库用的单行摘要。 */
+    /**
+     * 供 AiHistory 落库用的单行摘要。
+     *
+     * fix-review-r3-medium M2:`detail` / `message` 字段来自 provider 上游响应 body,可能含
+     * 反引号 / 星号 / 方括号 / 反斜杠等 Markdown 特殊字符。`AiHistoryEntity.error` 在历史页
+     * 直接被 Markdown 渲染,攻击者可构造恶意 provider 响应 / 调试信息,注入"假装是 error
+     * 但渲染成链接 / 代码块 / 列表"的内容。
+     *
+     * 策略:转义 Markdown 控制字符(`*` / `_` / `[` / `]` / `` ` `` / `~` / `|` / `>` / `\`)
+     * + 控制单行长度,落库前脱敏。
+     */
     fun summary(): String = when (this) {
-        is Network -> "Network($code): $detail"
-        is Auth -> "Auth($code): $detail"
-        is InsufficientBalance -> "InsufficientBalance: $detail"
-        is ContentModeration -> "ContentModeration: $detail"
-        is Timeout -> "Timeout: $message"
-        is Deserialization -> "Deserialization: $message"
-        is Unknown -> "Unknown($code): $detail"
+        is Network -> "Network($code): ${escapeMarkdown(detail)}"
+        is Auth -> "Auth($code): ${escapeMarkdown(detail)}"
+        is InsufficientBalance -> "InsufficientBalance: ${escapeMarkdown(detail)}"
+        is ContentModeration -> "ContentModeration: ${escapeMarkdown(detail)}"
+        is Timeout -> "Timeout: ${escapeMarkdown(message)}"
+        is Deserialization -> "Deserialization: ${escapeMarkdown(message)}"
+        is Unknown -> "Unknown($code): ${escapeMarkdown(detail)}"
         is UserConsentRequired -> "UserConsentRequired"
         is ProviderNotConfigured -> "ProviderNotConfigured"
         is ApikeyPromptNotAcked -> "ApikeyPromptNotAcked"
         is RateLimited -> "RateLimited(retryAfter=${retryAfterSeconds}s)"
         is ServerError -> "ServerError($code)"
         is Cancellation -> "Cancellation"
+    }
+
+    companion object {
+        /**
+         * fix-review-r3-medium M2:转义常见 Markdown 控制字符,防止 provider 错误页 / 用户输入的
+         * Markdown 在 history 页被渲染成意料外的格式。
+         */
+        internal fun escapeMarkdown(s: String): String {
+            if (s.isEmpty()) return s
+            val sb = StringBuilder(s.length + 8)
+            for (c in s) {
+                when (c) {
+                    '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')',
+                    '#', '+', '-', '.', '!', '|', '~', '>', '<', '"' -> {
+                        sb.append('\\').append(c)
+                    }
+                    else -> sb.append(c)
+                }
+            }
+            return sb.toString()
+        }
     }
 }

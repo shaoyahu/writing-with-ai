@@ -164,9 +164,16 @@ fun OnboardingScreen(
 }
 
 private fun loadPrivacyPolicy(context: Context): String = runCatching {
+    // fix-2026-06-26-review-r3 LOW:Locale.getDefault().language 在极端 locale 下可能
+    // 返回非标准代码,加 fallback:非 "en" 一律走中文版(项目主要用户群)。
     val lang = Locale.getDefault().language.lowercase()
     val fileName = if (lang == "en") "privacy_policy_en.md" else "privacy_policy_zh.md"
     context.assets.open(fileName).bufferedReader(Charsets.UTF_8).use { it.readText() }
 }.getOrElse { e ->
-    e.javaClass.simpleName + ": " + e.message.orEmpty()
+    // fallback:中文版加载失败时尝试英文版,避免白屏
+    runCatching {
+        context.assets.open("privacy_policy_en.md").bufferedReader(Charsets.UTF_8).use { it.readText() }
+    }.getOrElse { _ ->
+        e.javaClass.simpleName + ": " + e.message.orEmpty()
+    }
 }

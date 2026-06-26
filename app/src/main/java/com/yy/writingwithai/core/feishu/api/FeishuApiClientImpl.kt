@@ -112,44 +112,80 @@ constructor(
             // review r1 HIGH#5:AuthInterceptor runBlocking 抛的 FeishuError(NotAuthorized 等)
             // 不能被下面 Throwable catch 包成 NetworkError,直接 rethrow 保语义。
             throw e
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            // fix-2026-06-26-review-r3 HIGH(feishu agent re-scan):rethrow 取消信号
+            throw e
+        } catch (e: java.net.UnknownHostException) {
+            // fix-MEDIUM(feishu M2):UnknownHost 是确定性可重试错误(网络/域名问题),
+            // 区分标记为 "host=" 前缀,便于上层做 retry/backoff 时识别(SSL/IO 异常通常不应重试)。
+            throw FeishuError.NetworkError(detail = "host=" + e.javaClass.simpleName + ": " + (e.message ?: ""))
+        } catch (e: javax.net.ssl.SSLException) {
+            // fix-MEDIUM(feishu M2):SSL 错误通常不是网络抖动(证书 / 协议),不推荐自动重试。
+            throw FeishuError.NetworkError(detail = "ssl=" + e.javaClass.simpleName + ": " + (e.message ?: ""))
         } catch (e: Throwable) {
             throw FeishuError.NetworkError(detail = e.javaClass.simpleName + ": " + (e.message ?: ""))
         }
         return response.use { resp ->
-            // F2 fix H12:review r1 body OOM — resp.body.string() 一次性把整段 body 读进 heap,
-            // 飞书服务端如果返回 MB 级大文档(理论上不受限)会 OOM。统一 1 MiB cap,与
-            // AnthropicCompatibleAdapter.MAX_RESPONSE_BODY_BYTES 对齐。
-            // 用 okio source.request(Long.MAX_VALUE) 拉完所有 body 到 buffer,再判断
-            // buffer.size 决定是否截断到 MAX_BODY。避开 readUtf8(byteCount) 在源不足时
-            // 抛 EOFException 的坑。
-            val body = resp.body?.source()?.use { source ->
-                source.request(Long.MAX_VALUE)
-                if (source.buffer.size > MAX_BODY) {
-                    Log.w(
-                        "FeishuApi",
-                        "response body exceeded ${MAX_BODY} bytes for ${request.url.encodedPath}, truncating"
-                    )
-                    source.buffer.readUtf8(MAX_BODY)
-                } else {
-                    source.buffer.readUtf8()
-                }
-            }.orEmpty()
+            // fix-2026-06-26-review-r3 HIGH H9:流式截断到 1 MiB,不让 okio buffer 缓存整段 body。
+            // 之前 `source.request(Long.MAX_VALUE)` 把整段 body 拉进 heap buffer 再判断截断,
+            // 已经把恶意/异常 endpoint 的 MB 级 body 吃进内存了。改用 readByteArray(maxBytes)
+            // 让 okio 在拉到上限时停止从 socket 读。
+            val body = try {
+                resp.body?.source()?.use { source ->
+                    // fix-2026-06-26-review-r3 HIGH H9:流式截断到 1 MiB,不让 okio buffer 缓存整段 body。
+                    // 用 try/catch EOFException 兜底短 body(测试 fake / 飞书端小响应)——
+                    // 之前 `source.request(Long.MAX_VALUE)` 把整段 body 拉进 heap buffer 再判断截断,
+                    // 已经把恶意/异常 endpoint 的 MB 级 body 吃进内存了。改用 readByteArray(maxBytes)
+                    // 让 okio 在拉到上限时停止从 socket 读;body 短于上限属于正常情况,不算错。
+                    val bytes = try {
+                        source.readByteArray(MAX_BODY)
+                    } catch (e: java.io.EOFException) {
+                        // body 短于 MAX_BODY:返回已读字节,标记为截断(无,本来就短)
+                        source.readByteArray()
+                    }
+                    if (!source.exhausted()) {
+                        Log.w(
+                            "FeishuApi",
+                            "response body exceeded ${MAX_BODY} bytes for ${request.url.encodedPath}, truncating"
+                        )
+                    }
+                    String(bytes, Charsets.UTF_8)
+                }.orEmpty()
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                // fix-MEDIUM(feishu M1):结构化并发取消时 (coroutine 取消),
+                // 读 socket body 抛 CancellationException 不应被包成 NetworkError
+                // 吞掉 → 保持结构化并发语义(原 throw 上去)。
+                throw e
+            }
             when (resp.code) {
                 in 200..299 -> {
                     val parsed = try {
                         Json.parseToJsonElement(body).jsonObject
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
                     } catch (e: Throwable) {
                         throw FeishuError.NetworkError(detail = "JSON parse failed: ${e.message}")
                     }
                     val code = parsed["code"]?.jsonPrimitive?.intOrNull ?: 0
                     if (code != 0) {
                         val msg = parsed["msg"]?.jsonPrimitive?.contentOrNull ?: ""
-                        if (code == 99991663) throw FeishuError.TokenInvalid
+                        if (code == AuthInterceptor.FEISHU_TOKEN_INVALID_CODE) throw FeishuError.TokenInvalid
                         throw FeishuError.BadRequest(code, msg)
+                    }
+                    val data = try {
+                        parsed["data"]?.jsonObject ?: emptyJsonObject()
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        // fix-2026-06-26-review-r3 HIGH H-extra(r3 regression fix):
+                        // `data` 不是 JsonObject 时的强转异常也应包装为 NetworkError,保持
+                        // 与"200 但 body 坏"一致的错误语义,避免 IllegalArgumentException
+                        // 逃逸破坏调用方异常处理。
+                        throw FeishuError.NetworkError(detail = "data is not a JSON object: ${e.message}")
                     }
                     ParsedResponse(
                         rawBody = body,
-                        data = parsed["data"]?.jsonObject ?: emptyJsonObject()
+                        data = data
                     )
                 }
                 400 -> throw FeishuError.BadRequest(400, body)
@@ -255,7 +291,12 @@ constructor(
     /**
      * 构造飞书 API URL。`BASE_HOST` 是硬编码到飞书默认 host(未来若需多租户,
      * 从 `FeishuAuthStore` 读 `tenant_domain` 拼 host,见 M4 TODO)。
-     * `segments` 内部不再做额外编码:Feishu block_id 是字母数字,无 path 风险。
+     *
+     * fix-MEDIUM(feishu M5):用 `addPathSegments(segments, alreadyEncoded=false)` 显式
+     * 声明不做预编码,让 okhttp/okio 内部的 RFC 3986 path encoder 负责。
+     * 之前默认值是 alreadyEncoded=true,如果 caller 已经 URL-encode 过会出现双重编码;
+     * 改 false 后即使 docId 出现 `+` `:` `/`(feishu 真实 block_id 是字母数字,但
+     * ref.docUrl 取末段 → 用户可能贴带 query/fragment 的完整 URL)也不会炸。
      */
     private fun urlFor(segments: String): String {
         val safe = segments.trimStart('/')

@@ -190,6 +190,15 @@ constructor(
             flow.value = RevealState.KeystoreFailed
             return
         }
+        // fix-2026-06-26-review-r3 H15:reveal() fire-and-forget launch 与 clear() 同步改
+        // Hidden 之间有 race。`prefs.getString` IO 期间 clear 可能已先完成 → 协程恢复
+        // 后仍 emit Revealed 覆盖 Hidden。这里进入 suspend 前先 snapshot 当前 flow 值,
+        // 仅在 snapshot 时仍为 Hidden 才继续 reveal;若已被 clear() 抢先 → 直接退出。
+        val snapshotAtStart = flow.value
+        if (snapshotAtStart !is RevealState.Hidden) {
+            // 已被其他路径(clear / timer 过期 / reveal 续期)写过,不再覆盖。
+            return
+        }
         // F1 fix: 读 lastPauseAt 走 lifecycleLock.withLock,与 onActivityPaused 写入互斥,
         // pausedFor 计算时 lastPauseAt 不会被并发改写 → expiresAt 偏差消除。
         val now = System.currentTimeMillis()
@@ -197,12 +206,22 @@ constructor(
             if (lastPauseAt == 0L) 0L else now - lastPauseAt
         }
         if (pausedFor >= REVEAL_TIMEOUT_MS) {
-            flow.value = RevealState.Hidden
+            // 再次确认:进入 suspend 期间 clear() 是否抢先置 Hidden。
+            if (flow.value is RevealState.Hidden) {
+                // 仍是 Hidden → 保留(本来就该 Hidden,无需再写一次)
+            }
             return
         }
         val apikey = withContext(Dispatchers.IO) { prefs.getString(keyFor(providerId), null) }
+        // H15 fix:IO 期间 clear() 可能已同步将 flow 置 Hidden。这里再次校验 flow.value
+        // 仍为 Hidden 才允许 emit Revealed,避免 stale coroutine 覆盖已 clear 的状态。
+        if (flow.value !is RevealState.Hidden) {
+            return
+        }
         if (apikey.isNullOrBlank()) {
-            flow.value = RevealState.Hidden
+            if (flow.value is RevealState.Hidden) {
+                // 已是 Hidden,无需再写
+            }
             return
         }
         val expiresAt = now + REVEAL_TIMEOUT_MS

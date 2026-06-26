@@ -1,6 +1,5 @@
 package com.yy.writingwithai.core.note.impl
 
-import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import com.yy.writingwithai.core.data.db.dao.entity.EntityAliasDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.db.entity.LinkType
@@ -25,8 +24,7 @@ class EntityBacklinker
 @Inject
 constructor(
     private val entityDao: NoteEntityDao,
-    private val aliasDao: EntityAliasDao,
-    @Suppress("unused") private val noteLinkDao: NoteLinkDao
+    private val aliasDao: EntityAliasDao
 ) {
 
     suspend fun compute(srcNoteId: String): List<NoteLinkEntity> {

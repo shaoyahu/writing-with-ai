@@ -54,7 +54,10 @@ interface NoteLinkDao {
         FROM note_links nl
         INNER JOIN notes n ON n.id = nl.dstNoteId
         WHERE nl.srcNoteId = :noteId
-        GROUP BY nl.dstNoteId, n.title, n.content
+        -- R3 fix M3:GROUP BY 只需聚合键(JOIN 唯一键 n.id = nl.dstNoteId)。
+        -- 之前 GROUP BY nl.dstNoteId, n.title, n.content 把可能很长的 content 也塞进 GROUP BY,
+        -- SQLite 临时 B-tree 体积暴涨,大笔记库性能塌方。noteId 唯一 → 行天然唯一,无需附加列。
+        GROUP BY nl.dstNoteId
         HAVING score > 0.10
         ORDER BY score DESC
         LIMIT :limit
@@ -82,7 +85,7 @@ interface NoteLinkDao {
         FROM note_links nl
         INNER JOIN notes n ON n.id = nl.srcNoteId
         WHERE nl.dstNoteId = :noteId
-        GROUP BY nl.srcNoteId, n.title, n.content
+        GROUP BY nl.srcNoteId
         HAVING score > 0.10
         ORDER BY score DESC
         LIMIT :limit

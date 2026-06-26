@@ -13,7 +13,6 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -97,7 +96,8 @@ private fun Widget1x4Content(notes: List<Note>) {
                 .height(48.dp)
                 .background(colors.widgetPrimary)
                 .cornerRadius(16.dp)
-                .clickable(actionStartActivity(createNoteIntent(ctx)))
+                // R3 C5 fix:与 AddButton 走同一条 launcher→MainActivity 回退栈。
+                .clickable { ctx.launchWithTaskStack("quicknote/edit?prefillFocus=true") }
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.Center
         ) {

@@ -19,13 +19,11 @@ class BackfillScheduler @Inject constructor(
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (prefs.getBoolean(PREF_BACKFILL_DONE, false)) return
 
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-            .build()
-
+        // R3 fix M7:把重复的 5s 初始延后 + 离线 constraints builder 收到 companion helper,
+        // 避免两个方法漂移(已经看到 R1 H16/H17 改其中一个忘改另一个的迹象)。
         val request = OneTimeWorkRequestBuilder<BackfillWorker>()
-            .setInitialDelay(5, TimeUnit.SECONDS)
-            .setConstraints(constraints)
+            .setInitialDelay(INITIAL_DELAY_SECONDS, TimeUnit.SECONDS)
+            .setConstraints(noNetworkConstraints())
             .build()
 
         WorkManager.getInstance(context)
@@ -38,14 +36,11 @@ class BackfillScheduler @Inject constructor(
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (prefs.getBoolean(PREF_ENTITY_BACKFILL_DONE, false)) return
 
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-            .build()
-
+        // R3 fix M7:同上,复用 helper。
         // fix H17:加 .addTag(ENTITY_BACKFILL_TAG),cancel tag 真正生效
         val request = OneTimeWorkRequestBuilder<EntityBackfillWorker>()
-            .setInitialDelay(5, TimeUnit.SECONDS)
-            .setConstraints(constraints)
+            .setInitialDelay(INITIAL_DELAY_SECONDS, TimeUnit.SECONDS)
+            .setConstraints(noNetworkConstraints())
             .addTag(ENTITY_BACKFILL_TAG)
             .build()
 
@@ -66,5 +61,12 @@ class BackfillScheduler @Inject constructor(
         private const val WORK_NAME_NOTE = "note-association-backfill"
         private const val WORK_NAME_ENTITY = "entity-backfill-v4"
         const val ENTITY_BACKFILL_TAG = "entity_backfill"
+
+        // R3 fix M7:回填延后共用常量,避免 scheduleIfNeeded / scheduleEntityBackfillIfNeeded
+        // 各写一份 `5` / `Constraints.Builder()` 漂移。
+        private const val INITIAL_DELAY_SECONDS = 5L
+
+        private fun noNetworkConstraints(): Constraints =
+            Constraints.Builder().setRequiredNetworkType(NetworkType.NOT_REQUIRED).build()
     }
 }

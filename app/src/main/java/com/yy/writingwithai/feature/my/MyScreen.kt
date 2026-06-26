@@ -10,17 +10,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -38,17 +39,40 @@ import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.WritingAppTheme
 
 /**
- * ui-redesign-v2 · "我的" tab 根屏:
+ * app-bottom-tab-bar · "我的" tab 根屏:
  * - SectionCard 12dp 圆角 + 每项 leading icon
  * - Section 间标题标签(AI 配置 / 数据管理 / 关于)
+ *
+ * 入口 6 条(spec 4 Decision 4):
+ * - 数据导入/导出 → `SettingsData`
+ * - AI 模型管理 → `SettingsModelManagement`
+ * - Prompt 模板 → `SettingsPromptTemplate`
+ * - 实体别名 → `SettingsAliasManagement`
+ * - 飞书同步 → `Settings`(已有 FeishuSyncLogSection,见 app-tab-bar spec)
+ * - 关于(版本号)→ 纯展示,不 navigate
+ *
+ * TopAppBar 含 `navigationIcon = ArrowBack` 走 `onBack` lambda(spec 2.4 — 所有非主页
+ * destination TopAppBar 含 navigationIcon = ArrowBack)。
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun MyScreen(onNavigate: (MeTabTarget) -> Unit, modifier: Modifier = Modifier) {
+fun MyScreen(onNavigate: (MeTabTarget) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val cornerRadius = LocalCornerRadius.current
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.me_title)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.me_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null
+                        )
+                    }
+                }
+            )
+        },
         containerColor = MaterialTheme.colorScheme.surfaceVariant
     ) { padding ->
         LazyColumn(
@@ -95,12 +119,7 @@ fun MyScreen(onNavigate: (MeTabTarget) -> Unit, modifier: Modifier = Modifier) {
                     MyListItem(
                         title = stringResource(R.string.me_feishu_title),
                         icon = Icons.Filled.Cloud,
-                        onClick = { onNavigate(MeTabTarget.FeishuAuth) }
-                    )
-                    HorizontalDivider()
-                    MyListItem(
-                        title = stringResource(R.string.me_settings_title),
-                        icon = Icons.Filled.Settings,
+                        // app-tab-bar spec:飞书同步 → Settings(已有 FeishuSyncLogSection)
                         onClick = { onNavigate(MeTabTarget.Settings) }
                     )
                 }
@@ -111,10 +130,9 @@ fun MyScreen(onNavigate: (MeTabTarget) -> Unit, modifier: Modifier = Modifier) {
             }
             item {
                 SectionCard(cornerRadius = cornerRadius.md) {
-                    MyListItem(
-                        title = stringResource(R.string.me_about_title),
-                        icon = Icons.Filled.Info,
-                        onClick = { onNavigate(MeTabTarget.About) }
+                    // 关于(版本号)纯展示,spec 明确不 navigate
+                    MyAboutItem(
+                        title = stringResource(R.string.me_about_title)
                     )
                 }
             }
@@ -160,10 +178,32 @@ private fun MyListItem(title: String, icon: ImageVector, onClick: () -> Unit) {
     )
 }
 
+/** 关于条目:纯展示版本号 + supportingContent,无 clickable,无 chevron。 */
+@Composable
+private fun MyAboutItem(title: String) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = {
+            Text(
+                text = "v" + com.yy.writingwithai.BuildConfig.VERSION_NAME,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        leadingContent = {
+            Icon(
+                Icons.Filled.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    )
+}
+
 @Preview(name = "My", showBackground = true)
 @Composable
 private fun MyScreenPreview() {
     WritingAppTheme {
-        MyScreen(onNavigate = {})
+        MyScreen(onNavigate = {}, onBack = {})
     }
 }
