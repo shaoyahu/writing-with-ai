@@ -21,9 +21,15 @@ object SettingsEntry {
 
     /** Settings 主屏入口(从 QuickNoteListScreen overflow menu 跳)。 */
     @Composable
-    fun SettingsRoute(onBack: () -> Unit = {}, modifier: Modifier = Modifier) {
+    fun SettingsRoute(
+        onBack: () -> Unit = {},
+        // entity-extraction-polish §5.2:笔记关联设置入口(进 SettingsNoteAssociation route)
+        onNavigateToAssociation: () -> Unit = {},
+        modifier: Modifier = Modifier
+    ) {
         SettingsScreen(
             onBack = onBack,
+            onNavigateToAssociation = onNavigateToAssociation,
             modifier = modifier
         )
     }

@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.callbackFlow
  * fix-review-r2-high H5:从 `feature/settings/NoteAssociationSettings` 迁到 `core/prefs/`,
  * 解除 `core/note/` 对 `feature/settings/` 的反向依赖(违反 CLAUDE.md "core 不依赖 feature" 硬规则)。
  *
- * entity-extraction-association §5.1:加 `association_threshold`(默认 0.25)+ `backfill_paused`(默认 false)。
+ * entity-extraction-association §5.1:加 `association_threshold`(默认 0.10)+ `backfill_paused`(默认 false)。
  *
  * 存储走 SharedPreferences(prefs name `settings_note_association`),M6 polish 阶段统一迁 DataStore。
  */
@@ -28,7 +28,7 @@ interface NoteAssociationSettingsStore {
     fun setEnabled(value: Boolean)
     fun observeEnabled(): Flow<Boolean>
 
-    /** entity-extraction-association · 关联阈值(0.0..1.0),默认 0.25。 */
+    /** entity-extraction-association · 关联阈值(0.0..1.0),默认 0.10。 */
     fun threshold(): Float
     fun setThreshold(value: Float)
     fun observeThreshold(): Flow<Float>
@@ -36,6 +36,9 @@ interface NoteAssociationSettingsStore {
     /** entity-extraction-association · 回填是否暂停。 */
     fun pauseBackfill(): Boolean
     fun setPauseBackfill(value: Boolean)
+
+    // entity-extraction-polish §4.1:新增 observe 流,设置页 slider / switch 双向绑定。
+    fun observePauseBackfill(): Flow<Boolean>
 }
 
 @Singleton
@@ -81,12 +84,23 @@ class NoteAssociationSettingsStoreImpl @Inject constructor(
         prefs.edit().putBoolean(KEY_PAUSE, value).apply()
     }
 
+    override fun observePauseBackfill(): Flow<Boolean> = callbackFlow {
+        trySend(pauseBackfill())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { sp, key ->
+            if (key == KEY_PAUSE) trySend(sp.getBoolean(KEY_PAUSE, false))
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     companion object {
         private const val PREFS_NAME = "settings_note_association"
         private const val KEY_ENABLED = "llm_extract_enabled"
         private const val KEY_THRESHOLD = "association_threshold"
         private const val KEY_PAUSE = "backfill_paused"
-        const val DEFAULT_THRESHOLD = 0.25f
+
+        // entity-extraction-polish §2.5:默认阈值从 0.25 收紧到 0.10,对齐 SQL 当前生产值。
+        const val DEFAULT_THRESHOLD = 0.10f
     }
 }
 

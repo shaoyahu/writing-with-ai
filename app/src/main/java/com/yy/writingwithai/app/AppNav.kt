@@ -27,6 +27,7 @@ import com.yy.writingwithai.feature.quicknote.detail.QuickNoteDetailScreen
 import com.yy.writingwithai.feature.quicknote.edit.QuickNoteEditorScreen
 import com.yy.writingwithai.feature.settings.SettingsEntry
 import com.yy.writingwithai.feature.settings.alias.AliasManagementScreen
+import com.yy.writingwithai.feature.settings.association.NoteAssociationSettingsScreen
 import com.yy.writingwithai.feature.settings.data.SettingsDataScreen
 import com.yy.writingwithai.feature.settings.model.ModelManagementEntry
 import dagger.hilt.EntryPoint
@@ -220,7 +221,9 @@ fun AppNav(
         }
         composable<Settings> {
             SettingsEntry.SettingsRoute(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                // entity-extraction-polish §5.2
+                onNavigateToAssociation = { navController.navigate(SettingsNoteAssociation) }
             )
         }
         composable<SettingsPromptTemplate> {
@@ -230,6 +233,10 @@ fun AppNav(
         }
         composable<SettingsAliasManagement> {
             AliasManagementScreen(onBack = { navController.popBackStack() })
+        }
+        // entity-extraction-polish §5.1:笔记关联设置 route
+        composable<SettingsNoteAssociation> {
+            NoteAssociationSettingsScreen(onBack = { navController.popBackStack() })
         }
         composable<SettingsModelManagement> {
             ModelManagementEntry.ModelManagementRoute(
@@ -360,6 +367,12 @@ data object SettingsPromptTemplate
 
 @Serializable
 data object SettingsAliasManagement
+
+/**
+ * entity-extraction-polish §5.1:笔记关联设置 route(关联阈值 + 暂停 + 立即重跑 + 进度)。
+ */
+@Serializable
+data object SettingsNoteAssociation
 
 @Serializable
 data object SettingsModelManagement

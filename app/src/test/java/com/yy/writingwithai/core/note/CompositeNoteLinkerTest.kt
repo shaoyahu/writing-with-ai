@@ -7,9 +7,9 @@ import com.yy.writingwithai.core.data.db.entity.LinkType
 import com.yy.writingwithai.core.data.db.entity.NoteLinkEntity
 import com.yy.writingwithai.core.note.impl.CompositeNoteLinker
 import com.yy.writingwithai.core.note.impl.EntityBacklinker
-import com.yy.writingwithai.core.note.impl.LlmNoteLinkExtractor
 import com.yy.writingwithai.core.note.impl.LocalLinkCandidate
 import com.yy.writingwithai.core.note.impl.LocalNoteLinker
+import com.yy.writingwithai.core.note.impl.SemanticNoteLinker
 import com.yy.writingwithai.core.note.impl.WikilinkIndexer
 import com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
 import io.mockk.coEvery
@@ -34,7 +34,7 @@ class CompositeNoteLinkerTest {
     private lateinit var local: LocalNoteLinker
     private lateinit var wiki: WikilinkIndexer
     private lateinit var entity: EntityBacklinker
-    private lateinit var llm: LlmNoteLinkExtractor
+    private lateinit var llm: SemanticNoteLinker
     private lateinit var settings: NoteAssociationSettingsStore
     private lateinit var linker: CompositeNoteLinker
 
@@ -48,6 +48,8 @@ class CompositeNoteLinkerTest {
         llm = mockk(relaxed = true)
         settings = mockk()
         every { settings.isEnabled() } returns false
+        // entity-extraction-polish §2.2:CompositeNoteLinker 现在调 settings.threshold() 传 DAO / NoteLinkCap。
+        every { settings.threshold() } returns 0.10f
         coEvery { entity.compute(any()) } returns emptyList()
         // 默认:每个 noteId 的 local/wiki/entity 都返空,这样 recomputeForNote 安全 noop。
         coEvery { local.compute(any()) } returns emptyList()
@@ -109,7 +111,7 @@ class CompositeNoteLinkerTest {
 
     @Test
     fun `getRelated maps RelatedRow to domain model`() = runTest {
-        coEvery { noteLinkDao.getRelated("n1", 20) } returns listOf(
+        coEvery { noteLinkDao.getRelated("n1", 20, any()) } returns listOf(
             RelatedRow(
                 noteId = "n2",
                 title = "Title",
@@ -133,7 +135,7 @@ class CompositeNoteLinkerTest {
 
     @Test
     fun `getBacklinks delegates and maps RelatedRow`() = runTest {
-        coEvery { noteLinkDao.getBacklinks("n1", 10) } returns listOf(
+        coEvery { noteLinkDao.getBacklinks("n1", 10, any()) } returns listOf(
             RelatedRow(
                 noteId = "n0",
                 title = "Backlink",

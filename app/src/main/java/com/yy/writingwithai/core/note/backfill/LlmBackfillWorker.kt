@@ -6,7 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.NetworkType
 import androidx.work.WorkerParameters
 import com.yy.writingwithai.core.data.db.NoteDao
-import com.yy.writingwithai.core.note.impl.LlmNoteLinkExtractor
+import com.yy.writingwithai.core.note.impl.SemanticNoteLinker
 import dagger.hilt.EntryPoint
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
@@ -38,7 +38,7 @@ class LlmBackfillWorker(
     @InstallIn(SingletonComponent::class)
     interface LlmBackfillEntryPoint {
         fun noteDao(): NoteDao
-        fun llmExtractor(): LlmNoteLinkExtractor
+        fun llmExtractor(): SemanticNoteLinker
     }
 
     companion object {
@@ -54,7 +54,7 @@ class LlmBackfillWorker(
          * 抽成 companion fun 让单测能直接调,不依赖 WorkManager runtime。
          */
         internal suspend fun runLlmBackfillLoop(
-            extractor: LlmNoteLinkExtractor,
+            extractor: SemanticNoteLinker,
             ids: List<String>,
             isStopped: () -> Boolean
         ): LlmBackfillResult {

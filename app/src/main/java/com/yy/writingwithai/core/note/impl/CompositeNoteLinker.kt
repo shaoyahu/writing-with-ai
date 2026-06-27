@@ -22,7 +22,7 @@ constructor(
     private val localLinker: LocalNoteLinker,
     private val wikilinkIndexer: WikilinkIndexer,
     private val entityBacklinker: EntityBacklinker,
-    private val llmExtractor: LlmNoteLinkExtractor,
+    private val semanticLinker: SemanticNoteLinker,
     private val assocSettings: NoteAssociationSettingsStore
 ) : NoteLinker {
 
@@ -50,17 +50,25 @@ constructor(
             )
         }
         val allRows = (localRows + wikiRows + entityRows)
-        // tasks §3.5:2:1 截断(ENTITY_HIT 最多占 66%)
-        val capped = NoteLinkCap.enforce(allRows)
+        // entity-extraction-polish §2.4:阈值由 store 提供(同步 SharedPreferences 读取,无需挂起)。
+        val threshold = assocSettings.threshold().toDouble()
+        val capped = NoteLinkCap.enforce(allRows, threshold = threshold)
         if (capped.isNotEmpty()) noteLinkDao.upsertAll(capped)
 
         // tasks §3.3:共享实体 < 1 时回退到 LLM 语义抽取
         val entityDstCount = entityRows.map { it.dstNoteId }.distinct().size
         if (assocSettings.isEnabled() && entityDstCount < 1) {
             try {
-                llmExtractor.extractAndPersist(noteId)
+                semanticLinker.extractAndPersist(noteId)
             } catch (e: Exception) {
+                // R4-2-C fix:静默吞 LLM 异常不利于调试网络 / 配额 / 反序列化问题。
+                // CancellationException 必须重抛(协程取消机制),其它异常 Log.w 后吞掉(主流程已成功写入 local/wiki/entity 边)。
                 if (e is kotlinx.coroutines.CancellationException) throw e
+                android.util.Log.w(
+                    "CompositeNoteLinker",
+                    "LLM semantic fallback failed for noteId=$noteId",
+                    e
+                )
             }
         }
     }
@@ -89,12 +97,13 @@ constructor(
     }
 
     override suspend fun getRelated(noteId: String, limit: Int): List<RelatedNote> {
-        val rows: List<RelatedRow> = noteLinkDao.getRelated(noteId, limit)
+        // entity-extraction-polish §2.2:DAO threshold 形参由 store 提供。
+        val rows: List<RelatedRow> = noteLinkDao.getRelated(noteId, limit, assocSettings.threshold().toDouble())
         return rows.map { it.map() }
     }
 
     override suspend fun getBacklinks(noteId: String, limit: Int): List<RelatedNote> {
-        val rows: List<RelatedRow> = noteLinkDao.getBacklinks(noteId, limit)
+        val rows: List<RelatedRow> = noteLinkDao.getBacklinks(noteId, limit, assocSettings.threshold().toDouble())
         return rows.map { it.map() }
     }
 }

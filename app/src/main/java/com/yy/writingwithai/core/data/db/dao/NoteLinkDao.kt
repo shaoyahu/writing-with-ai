@@ -58,12 +58,13 @@ interface NoteLinkDao {
         -- 之前 GROUP BY nl.dstNoteId, n.title, n.content 把可能很长的 content 也塞进 GROUP BY,
         -- SQLite 临时 B-tree 体积暴涨,大笔记库性能塌方。noteId 唯一 → 行天然唯一,无需附加列。
         GROUP BY nl.dstNoteId
-        HAVING score > 0.10
+        -- entity-extraction-polish §2.1:阈值由 caller 从 NoteAssociationSettingsStore 传入,SQL 不再硬编码。
+        HAVING score > :threshold
         ORDER BY score DESC
         LIMIT :limit
         """
     )
-    suspend fun getRelated(noteId: String, limit: Int): List<RelatedRow>
+    suspend fun getRelated(noteId: String, limit: Int, threshold: Double): List<RelatedRow>
 
     @Query(
         """
@@ -86,12 +87,13 @@ interface NoteLinkDao {
         INNER JOIN notes n ON n.id = nl.srcNoteId
         WHERE nl.dstNoteId = :noteId
         GROUP BY nl.srcNoteId
-        HAVING score > 0.10
+        -- entity-extraction-polish §2.1:阈值由 caller 传入。
+        HAVING score > :threshold
         ORDER BY score DESC
         LIMIT :limit
         """
     )
-    suspend fun getBacklinks(noteId: String, limit: Int): List<RelatedRow>
+    suspend fun getBacklinks(noteId: String, limit: Int, threshold: Double): List<RelatedRow>
 }
 
 /**

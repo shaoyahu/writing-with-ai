@@ -85,4 +85,36 @@ class EntityBackfillWorkerTest {
         assertEquals(Triple(2, 2, 0), progress[1])
         assertEquals(Triple(3, 3, 0), progress[2])
     }
+
+    // entity-extraction-polish §6.4:Worker 扩 — emptyNoteList + pause guard 测试
+
+    @Test
+    fun `empty note list should succeed immediately without calling extractor`() = runTest {
+        val extractor = mockk<EntityExtractor>()
+        val result = EntityBackfillWorker.runBackfillLoop(
+            entityExtractor = extractor,
+            noteIds = emptyList(),
+            onProgress = { _, _, _ -> }
+        )
+        assertEquals(0, result.processed)
+        assertEquals(0, result.ok)
+        assertEquals(0, result.failed)
+        coVerify(exactly = 0) { extractor.extractAndPersist(any(), any()) }
+    }
+
+    @Test
+    fun `shouldRun guard returns false when pauseBackfill is true`() {
+        // entity-extraction-polish §3.1:Worker 自身 pause guard 抽成 companion fun 让单测可调,
+        // 不依赖 WorkManager runtime 跑整 doWork。
+        val store = io.mockk.mockk<com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore>()
+        io.mockk.every { store.pauseBackfill() } returns true
+        assertEquals(false, EntityBackfillWorker.shouldRun(store))
+    }
+
+    @Test
+    fun `shouldRun guard returns true when pauseBackfill is false`() {
+        val store = io.mockk.mockk<com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore>()
+        io.mockk.every { store.pauseBackfill() } returns false
+        assertEquals(true, EntityBackfillWorker.shouldRun(store))
+    }
 }

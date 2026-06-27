@@ -15,8 +15,8 @@ internal object SseParser {
     // M4 修:per-event 长度上限 1MB,避免恶意 / 误配置 provider 发 multi-GB 单事件 OOM crash。
     private const val MAX_EVENT_LEN = 1_048_576
 
-    // r2 修:用 ﻿ 转义取代字面量 BOM,避免 lint ByteOrderMark 报错。
-    private const val UTF8_BOM = "﻿"
+    // r2 修:用  转义取代字面量 BOM,避免 lint ByteOrderMark 报错。
+    private const val UTF8_BOM = "\uFEFF"
 
     fun parse(source: BufferedSource): Flow<SseEvent> = flow {
         var dataBuffer = StringBuilder()

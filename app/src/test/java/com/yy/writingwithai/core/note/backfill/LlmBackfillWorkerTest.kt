@@ -1,6 +1,6 @@
 package com.yy.writingwithai.core.note.backfill
 
-import com.yy.writingwithai.core.note.impl.LlmNoteLinkExtractor
+import com.yy.writingwithai.core.note.impl.SemanticNoteLinker
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -24,7 +24,7 @@ class LlmBackfillWorkerTest {
 
     @Test
     fun `single poisoned note should be skipped without aborting the rest`() = runTest {
-        val extractor = mockk<LlmNoteLinkExtractor>()
+        val extractor = mockk<SemanticNoteLinker>()
         coEvery { extractor.extractAndPersist("ok", bypassRateLimit = false) } returns 1
         coEvery { extractor.extractAndPersist("broken", bypassRateLimit = false) } throws
             java.io.IOException("network down")
@@ -45,7 +45,7 @@ class LlmBackfillWorkerTest {
 
     @Test
     fun `CancellationException should propagate and stop the loop`() = runTest {
-        val extractor = mockk<LlmNoteLinkExtractor>()
+        val extractor = mockk<SemanticNoteLinker>()
         coEvery { extractor.extractAndPersist("c1", bypassRateLimit = false) } throws
             kotlinx.coroutines.CancellationException("cancelled")
 
@@ -67,7 +67,7 @@ class LlmBackfillWorkerTest {
 
     @Test
     fun `isStopped true should early-return without invoking extractor`() = runTest {
-        val extractor = mockk<LlmNoteLinkExtractor>()
+        val extractor = mockk<SemanticNoteLinker>()
         val result = LlmBackfillWorker.runLlmBackfillLoop(
             extractor = extractor,
             ids = listOf("a", "b", "c"),

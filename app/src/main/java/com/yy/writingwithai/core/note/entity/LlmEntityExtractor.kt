@@ -44,7 +44,7 @@ constructor(
             val content = note.title + "\n" + note.content
             if (containsInjection(content)) return@withContext 0
 
-            // review r1 C1:与 LlmNoteLinkExtractor 对齐,走 secureApiKeyStore 取真实 provider + apikey;
+            // review r1 C1:与 SemanticNoteLinker 对齐,走 secureApiKeyStore 取真实 provider + apikey;
             // release 构建 fake provider 不在 map 中,硬编码 "fake" 会全量静默失败。
             val providers = secureApiKeyStore.observeConfiguredProviders().first()
             val providerId = providers.firstOrNull()
