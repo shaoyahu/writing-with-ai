@@ -80,7 +80,7 @@ fun FeishuAuthScreen(onBack: () -> Unit, viewModel: FeishuAuthViewModel = hiltVi
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
+                            contentDescription = stringResource(R.string.common_back)
                         )
                     }
                 }

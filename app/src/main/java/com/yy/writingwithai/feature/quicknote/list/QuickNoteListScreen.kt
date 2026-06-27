@@ -164,7 +164,11 @@ fun QuickNoteListScreen(
                                     searchHistory = SearchHistoryStore.getAll(context)
                                 }
                             }) {
-                                Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = stringResource(R.string.common_remove_cd),
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
                         }
                     }

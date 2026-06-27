@@ -95,7 +95,10 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
                 title = { Text(stringResource(R.string.settings_data_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back)
+                        )
                     }
                 }
             )

@@ -1,5 +1,6 @@
 package com.yy.writingwithai.feature.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,7 +38,12 @@ import dagger.hilt.components.SingletonComponent
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit = {}, modifier: Modifier = Modifier) {
+fun SettingsScreen(
+    onBack: () -> Unit = {},
+    // entity-extraction-polish §5.2:跳转「笔记关联」设置 route
+    onNavigateToAssociation: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -45,7 +51,10 @@ fun SettingsScreen(onBack: () -> Unit = {}, modifier: Modifier = Modifier) {
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back)
+                        )
                     }
                 }
             )
@@ -80,6 +89,18 @@ fun SettingsScreen(onBack: () -> Unit = {}, modifier: Modifier = Modifier) {
                             }
                         )
                     }
+                )
+            }
+            // entity-extraction-polish §5.2:笔记关联设置入口(阈值 / 暂停 / 立即重跑 / 进度)
+            item {
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.note_association_settings_title))
+                    },
+                    supportingContent = {
+                        Text(stringResource(R.string.note_association_settings_entry_desc))
+                    },
+                    modifier = Modifier.clickable { onNavigateToAssociation() }
                 )
             }
             // 反馈 #4:飞书同步日志 section 已迁到 FeishuAuth 主屏(更合理的位置)

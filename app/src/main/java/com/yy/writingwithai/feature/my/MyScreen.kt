@@ -67,7 +67,7 @@ fun MyScreen(onNavigate: (MeTabTarget) -> Unit, onBack: () -> Unit, modifier: Mo
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
+                            contentDescription = stringResource(R.string.common_back)
                         )
                     }
                 }

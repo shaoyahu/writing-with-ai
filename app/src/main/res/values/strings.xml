@@ -404,6 +404,28 @@
     <!-- H8 · AliasManagementViewModel 提示消息 — 复用已有 entity_alias_*_toast keys(同语义) -->
     <!-- (无新增,VM 改用 R.string.entity_alias_merged_toast / entity_alias_unmerged_toast) -->
     <string name="common_back">返回</string>
+    <string name="common_more_cd">更多选项</string>
+    <string name="common_remove_cd">移除</string>
+    <string name="common_add_cd">添加</string>
+    <string name="common_acknowledge">知道了</string>
+
+    <!-- entity-extraction-polish §4.5:笔记关联设置页 i18n keys(双语) -->
+    <string name="note_association_settings_title">笔记关联</string>
+    <string name="note_association_threshold_label">关联阈值</string>
+    <string name="note_association_threshold_value_fmt">当前: %1$.2f</string>
+    <string name="note_association_pause_label">暂停实体回填</string>
+    <string name="note_association_backfill_section">实体回填</string>
+    <string name="note_association_backfill_progress_fmt">进度 %1$d / %2$d(成功 %3$d · 失败 %4$d)</string>
+    <string name="note_association_backfill_status_running">正在抽取…</string>
+    <string name="note_association_backfill_status_enqueued">已排队</string>
+    <string name="note_association_backfill_status_succeeded">已完成</string>
+    <string name="note_association_backfill_status_failed">已失败</string>
+    <string name="note_association_backfill_status_blocked">等待约束</string>
+    <string name="note_association_backfill_status_cancelled">已取消</string>
+    <string name="note_association_rerun_button">立即重跑回填</string>
+    <string name="note_association_paused_hint">已暂停 — 恢复开关后会自动重排</string>
+    <string name="note_association_migration_banner">默认阈值已从 0.25 收紧到 0.10,如感觉过严可上调</string>
+    <string name="note_association_settings_entry_desc">关联阈值 · 暂停 · 立即重跑 · 进度</string>
 
     <!-- H8 · FeishuAuthScreen (feishu-user-oauth) -->
     <string name="feishu_oauth_title">飞书授权</string>

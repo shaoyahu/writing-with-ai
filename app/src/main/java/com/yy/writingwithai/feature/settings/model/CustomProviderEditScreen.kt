@@ -156,7 +156,10 @@ fun CustomProviderEditScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back)
+                        )
                     }
                 }
             )
@@ -541,7 +544,7 @@ private fun ModelChipInput(
                     onClick = onAdd,
                     enabled = newInput.isNotBlank()
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.common_add_cd))
                 }
             },
             modifier = Modifier.fillMaxWidth()

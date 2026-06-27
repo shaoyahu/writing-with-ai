@@ -59,7 +59,10 @@ fun PromptTemplateScreen(viewModel: PromptTemplateViewModel, onBack: () -> Unit)
                 title = { Text(stringResource(R.string.settings_prompt_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back)
+                        )
                     }
                 }
             )

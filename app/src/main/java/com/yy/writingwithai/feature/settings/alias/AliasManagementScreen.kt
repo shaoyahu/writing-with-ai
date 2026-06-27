@@ -55,7 +55,10 @@ fun AliasManagementScreen(onBack: () -> Unit, viewModel: AliasManagementViewMode
                 title = { Text(stringResource(R.string.entity_alias_management_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back)
+                        )
                     }
                 }
             )

@@ -97,14 +97,17 @@ fun ModelManagementScreen(
                 title = { Text(stringResource(R.string.model_management_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back)
+                        )
                     }
                 },
                 actions = {
                     // 顶部 3-dot 下拉添加(review r1 修改 2):原 FAB 改为 TopAppBar actions,
                     // 不再占用底部屏幕空间,Material 3 推荐模式。
                     IconButton(onClick = { headerMenuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = null)
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.common_more_cd))
                     }
                     DropdownMenu(
                         expanded = headerMenuOpen,
@@ -368,7 +371,7 @@ private fun ProviderInfoCard(
                 }
                 if (isCustom) {
                     IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = null)
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.common_more_cd))
                     }
                     DropdownMenu(
                         expanded = menuExpanded,

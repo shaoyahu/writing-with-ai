@@ -99,7 +99,7 @@ internal interface DetailScreenEntryPoint {
     fun consentStore(): ConsentStore
     fun noteLinker(): NoteLinker
     fun noteAssociationSettings(): com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
-    fun llmExtractor(): com.yy.writingwithai.core.note.impl.LlmNoteLinkExtractor?
+    fun llmExtractor(): com.yy.writingwithai.core.note.impl.SemanticNoteLinker?
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -236,7 +236,10 @@ fun QuickNoteDetailScreen(
                 title = { Text(stringResource(R.string.quicknote_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back)
+                        )
                     }
                 },
                 actions = {
@@ -248,7 +251,10 @@ fun QuickNoteDetailScreen(
                             )
                         }
                         IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = null)
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = stringResource(R.string.common_more_cd)
+                            )
                         }
                         DropdownMenu(
                             expanded = menuExpanded,

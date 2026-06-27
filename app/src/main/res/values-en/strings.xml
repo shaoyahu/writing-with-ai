@@ -314,6 +314,28 @@
     <!-- app-self-hosted-update · About screen + update dialog -->
     <!-- H8 · FeishuAuthScreen 权限说明 -->
     <string name="common_back">Back</string>
+    <string name="common_more_cd">More options</string>
+    <string name="common_remove_cd">Remove</string>
+    <string name="common_add_cd">Add</string>
+    <string name="common_acknowledge">Got it</string>
+
+    <!-- entity-extraction-polish §4.5:Note association settings -->
+    <string name="note_association_settings_title">Note Association</string>
+    <string name="note_association_threshold_label">Association threshold</string>
+    <string name="note_association_threshold_value_fmt">Current: %1$.2f</string>
+    <string name="note_association_pause_label">Pause entity backfill</string>
+    <string name="note_association_backfill_section">Entity backfill</string>
+    <string name="note_association_backfill_progress_fmt">Progress %1$d / %2$d (succeeded %3$d · failed %4$d)</string>
+    <string name="note_association_backfill_status_running">Extracting…</string>
+    <string name="note_association_backfill_status_enqueued">Enqueued</string>
+    <string name="note_association_backfill_status_succeeded">Succeeded</string>
+    <string name="note_association_backfill_status_failed">Failed</string>
+    <string name="note_association_backfill_status_blocked">Waiting for constraints</string>
+    <string name="note_association_backfill_status_cancelled">Cancelled</string>
+    <string name="note_association_rerun_button">Re-run backfill now</string>
+    <string name="note_association_paused_hint">Paused — toggling resume will re-schedule</string>
+    <string name="note_association_migration_banner">Default threshold tightened from 0.25 to 0.10; raise if too strict</string>
+    <string name="note_association_settings_entry_desc">Threshold · Pause · Re-run · Progress</string>
 
     <!-- H8 · FeishuAuthScreen (feishu-user-oauth) -->
     <string name="feishu_oauth_title">Feishu Auth</string>
