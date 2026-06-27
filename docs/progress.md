@@ -2,6 +2,28 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log,单次评审查 `docs/reviews/`,规划查 `docs/plans/`。
 
+## 2026-06-27 · M6 entity-extraction 6 项 deferred polish 收口
+
+- **OpenSpec change**:`entity-extraction-polish`(archive 到 `2026-06-26-entity-extraction-polish`),把 roadmap §13 M6 列的 6 项 polish deferred 集中清掉
+- **§1 重命名**:`LlmNoteLinkExtractor` → `SemanticNoteLinker`(同 package),9 处引用全改(prod 4 + tests 5 + 注释 1),class 名反映"共享实体 < 1 才 LLM 兜底"的语义
+- **§2 SQL 阈值参数化**:`NoteLinkDao.getRelated/getBacklinks` 加必填 `threshold: Double` 形参,SQL `HAVING score > 0.10` 改 `HAVING score > :threshold`;`NoteLinkCap.enforce` 加 `threshold` 形参(score ≤ threshold 先剔除再 2:1 ratio);`CompositeNoteLinker` 调 DAO 前 `assocSettings.threshold().toDouble()` 传入;`NoteAssociationSettingsStore.DEFAULT_THRESHOLD = 0.10f`(从 0.25f,收紧对齐 SQL 当前生产值)
+- **§3 pauseBackfill 双 guard**:`EntityBackfillWorker.doWork` 起跑 IO 后第一行查 pause,`Result.failure("reason" to "paused")` 立即返回;`BackfillScheduler.scheduleEntityBackfillIfNeeded` 加 pause 守卫(PREF_DONE 查之前);新增 `scheduleEntityBackfillNow(force: Boolean)` 用 REPLACE 策略强制重排;`EntityBackfillWorker.shouldRun(store)` 抽成 companion 让单测可调
+- **§4 设置页 + §5 路由**:新 `feature/settings/association/{NoteAssociationSettingsScreen, NoteAssociationSettingsViewModel}.kt` + `AppNav` 加 route `note_association_settings` + `SettingsScreen`「笔记关联」入口;Slider 0.05–0.80 step 14 默认 0.10 + Switch 暂停 + 「立即重跑回填」按钮 + LinearProgressIndicator + 一次性迁移 banner(检测 store > 0.50 自动重置 0.10);i18n 15 个 key 双语
+- **§6 测试**:新增 3 个 Robolectric in-memory Room test(NoteEntityDaoTest 5 case + EntityAliasDaoTest 3 case + NoteLinkDaoTest 4 case,12/12 通过,FK 约束 parent note 已修);扩 EntityBackfillWorkerTest 3 case(emptyNoteList + shouldRun_pause_true/false)+ 扩 NoteLinkCapTest 2 case(lowScoreDropped + allBelowEmpty);新增 `NoteAssociationSettingsStore.observePauseBackfill()`
+- **§7 验证**:`./gradlew :app:check` 全绿(ktlintCheck + testDebugUnitTest 340 测试 + lintDebug);顺手修了 SseParser BOM 字符 regression
+- **§8 文档 + archive**:progress.md 顶部新条目;`/opsx:sync` 把 3 份 spec 合入 `openspec/specs/`(NEW `note-association-settings` + MODIFIED `note-entity-link` 移除「Threshold slider」迁移到新 spec + MODIFIED `note-entity-extraction` 加 pause guard);`/opsx:archive entity-extraction-polish --skip-specs` 收口(主 spec 已在 sync 阶段手工 cp 完毕)
+- **下一步候选**:R4 review 扫 polish 后代码;起 v1 内测 change;真机 walkthrough 验设置页 slider + 暂停 + 立即重跑
+
+## 2026-06-27 · 全量 review r3 收口
+
+- **报告**:`docs/reviews/2026-06-26-full-project-code-review-r3.md`(5 CRITICAL + 34 HIGH + 80 MEDIUM + 54 LOW,共 173 项),与 R2 fix 同批入仓 `c10aef7`
+- **CRITICAL 5 + HIGH 34 全修**:跨子系统修复散在 `e9465c0 fix(review-2026-06-26-r2)`(commit message 标 r2,实际覆盖 R3 主修复)。代表项:C1 `FeishuRefDao @Transaction` / C2 OAuth 改 `ActivityResultRegistry` / C3 `appSecret` 改 EncryptedSharedPreferences / C4 `lastOpen` offset 快照 / C5 widget 入口统一 `launchWithTaskStack`;H7 DEBUG `fallbackToDestructiveMigration` 改 `addMigrations` 默认(防 debug 抹数据);H15 `reveal`/`clear` race 加 `flow.value is Revealed` 守卫;H17 `CustomProviderEdit.save` 顺序倒置 + 失败回滚;H21 `acceptReplace` 失败时 outer return 防止 state 覆盖
+- **MEDIUM 80 全修**:分散在前 4 轮 polish(子系统分组扫描,逐项 verify)
+- **LOW a11y 收尾**:15 个独立 clickable IconButton `contentDescription = null` 修复 — 10 个 ArrowBack navigationIcon + 2 个 MoreVert overflow + 1 个 Close(搜索历史)+ 1 个 Add(模型 TextField trailingIcon) + 1 个 Close(筛选 banner AssistChip);新增 3 个 i18n key(`common_more_cd` / `common_remove_cd` / `common_add_cd`)双语
+- **dead code 清理**:完成(`grep` 验证无残留)
+- **验证**:`./gradlew :app:assembleDebug :app:ktlintCheck :app:testDebugUnitTest` 全绿,BUILD SUCCESSFUL 15s
+- **下一步候选**:M6 entity-extraction 6 项 deferred polish(roadmap §13 列了:重命名 / SQL 阈值 / slider UI / 进度 UI / DAO + Worker 测试);R4 review;开 v1 内测 change
+
 ## 2026-06-25 · UI 整体重设计(ui-redesign-v2)
 
 - **设计系统重建**:种子色从纯蓝 #3B82F6 → 墨绿 #1B6B4A + 琥珀 #D4940A + 薄荷 #2BAD8E;Spacing 5→9 档 / CornerRadius 3→5 档;新增 warning/success semantic CustomColors;Shape.kt 统一 4/8/12/16/24dp 五档
