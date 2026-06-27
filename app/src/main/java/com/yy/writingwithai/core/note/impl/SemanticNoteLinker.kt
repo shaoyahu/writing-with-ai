@@ -20,7 +20,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 @Singleton
-class LlmNoteLinkExtractor @Inject constructor(
+class SemanticNoteLinker @Inject constructor(
     private val gateway: AiGateway,
     private val noteLinkDao: NoteLinkDao,
     private val noteDao: NoteDao,
@@ -176,6 +176,6 @@ class LlmNoteLinkExtractor @Inject constructor(
         // fix-2026-06-24-review-r1-critical:LLM 输出字符上限 ≈ 4K tokens
         // fix-2026-06-26-review-r3 LOW:去重到 AiConstants.LLM_MAX_OUTPUT_CHARS
         private const val MAX_CHARS = com.yy.writingwithai.core.ai.api.LLM_MAX_OUTPUT_CHARS
-        private const val TAG = "LlmNoteLinkExtractor"
+        private const val TAG = "SemanticNoteLinker"
     }
 }
