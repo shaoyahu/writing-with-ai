@@ -1,5 +1,7 @@
-## ADDED Requirements
+## Purpose
 
+飞书授权 / token 存储 / OAuth 用户流程 / 凭据加密 / 飞书同步相关 UI 行为契约。
+## Requirements
 ### Requirement: Tenant access token acquisition with user-provided app credentials
 
 The system MUST allow users to enter `app_id` and `app_secret` (obtained from the Feishu Open Platform) in the settings page. On tap "连接飞书", the system MUST POST to `https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal` with `{app_id, app_secret}` to obtain a `tenant_access_token` and `expire` (in seconds). No browser, no OAuth redirect, no App Link callback — purely server-side app credential exchange.
@@ -96,8 +98,6 @@ The OAuth `state` value MUST be persisted to `feishu_oauth_prefs` (EncryptedShar
 - **WHEN** `OAuthLauncher` launches the browser Intent
 - **THEN** grep of `OAuthLauncher.kt` for `putExtra` MUST return 0 matches related to the `state` value
 
-## ADDED Requirements
-
 ### Requirement: AuthInterceptor refresh on async dispatcher with timeout
 
 `core/feishu/api/AuthInterceptor` MUST NOT call `runBlocking` directly on the OkHttp dispatcher thread. Instead, it MUST wrap the token fetch in `runBlocking(Dispatchers.IO)` and apply `withTimeoutOrNull(5_000)` so a stuck refresh does not pin an OkHttp worker beyond 5 seconds.
@@ -145,3 +145,23 @@ The OAuth `state` value MUST be persisted to `feishu_oauth_prefs` (EncryptedShar
 #### Scenario: Per-request scoping
 - **WHEN** two concurrent OAuth flows each call `persistAppSecret(secret, requestId = "req1")` and `persistAppSecret(secret2, requestId = "req2")`
 - **THEN** `getAppSecretSnapshot("req1")` returns `secret`; `getAppSecretSnapshot("req2")` returns `secret2`; no cross-contamination
+
+### Requirement: OAuth re-delivery persists pending state before resume
+The system SHALL persist the pending OAuth exchange to disk (`persistPendingExchange`) on the re-delivery path BEFORE launching `performExchange`, ensuring that a process crash during the resumed exchange still leaves a resumable pending record. The persisted payload MUST equal the original pending (code, appId, secret, requestId).
+
+#### Scenario: Re-delivery path re-persists before launching
+- **WHEN** `OAuthCodeReceiver.onCreate` detects a pending exchange via `hasPendingExchange()` and `consumePendingExchange()` returns a non-null pending
+- **THEN** the receiver calls `authStore.persistPendingExchange(pending.code, pending.appId, pending.secret, pending.requestId)` and awaits the result (synchronous via `lifecycleScope.launch{...}.join()`)
+- **AND** only after successful re-persist does it call `appScope.launch { performExchange(...) }` and `finish()`
+
+#### Scenario: Second crash during re-delivered exchange is resumable
+- **WHEN** the process is killed during the `performExchange` launched on the re-delivery path
+- **THEN** on next receiver cold start, `hasPendingExchange()` returns true
+- **AND** `consumePendingExchange()` returns the re-persisted pending with the same code/appId/secret
+- **AND** the user can complete the OAuth flow without restarting from scratch
+
+#### Scenario: Re-delivery with expired pending falls through to state validation
+- **WHEN** `hasPendingExchange()` returns true but `consumePendingExchange()` returns null (pending TTL expired)
+- **THEN** the receiver does NOT re-persist
+- **AND** falls through to the normal `consumeOAuthState()` validation path (which may also fail and show "state expired" toast)
+

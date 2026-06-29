@@ -9,7 +9,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.yy.writingwithai.feature.aiwriting.action.ActionSheet
 import com.yy.writingwithai.feature.aiwriting.streaming.StreamingPanel
-import com.yy.writingwithai.feature.onboarding.OnboardingEntry
 
 /**
  * `feature/aiwriting` 跨 feature 入口 + 顶层 typealias 暴露 sealed UiState / VM 类型。
@@ -17,8 +16,10 @@ import com.yy.writingwithai.feature.onboarding.OnboardingEntry
  * fix-review-r2-high H4:其他 feature(quicknote 等)**仅** import 此文件 + `AiwritingEntry` object,
  * 不直接 import 内部 streaming/action package,避免 layer 泄漏。
  *
- * Kotlin typealias 不能 nested(K1+K2 限制)→ 放顶层让 caller 用 `import com.yy.writingwithai.feature.aiwriting.AiActionUiState`
- * 直接拿 sealed UiState 类型,无须知悉 streaming 子包。
+ * hardening-sse-and-widget-init H-2:不再 import `feature.onboarding.OnboardingEntry`。
+ * `requestConsent(navController, requestConsent: (NavController) -> Unit)` 接受 lambda 参数,
+ * 由 `app/AppNav.kt` 在编排时注入 `OnboardingEntry.requestConsent` 作为实现 —— `aiwriting`
+ * feature 真正自包含(只暴露 contract,不依赖其他 feature 内部)。
  */
 typealias AiActionUiState = com.yy.writingwithai.feature.aiwriting.streaming.AiActionUiState
 typealias AiActionViewModel = com.yy.writingwithai.feature.aiwriting.streaming.AiActionViewModel
@@ -37,11 +38,13 @@ object AiwritingEntry {
 
     /**
      * M4-4:未同意时把详情屏 FAB 唤起改跳同意页(替代原弹 ActionSheet)。
-     * 包装 [OnboardingEntry.requestConsent] 是为了保持 aiwriting 自包含
-     * (只 import `OnboardingEntry`,不直接 import 内部)。
+     *
+     * hardening H-2:接受 `requestConsent: (NavController) -> Unit` lambda 参数,
+     * 由 `app/AppNav.kt` 编排时注入具体实现(caller 持有 `OnboardingEntry` 引用),
+     * `aiwriting` feature 不再 import `feature.onboarding`。
      */
-    fun requestConsent(navController: NavController) {
-        OnboardingEntry.requestConsent(navController)
+    fun requestConsent(navController: NavController, requestConsent: (NavController) -> Unit) {
+        requestConsent(navController)
     }
 
     /**

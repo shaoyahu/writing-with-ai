@@ -136,4 +136,62 @@ class SseParserTest {
             awaitComplete()
         }
     }
+
+    // hardening-sse-and-widget-init C-1:以下 3 个新增 case 验证截断检测。
+    // 关键不变量:截断流 emit Error(EOFException)而非 Done,
+    // 下游 CoreAiGateway 据此走 AiError.StreamTruncated → Failed UI 路径。
+
+    @Test
+    fun `truncation without trailing newline emits Error not Done`() = runTest {
+        // data 行写完但没尾随 \n\n / [DONE],源 stream EOF。预期:Data + Error,无 Done。
+        val source = Buffer().writeUtf8(
+            "data: {\"text\":\"partial payload\"}"
+            // 故意没有 \n 终止
+        )
+        SseParser.parse(source).test {
+            val e1 = awaitItem()
+            assertTrue("expected Data, got $e1", e1 is SseEvent.Data)
+            assertEquals("{\"text\":\"partial payload\"}", (e1 as SseEvent.Data).content)
+            val e2 = awaitItem()
+            assertTrue("expected Error, got $e2", e2 is SseEvent.Error)
+            assertTrue(
+                "expected EOFException cause, got ${(e2 as SseEvent.Error).cause::class.simpleName}",
+                e2.cause is java.io.EOFException
+            )
+            assertEquals("SSE stream truncated", e2.cause.message)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `truncation before any data emits Done only`() = runTest {
+        // 空源 stream(无任何行)。EOF 在无 data 时是 acceptable 终止,emit Done。
+        val source = Buffer().writeUtf8("")
+        SseParser.parse(source).test {
+            val e1 = awaitItem()
+            assertTrue("expected Done, got $e1", e1 is SseEvent.Done)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `normal DONE sentinel path is unchanged by truncation logic`() = runTest {
+        // 回归测试:已有 [DONE] 路径必须保持,不能被新的 cleanTermination 误标。
+        val source = Buffer().writeUtf8(
+            "data: {\"text\":\"a\"}\n\n" +
+                "data: {\"text\":\"b\"}\n\n" +
+                "data: [DONE]\n\n"
+        )
+        SseParser.parse(source).test {
+            val e1 = awaitItem()
+            assertTrue(e1 is SseEvent.Data)
+            assertEquals("{\"text\":\"a\"}", (e1 as SseEvent.Data).content)
+            val e2 = awaitItem()
+            assertTrue(e2 is SseEvent.Data)
+            assertEquals("{\"text\":\"b\"}", (e2 as SseEvent.Data).content)
+            val e3 = awaitItem()
+            assertTrue("expected Done, got $e3", e3 is SseEvent.Done)
+            awaitComplete()
+        }
+    }
 }

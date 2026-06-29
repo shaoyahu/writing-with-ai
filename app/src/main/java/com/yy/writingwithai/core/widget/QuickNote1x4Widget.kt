@@ -40,7 +40,8 @@ class QuickNote1x4Widget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val notes = QuickNoteWidgetHiltBridge.repository?.observeRecent(LIMIT)?.first() ?: emptyList()
+        val repository = QuickNoteWidgetHiltBridge.resolveRepository(context) ?: return
+        val notes = repository.observeRecent(LIMIT).first()
         provideContent { GlanceTheme { Widget1x4Content(notes = notes) } }
     }
 
@@ -97,7 +98,7 @@ private fun Widget1x4Content(notes: List<Note>) {
                 .background(colors.widgetPrimary)
                 .cornerRadius(16.dp)
                 // R3 C5 fix:与 AddButton 走同一条 launcher→MainActivity 回退栈。
-                .clickable { ctx.launchWithTaskStack("quicknote/edit?prefillFocus=true") }
+                .clickable { ctx.launchWithTaskStack(WidgetLaunchRoute.NewNote) }
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.Center
         ) {

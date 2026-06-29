@@ -3,8 +3,8 @@
 package com.yy.writingwithai.core.widget
 
 import android.content.Context
-import android.content.Intent
 import android.text.format.DateUtils
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,20 +30,26 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.yy.writingwithai.R
-import com.yy.writingwithai.app.MainActivity
 import com.yy.writingwithai.core.data.model.Note
 import kotlinx.coroutines.flow.first
 
 class QuickNoteWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        // hardening H-3 + H-6:解析 repository,失败时 log + 早返回,Glance 走默认空 widget。
+        // 不再静默 `?: emptyList()` —— 用户看不到"无 note"和"app 没起"的区别。
+        val repository = QuickNoteWidgetHiltBridge.resolveRepository(context)
+        if (repository == null) {
+            Log.w(TAG, "widget repository unavailable, falling back to default empty widget")
+            return
+        }
         // fix-2026-06-26-review-r3 H25:widget 每次 update(系统级 15-30min 周期 / 用户主动
         // updateAll)都会 `observeRecent(LIMIT).first()` 触发 Room 读 → 加载最近 3 条全部行。
         // 加 <N 秒级 TTL 缓存:30s 内复用上次结果;>30s 才重读 Room。
         // 主动 save/delete 路径仍走 updateAll 强制刷新;被动周期 widget 用缓存降低 IO。
         val now = System.currentTimeMillis()
         val notes = QuickNoteWidgetCache.getOrLoad(LIMIT, now) {
-            QuickNoteWidgetHiltBridge.repository?.observeRecent(LIMIT)?.first() ?: emptyList()
+            repository.observeRecent(LIMIT).first()
         }
         val noteIndex = WidgetStateStore.current(context).currentNoteIndex
         provideContent {
@@ -52,6 +58,7 @@ class QuickNoteWidget : GlanceAppWidget() {
     }
     private companion object {
         const val LIMIT = 3
+        const val TAG = "QuickNoteWidget"
     }
 }
 
@@ -72,7 +79,7 @@ private fun AddButton(context: Context, colors: WidgetColors) {
             .background(colors.widgetPrimary)
             // R3 C5 fix:走 launchWithTaskStack,与 OpenNoteAction 共用 TaskStackBuilder 回退栈,
             // 跨 AOSP / 国产 ROM widget 入口 back 行为一致。
-            .clickable { context.launchWithTaskStack("quicknote/edit?prefillFocus=true") }
+            .clickable { context.launchWithTaskStack(WidgetLaunchRoute.NewNote) }
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -264,20 +271,3 @@ internal fun formatRelativeTimeCompact(context: Context, epochMs: Long): String 
 ).toString()
 
 private const val SNIPPET_LEN = 30
-
-/**
- * fix-2026-06-26-review-r3 C5:统一 widget 入口的回退栈行为。
- *
- * 与 `OpenNoteAction.onAction` / `CreateNoteFromWidgetAction.onAction` 一致,点击 "+"
- * 后通过 [Context.launchWithTaskStack] 启动 MainActivity,使用 [TaskStackBuilder] 显式
- * 构造 launcher → MainActivity 回退栈,跨 AOSP / 国产 ROM 行为一致。
- *
- * 不再返回 Intent 给 `actionStartActivity` —— 那样 caller 路径会跳过 TaskStackBuilder,
- * 与 launchWithTaskStack 路径行为不一致(R2 L3 删了 `FLAG_ACTIVITY_CLEAR_TASK` 避免杀
- * consent 闸门,但缺少 TaskStackBuilder 又会让 back 行为回退到旧 ROM 不一致问题)。
- *
- * Caller(`AddButton` / `Widget1x4Content` "+")改为 `clickable { context.launchWithTaskStack(...) }`。
- */
-internal fun createNoteIntent(context: Context): Intent = Intent(context, MainActivity::class.java)
-    .putExtra("route", "quicknote/edit?prefillFocus=true")
-    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

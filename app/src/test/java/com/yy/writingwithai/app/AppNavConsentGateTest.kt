@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.FakeConsentStore
 import com.yy.writingwithai.core.prefs.FakeUserPrefsStore
+import com.yy.writingwithai.core.widget.WidgetLaunchRoute
 import com.yy.writingwithai.feature.onboarding.OnboardingEntry
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -70,14 +71,14 @@ class AppNavConsentGateTest {
 
     private lateinit var consentStore: FakeConsentStore
     private lateinit var userPrefsStore: FakeUserPrefsStore
-    private lateinit var widgetPending: MutableState<String?>
+    private lateinit var widgetPending: MutableState<WidgetLaunchRoute?>
     private var navController: NavController? = null
 
     @Before
     fun setUp() {
         consentStore = FakeConsentStore()
         userPrefsStore = FakeUserPrefsStore().also { it.seed(ack = true) }
-        widgetPending = mutableStateOf<String?>(null)
+        widgetPending = mutableStateOf<WidgetLaunchRoute?>(null)
     }
 
     /**

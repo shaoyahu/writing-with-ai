@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import com.yy.writingwithai.app.ui.theme.WritingAppTheme
 import com.yy.writingwithai.core.prefs.UserPrefsStore
+import com.yy.writingwithai.core.widget.WidgetLaunchRoute
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -32,8 +33,8 @@ import dagger.hilt.components.SingletonComponent
  */
 @Composable
 fun App(
-    initialRoute: String? = null,
-    widgetPendingRoute: MutableState<String?> = mutableStateOf(null),
+    initialRoute: WidgetLaunchRoute? = null,
+    widgetPendingRoute: MutableState<WidgetLaunchRoute?> = mutableStateOf(null),
     onNavControllerReady: (NavController) -> Unit = {}
 ) {
     val userPrefsStore = rememberUserPrefsStore()

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.first
  */
 class SwitchNoteAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val repo = QuickNoteWidgetHiltBridge.repository ?: return
+        val repo = QuickNoteWidgetHiltBridge.resolveRepository(context) ?: return
         val notes = repo.observeRecent(10).first()
         WidgetStateStore.incrementNoteIndex(context, notes.size)
         QuickNoteWidget().update(context, glanceId)

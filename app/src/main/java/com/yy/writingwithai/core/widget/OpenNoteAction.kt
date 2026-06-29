@@ -14,10 +14,9 @@ import androidx.glance.appwidget.action.ActionCallback
  */
 class OpenNoteAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val noteId = parameters[KEY_NOTE_ID] ?: return
-        // M4-2 r2 修:走 launchWithTaskStack 真正用 TaskStackBuilder.startActivities,
-        // 跨 AOSP / 国产 ROM back 行为一致(回 launcher 桌面)。
-        context.launchWithTaskStack("quicknote/detail/$noteId")
+        val noteId = parameters[KEY_NOTE_ID]?.toLongOrNull() ?: return
+        // hardening H-4:走 sealed WidgetLaunchRoute.OpenNote,不再传裸 string。
+        context.launchWithTaskStack(WidgetLaunchRoute.OpenNote(noteId))
     }
 
     companion object {

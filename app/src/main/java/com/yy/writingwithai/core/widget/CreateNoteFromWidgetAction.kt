@@ -13,6 +13,6 @@ class CreateNoteFromWidgetAction : ActionCallback {
         glanceId: GlanceId,
         parameters: androidx.glance.action.ActionParameters
     ) {
-        context.launchWithTaskStack("quicknote/edit?prefillFocus=true")
+        context.launchWithTaskStack(WidgetLaunchRoute.NewNote)
     }
 }

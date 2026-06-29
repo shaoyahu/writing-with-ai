@@ -1,0 +1,58 @@
+package com.yy.writingwithai.core.widget
+
+/**
+ * hardening-sse-and-widget-init H-4:Widget 启动路由 sealed 化。
+ *
+ * 旧实现:WidgetIntentHelpers.launchWithTaskStack(context, route: String) 接收裸字符串,
+ * AppNav 内部 `route.startsWith("quicknote/edit")` / `route.contains("prefillFocus=true")`
+ * 拼装,容易因 query param 边界(case / URL encoding / 误匹配)被构造攻击向量绕过。
+ *
+ * 新实现:sealed 路由 + 内部 `toRouteString()` / `fromRouteString()` 序列化,
+ * 业务代码只跟 sealed 打交道,不再有 string prefix 解析。`when` 穷尽由编译器保证。
+ *
+ * 序列化格式(internal,不在 public API 暴露):
+ * - `new_note`  → NewNote
+ * - `open_note:<id>` → OpenNote(id)         // Long,parse fail → null
+ * - `edit_note:<id>:<prefill>` → EditNote(id, prefillFocus)  // prefill 字符串 "true" / "false"
+ */
+sealed class WidgetLaunchRoute {
+    /** 新建笔记入口(详情/列表 widget "+")。 */
+    data object NewNote : WidgetLaunchRoute()
+
+    /** 打开已有笔记(列表 widget tap 已有 note)。 */
+    data class OpenNote(val noteId: Long) : WidgetLaunchRoute()
+
+    /** 编辑入口(prefillFocus=true 时 editor 立即获焦)。 */
+    data class EditNote(val noteId: Long, val prefillFocus: Boolean = false) : WidgetLaunchRoute()
+
+    fun toRouteString(): String = when (this) {
+        is NewNote -> "new_note"
+        is OpenNote -> "open_note:$noteId"
+        is EditNote -> "edit_note:$noteId:$prefillFocus"
+    }
+
+    companion object {
+        /**
+         * 解析 [EXTRA_ROUTE] 字符串到 sealed 路由。失败(未知 tag / id 非 Long / prefill
+         * 非 "true"/"false")返回 null。**不**做 string prefix 模糊匹配。
+         */
+        fun fromRouteString(raw: String?): WidgetLaunchRoute? {
+            if (raw.isNullOrEmpty()) return null
+            val parts = raw.split(":")
+            return when (parts[0]) {
+                "new_note" -> NewNote
+                "open_note" -> parts.getOrNull(1)?.toLongOrNull()?.let(::OpenNote)
+                "edit_note" -> {
+                    val id = parts.getOrNull(1)?.toLongOrNull() ?: return null
+                    val prefill = when (parts.getOrNull(2)) {
+                        "true" -> true
+                        "false", null -> false
+                        else -> return null
+                    }
+                    EditNote(id, prefill)
+                }
+                else -> null
+            }
+        }
+    }
+}

@@ -20,6 +20,7 @@ import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.prefs.UserPrefsStore
 import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
+import com.yy.writingwithai.core.widget.WidgetLaunchRoute
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
 import com.yy.writingwithai.feature.onboarding.ApikeyPromptRoute
 import com.yy.writingwithai.feature.onboarding.OnboardingEntry
@@ -76,8 +77,8 @@ internal interface AppNavEntryPoint {
 
 @Composable
 fun AppNav(
-    initialRoute: String? = null,
-    widgetPendingRoute: MutableState<String?> = remember { mutableStateOf<String?>(null) },
+    initialRoute: WidgetLaunchRoute? = null,
+    widgetPendingRoute: MutableState<WidgetLaunchRoute?> = remember { mutableStateOf<WidgetLaunchRoute?>(null) },
     onNavControllerReady: (androidx.navigation.NavController) -> Unit = {},
     // fix-2026-06-25-review-r1 C5:让测试能注入 fake(默认走 Hilt EntryPoint)。
     // 不传时仍从 Activity EntryPoint 拿,MainActivity 走默认路径不变。
@@ -129,37 +130,32 @@ fun AppNav(
     }
 
     // M12 fix:widget pending route 解析提取 helper,避免 3 处重复 when 分支。
+    // hardening H-4:用 sealed [WidgetLaunchRoute] 替代 string prefix 拼装,when 穷尽由编译器保证。
     // popUpToInclusive:consent 回放 / apikey-prompt 走 popUpTo(0)(清栈),
     // initialRoute 走 popUpTo(AppShell)(不清 consent 栈)。
-    fun navigatePendingRoute(route: String?, popUpToInclusive: Boolean = true) {
-        when {
-            route == null -> {
+    fun navigatePendingRoute(route: WidgetLaunchRoute?, popUpToInclusive: Boolean = true) {
+        when (route) {
+            null -> {
                 navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
             }
-            route.startsWith("quicknote/edit") -> {
-                val prefill = route.contains("prefillFocus=true")
-                navController.navigate(QuicknoteEdit(id = "NEW", prefillFocus = prefill)) {
+            is WidgetLaunchRoute.NewNote -> {
+                navController.navigate(QuicknoteEdit(id = "NEW", prefillFocus = true)) {
                     if (popUpToInclusive) popUpTo(0) { inclusive = true } else popUpTo(AppShell) { inclusive = true }
                 }
             }
-            route.startsWith("quicknote/detail/") -> {
-                val id = route.removePrefix("quicknote/detail/")
-                if (id.isNotBlank()) {
-                    navController.navigate(QuicknoteDetail(id)) {
-                        if (popUpToInclusive) {
-                            popUpTo(
-                                0
-                            ) { inclusive = true }
-                        } else {
-                            popUpTo(AppShell) { inclusive = true }
-                        }
+            is WidgetLaunchRoute.OpenNote -> {
+                navController.navigate(QuicknoteDetail(route.noteId.toString())) {
+                    if (popUpToInclusive) {
+                        popUpTo(0) { inclusive = true }
+                    } else {
+                        popUpTo(AppShell) { inclusive = true }
                     }
-                } else {
-                    navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
                 }
             }
-            else -> {
-                navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
+            is WidgetLaunchRoute.EditNote -> {
+                navController.navigate(QuicknoteEdit(id = "NEW", prefillFocus = route.prefillFocus)) {
+                    if (popUpToInclusive) popUpTo(0) { inclusive = true } else popUpTo(AppShell) { inclusive = true }
+                }
             }
         }
     }
@@ -226,7 +222,11 @@ fun AppNav(
                 onNavigateToSettings = { navController.navigate(Settings) },
                 // real-provider-integration §4:apikey-missing Snackbar action 跳模型管理
                 onNavigateToModelManagement = { navController.navigate(SettingsModelManagement) },
-                onRequestConsent = { AiwritingEntry.requestConsent(navController) }
+                onRequestConsent = {
+                    AiwritingEntry.requestConsent(
+                        navController
+                    ) { nav -> OnboardingEntry.requestConsent(nav) }
+                }
             )
         }
         composable<QuicknoteEdit> { backStackEntry ->

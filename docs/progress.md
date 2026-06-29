@@ -13,6 +13,23 @@
 - **§6 AiErrorLocalizedMapperTest 5 用例**:9 专属 variant 互不相同 / 4 兜底 variant → `ai_error_unknown` / RateLimited+ServerError 参数无关 / 纯函数确定性 / 13 variant 全覆盖防新增 variant 编译器不报错;ktlintFormat 自动修 7 处 trailing comma
 - **§7 真机端到端 USER-OWNED**:7.1-7.7 留给用户跑(3 provider 真 apikey + SSE 流式 + Auth/Network 错误触发 + smoke 脚本端到端),AI 不代
 - **§8 收口**:`./gradlew :app:assembleDebug` 2s ✓ / `:app:ktlintCheck` 0 violations ✓ / `:app:testDebugUnitTest` 13s 全绿(含新 5 用例);progress.md 本条目 = §8.4
+
+## 2026-06-29 · hardening-sse-and-widget-init 收口(R1 review 1C+7H)
+
+- **OpenSpec change**:`hardening-sse-and-widget-init`(已 archive 为 `2026-06-29-hardening-sse-and-widget-init`)
+- **R1 整项目 review**(`docs/reviews/2026-06-29-writing-with-ai-full-project-code-review-r1.md`):6 路并行 fan-out(security / AI streaming / feishu sync / UI+compose / app shell / code smell),共 **120 条 finding**(1C / 23H / 58M / 38L,去重 ≈ 80)
+- **C-1 [CRITICAL] SseParser 截断 emit Done**:`cleanTermination` 状态机;截断流 emit `SseEvent.Error(EOFException)` 而非 `Done`,UI 进 Failed 态而非 Done 态;`SseParserTest` 3 新增用例(truncation / empty before data / [DONE] 回归)全过
+- **H-1 WidgetWorker 全 catch 吞异常**:`runWithErrorGrading` 抽 `companion` 测试;IO / SQLite → `Result.retry()` + Log.w;Throwable → `Result.failure()` + Log.e;`CancellationException` rethrow;`QuickNoteWidgetWorkerTest` 6 用例全过
+- **H-2 `feature/aiwriting` → `feature/onboarding` 跨 feature import**:`AiwritingEntry.requestConsent` 改 lambda 参数,由 `app/AppNav.kt` 注入 `OnboardingEntry.requestConsent`;`AiwritingEntry.kt` 删 `OnboardingEntry` import,grep 验证 0 处
+- **H-3 `QuickNoteWidgetHiltBridge` 全局 mutable 字段**:`WidgetEntryPoint` Hilt EntryPoint 取代;`resolveRepository(context)` 走 `EntryPointAccessors.fromApplication`;`QuickNoteWidget` / `QuickNote1x4Widget` / `SwitchNoteAction` / `WritingApp` 全切;`provideGlance` null 走 log + 早返回(不静默 fallback)
+- **H-4 widget 启动路由 string prefix 拼装**:`sealed class WidgetLaunchRoute`(NewNote / OpenNote(noteId:Long) / EditNote)+ `toRouteString()` / `fromRouteString()` 序列化;`WidgetIntentHelpers.launchWithTaskStack` 删 `route: String` overload;`AppNav.navigatePendingRoute` `when` 穷尽 sealed;`MainActivity` / `App` / `AppNav` 全转 `WidgetLaunchRoute?`;4 个 widget click handler(QuickNoteWidget / QuickNote1x4Widget / OpenNoteAction / CreateNoteFromWidgetAction)全转 sealed;grep production 路径 0 处 `route.startsWith("quicknote/")` / `route.contains("prefillFocus=true")` / `"quicknote/edit?prefillFocus=true"`
+- **H-5 `NoteRepository` 自管 SupervisorJob leak**:`di/ApplicationScope.kt` 新增 `@ApplicationScope` qualifier + Hilt module(`SupervisorJob() + Dispatchers.Default`);`NoteRepository` 构造函数注入 `@ApplicationScope scope`,删自管字段;`recomputeFlow.debounce(...).collect` 用注入 scope
+- **H-6 与 H-3 合并修**
+- **H-7 OAuth re-delivery 不 re-persist**:`performReDelivery` 私有 suspend 函数(标 `@VisibleForTesting internal`),先 `authStore.persistPendingExchange` 再 `appScope.launch { performExchange }`;二次 crash 可 resume;§7.3 真机 USER-OWNED
+- **§8 验证**:`./gradlew :app:assembleDebug` ✓ / `ktlintCheck` ✓ / `testDebugUnitTest` 419 tests, 0 fail, 6 skipped;R1 1C+7H 全部 fix 落地
+- **归档**:变更 archive 为 `2026-06-29-hardening-sse-and-widget-init`;spec 落 `app-route-parsing` / `sse-stream-robustness` / `widget-init-race` / `repository-scope-leak` 新增 + `feishu-auth` / `home-screen-widget` delta;顺手修 main `feishu-auth/spec.md` 缺 `## Purpose` + 多余 delta header 旧账
+- **proposal warning**:>10 deltas,OpenSpec 建议分拆;本 change 选 one-shot 因为 1C+7H 跨子系统关联强(1C SSE + H-1 Worker 都靠 widget 路径访问 stream),分拆会让人误以为独立
+- **未做(USER-OWNED)**:§7.3 真机 OAuth re-delivery 验证;整 R1 review 报告的 ~50 MEDIUM / ~30 LOW 走后续 polish change
 - **8.4 真机校准证据待补**:3 provider 各 1 行 SSE 响应摘录待 §7 跑完写入本条目 / 8.5 `verification-report.md` 同等 §7
 - **下一步候选**:用户跑 §7 真机 verify → 补 8.4 SSE 摘录 + 8.5 report → `/opsx:archive real-provider-integration` 收口;或开 v1 内测 APK 真机体验 round-2
 

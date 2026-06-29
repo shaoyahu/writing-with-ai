@@ -15,7 +15,8 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.R
 import com.yy.writingwithai.core.prefs.ConsentStore
-import com.yy.writingwithai.core.widget.OpenNoteAction
+import com.yy.writingwithai.core.widget.WidgetLaunchRoute
+import com.yy.writingwithai.core.widget.parseLaunchRoute
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.AndroidEntryPoint
@@ -47,9 +48,10 @@ internal interface MainActivityEntryPoint {
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    /** M4-4:widget 启动但未同意时暂存 route,同意后回放。Compose state 由 App 持,跨 Activity 重建。 */
-    private val widgetPendingRoute = mutableStateOf<String?>(null)
-    private var lastInitialRoute: String? = null
+    /** M4-4:widget 启动但未同意时暂存 route,同意后回放。Compose state 由 App 持,跨 Activity 重建。
+     *  hardening H-4:类型由 String? 升级为 sealed [WidgetLaunchRoute],不再做 string prefix 解析。 */
+    private val widgetPendingRoute = mutableStateOf<WidgetLaunchRoute?>(null)
+    private var lastInitialRoute: WidgetLaunchRoute? = null
 
     // fix-global-back-nav-and-gesture: 主页防误触(2s 二次确认 Toast)。
     // C1 修:back callback 默认 enabled=false,等 navController ready 后在
@@ -80,8 +82,9 @@ class MainActivity : ComponentActivity() {
         // 表现为"随手记/我的"标题距屏幕顶部过远。
         enableEdgeToEdge()
         onBackPressedDispatcher.addCallback(this, backCallback)
-        val rawRoute = intent?.getStringExtra(OpenNoteAction.EXTRA_ROUTE)
-        handleRawRoute(rawRoute)
+        // hardening H-4:用 parseLaunchRoute(intent) 替代 getStringExtra + string prefix 解析。
+        val route = parseLaunchRoute(intent)
+        handleRawRoute(route)
         setContent {
             App(
                 initialRoute = lastInitialRoute,
@@ -105,26 +108,29 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        val rawRoute = intent.getStringExtra(OpenNoteAction.EXTRA_ROUTE)
-        handleRawRoute(rawRoute)
+        val route = parseLaunchRoute(intent)
+        handleRawRoute(route)
     }
 
     /**
      * M5:consent 检查移入 [Dispatchers.IO] 协程,主线程不 block。
      * 已同意 → 更新 [lastInitialRoute];未同意 → 写 [widgetPendingRoute] state。
      * fire-and-forget;AppNav LaunchedEffect(consentState) 异步处理 route 回放。
+     *
+     * hardening H-4:参数由 String? 升级为 [WidgetLaunchRoute],string prefix 解析已移至
+     * [parseLaunchRoute](`WidgetIntentHelpers` 内),此处只做 consent 分流。
      */
-    private fun handleRawRoute(rawRoute: String?) {
-        if (rawRoute == null) return
+    private fun handleRawRoute(route: WidgetLaunchRoute?) {
+        if (route == null) return
         val consentStore =
             EntryPointAccessors.fromActivity(this, MainActivityEntryPoint::class.java).consentStore()
         lifecycleScope.launch(Dispatchers.IO) {
             val consented = consentStore.isConsented(BuildConfig.CONSENT_VERSION)
             withContext(Dispatchers.Main) {
                 if (consented) {
-                    lastInitialRoute = rawRoute
+                    lastInitialRoute = route
                 } else {
-                    widgetPendingRoute.value = rawRoute
+                    widgetPendingRoute.value = route
                 }
             }
         }

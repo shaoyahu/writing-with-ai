@@ -15,13 +15,12 @@ import com.yy.writingwithai.core.data.model.NoteWithTags
 import com.yy.writingwithai.core.media.AttachmentStore
 import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.widget.QuickNoteWidgetUpdater
+import com.yy.writingwithai.di.ApplicationScope
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
@@ -46,6 +45,7 @@ class NoteRepository
 @Inject
 constructor(
     @ApplicationContext private val context: Context,
+    @ApplicationScope private val scope: CoroutineScope,
     private val db: AppDatabase,
     private val noteDao: NoteDao,
     private val noteTagDao: NoteTagDao,
@@ -54,7 +54,8 @@ constructor(
     private val noteLinker: NoteLinker,
     private val attachmentStore: AttachmentStore
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // hardening H-5:scope 改为 Hilt 注入的 @ApplicationScope,不再自管 SupervisorJob。
+    // 进程退出时由进程死亡隐式 cancel,不再 leak。
     private val recomputeFlow = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
     /** AI replace 触发通知:detail ViewModel 收集,收到 noteId 后强刷。 */

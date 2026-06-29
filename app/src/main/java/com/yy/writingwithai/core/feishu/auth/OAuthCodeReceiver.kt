@@ -98,8 +98,19 @@ class OAuthCodeReceiver : ComponentActivity() {
                         "OAuth callback re-delivery: resuming pending exchange (code=${pending.code.take(8)}...)"
                     )
                     val appCtx = applicationContext
-                    appScope.launch {
-                        performExchange(appCtx, pending.code, pending.appId, pending.secret, OAuthLauncher.REDIRECT_URI)
+                    // hardening H-7:re-persist 在 launch exchange 之前。
+                    // 旧实现 consume 完不重 persist,如果 performExchange 期间进程被杀,
+                    // 下次启动没有 pending 可 consume,用户必须重走 OAuth。同步 join()
+                    // 阻塞主线程 ~100-200ms(EncryptedSharedPreferences 落盘),只发生在
+                    // re-delivery 罕见路径,UX 可接受。
+                    lifecycleScope.launch {
+                        performReDelivery(
+                            code = code,
+                            pending = pending,
+                            authStore = authStore,
+                            redirectUri = OAuthLauncher.REDIRECT_URI,
+                            appCtx = appCtx
+                        )
                     }
                     startMainActivity()
                     finish()
@@ -267,6 +278,38 @@ class OAuthCodeReceiver : ComponentActivity() {
                 (errorMessage ?: ctx.getString(R.string.feishu_oauth_failed))
             }
             android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * hardening H-7:OAuth re-delivery 核心序列。**先 re-persist pending,再 launch
+     * exchange**。若 exchange 期间进程被杀,下次的 re-delivery 仍能恢复。
+     *
+     * 抽成 private suspend function 便于单元测试 `OAuthCodeReceiverTest` 验证顺序
+     * (MockK 验证 `authStore.persistPendingExchange` 在 `appScope.launch` 前调用)。
+     *
+     * 注意:此函数通过 `lifecycleScope.launch` 在 Activity onCreate 内调用,内部
+     * `appScope.launch` 在 Activity 已 finish 后才启动,不会因 lifecycle 取消。
+     */
+    @androidx.annotation.VisibleForTesting
+    internal suspend fun performReDelivery(
+        code: String,
+        pending: PendingExchange,
+        authStore: FeishuAuthStore,
+        redirectUri: String,
+        appCtx: android.content.Context
+    ) {
+        // H3:code mismatch 已在外层判断,这里假设 code == pending.code。
+        // 1) 同步落盘 pending(让二次 crash 可 resume)。
+        authStore.persistPendingExchange(
+            code = pending.code,
+            appId = pending.appId,
+            secret = pending.secret,
+            requestId = pending.requestId
+        )
+        // 2) 在应用 scope 上异步 exchange(Activity 已 finish,不能 lifecycleScope)。
+        appScope.launch {
+            performExchange(appCtx, pending.code, pending.appId, pending.secret, redirectUri)
         }
     }
 
