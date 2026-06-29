@@ -47,6 +47,12 @@ interface FeishuAuthStore {
      */
     suspend fun setAppId(appId: String)
 
+    /**
+     * 写入飞书同步目标文件夹 token。push 时文档创建在该文件夹下;为 null 时使用用户默认空间。
+     * 用户可在飞书授权页手动填写/清空。
+     */
+    suspend fun setFolderToken(folderToken: String?)
+
     suspend fun setAuthState(state: FeishuAuthState)
     suspend fun clearAll()
 
@@ -169,6 +175,15 @@ constructor(
     override suspend fun setAppId(appId: String) = withContext(Dispatchers.IO) {
         val p = requirePrefs() ?: return@withContext
         p.edit().putString(KEY_APP_ID, appId).apply()
+    }
+
+    override suspend fun setFolderToken(folderToken: String?) = withContext(Dispatchers.IO) {
+        val p = requirePrefs() ?: return@withContext
+        if (folderToken != null) {
+            p.edit().putString(KEY_FOLDER, folderToken).apply()
+        } else {
+            p.edit().remove(KEY_FOLDER).apply()
+        }
     }
 
     override suspend fun setAuthState(state: FeishuAuthState) {

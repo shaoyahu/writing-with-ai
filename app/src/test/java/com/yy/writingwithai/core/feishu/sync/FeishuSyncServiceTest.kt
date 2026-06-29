@@ -52,6 +52,7 @@ class FeishuSyncServiceTest {
 
         // ux-2026-06-28:新增 setAppId + getAppIdSnapshot stub
         override suspend fun setAppId(appId: String) {}
+        override suspend fun setFolderToken(folderToken: String?) {}
         override fun getAppIdSnapshot(): String? = null
         override suspend fun persistAppSecret(requestId: String, secret: String) {}
         override suspend fun clearAppSecret(requestId: String) {}

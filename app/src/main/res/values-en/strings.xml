@@ -401,6 +401,12 @@
     <string name="feishu_oauth_redirect_uri_label">Callback URL</string>
     <string name="feishu_oauth_redirect_uri_helper">Tap to copy, paste it into the Feishu Open Platform field</string>
 
+    <!-- Folder token: specify sync target folder -->
+    <string name="feishu_folder_token_label">Folder Token</string>
+    <string name="feishu_folder_token_placeholder">Leave empty to use default space</string>
+    <string name="feishu_folder_token_helper">Find the folder token from the Feishu doc URL (e.g. fldcnXXXXXX). Pushed docs will be created in this folder</string>
+    <string name="feishu_folder_token_save">Save Folder Token</string>
+
     <!-- feishu-sync-end-to-end · settings sync log section + conflict dialog -->
     <string name="feishu_sync_log_title">Feishu sync log</string>
     <string name="feishu_sync_log_disclaimer">Sync uses no AI tokens, only Feishu API</string>

@@ -189,11 +189,40 @@ fun FeishuAuthScreen(onBack: () -> Unit, viewModel: FeishuAuthViewModel = hiltVi
                 }
                 FeishuAuthState.CONNECTED -> {
                     val events by viewModel.events.collectAsStateWithLifecycle()
+                    val currentFolderToken by viewModel.folderToken.collectAsStateWithLifecycle()
+                    var folderTokenInput by remember(currentFolderToken) {
+                        mutableStateOf(currentFolderToken.orEmpty())
+                    }
                     Text(
                         text = stringResource(R.string.feishu_oauth_connected),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
+                    Spacer(Modifier.height(8.dp))
+                    // 文件夹 token 输入:指定同步目标文件夹
+                    OutlinedTextField(
+                        value = folderTokenInput,
+                        onValueChange = { folderTokenInput = it.trim() },
+                        label = { Text(stringResource(R.string.feishu_folder_token_label)) },
+                        singleLine = true,
+                        placeholder = { Text(stringResource(R.string.feishu_folder_token_placeholder)) },
+                        supportingText = {
+                            Text(
+                                stringResource(R.string.feishu_folder_token_helper),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Button(
+                        enabled = folderTokenInput != (currentFolderToken.orEmpty()),
+                        onClick = { viewModel.setFolderToken(folderTokenInput) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.feishu_folder_token_save))
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    HorizontalDivider()
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = { viewModel.disconnect() },

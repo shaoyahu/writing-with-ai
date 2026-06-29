@@ -121,6 +121,7 @@ private class InMemoryFeishuAuthStore : FeishuAuthStore {
     override suspend fun setAppId(appId: String) {
         storedAppId = appId
     }
+    override suspend fun setFolderToken(folderToken: String?) {}
     override fun getAppIdSnapshot(): String? = storedAppId
 
     override suspend fun persistAppSecret(requestId: String, secret: String) {

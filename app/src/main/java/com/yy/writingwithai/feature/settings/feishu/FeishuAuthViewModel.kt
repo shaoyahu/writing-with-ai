@@ -33,7 +33,8 @@ import kotlinx.coroutines.launch
  * - FAILED:最近一次取 token 失败
  * - KEYSTORE_UNAVAILABLE:EncryptedSharedPreferences 初始化失败
  *
- * 删除原 appSecret / folderToken 输入框(走 OAuth 隐式收集凭证);
+ * 删除原 appSecret 输入框(走 OAuth 隐式收集凭证);
+ * folderToken 输入框在 CONNECTED 状态下展示,供用户指定同步目标文件夹。
  * [startOAuth] 触发 [OAuthLauncher] 跳系统浏览器。
  */
 @HiltViewModel
@@ -62,6 +63,14 @@ class FeishuAuthViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList()
+        )
+
+    /** 飞书同步目标文件夹 token;null 表示使用用户默认空间。 */
+    val folderToken: StateFlow<String?> = authStore.folderToken
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = authStore.getFolderTokenSnapshot()
         )
 
     /** 一次性操作状态(startOAuth 失败 / pending exchange 状态) */
@@ -109,6 +118,13 @@ class FeishuAuthViewModel @Inject constructor(
     fun disconnect() {
         viewModelScope.launch {
             authStore.clearAll()
+        }
+    }
+
+    /** 写入同步目标文件夹 token;传入空字符串则清空(使用默认空间)。 */
+    fun setFolderToken(token: String) {
+        viewModelScope.launch {
+            authStore.setFolderToken(token.ifBlank { null })
         }
     }
 

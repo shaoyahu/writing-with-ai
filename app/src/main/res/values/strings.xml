@@ -524,6 +524,12 @@
     <string name="feishu_oauth_redirect_uri_label">回调 URL</string>
     <string name="feishu_oauth_redirect_uri_helper">点击复制,在飞书开放后台填入此项</string>
 
+    <!-- 文件夹 token:指定同步目标文件夹 -->
+    <string name="feishu_folder_token_label">文件夹 Token</string>
+    <string name="feishu_folder_token_placeholder">留空则使用默认空间</string>
+    <string name="feishu_folder_token_helper">在飞书文档 URL 中找到文件夹 token(如 fldcnXXXXXX),推送时文档将创建在此文件夹下</string>
+    <string name="feishu_folder_token_save">保存文件夹 Token</string>
+
     <!-- feishu-sync-end-to-end · 设置页同步日志 section + 冲突 dialog -->
     <string name="feishu_sync_log_title">飞书同步日志</string>
     <string name="feishu_sync_log_disclaimer">同步不消耗 AI token,只调飞书 API</string>
