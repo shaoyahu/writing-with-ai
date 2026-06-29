@@ -1,7 +1,15 @@
 package com.yy.writingwithai.feature.quicknote.list
 
+import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,11 +48,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,8 +60,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,6 +77,7 @@ import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.prefs.SearchHistoryStore
 import com.yy.writingwithai.core.ui.NoteListSkeleton
 import com.yy.writingwithai.feature.quicknote.model.NoteListUiState
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 /**
@@ -76,7 +89,7 @@ import kotlinx.coroutines.launch
  * - 删 `exportAllLauncher`(导出迁入 `SettingsDataScreen`)
  * - 删 `onSettingsClick` / `onPromptSettingsClick` 形参
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun QuickNoteListScreen(
     onNoteClick: (id: String) -> Unit,
@@ -231,52 +244,108 @@ fun QuickNoteListScreen(
                                     FeishuRefStatus.REMOTE_DELETED -> statusRemoteDeleted
                                 }
                             }
-                            // note-list-card-actions · SwipeToDismissBox 包卡片 + DropdownMenu 弹在 content 内
-                            // 永远拒绝自动 dismiss(Gmail 同款"露背景按钮"模式)
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { _ -> false },
-                                positionalThreshold = { totalDistance -> totalDistance * 0.4f }
-                            )
+                            // note-list-card-actions · 自管 AnchoredDraggable 露背景按钮
+                            // (2026-06-30 真机反馈:SwipeToDismissBox 的 settle 距离 = 整张卡片宽,
+                            // 过远;改 Revealed anchor = -buttonWidthPx,只露按钮区)。
+                            // 详见 design.md D1。
+                            val buttonWidth = 144.dp
+                            val density = LocalDensity.current
+                            val buttonWidthPx = with(density) { buttonWidth.toPx() }
                             val scope = rememberCoroutineScope()
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                backgroundContent = {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                                        horizontalArrangement = Arrangement.End,
-                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                                    ) {
-                                        SwipeActionButton(
-                                            icon = if (item.note.isPinned) {
-                                                Icons.Filled.PushPin
-                                            } else {
-                                                Icons.Outlined.PushPin
-                                            },
-                                            contentDescription = stringResource(
-                                                R.string.quicknote_list_swipe_pin_cd
-                                            ),
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            onClick = {
-                                                scope.launch { dismissState.reset() }
-                                                viewModel.togglePinned(item.note.id, item.note.isPinned)
-                                            }
-                                        )
-                                        SwipeActionButton(
-                                            icon = Icons.Filled.Delete,
-                                            contentDescription = stringResource(
-                                                R.string.quicknote_list_swipe_delete_cd
-                                            ),
-                                            tint = MaterialTheme.colorScheme.error,
-                                            onClick = {
-                                                scope.launch { dismissState.reset() }
-                                                confirmDeleteFor = item.note.id
-                                            }
-                                        )
-                                    }
-                                },
-                                content = {
+                            val revealState = remember(item.note.id) {
+                                AnchoredDraggableState(
+                                    initialValue = RevealState.Settled,
+                                    anchors = DraggableAnchors<RevealState> {
+                                        RevealState.Settled at 0f
+                                        RevealState.Revealed at -buttonWidthPx
+                                    },
+                                    positionalThreshold = { totalDistance: Float -> totalDistance * 0.4f },
+                                    velocityThreshold = { with(density) { 200.dp.toPx() } },
+                                    snapAnimationSpec = spring(),
+                                    decayAnimationSpec = exponentialDecay(),
+                                    confirmValueChange = { true }
+                                )
+                            }
+                            // stringResource 必须在 @Composable 上下文里求值,所以提前提到外面。
+                            val pinCd = stringResource(R.string.quicknote_list_swipe_pin_cd)
+                            val deleteCd = stringResource(R.string.quicknote_list_swipe_delete_cd)
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                // 背景层:surfaceVariant + 2 个 SwipeActionButton。
+                                // start padding = buttonWidth,把内容推到右 buttonWidth 区,
+                                // 卡片左移 buttonWidth 时正好露在右 buttonWidth 区。
+                                Row(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .padding(start = buttonWidth),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    SwipeActionButton(
+                                        icon = if (item.note.isPinned) {
+                                            Icons.Filled.PushPin
+                                        } else {
+                                            Icons.Outlined.PushPin
+                                        },
+                                        contentDescription = pinCd,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        onClick = {
+                                            scope.launch { revealState.animateTo(RevealState.Settled) }
+                                            viewModel.togglePinned(item.note.id, item.note.isPinned)
+                                        }
+                                    )
+                                    SwipeActionButton(
+                                        icon = Icons.Filled.Delete,
+                                        contentDescription = deleteCd,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        onClick = {
+                                            scope.launch { revealState.animateTo(RevealState.Settled) }
+                                            confirmDeleteFor = item.note.id
+                                        }
+                                    )
+                                }
+                                // 前景层:NoteRow + DropdownMenu,水平 offset 跟 revealState 走。
+                                // 卡片本身不消失,露背景时右上 buttonWidth 区空出 → 背景按钮可见。
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .offset {
+                                            IntOffset(
+                                                x = (revealState.offset ?: 0f).roundToInt(),
+                                                y = 0
+                                            )
+                                        }
+                                        .anchoredDraggable(revealState, Orientation.Horizontal)
+                                        .semantics(mergeDescendants = true) {
+                                            // 露背景时给 TalkBack 提供两个动作入口
+                                            // (替代 SwipeToDismissBox 自带的 swipe-to-dismiss a11y)
+                                            customActions = listOf(
+                                                CustomAccessibilityAction(
+                                                    label = pinCd,
+                                                    action = {
+                                                        scope.launch {
+                                                            revealState.animateTo(RevealState.Settled)
+                                                        }
+                                                        viewModel.togglePinned(
+                                                            item.note.id,
+                                                            item.note.isPinned
+                                                        )
+                                                        true
+                                                    }
+                                                ),
+                                                CustomAccessibilityAction(
+                                                    label = deleteCd,
+                                                    action = {
+                                                        scope.launch {
+                                                            revealState.animateTo(RevealState.Settled)
+                                                        }
+                                                        confirmDeleteFor = item.note.id
+                                                        true
+                                                    }
+                                                )
+                                            )
+                                        }
+                                ) {
                                     NoteRow(
                                         title = item.note.title.ifBlank {
                                             item.note.content.take(
@@ -346,7 +415,7 @@ fun QuickNoteListScreen(
                                         )
                                     }
                                 }
-                            )
+                            }
                         }
                     }
                 }
@@ -611,3 +680,10 @@ private fun formatUpdatedAt(epochMillis: Long): String {
     val sdf = if (sameYear) SHORT_SAME_YEAR_FORMAT else SHORT_CROSS_YEAR_FORMAT
     return sdf.format(java.util.Date(epochMillis))
 }
+
+/**
+ * note-list-card-actions · 列表卡片左滑状态机。
+ * Settled=卡片闭合,占满行宽;Revealed=卡片左滑 buttonWidth(2 × 72dp),露背景按钮。
+ * 详见 design.md D1(自管 anchoredDraggable,Revealed anchor = -buttonWidthPx)。
+ */
+private enum class RevealState { Settled, Revealed }

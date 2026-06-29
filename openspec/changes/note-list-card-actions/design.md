@@ -34,17 +34,27 @@ CLAUDE.md 硬规则(本 change 涉及):
 
 ## Decisions
 
-### D1: SwipeToDismissBox.confirmValueChange = 永远 false(背景按钮模式)
+### D1: 自管 `Modifier.anchoredDraggable` 露背景按钮(2026-06-30 真机反馈)
 
-**选 false 模式**:`confirmValueChange` 永远返回 `false` → 卡片**永不消失**,用户松手后弹回原位,只让 backgroundContent 露出来。backgroundContent 渲染两个图标按钮,用户点按钮才执行操作 + reset state。
+**选自管 anchoredDraggable**:M3 `SwipeToDismissBox` 的 `EndToStart` anchor 硬编码 = row 总宽度,用户滑到底 = 整张卡片滑出屏幕 → 露出距离过长(2026-06-30 真机 walkthrough 反馈)。改用 `androidx.compose.foundation.gestives.AnchoredDraggableState<RevealState>`,自定义 anchors:`Settled at 0f` + `Revealed at -buttonWidthPx`(2 × 72dp 按钮 = 144dp),卡片本身最多滑 144dp,只露按钮区。
 
-**否决自实现 swipe**:用 `anchoredDraggable` 自定义需要重做:
-- 触觉反馈(AccessibilityService HapticFeedbackConstants)
-- a11y(swipe action 的 content description / TalkBack 朗读)
-- 状态机(reset / snap)
-- 视觉曲线(`spring()` spec)
+**两轮迭代的历史**:
+1. 初版 `SwipeToDismissBox` + `confirmValueChange = { false }` — 意图"永不 dismiss",但状态机在 settle 时被 false 拒绝 → 卡片松手立即弹回(2026-06-29 真机发现)。
+2. 改为 `confirmValueChange = { true }` — 松手可停在 `EndToStart`,按钮可见(2026-06-29 修复)。
+3. 但 `SwipeToDismissBox` 的 end anchor 仍 = 整张卡片宽,露背景距离过长(2026-06-30 真机反馈)→ 换自管 `anchoredDraggable` + Revealed anchor = -144dp。
 
-预计 200+ 行样板,且易出错。`SwipeToDismissBox` 是 M3 官方组件,Gmail / Material 3 示例 app 都用 `confirmValueChange = false` 模式做"露出操作按钮",UX 业界已认可。
+**实现要点**:
+- `Box(fillMaxWidth) { background Row; foreground Box }` 双层结构
+- 背景 `Row`: `matchParentSize().background(surfaceVariant).padding(start = buttonWidth)`,把 2 个按钮对齐到右 144dp 区
+- 前景 `Box`: `fillMaxWidth().offset { IntOffset(revealState.offset.roundToInt(), 0) }.anchoredDraggable(state, Horizontal)` — 整体水平跟随 drag
+- `RevealState` 私有 enum(`Settled` / `Revealed`),`AnchoredDraggableState` 构造时塞 `DraggableAnchors`
+- `positionalThreshold = 0.4f`、`velocityThreshold = 200.dp/s`、`snapAnimationSpec = spring()`
+- 按钮 onClick 调 `scope.launch { revealState.animateTo(RevealState.Settled) }` 收回
+- a11y: 前景区 `semantics(mergeDescendants=true) { customActions = listOf(pin, delete) }` — TalkBack 朗读 2 个 action label,替代 `SwipeToDismissBox` 自带的 swipe-to-dismiss a11y
+
+**否决 M3 `SwipeToDismissBox` 持续使用**:anchor 距离无法限制,无法满足"只露按钮区"的 UX 要求。
+
+**否决自实现 swipe 触觉/视觉曲线**:用 M3 `AnchoredDraggable` + `spring()` 已内置触觉反馈链 + 状态机,实测 ~80 行代码(远低于初版 D1 估计的 200+ 行)。
 
 ### D2: DropdownMenu 锚点 = SwipeToDismissBox(content)
 
