@@ -2,11 +2,15 @@
 
 package com.yy.writingwithai.app
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -14,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.outlined.Notes
@@ -24,14 +29,15 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -56,7 +62,7 @@ import com.yy.writingwithai.feature.quicknote.list.QuickNoteListScreen
  * 把它们绑在一起。review r1 L3 注解。
  *
  * 职责:
- * - 渲染 `NavigationBar` + 中央凸起 FAB(全局新建笔记入口)
+ * - 渲染自定义 `Surface` tab 栏 + 中央凸起 FAB(全局新建笔记入口)
  * - 内部嵌入子 `NavHost`,startDestination = Notes,渲染 `Notes` / `Me` 两个 tab 根屏
  * - tab 切换走**子 NavController**;FAB / 详情 / 编辑器 / 设置走**根 NavController**
  *   (详情/编辑器跨 tab 共享 root 栈,tab bar 选中态保留)
@@ -152,19 +158,20 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
 }
 
 /**
- * app-bottom-tab-bar · 底部 3 槽 tab 栏 + 中央凸起圆形 FAB。
+ * app-bottom-tab-bar · 底部 tab 栏 + 中央凸起圆形 FAB。
  *
- * 槽位 1:笔记(NavigationBarItem)
- * 槽位 2:中央 FAB(Box 占位 + Modifier.offset 抬出)
- * 槽位 3:我的(NavigationBarItem)
+ * 视觉对齐【我的】tab(MyScreen.kt)的 SectionCard 圆角 + primary tint icon + surfaceVariant
+ * 容器:外层 1 个 surfaceVariant Surface(顶部 24dp 圆角 + 1dp tonalElevation),
+ * 2 个 Surface 子卡(16dp 圆角)分别装 Notes / Me(selected = primary 容器色)。
+ *
+ * 槽位 1:笔记(Surface 子卡)
+ * 槽位 2:中央 FAB(Spacer 占位 + Box overlay 抬出)
+ * 槽位 3:我的(Surface 子卡)
  *
  * 手势导航设备:用 `WindowInsets.systemBars.only(Bottom)` 保证 FAB / bar 不被裁。
  *
- * review r1 修:
- * - M5:`NavDestination.hasRoute<T>()` 替 substring 匹配
- * - M4:删 FAB `Modifier.shadow`(FAB 自带 elevation 已投影)
- * - L2:`onSelectTab` 入参类型改为 `KClass<*>`
- * - L5:NavigationBarItem 内 `Icon.contentDescription = null`(避免 a11y 双重 label)
+ * internal 暴露给 `app/src/test/.../app/AppTabBarTest` 验证视觉层级(spec 4.5 替代品 — 真机离线
+ * 场景下用 Robolectric + Compose UI Test 渲染断言)。
  */
 @Composable
 private fun AppTabBar(
@@ -172,60 +179,67 @@ private fun AppTabBar(
     onSelectTab: (Any) -> Unit,
     onCenterFabClick: () -> Unit
 ) {
-    // 反馈(2026-06-23):FAB 改用 Box overlay 绝对定位,不再塞进 NavigationBar 内部。
-    // 之前 FAB 在 NavigationBar 的 Row slot 内 + offset(-16),顶部被 bar Surface 遮挡成横线。
-    // 现在 NavigationBar 正常渲染 3 槽(左 notes / 中占位 / 右 me),FAB 作为兄弟层叠在上方,
+    // 反馈(2026-06-23):FAB 用 Box overlay 绝对定位,不再塞进 bar 内部。
+    // 之前 FAB 在 Row slot 内 + offset(-16),顶部被 bar Surface 遮挡成横线。
+    // 现在外层 Surface 正常渲染 2 个 tab 子卡 + 中央 Spacer 间隔,FAB 作为兄弟层叠在上方,
     // 用 align(TopCenter).offset 抬出 bar 上沿,完整圆形可见。
     Box(
         modifier = Modifier.windowInsetsPadding(
             WindowInsets.systemBars.only(WindowInsetsSides.Bottom)
         )
     ) {
-        NavigationBar {
-            val notesSelected = currentDestination?.hasRoute<Notes>() == true
-            NavigationBarItem(
-                selected = notesSelected,
-                onClick = { onSelectTab(Notes) },
-                icon = {
-                    Icon(
-                        imageVector = if (notesSelected) {
-                            Icons.AutoMirrored.Filled.Notes
-                        } else {
-                            Icons.AutoMirrored.Outlined.Notes
-                        },
-                        contentDescription = null
-                    )
-                },
-                label = { Text(stringResource(R.string.tab_notes)) }
-            )
-            // 槽 2 — 中央占位(与右侧槽等宽)
-            Spacer(Modifier.size(56.dp))
-            val meSelected = currentDestination?.hasRoute<Me>() == true
-            NavigationBarItem(
-                selected = meSelected,
-                onClick = { onSelectTab(Me) },
-                icon = {
-                    Icon(
-                        imageVector = if (meSelected) {
-                            Icons.Filled.Person
-                        } else {
-                            Icons.Outlined.Person
-                        },
-                        contentDescription = null
-                    )
-                },
-                label = { Text(stringResource(R.string.tab_my)) }
-            )
+        // 外层 surfaceVariant 卡片(跟【我的】tab 的 SectionCard 同源视觉)
+        Surface(
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            tonalElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val notesSelected = currentDestination?.hasRoute<Notes>() == true
+                TabCard(
+                    selected = notesSelected,
+                    icon = if (notesSelected) {
+                        Icons.AutoMirrored.Filled.Notes
+                    } else {
+                        Icons.AutoMirrored.Outlined.Notes
+                    },
+                    label = stringResource(R.string.tab_notes),
+                    onClick = { onSelectTab(Notes) },
+                    modifier = Modifier.weight(1f)
+                )
+                // 槽 2 — 中央占位(56dp,给 FAB 抬出留空间)
+                Spacer(Modifier.size(56.dp))
+                val meSelected = currentDestination?.hasRoute<Me>() == true
+                TabCard(
+                    selected = meSelected,
+                    icon = if (meSelected) {
+                        Icons.Filled.Person
+                    } else {
+                        Icons.Outlined.Person
+                    },
+                    label = stringResource(R.string.tab_my),
+                    onClick = { onSelectTab(Me) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
-        // 中央 FAB overlay:绝对定位在 NavigationBar 顶部中央,offset 抬出 bar 上沿。
+        // 中央 FAB overlay:绝对定位在 Surface 顶部中央,offset 抬出 bar 上沿。
+        // 容器色从 secondary 改 primary,跟 selected tab 视觉呼应。
         FloatingActionButton(
             onClick = onCenterFabClick,
             shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.secondary,
-            contentColor = MaterialTheme.colorScheme.onSecondary,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 8.dp,
-                pressedElevation = 12.dp
+                defaultElevation = 12.dp,
+                pressedElevation = 16.dp
             ),
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -236,6 +250,45 @@ private fun AppTabBar(
                 imageVector = Icons.Filled.Add,
                 contentDescription = stringResource(R.string.tab_new_note_cd)
             )
+        }
+    }
+}
+
+/**
+ * app-bottom-tab-bar · 笔记 / 我的 tab 子卡(16dp 圆角 Surface)。
+ * selected = primary 容器 + onPrimary 内容;unselected = 透明容器 + onSurfaceVariant 内容。
+ * 整卡 clickable,触控目标 ≥ 48dp。
+ */
+@Composable
+private fun TabCard(
+    selected: Boolean,
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            Color.Transparent
+        },
+        contentColor = if (selected) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(imageVector = icon, contentDescription = null)
+            Spacer(Modifier.size(4.dp))
+            Text(text = label, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
