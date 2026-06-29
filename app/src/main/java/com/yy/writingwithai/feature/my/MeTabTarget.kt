@@ -22,5 +22,14 @@ enum class MeTabTarget {
     SettingsAliasManagement,
 
     /** 多用途 Settings hub(AI 关联开关 / 模型 / 提示词 / 别名 / 飞书同步日志) */
-    Settings
+    Settings,
+
+    /** animation-system-and-consent-redesign §11.1:动画风格设置入口。 */
+    SettingsAnimationStyle,
+
+    /** ux-2026-06-28 P6:飞书授权页专属路由(不再走 Settings hub) */
+    SettingsFeishu,
+
+    /** ux-2026-06-28 P6:笔记关联设置专属路由(从数据管理区直达) */
+    SettingsNoteAssociation
 }

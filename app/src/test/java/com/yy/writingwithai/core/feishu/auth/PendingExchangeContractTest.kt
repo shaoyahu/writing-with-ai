@@ -118,6 +118,10 @@ private class InMemoryFeishuAuthStore : FeishuAuthStore {
     override fun getFolderTokenSnapshot(): String? = null
     override fun getAppIdAndRefreshToken(): Pair<String, String>? =
         if (storedAppId != null && storedRefreshToken != null) storedAppId!! to storedRefreshToken!! else null
+    override suspend fun setAppId(appId: String) {
+        storedAppId = appId
+    }
+    override fun getAppIdSnapshot(): String? = storedAppId
 
     override suspend fun persistAppSecret(requestId: String, secret: String) {
         secretCache[requestId] = secret

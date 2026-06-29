@@ -8,8 +8,9 @@ import com.yy.writingwithai.core.feishu.converter.MarkdownToXmlConverter
 /** feishu-bidir-sync · 测试共享 fake 集合(internal 跨文件可见)。 */
 internal class FakeFeishuApiClient : FeishuApiClient {
     // ---- v1 ----
-    val v1CreateCalls = 0
-    val v1BatchDeleteCalls = 0
+    // fix-2026-06-27-review-r4 M13:val→var,override 内加++,让断言能读到计数。
+    var v1CreateCalls = 0
+    var v1BatchDeleteCalls = 0
     val createdDocs = mutableListOf<String>()
     var blocksToReturn: String = "[]"
 
@@ -22,6 +23,7 @@ internal class FakeFeishuApiClient : FeishuApiClient {
     val v2Created = mutableListOf<String>()
 
     override suspend fun createDocument(title: String, folderToken: String?): DocCreateResult {
+        v1CreateCalls++
         val id = "doc-v1-${createdDocs.size + 1}"
         createdDocs += id
         return DocCreateResult(docId = id, docUrl = "https://f.cn/$id")
@@ -33,7 +35,9 @@ internal class FakeFeishuApiClient : FeishuApiClient {
         appendedDocIds += docId
         return ""
     }
-    override suspend fun batchDeleteChildren(docId: String, parentBlockId: String, startIndex: Int, endIndex: Int) {}
+    override suspend fun batchDeleteChildren(docId: String, parentBlockId: String, startIndex: Int, endIndex: Int) {
+        v1BatchDeleteCalls++
+    }
 
     // v2
     override suspend fun createDocumentV2(
@@ -101,6 +105,9 @@ internal class FakeFeishuSyncEventDao : FeishuSyncEventDao {
 
     override suspend fun listLast(limit: Int): List<FeishuSyncEventEntity> =
         store.sortedByDescending { it.createdAt }.take(limit)
+
+    override fun observeLast(limit: Int): kotlinx.coroutines.flow.Flow<List<FeishuSyncEventEntity>> =
+        kotlinx.coroutines.flow.flowOf(store.sortedByDescending { it.createdAt }.take(limit))
 
     override suspend fun count(): Int = store.size
 

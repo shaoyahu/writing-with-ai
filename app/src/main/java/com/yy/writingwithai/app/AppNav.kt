@@ -6,11 +6,11 @@ import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -19,6 +19,7 @@ import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.prefs.UserPrefsStore
+import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
 import com.yy.writingwithai.feature.onboarding.ApikeyPromptRoute
 import com.yy.writingwithai.feature.onboarding.OnboardingEntry
@@ -27,8 +28,10 @@ import com.yy.writingwithai.feature.quicknote.detail.QuickNoteDetailScreen
 import com.yy.writingwithai.feature.quicknote.edit.QuickNoteEditorScreen
 import com.yy.writingwithai.feature.settings.SettingsEntry
 import com.yy.writingwithai.feature.settings.alias.AliasManagementScreen
+import com.yy.writingwithai.feature.settings.animation.AnimationStylePreviewScreen
 import com.yy.writingwithai.feature.settings.association.NoteAssociationSettingsScreen
 import com.yy.writingwithai.feature.settings.data.SettingsDataScreen
+import com.yy.writingwithai.feature.settings.feishu.FeishuAuthScreen
 import com.yy.writingwithai.feature.settings.model.ModelManagementEntry
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -125,11 +128,48 @@ fun AppNav(
         }
     }
 
+    // M12 fix:widget pending route 解析提取 helper,避免 3 处重复 when 分支。
+    // popUpToInclusive:consent 回放 / apikey-prompt 走 popUpTo(0)(清栈),
+    // initialRoute 走 popUpTo(AppShell)(不清 consent 栈)。
+    fun navigatePendingRoute(route: String?, popUpToInclusive: Boolean = true) {
+        when {
+            route == null -> {
+                navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
+            }
+            route.startsWith("quicknote/edit") -> {
+                val prefill = route.contains("prefillFocus=true")
+                navController.navigate(QuicknoteEdit(id = "NEW", prefillFocus = prefill)) {
+                    if (popUpToInclusive) popUpTo(0) { inclusive = true } else popUpTo(AppShell) { inclusive = true }
+                }
+            }
+            route.startsWith("quicknote/detail/") -> {
+                val id = route.removePrefix("quicknote/detail/")
+                if (id.isNotBlank()) {
+                    navController.navigate(QuicknoteDetail(id)) {
+                        if (popUpToInclusive) {
+                            popUpTo(
+                                0
+                            ) { inclusive = true }
+                        } else {
+                            popUpTo(AppShell) { inclusive = true }
+                        }
+                    }
+                } else {
+                    navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
+                }
+            }
+            else -> {
+                navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
+            }
+        }
+    }
+
     // M4-4 · 同意后单向门 + widget route 回放(r1 H1 修)
-    val consentState by resolvedConsentStore.consentFlow.collectAsState(initial = ConsentState.EMPTY)
+    val consentState by resolvedConsentStore.consentFlow
+        .collectAsStateWithLifecycle(initialValue = ConsentState.EMPTY)
     // onboarding-apikey-prompt · ack 状态镜像(用于二段门)
     val ackApikeyPrompt by resolvedUserPrefsStore.ackApikeyPromptFlow
-        .collectAsState(initial = false)
+        .collectAsStateWithLifecycle(initialValue = false)
     LaunchedEffect(consentState.accepted, consentState.version, ackApikeyPrompt) {
         if (consentState.accepted && consentState.version >= BuildConfig.CONSENT_VERSION) {
             val pending = widgetPendingRoute.value
@@ -142,33 +182,9 @@ fun AppNav(
                     }
                     return@LaunchedEffect
                 }
-                if (pending != null) {
-                    // widget 入口未同意时暂存的 route — 同意后回放
-                    widgetPendingRoute.value = null
-                    when {
-                        pending.startsWith("quicknote/edit") -> {
-                            val prefill = pending.contains("prefillFocus=true")
-                            navController.navigate(QuicknoteEdit(id = "NEW", prefillFocus = prefill)) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }
-                        pending.startsWith("quicknote/detail/") -> {
-                            val id = pending.removePrefix("quicknote/detail/")
-                            if (id.isNotBlank()) {
-                                navController.navigate(QuicknoteDetail(id)) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            } else {
-                                navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
-                            }
-                        }
-                        else -> {
-                            navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
-                        }
-                    }
-                } else {
-                    navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
-                }
+                // widget 入口未同意时暂存的 route — 同意后回放
+                widgetPendingRoute.value = null
+                navigatePendingRoute(pending)
             }
         } else if (!consentState.accepted) {
             // review r2 修:DataStore 冷启动时 consentState 仍为初始值 EMPTY(accepted=false),
@@ -184,9 +200,16 @@ fun AppNav(
         }
     }
 
+    // animation-system · 导航过渡接 token(spec §REQ 4)。
+    // NavHost transition lambda 不是 @Composable,需提前读 token 再 lambda 内引用。
+    val navTokens = LocalAnimationTokens.current
     NavHost(
         navController = navController,
-        startDestination = AppShell
+        startDestination = AppShell,
+        enterTransition = { navTokens.navEnter },
+        exitTransition = { navTokens.navExit },
+        popEnterTransition = { navTokens.navPopEnter },
+        popExitTransition = { navTokens.navPopExit }
     ) {
         composable<AppShell> {
             AppShell(
@@ -201,6 +224,8 @@ fun AppNav(
                 onDeleted = { navController.popBackStack() },
                 onNavigateToNote = { id -> navController.navigate(QuicknoteDetail(id)) },
                 onNavigateToSettings = { navController.navigate(Settings) },
+                // real-provider-integration §4:apikey-missing Snackbar action 跳模型管理
+                onNavigateToModelManagement = { navController.navigate(SettingsModelManagement) },
                 onRequestConsent = { AiwritingEntry.requestConsent(navController) }
             )
         }
@@ -260,6 +285,18 @@ fun AppNav(
                 onBack = { navController.popBackStack() }
             )
         }
+        // animation-system-and-consent-redesign §11.2:动画风格设置 route。
+        composable<SettingsAnimationStyle> {
+            AnimationStylePreviewScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        // ux-2026-06-28 P6:飞书授权页专属 route(不再走 Settings hub)
+        composable<SettingsFeishu> {
+            FeishuAuthScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable(OnboardingEntry.ROUTE_CONSENT) {
             OnboardingRoute(
                 onExitApp = { /* OnboardingRoute 内部已 finishAffinity() */ }
@@ -268,36 +305,13 @@ fun AppNav(
         composable(OnboardingEntry.ROUTE_APIKEY_PROMPT) {
             ApikeyPromptRoute(
                 onFinished = {
+                    // M12 fix:复用 navigatePendingRoute 替代重复 when 分支。
                     // ack=true 后(VM 已写 DataStore),此处手动 navigate 到主路由。
                     // 上面 LaunchedEffect(ackApikeyPrompt) 在 collect 触发新值后
                     // 也会再次 navigate,这里 popUpTo(0) 防止双跳。
                     val pending = widgetPendingRoute.value
-                    if (pending != null) {
-                        widgetPendingRoute.value = null
-                        when {
-                            pending.startsWith("quicknote/edit") -> {
-                                val prefill = pending.contains("prefillFocus=true")
-                                navController.navigate(QuicknoteEdit(id = "NEW", prefillFocus = prefill)) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            }
-                            pending.startsWith("quicknote/detail/") -> {
-                                val id = pending.removePrefix("quicknote/detail/")
-                                if (id.isNotBlank()) {
-                                    navController.navigate(QuicknoteDetail(id)) {
-                                        popUpTo(0) { inclusive = true }
-                                    }
-                                } else {
-                                    navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
-                                }
-                            }
-                            else -> {
-                                navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
-                            }
-                        }
-                    } else {
-                        navController.navigate(AppShell) { popUpTo(0) { inclusive = true } }
-                    }
+                    widgetPendingRoute.value = null
+                    navigatePendingRoute(pending)
                 }
             )
         }
@@ -306,28 +320,15 @@ fun AppNav(
     // M4-1 · widget 启动路由解析(已同意情况:走 initialRoute 路径;
     // 未同意情况:由 MainActivity 暂存到 widgetPendingRoute,本 LaunchedEffect
     // 在 consent 变 true 后统一处理。见上方"同意后单向门"块)。
+    // M12 fix:复用 navigatePendingRoute 替代重复 when 分支,
+    // popUpToInclusive=false → popUpTo(AppShell)(不清 consent 栈)。
     LaunchedEffect(initialRoute) {
         if (initialRoute == null) return@LaunchedEffect
         // review r2 修:consentFlow.value 在 DataStore 冷启动时返回 ConsentState.EMPTY,
         // 已同意用户从 widget 启动时路由被忽略。改为 .first() 挂起等待真实值。
         val state = resolvedConsentStore.consentFlow.first()
         if (state.accepted && state.version >= BuildConfig.CONSENT_VERSION) {
-            when {
-                initialRoute.startsWith("quicknote/edit") -> {
-                    val prefill = initialRoute.contains("prefillFocus=true")
-                    navController.navigate(QuicknoteEdit(id = "NEW", prefillFocus = prefill)) {
-                        popUpTo(AppShell) { inclusive = true }
-                    }
-                }
-                initialRoute.startsWith("quicknote/detail/") -> {
-                    val id = initialRoute.removePrefix("quicknote/detail/")
-                    if (id.isNotBlank()) {
-                        navController.navigate(QuicknoteDetail(id)) {
-                            popUpTo(AppShell) { inclusive = true }
-                        }
-                    }
-                }
-            }
+            navigatePendingRoute(initialRoute, popUpToInclusive = false)
         }
     }
 }
@@ -382,3 +383,15 @@ data class SettingsModelProviderDetail(val providerId: String)
 
 @Serializable
 data class SettingsCustomProviderEdit(val providerId: String? = null)
+
+/**
+ * animation-system-and-consent-redesign §11.2:动画风格设置 route(@Serializable data object)。
+ * 由 MeTabTarget.SettingsAnimationStyle 经 `AppShell` 的 onNavigate 翻译,根 NavHost 注册
+ * `composable<SettingsAnimationStyle>` 渲染 `AnimationStylePreviewScreen`。
+ */
+@Serializable
+data object SettingsAnimationStyle
+
+/** ux-2026-06-28 P6:飞书授权页专属 route(不再走 Settings hub)。 */
+@Serializable
+data object SettingsFeishu

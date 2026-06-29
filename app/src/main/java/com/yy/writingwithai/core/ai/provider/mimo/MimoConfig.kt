@@ -12,7 +12,12 @@ internal object MimoConfig {
             endpointPath = "/anthropic/v1/messages",
             authStyle = AuthStyle.CUSTOM_HEADER,
             customAuthHeaderName = "api-key",
-            defaultModel = "mimo-v2.5-flash",
-            supportedModels = listOf("mimo-v2.5-flash")
+            defaultModel = "mimo-v2.5-pro",
+            supportedModels =
+            listOf(
+                "mimo-v2.5-flash",
+                "mimo-v2.5-pro",
+                "mimo-v2.5-mini"
+            )
         )
 }

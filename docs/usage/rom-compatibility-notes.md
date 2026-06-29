@@ -52,3 +52,22 @@ writing-with-ai v1 的 widget + predictive back 在主流国产 ROM 上的已知
 2. **Back 手势失效**: 导航栏 back 按钮 + App 内 Toolbar 返回箭头(Compose `IconButton(onClick = navController::popBackStack)`)。M4-2 的 `enableOnBackInvokedCallback="true"` 是增强路径,降级路径始终存在。
 
 若用户反馈某 ROM 问题严重(如 3 种以上同时触发),考虑为该 ROM 单独发 FAQ 或禁 widget(设计期不做,等真机数据)。
+
+---
+
+## v1 内测真机验证矩阵
+
+> **状态字段说明**:
+> - `[verified]` — 真机跑过,行为符合预期 / workaround 已落
+> - `[pending]` — 待真机验证(首版 internal testing APK 后跑)
+> - `[deferred]` — 真机跑不到 / 设备不足,推迟到 v1.1
+>
+> 维护人: 真机验证者本人改;AI 每周巡检。
+
+| OEM | 限制项 | 验证状态 | 降级方案 |
+| --- | --- | --- | --- |
+| 小米 MIUI / HyperOS | Widget 后台拉活 + 自启动权限 | `[pending]` | WorkManager `KEEP` policy + onboarding 引导卡跳转自启动设置页 |
+| 华为 HarmonyOS / EMUI | 应用启动管理 + Widget PendingIntent extra strip | `[pending]` | 用户手动改"手动管理";Intent extra 改 Parcelable 序列化 |
+| OPPO ColorOS | 睡眠待机 + Widget reorder crash | `[pending]` | Glance `WidgetError` fallback;接受 3~5s PendingIntent 延迟 |
+| vivo OriginOS | 电池高耗电禁止 + Widget layout 部分版本不渲染 | `[pending]` | `@GlanceComposable` fallback layout;不做保活 |
+| 其它 (三星 OneUI / 一加 ColorOS 衍生 / Pixel 类原生) | 无国产 ROM 特有约束 | `[pending]` | 默认走 AOSP 路径,无需特殊降级 |

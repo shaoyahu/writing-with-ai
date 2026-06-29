@@ -43,6 +43,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.WritingAppTheme
+import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
 import com.yy.writingwithai.feature.my.MeTabTarget
 import com.yy.writingwithai.feature.my.MyScreen
 import com.yy.writingwithai.feature.quicknote.list.QuickNoteListScreen
@@ -101,9 +102,16 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
             )
         }
     ) { innerPadding ->
+        // animation-system · tab 切换也走 token(spec §REQ 4 AppShell 部分)。
+        // NavHost transition lambda 不是 @Composable,需提前读 token 再 lambda 内引用。
+        val navTokens = LocalAnimationTokens.current
         NavHost(
             navController = innerNavController,
             startDestination = Notes::class,
+            enterTransition = { navTokens.navEnter },
+            exitTransition = { navTokens.navExit },
+            popEnterTransition = { navTokens.navPopEnter },
+            popExitTransition = { navTokens.navPopExit },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -127,6 +135,13 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
                             MeTabTarget.SettingsPromptTemplate -> rootNavController.navigate(SettingsPromptTemplate)
                             MeTabTarget.SettingsAliasManagement -> rootNavController.navigate(SettingsAliasManagement)
                             MeTabTarget.Settings -> rootNavController.navigate(Settings)
+                            // animation-system-and-consent-redesign §11.3:MyScreen when 分支接
+                            // SettingsAnimationStyle → 根 NavController navigate 走 AnimationStylePreviewScreen
+                            MeTabTarget.SettingsAnimationStyle -> rootNavController.navigate(SettingsAnimationStyle)
+                            // ux-2026-06-28 P6:飞书授权页专属路由
+                            MeTabTarget.SettingsFeishu -> rootNavController.navigate(SettingsFeishu)
+                            // ux-2026-06-28 P6:笔记关联设置专属路由
+                            MeTabTarget.SettingsNoteAssociation -> rootNavController.navigate(SettingsNoteAssociation)
                         }
                     },
                     onBack = { innerNavController.popBackStack(Notes, inclusive = false) }

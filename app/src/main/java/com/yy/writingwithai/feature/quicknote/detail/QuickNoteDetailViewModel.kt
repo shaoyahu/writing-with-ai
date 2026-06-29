@@ -81,7 +81,7 @@ constructor(
             .map { AiActionFabState.fromSelection(it) }
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.Eagerly,
+                started = SharingStarted.WhileSubscribed(5_000L),
                 initialValue = AiActionFabState.DEFAULT
             )
 
@@ -97,7 +97,7 @@ constructor(
             }
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.Eagerly,
+                started = SharingStarted.WhileSubscribed(5_000L),
                 initialValue = null
             )
 
@@ -125,8 +125,9 @@ constructor(
     }
 
     // feishu-bidir-sync:同步状态
-    private val _syncMessage = MutableStateFlow<String?>(null)
-    val syncMessage: StateFlow<String?> = _syncMessage.asStateFlow()
+    // CR-FIX-M6:结构化 sealed 替代 String?,UI 不再 startsWith("同步完成:") 解析。
+    private val _syncMessage = MutableStateFlow<SyncMessage?>(null)
+    val syncMessage: StateFlow<SyncMessage?> = _syncMessage.asStateFlow()
 
     private val _syncLoading = MutableStateFlow(false)
     val syncLoading: StateFlow<Boolean> = _syncLoading.asStateFlow()
@@ -149,15 +150,15 @@ constructor(
             _syncLoading.value = true
             _syncMessage.value = null
             try {
-                val msg = feishuSyncService.push(id)
-                _syncMessage.value = msg
+                val docUrl = feishuSyncService.push(id).removePrefix("同步完成:").trim()
+                _syncMessage.value = SyncMessage.Success(docUrl)
                 _feishuRef.value = feishuSyncService.getRef(id)
             } catch (e: FeishuError) {
-                _syncMessage.value = "同步失败: ${e.message}"
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                _syncMessage.value = "同步失败: ${e.message}"
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             } finally {
                 _syncLoading.value = false
             }
@@ -170,14 +171,14 @@ constructor(
             _syncMessage.value = null
             try {
                 val docId = extractDocId(docUrl)
-                val msg = feishuSyncService.pull(docId, docUrl)
-                _syncMessage.value = msg
+                feishuSyncService.pull(docId, docUrl)
+                _syncMessage.value = SyncMessage.Success(docUrl)
             } catch (e: FeishuError) {
-                _syncMessage.value = "拉取失败: ${e.message}"
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                _syncMessage.value = "拉取失败: ${e.message}"
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             } finally {
                 _syncLoading.value = false
             }
@@ -195,10 +196,28 @@ constructor(
     fun resolveConflictKeepLocal() {
         val ref = _feishuRef.value ?: return
         viewModelScope.launch {
-            refDao.upsert(ref.copy(status = FeishuRefStatus.DIRTY))
-            _feishuRef.value = refDao.getByNoteId(ref.noteId)
-            _showConflictDialog.value = false
-            pushToFeishu()
+            _syncLoading.value = true
+            _syncMessage.value = null
+            try {
+                refDao.upsert(ref.copy(status = FeishuRefStatus.DIRTY))
+                _feishuRef.value = refDao.getByNoteId(ref.noteId)
+                _showConflictDialog.value = false
+                // H7 fix:inline push logic instead of calling pushToFeishu() which launches
+                // a nested viewModelScope.launch, causing concurrent writes to _feishuRef / _syncLoading.
+                val docUrl = feishuSyncService.push(ref.noteId).removePrefix("同步完成:").trim()
+                _syncMessage.value = SyncMessage.Success(docUrl)
+                _feishuRef.value = feishuSyncService.getRef(ref.noteId)
+            } catch (e: FeishuError) {
+                _showConflictDialog.value = false
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                _showConflictDialog.value = false
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+            } finally {
+                _syncLoading.value = false
+            }
         }
     }
 
@@ -211,16 +230,16 @@ constructor(
                 feishuSyncService.pull(ref.docId, ref.docUrl, titleHint)
                 _feishuRef.value = refDao.getByNoteId(ref.noteId)
                 _showConflictDialog.value = false
-                _syncMessage.value = "已采用飞书版本"
+                _syncMessage.value = SyncMessage.Success(ref.docUrl)
             } catch (e: FeishuError) {
                 // fix-2026-06-26-review-r3 H20:catch 块也要关 dialog,避免解决失败时 dialog 仍开。
                 _showConflictDialog.value = false
-                _syncMessage.value = "解决冲突失败: ${e.message}"
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _showConflictDialog.value = false
-                _syncMessage.value = "解决冲突失败: ${e.message}"
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             }
         }
     }
@@ -272,35 +291,39 @@ constructor(
     fun addAttachment(uri: android.net.Uri) {
         val id = noteId ?: return
         viewModelScope.launch {
-            var sourceFile: java.io.File? = null
-            try {
-                val attachmentId = java.util.UUID.randomUUID().toString()
-                sourceFile = java.io.File(appContext.cacheDir, "tmp_$attachmentId.jpg")
-                appContext.contentResolver.openInputStream(uri)?.use { input ->
-                    sourceFile!!.outputStream().use { output -> input.copyTo(output) }
-                } ?: return@launch
-                val destFile = attachmentStore.getAttachmentFile(id, attachmentId, "jpg")
-                imageCompressor.compress(sourceFile, destFile)
-                noteAttachmentDao.insert(
-                    com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity(
-                        id = attachmentId,
-                        noteId = id,
-                        mimeType = "image/jpeg",
-                        localPath = destFile.absolutePath,
-                        fileSize = destFile.length(),
-                        createdAt = System.currentTimeMillis()
+            // fix-2026-06-27-review-r4 M14:文件 IO(copy/compress/length/delete)
+            // 从 Main dispatcher 移到 IO dispatcher,避免 ANR。
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                var sourceFile: java.io.File? = null
+                try {
+                    val attachmentId = java.util.UUID.randomUUID().toString()
+                    sourceFile = java.io.File(appContext.cacheDir, "tmp_$attachmentId.jpg")
+                    appContext.contentResolver.openInputStream(uri)?.use { input ->
+                        sourceFile!!.outputStream().use { output -> input.copyTo(output) }
+                    } ?: return@withContext
+                    val destFile = attachmentStore.getAttachmentFile(id, attachmentId, "jpg")
+                    imageCompressor.compress(sourceFile, destFile)
+                    noteAttachmentDao.insert(
+                        com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity(
+                            id = attachmentId,
+                            noteId = id,
+                            mimeType = "image/jpeg",
+                            localPath = destFile.absolutePath,
+                            fileSize = destFile.length(),
+                            createdAt = System.currentTimeMillis()
+                        )
                     )
-                )
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (com.yy.writingwithai.BuildConfig.DEBUG) {
-                    android.util.Log.e("DetailVM", "addAttachment failed", e)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (com.yy.writingwithai.BuildConfig.DEBUG) {
+                        android.util.Log.e("DetailVM", "addAttachment failed", e)
+                    }
+                } finally {
+                    // fix-2026-06-26-review-r3 H19:compress() 抛异常时也要删 sourceFile,
+                    // 否则 cache 目录累积 tmp_*.jpg。
+                    sourceFile?.takeIf { it.exists() }?.delete()
                 }
-            } finally {
-                // fix-2026-06-26-review-r3 H19:compress() 抛异常时也要删 sourceFile,
-                // 否则 cache 目录累积 tmp_*.jpg。
-                sourceFile?.takeIf { it.exists() }?.delete()
             }
         }
     }
@@ -309,12 +332,15 @@ constructor(
 /** M3:详情屏顶部"上次 AI 操作"行投影 — `opKey` 是 aiwriting op 名("expand"/"polish"/"organize"),UI 层 `stringResource` 翻译。 */
 data class AiMetaDisplay(val opKey: String, val opAt: String)
 
-// M3 修:SimpleDateFormat hoist 到顶层,避免每次 map { formatLocalDateTime(...) } 重建。
+// H6 fix:SimpleDateFormat hoist 到 file-level lazy,避免每次 map { formatLocalDateTime(...) } 重建。
 // fix-2026-06-26-review-r3 LOW:Locale.getDefault() 在某些 locale(阿拉伯/泰语)下产出非 ASCII 数字,
 // 日期显示应 fallback 到 Locale.ROOT 保证可读性。
+private val dateTimeFormat: SimpleDateFormat by lazy {
+    SimpleDateFormat("yyyy-MM-dd HH:mm", safeLocale())
+}
+
 private fun formatLocalDateTime(epochMillis: Long): String {
-    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", safeLocale())
-    return sdf.format(Date(epochMillis))
+    return dateTimeFormat.format(Date(epochMillis))
 }
 
 /**
@@ -329,4 +355,17 @@ private fun safeLocale(): Locale {
     } else {
         Locale.ROOT
     }
+}
+
+/**
+ * CR-FIX-M6 · 飞书 push/pull 同步结果的结构化 sealed 事件。
+ *
+ * - [Success] 携带可访问的 docUrl,UI 用于复制 / 跳转(替代原 `startsWith("同步完成:")` 解析)。
+ * - [Failure] 携带错误信息,UI 用于展示 + 复制。
+ *
+ * 替代原 `String?` 同步消息,UI 不再做字符串前缀嗅探。
+ */
+sealed interface SyncMessage {
+    data class Success(val docUrl: String) : SyncMessage
+    data class Failure(val reason: String) : SyncMessage
 }

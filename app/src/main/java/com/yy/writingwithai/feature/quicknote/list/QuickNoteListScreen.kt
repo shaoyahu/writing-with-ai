@@ -22,9 +22,16 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -32,8 +39,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -86,6 +96,11 @@ fun QuickNoteListScreen(
     androidx.compose.runtime.LaunchedEffect(context) {
         searchHistory = SearchHistoryStore.getAll(context)
     }
+
+    // note-list-card-actions · 屏级 3 state:同屏只能显示 1 个菜单 / 1 个 dialog,用 noteId 区分。
+    var menuExpandedFor by remember { mutableStateOf<String?>(null) }
+    var confirmDeleteFor by remember { mutableStateOf<String?>(null) }
+    var showAddTagFor by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -142,19 +157,19 @@ fun QuickNoteListScreen(
                 }
             }
             if (state.query.isEmpty() && searchHistory.isNotEmpty()) {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.md)) {
                     Text(
                         text = stringResource(R.string.quicknote_search_history_title),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(spacing.xs))
                     for (q in searchHistory.take(5)) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { viewModel.setQuery(q) }
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = spacing.xs),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(q, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
@@ -216,22 +231,162 @@ fun QuickNoteListScreen(
                                     FeishuRefStatus.REMOTE_DELETED -> statusRemoteDeleted
                                 }
                             }
-                            NoteRow(
-                                title = item.note.title.ifBlank {
-                                    item.note.content.take(com.yy.writingwithai.core.data.model.Note.TITLE_FALLBACK_LEN)
+                            // note-list-card-actions · SwipeToDismissBox 包卡片 + DropdownMenu 弹在 content 内
+                            // 永远拒绝自动 dismiss(Gmail 同款"露背景按钮"模式)
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { _ -> false },
+                                positionalThreshold = { totalDistance -> totalDistance * 0.4f }
+                            )
+                            val scope = rememberCoroutineScope()
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                backgroundContent = {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        horizontalArrangement = Arrangement.End,
+                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                    ) {
+                                        SwipeActionButton(
+                                            icon = if (item.note.isPinned) {
+                                                Icons.Filled.PushPin
+                                            } else {
+                                                Icons.Outlined.PushPin
+                                            },
+                                            contentDescription = stringResource(
+                                                R.string.quicknote_list_swipe_pin_cd
+                                            ),
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            onClick = {
+                                                scope.launch { dismissState.reset() }
+                                                viewModel.togglePinned(item.note.id, item.note.isPinned)
+                                            }
+                                        )
+                                        SwipeActionButton(
+                                            icon = Icons.Filled.Delete,
+                                            contentDescription = stringResource(
+                                                R.string.quicknote_list_swipe_delete_cd
+                                            ),
+                                            tint = MaterialTheme.colorScheme.error,
+                                            onClick = {
+                                                scope.launch { dismissState.reset() }
+                                                confirmDeleteFor = item.note.id
+                                            }
+                                        )
+                                    }
                                 },
-                                content = item.note.content,
-                                tags = item.tags,
-                                syncStatus = syncLabel,
-                                onClick = { onNoteClick(item.note.id) },
-                                isPinned = item.note.isPinned,
-                                updatedAt = com.yy.writingwithai.feature.quicknote.list.formatUpdatedAt(
-                                    item.note.updatedAt
-                                )
+                                content = {
+                                    NoteRow(
+                                        title = item.note.title.ifBlank {
+                                            item.note.content.take(
+                                                com.yy.writingwithai.core.data.model.Note.TITLE_FALLBACK_LEN
+                                            )
+                                        },
+                                        content = item.note.content,
+                                        tags = item.tags,
+                                        syncStatus = syncLabel,
+                                        onClick = { onNoteClick(item.note.id) },
+                                        isPinned = item.note.isPinned,
+                                        updatedAt = com.yy.writingwithai.feature.quicknote.list.formatUpdatedAt(
+                                            item.note.updatedAt
+                                        ),
+                                        onLongClick = { menuExpandedFor = item.note.id }
+                                    )
+                                    // note-list-card-actions · 长按菜单锚在卡片右下角
+                                    DropdownMenu(
+                                        expanded = menuExpandedFor == item.note.id,
+                                        onDismissRequest = { menuExpandedFor = null }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    if (item.note.isPinned) {
+                                                        stringResource(
+                                                            R.string.quicknote_list_action_unpin
+                                                        )
+                                                    } else {
+                                                        stringResource(
+                                                            R.string.quicknote_list_action_pin
+                                                        )
+                                                    }
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.PushPin, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                menuExpandedFor = null
+                                                viewModel.togglePinned(item.note.id, item.note.isPinned)
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.quicknote_list_action_add_tag))
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.LocalOffer, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                menuExpandedFor = null
+                                                showAddTagFor = item.note.id
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(stringResource(R.string.quicknote_list_action_delete))
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.Delete, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                menuExpandedFor = null
+                                                confirmDeleteFor = item.note.id
+                                            }
+                                        )
+                                    }
+                                }
                             )
                         }
                     }
                 }
+            }
+
+            // note-list-card-actions · 删除确认 dialog
+            confirmDeleteFor?.let { noteId ->
+                AlertDialog(
+                    onDismissRequest = { confirmDeleteFor = null },
+                    title = { Text(stringResource(R.string.quicknote_list_delete_confirm_title)) },
+                    text = { Text(stringResource(R.string.quicknote_list_delete_confirm_message)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmDeleteFor = null
+                            viewModel.deleteNote(noteId)
+                        }) {
+                            Text(stringResource(R.string.quicknote_list_delete_confirm_ok))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmDeleteFor = null }) {
+                            Text(stringResource(R.string.quicknote_list_delete_confirm_cancel))
+                        }
+                    }
+                )
+            }
+
+            // note-list-card-actions · 添加已有标签 dialog
+            showAddTagFor?.let { noteId ->
+                val currentTags = (state as? NoteListUiState.Content)
+                    ?.notes
+                    ?.firstOrNull { it.note.id == noteId }
+                    ?.tags
+                    .orEmpty()
+                AddExistingTagDialog(
+                    allTags = allTags,
+                    currentTags = currentTags,
+                    onTagSelected = { tag -> viewModel.addExistingTag(noteId, tag) },
+                    onDismiss = { showAddTagFor = null }
+                )
             }
         }
     }
@@ -292,6 +447,33 @@ private fun TagFilterRow(allTags: List<String>, selectedTag: String?, onTagSelec
 }
 
 /**
+ * note-list-card-actions · SwipeToDismissBox 背景按钮(置顶 / 删除)。
+ * 64dp 高 + 64dp 宽 + 主色 / 错误色区分(置顶 primary,删除 error)。
+ */
+@Composable
+private fun SwipeActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    tint: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
+    androidx.compose.material3.Surface(
+        onClick = onClick,
+        color = tint.copy(alpha = 0.15f),
+        modifier = Modifier.size(width = 72.dp, height = 88.dp)
+    ) {
+        Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+/**
  * ui-redesign-v2 · 胶囊形填充搜索框:surfaceVariant 背景 + xl(24dp) 圆角 + leadingIcon。
  */
 @Composable
@@ -302,13 +484,14 @@ private fun CapsuleSearchBar(
     modifier: Modifier = Modifier
 ) {
     val cornerRadius = LocalCornerRadius.current
+    val spacing = LocalSpacing.current
     Row(
         modifier = modifier
             .background(
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(cornerRadius.xl)
             )
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = spacing.sm2, vertical = spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -317,7 +500,7 @@ private fun CapsuleSearchBar(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.size(8.dp))
+        Spacer(Modifier.size(spacing.sm))
         // M1 fix: 用 decorationBox 模式正确对齐 placeholder 与输入文本
         BasicTextField(
             value = query,

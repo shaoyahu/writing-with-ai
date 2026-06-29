@@ -38,7 +38,7 @@ x-api-key: <API_KEY>
 | `MiniMax-M2.1` / `MiniMax-M2.1-highspeed` | 通用 |
 | `MiniMax-M2` | 旧版基线 |
 
-**v1 UI 默认**:`MiniMax-M2.7-highspeed`(性价比);设置里允许切换。**`M3` 仅在用户明确选"支持多模态/思考"时显示**,且 v1 写作场景实际不传图/视频。
+**v1 UI 默认**:`MiniMax-M2.7`(推荐体验);设置里允许切换到 `MiniMax-M2.7-highspeed`(速度优先) 等其他档位。**`M3` 仅在用户明确选"支持多模态/思考"时显示**,且 v1 写作场景实际不传图/视频。
 
 ## 4. 字段差异(对比 Anthropic 标准)
 
@@ -101,21 +101,22 @@ x-api-key: <API_KEY>
       baseUrl = "https://api.minimaxi.com",
       endpointPath = "/anthropic/v1/messages",
       authStyle = AuthStyle.AUTHORIZATION,
+      defaultModel = "MiniMax-M2.7",   // review-H3:从 M2.7-highspeed 改 M2.7
       supportedModels = listOf(
-          "MiniMax-M2.7-highspeed",  // v1 default
-          "MiniMax-M2.7",
+          "MiniMax-M2.7-highspeed",
+          "MiniMax-M2.7",  // v1 default
           "MiniMax-M2.5-highspeed",
           "MiniMax-M2.5",
           "MiniMax-M2.1-highspeed",
           "MiniMax-M2.1",
           "MiniMax-M2",
-          "MiniMax-M3",  // v1 显示但默认不选
+          "MiniMax-M3",
       ),
   )
   ```
 - **不需要单独写 `stream()` 实现**,由通用 `AnthropicCompatibleAdapter` 处理。
 - 错误映射走通用 `ErrorMapper`;529(overloaded)显示"服务繁忙,稍后重试"提示,自动重试 1 次。
-- 模型名用 `enum class MinimaxModel(val apiName: String)`,default = `M2_7_HIGHSPEED`。
+- 模型名用 `enum class MinimaxModel(val apiName: String)`,default = `M2_7`。
 
 ## 9. 参考
 

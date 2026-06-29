@@ -1,64 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 英文;key 集必须与 values/strings.xml 完全一致 -->
-    <!-- 全部 quicknote_* key 当前为占位 TODO(en),M5 polish 阶段统一补齐 -->
+    <!-- English; key set MUST match values/strings.xml exactly -->
+    <!-- Brand names: DeepSeek / MiniMax / MiMo / Anthropic / Claude — keep verbatim, do not translate. -->
+
     <string name="app_name">Xiaozha</string>
     <string name="placeholder_greeting">Xiaozha scaffold ready</string>
 
-    <string name="quicknote_list_title">TODO(en): 随手记</string>
-    <string name="quicknote_list_empty">TODO(en): 还没有笔记</string>
-    <string name="quicknote_list_empty_cta">TODO(en): 点 + 创建第一条</string>
-    <string name="quicknote_list_search_hint">TODO(en): 搜索标题或正文</string>
-    <string name="quicknote_list_fab_new">TODO(en): 新建</string>
-    <string name="quicknote_list_filter_all">TODO(en): 全部</string>
+    <string name="quicknote_list_title">Quick Notes</string>
+    <string name="quicknote_list_empty">No notes yet</string>
+    <string name="quicknote_list_empty_cta">Tap + to create your first</string>
+    <string name="quicknote_list_search_hint">Search title or body</string>
+    <string name="quicknote_list_fab_new">New</string>
+    <string name="quicknote_list_filter_all">All</string>
+    <!-- note-list-card-actions · list card long-press menu + swipe actions -->
+    <string name="quicknote_list_action_pin">Pin</string>
+    <string name="quicknote_list_action_unpin">Unpin</string>
+    <string name="quicknote_list_action_delete">Delete</string>
+    <string name="quicknote_list_action_add_tag">Add tag</string>
+    <string name="quicknote_list_add_tag_dialog_title">Add existing tag</string>
+    <string name="quicknote_list_add_tag_dialog_empty">No other tags available</string>
+    <string name="quicknote_list_add_tag_dialog_current_cd">Already added: %1$s</string>
+    <string name="quicknote_list_swipe_pin_cd">Pin</string>
+    <string name="quicknote_list_swipe_delete_cd">Delete</string>
+    <string name="quicknote_list_delete_confirm_title">Delete this note?</string>
+    <string name="quicknote_list_delete_confirm_message">This cannot be undone.</string>
+    <string name="quicknote_list_delete_confirm_ok">Delete</string>
+    <string name="quicknote_list_delete_confirm_cancel">Cancel</string>
 
-    <string name="quicknote_detail_title">TODO(en): 笔记详情</string>
-    <string name="quicknote_detail_word_count_fmt">TODO(en): %1$d 字</string>
-    <string name="quicknote_detail_read_time_fmt">TODO(en): %1$d 分钟</string>
-    <string name="quicknote_detail_word_time_separator">TODO(en): ·</string>
-    <string name="quicknote_detail_edit">TODO(en): 编辑</string>
-    <string name="quicknote_detail_share">TODO(en): 分享</string>
+    <string name="quicknote_detail_title">Note Details</string>
+    <string name="quicknote_detail_word_count_fmt">%1$d words</string>
+    <string name="quicknote_detail_read_time_fmt">%1$d min</string>
+    <string name="quicknote_detail_word_time_separator"> · </string>
+    <string name="quicknote_detail_edit">Edit</string>
+    <string name="quicknote_detail_share">Share</string>
     <string name="quicknote_detail_export_md">Export as Markdown</string>
     <string name="quicknote_detail_export_txt">Export as Text</string>
     <string name="quicknote_search_sort_time">By time</string>
     <string name="quicknote_search_sort_relevance">By relevance</string>
     <string name="quicknote_search_history_title">Search history</string>
-    <string name="quicknote_search_history_clear">Clear history</string>    <string name="quicknote_list_select_mode_title">Selected %1$d</string>
+    <string name="quicknote_search_history_clear">Clear history</string>
+    <string name="quicknote_list_select_mode_title">Selected %1$d</string>
     <string name="quicknote_list_export_selected">Export selected</string>
     <string name="quicknote_export_success">Export successful</string>
-    <string name="quicknote_export_error">Export failed</string>    <string name="quicknote_detail_delete">TODO(en): 删除</string>
-    <string name="quicknote_detail_pin">TODO(en): 固定</string>
-    <string name="quicknote_detail_unpin">TODO(en): 取消固定</string>
+    <string name="quicknote_export_error">Export failed</string>
+    <string name="quicknote_detail_delete">Delete</string>
+    <string name="quicknote_detail_pin">Pin</string>
+    <string name="quicknote_detail_unpin">Unpin</string>
     <string name="quicknote_detail_not_found">Note not found</string>
 
-    <string name="quicknote_editor_title_new">TODO(en): 新建笔记</string>
-    <string name="quicknote_editor_title_edit">TODO(en): 编辑笔记</string>
-    <string name="quicknote_editor_title_hint">TODO(en): 标题(可空)</string>
-    <string name="quicknote_editor_content_hint">TODO(en): 开始写…</string>
-    <string name="quicknote_editor_save">TODO(en): 保存</string>
-    <string name="quicknote_editor_cancel">TODO(en): 取消</string>
+    <string name="quicknote_editor_title_new">New note</string>
+    <string name="quicknote_editor_title_edit">Edit note</string>
+    <string name="quicknote_editor_title_hint">Title (optional)</string>
+    <string name="quicknote_editor_content_hint">Start writing…</string>
+    <string name="quicknote_editor_save">Save</string>
+    <string name="quicknote_editor_cancel">Cancel</string>
 
-    <string name="quicknote_editor_delete_confirm">TODO(en): 确认删除这条笔记?</string>
-    <string name="quicknote_editor_delete_confirm_ok">TODO(en): 删除</string>
-    <string name="quicknote_editor_delete_confirm_cancel">TODO(en): 再想想</string>
+    <string name="quicknote_editor_delete_confirm">Delete this note?</string>
+    <string name="quicknote_editor_delete_confirm_ok">Delete</string>
+    <string name="quicknote_editor_delete_confirm_cancel">Keep</string>
 
-    <string name="quicknote_tag_input_hint">TODO(en): 添加标签(逗号或回车)</string>
-    <string name="quicknote_tag_remove_cd">TODO(en): 移除标签 %1$s</string>
+    <string name="quicknote_tag_input_hint">Add tags (comma or Enter)</string>
+    <string name="quicknote_tag_remove_cd">Remove tag %1$s</string>
 
-    <!-- fix-quicknote-tags-and-search · 英文 TODO 占位 -->
-    <string name="quicknote_search_clear_cd">TODO(en): 清除搜索</string>
-    <string name="quicknote_list_filter_banner_fmt">TODO(en): 当前筛选 #%1$s</string>
-    <string name="quicknote_list_filter_clear_cd">TODO(en): 清除筛选</string>
-    <string name="quicknote_detail_no_tags">TODO(en): 无标签</string>
-    <string name="quicknote_editor_tags_count_fmt">TODO(en): 标签(%1$d 个)</string>
-    <string name="quicknote_editor_tags_saved_fmt">TODO(en): 已挂 %1$s</string>
+    <string name="quicknote_search_clear_cd">Clear search</string>
+    <string name="quicknote_list_filter_banner_fmt">Filtered by #%1$s</string>
+    <string name="quicknote_list_filter_clear_cd">Clear filter</string>
+    <string name="quicknote_detail_no_tags">No tags</string>
+    <string name="quicknote_editor_tags_count_fmt">Tags (%1$d)</string>
+    <string name="quicknote_editor_tags_saved_fmt">Saved %1$s</string>
 
-    <string name="quicknote_share_chooser_title">TODO(en): 分享到…</string>
+    <string name="quicknote_share_chooser_title">Share to…</string>
     <string name="quicknote_share_no_app">No app available to share</string>
 
-    <string name="quicknote_meta_ai_fmt">TODO(en): 上次 AI 操作 · %1$s · %2$s</string>
+    <string name="quicknote_meta_ai_fmt">Last AI op · %1$s · %2$s</string>
 
-    <!-- AI 写作 ai-writing-actions(M3) — 英文 TODO 占位,M5 polish 阶段补齐 -->
     <string name="aiwriting_action_menu">AI actions</string>
     <string name="aiwriting_action_expand">Expand</string>
     <string name="aiwriting_action_polish">Polish</string>
@@ -67,153 +82,156 @@
     <string name="aiwriting_action_summarize">Summarize</string>
     <string name="aiwriting_action_translate">Translate</string>
 
-    <string name="aiwriting_panel_title_expand">TODO(en): aiwriting_panel_title_expand</string>
-    <string name="aiwriting_panel_title_polish">TODO(en): aiwriting_panel_title_polish</string>
-    <string name="aiwriting_panel_title_organize">TODO(en): aiwriting_panel_title_organize</string>
+    <string name="aiwriting_panel_title_expand">Expand</string>
+    <string name="aiwriting_panel_title_polish">Polish</string>
+    <string name="aiwriting_panel_title_organize">Organize</string>
     <string name="aiwriting_panel_title_summarize">Summarize</string>
     <string name="aiwriting_panel_title_translate">Translate</string>
-    <string name="aiwriting_panel_streaming">TODO(en): aiwriting_panel_streaming</string>
+    <string name="aiwriting_panel_streaming">Streaming…</string>
 
-    <string name="aiwriting_panel_cancel">TODO(en): aiwriting_panel_cancel</string>
-    <string name="aiwriting_panel_accept">TODO(en): aiwriting_panel_accept</string>
-    <string name="aiwriting_panel_reject">TODO(en): aiwriting_panel_reject</string>
-    <string name="aiwriting_panel_regenerate">TODO(en): aiwriting_panel_regenerate</string>
-    <string name="aiwriting_panel_close">TODO(en): aiwriting_panel_close</string>
+    <string name="aiwriting_panel_cancel">Cancel</string>
+    <string name="aiwriting_panel_accept">Accept</string>
+    <string name="aiwriting_panel_reject">Reject</string>
+    <string name="aiwriting_panel_regenerate">Regenerate</string>
+    <string name="aiwriting_panel_close">Close</string>
     <string name="aiwriting_panel_retry">Retry</string>
     <string name="aiwriting_panel_go_settings">Settings</string>
     <string name="aiwriting_panel_balance_hint">Try switching to another model</string>
-    <string name="aiwriting_panel_failed_title">TODO(en): aiwriting_panel_failed_title</string>
-    <!-- model-management-detail-dropdown X 方案:Done but finalText empty fallback message -->
+    <string name="aiwriting_panel_failed_title">Failed</string>
     <string name="aiwriting_panel_empty_result">AI returned no content. Check model and protocol compatibility, or regenerate.</string>
 
-    <!-- AI replace / undo -->
     <string name="aiwriting_panel_replaced">Replaced</string>
     <string name="aiwriting_panel_replaced_hint">Text replaced. Undo to revert, or close to keep.</string>
     <string name="aiwriting_panel_undo">Undo</string>
 
-    <string name="aiwriting_panel_usage_fmt">TODO(en): aiwriting_panel_usage_fmt</string>
+    <string name="aiwriting_panel_usage_fmt">In %1$d · Out %2$d</string>
 
-    <string name="aiwriting_error_network">TODO(en): aiwriting_error_network</string>
-    <string name="aiwriting_error_auth">TODO(en): aiwriting_error_auth</string>
-    <string name="aiwriting_error_balance">TODO(en): aiwriting_error_balance</string>
-    <string name="aiwriting_error_timeout">TODO(en): aiwriting_error_timeout</string>
-    <string name="aiwriting_error_unknown">TODO(en): aiwriting_error_unknown</string>
+    <string name="aiwriting_error_network">Network failed. Check connection and retry.</string>
+    <string name="aiwriting_error_auth">Authentication failed. Check API key.</string>
+    <string name="aiwriting_error_balance">Insufficient balance</string>
+    <string name="aiwriting_error_timeout">Request timed out. Try again later.</string>
+    <string name="aiwriting_error_unknown">Something went wrong. Try again later.</string>
     <string name="aiwriting_error_rate_limited">Requests too frequent, please try later</string>
     <string name="aiwriting_error_server">Server error</string>
     <string name="aiwriting_error_cancelled">Cancelled</string>
 
-    <!-- ===== M4-1 桌面小组件 home-screen-widget(英文 TODO 占位,M5 polish 阶段补齐)===== -->
-    <string name="widget_2x2_title">TODO(en): widget_2x2_title</string>
-    <string name="widget_4x2_title">TODO(en): widget_4x2_title</string>
-    <string name="widget_1x4_title">TODO(en): widget_1x4_title</string>
-    <string name="widget_1x1_label">TODO(en): widget_1x1_label</string>
-    <string name="widget_1x4_layout_label">TODO(en): widget_1x4_layout_label</string>
-    <string name="widget_empty">TODO(en): widget_empty</string>
-    <!-- widget-rome-compat(英文 TODO 占位,M5 polish 阶段补齐) -->
-    <string name="widget_rom_miui_hint">TODO(en): widget_rom_miui_hint</string>
-    <string name="widget_rom_emui_hint">TODO(en): widget_rom_emui_hint</string>
-    <string name="widget_rom_coloros_hint">TODO(en): widget_rom_coloros_hint</string>
-    <string name="widget_rom_originos_hint">TODO(en): widget_rom_originos_hint</string>
-    <string name="widget_create_cd">TODO(en): widget_create_cd</string>
-    <string name="widget_open_note_cd">TODO(en): widget_open_note_cd</string>
-    <string name="widget_time_just_now">TODO(en): widget_time_just_now</string>
-    <string name="widget_time_minute_ago">TODO(en): widget_time_minute_ago</string>
-    <string name="widget_time_hour_ago">TODO(en): widget_time_hour_ago</string>
-    <string name="widget_time_day_ago">TODO(en): widget_time_day_ago</string>
-    <string name="widget_time_week_ago">TODO(en): widget_time_week_ago</string>
+    <!-- real-provider-integration · AiError → R.string 映射(10 个 key,English 镜像) -->
+    <string name="ai_error_network">Network failed. Check connection and retry.</string>
+    <string name="ai_error_auth">Authentication failed. Check API key.</string>
+    <string name="ai_error_insufficient_balance">Insufficient balance</string>
+    <string name="ai_error_rate_limited">Requests too frequent, please try later</string>
+    <string name="ai_error_server_error">AI service unavailable. Try again later.</string>
+    <string name="ai_error_timeout">Request timed out. Try again later.</string>
+    <string name="ai_error_user_consent_required">Please accept the privacy terms first</string>
+    <string name="ai_error_provider_not_configured">Configure an API key in Me → AI Models first</string>
+    <string name="ai_error_cancellation">Cancelled</string>
+    <string name="ai_error_unknown">Something went wrong. Try again later.</string>
+    <!-- real-provider-integration §4:Snackbar action 跳模型管理 -->
+    <string name="ai_error_action_go_settings">Settings</string>
 
-    <!-- ===== M4-3 数据迁移 data-export-import(英文 TODO 占位)===== -->
-    <string name="settings_data_title">TODO(en): settings_data_title</string>
-    <string name="settings_data_import">TODO(en): settings_data_import</string>
-    <string name="settings_data_exporting">TODO(en): settings_data_exporting</string>
-    <string name="settings_data_importing">TODO(en): settings_data_importing</string>
-    <string name="settings_data_done">TODO(en): settings_data_done</string>
-    <string name="settings_data_failed">TODO(en): settings_data_failed</string>
-    <string name="settings_data_no_data">TODO(en): settings_data_no_data</string>
-    <!-- last-import-report-save(英文 TODO 占位,M5 polish 阶段补齐) -->
-    <string name="settings_data_save_report">TODO(en): settings_data_save_report</string>
-    <string name="settings_data_report_saved">TODO(en): settings_data_report_saved</string>
-    <string name="settings_data_no_report">TODO(en): settings_data_no_report</string>
+    <string name="widget_2x2_title">Quick Notes</string>
+    <string name="widget_4x2_title">Quick Notes</string>
+    <string name="widget_1x4_title">Quick Notes</string>
+    <string name="widget_1x1_label">Note</string>
+    <string name="widget_1x4_layout_label">4x1 strip</string>
+    <string name="widget_empty">No notes yet\nTap + to create one</string>
+    <string name="widget_rom_miui_hint">On Xiaomi devices, enable autostart in Settings → Battery → Autostart</string>
+    <string name="widget_rom_emui_hint">On Huawei devices, disable auto-management in Settings → Apps → Launch management</string>
+    <string name="widget_rom_coloros_hint">On OPPO devices, disable Sleep standby optimization in Settings → Battery</string>
+    <string name="widget_rom_originos_hint">On vivo devices, allow background high-power usage in Settings → Battery</string>
+    <string name="widget_create_cd">New note</string>
+    <string name="widget_open_note_cd">Open note %1$s</string>
+    <string name="widget_time_just_now">Just now</string>
+    <string name="widget_time_minute_ago">min ago</string>
+    <string name="widget_time_hour_ago">hr ago</string>
+    <string name="widget_time_day_ago">day ago</string>
+    <string name="widget_time_week_ago">wk ago</string>
+
+    <string name="settings_data_title">Data migration</string>
+    <string name="settings_data_import">Import data</string>
+    <string name="settings_data_exporting">Exporting...</string>
+    <string name="settings_data_importing">Importing...</string>
+    <string name="settings_data_done">Done, %1$d notes</string>
+    <string name="settings_data_failed">Export/Import failed: %1$s</string>
+    <string name="settings_data_no_data">No notes to export</string>
+    <string name="settings_data_save_report">Save import report</string>
+    <string name="settings_data_report_saved">Report saved to selected location</string>
+    <string name="settings_data_no_report">No report available to save</string>
     <string name="settings_data_save_failed">Save failed: %1$s</string>
-    <string name="import_report_summary">TODO(en): import_report_summary</string>
+    <string name="import_report_summary">Import complete: %1$d succeeded / %2$d skipped / %3$d failed. See import_report.md for details.</string>
 
-    <!-- ===== M4-4 onboarding-consent(英文 TODO 占位,M5 polish 阶段补齐)===== -->
-    <string name="onboarding_title">TODO(en): onboarding_title</string>
-    <string name="onboarding_subtitle">TODO(en): onboarding_subtitle</string>
-    <string name="onboarding_accept">TODO(en): onboarding_accept</string>
-    <string name="onboarding_reject">TODO(en): onboarding_reject</string>
-    <string name="onboarding_scroll_hint">TODO(en): onboarding_scroll_hint</string>
-    <string name="onboarding_required">TODO(en): onboarding_required</string>
-    <string name="ai_provider_not_configured">TODO(en): ai_provider_not_configured</string>
+    <string name="onboarding_title">Welcome to Xiaozha</string>
+    <string name="onboarding_subtitle">Please read and accept the terms below</string>
+    <string name="onboarding_accept">Accept and continue</string>
+    <string name="onboarding_reject">Reject and exit</string>
+    <string name="onboarding_scroll_hint">Please scroll to the bottom to continue</string>
+    <string name="onboarding_required">Please accept the privacy terms first</string>
+    <string name="ai_provider_not_configured">Configure an AI provider in Settings → AI Models first</string>
 
-    <!-- ===== onboarding-apikey-prompt · Apikey prompt screen(英文 TODO 占位)===== -->
-    <string name="apikey_prompt_title">TODO(en): apikey_prompt_title</string>
-    <string name="apikey_prompt_subtitle">TODO(en): apikey_prompt_subtitle</string>
-    <string name="apikey_prompt_intro">TODO(en): apikey_prompt_intro</string>
-    <string name="apikey_prompt_section_capabilities">TODO(en): apikey_prompt_section_capabilities</string>
-    <string name="apikey_prompt_token_range_fmt">TODO(en): apikey_prompt_token_range_fmt (%1$s / %2$s)</string>
-    <string name="apikey_prompt_cost_disclaimer_inline">TODO(en): apikey_prompt_cost_disclaimer_inline</string>
-    <string name="apikey_prompt_disclaimer">TODO(en): apikey_prompt_disclaimer</string>
-    <string name="apikey_prompt_btn_ack">TODO(en): apikey_prompt_btn_ack</string>
-    <string name="apikey_prompt_btn_skip">TODO(en): apikey_prompt_btn_skip</string>
-    <string name="apikey_prompt_btn_dismiss">TODO(en): apikey_prompt_btn_dismiss</string>
-    <string name="reset_apikey_prompt_label">TODO(en): reset_apikey_prompt_label</string>
-    <string name="reset_apikey_prompt_dialog_title">TODO(en): reset_apikey_prompt_dialog_title</string>
-    <string name="reset_apikey_prompt_dialog_message">TODO(en): reset_apikey_prompt_dialog_message</string>
-    <string name="reset_apikey_prompt_dialog_confirm">TODO(en): reset_apikey_prompt_dialog_confirm</string>
-    <string name="reset_apikey_prompt_toast">TODO(en): reset_apikey_prompt_toast</string>
-    <string name="secure_prefs_hidden_label">TODO(en): secure_prefs_hidden_label</string>
-    <string name="secure_prefs_reveal_button">TODO(en): secure_prefs_reveal_button</string>
-    <string name="secure_prefs_copy_button">TODO(en): secure_prefs_copy_button</string>
-    <string name="secure_prefs_clear_button">TODO(en): secure_prefs_clear_button</string>
+    <string name="apikey_prompt_title">About API Key</string>
+    <string name="apikey_prompt_subtitle">Enter your API key to enable AI writing</string>
+    <string name="apikey_prompt_intro">This app calls third-party AI services to expand, polish, organize, and link notes. You need to bring your own API key (DeepSeek / MiniMax / MiMo, etc.). All fees are billed directly by the provider; this app does not handle payments.</string>
+    <string name="apikey_prompt_section_capabilities">AI capabilities &amp; reference cost</string>
+    <string name="apikey_prompt_token_range_fmt">About %1$s input / %2$s output tokens per call</string>
+    <string name="apikey_prompt_cost_disclaimer_inline">Based on provider\'s actual billing</string>
+    <string name="apikey_prompt_disclaimer">These are reference values. Actual cost depends on the provider\'s billing. This app does not handle payments.</string>
+    <string name="apikey_prompt_btn_ack">Got it</string>
+    <string name="apikey_prompt_btn_skip">Set up later</string>
+    <string name="apikey_prompt_btn_dismiss">Cancel</string>
+    <string name="reset_apikey_prompt_label">Show API key intro again</string>
+    <string name="reset_apikey_prompt_dialog_title">Reset prompt</string>
+    <string name="reset_apikey_prompt_dialog_message">The API key intro will be shown again next time you use an AI feature. Continue?</string>
+    <string name="reset_apikey_prompt_dialog_confirm">Confirm reset</string>
+    <string name="reset_apikey_prompt_toast">Reset done. Intro will show on next AI call.</string>
 
-    <!-- ===== M5 custom-prompt-template(英文 TODO 占位,M5 polish 阶段补齐)===== -->
-    <string name="settings_title">TODO(en): settings_title</string>
+    <string name="secure_prefs_hidden_label">••••••••</string>
+    <string name="secure_prefs_reveal_button">Reveal</string>
+    <string name="secure_prefs_copy_button">Copy</string>
+    <string name="secure_prefs_clear_button">Clear</string>
 
-    <!-- ===== provider-real-integration 模型管理 model-management ===== -->
-    <string name="model_management_title">TODO(en): model_management_title</string>
-    <string name="model_management_subtitle">TODO(en): model_management_subtitle</string>
-    <string name="model_provider_deepseek">TODO(en): model_provider_deepseek</string>
-    <string name="model_provider_minimax">TODO(en): model_provider_minimax</string>
-    <string name="model_provider_mimo">TODO(en): model_provider_mimo</string>
-    <string name="model_management_test_ping">TODO(en): model_management_test_ping</string>
-    <string name="model_management_ping_idle">TODO(en): model_management_ping_idle</string>
-    <string name="model_management_ping_success">TODO(en): model_management_ping_success</string>
-    <string name="model_management_ping_failed">TODO(en): model_management_ping_failed</string>
-    <string name="model_provider_detail_base_url">TODO(en): model_provider_detail_base_url</string>
-    <string name="model_provider_detail_save">TODO(en): model_provider_detail_save</string>
-    <string name="model_provider_detail_show_key">TODO(en): model_provider_detail_show_key</string>
-    <string name="model_provider_detail_saved_toast">TODO(en): model_provider_detail_saved_toast</string>
-    <string name="settings_prompt_title">TODO(en): settings_prompt_title</string>
-    <string name="prompt_op_expand">TODO(en): prompt_op_expand</string>
-    <string name="prompt_op_polish">TODO(en): prompt_op_polish</string>
-    <string name="prompt_op_organize">TODO(en): prompt_op_organize</string>
-    <string name="prompt_hint">TODO(en): prompt_hint</string>
-    <string name="prompt_hint_label">TODO(en): prompt_hint_label</string>
-    <string name="prompt_reset_default">TODO(en): prompt_reset_default</string>
-    <string name="prompt_save">TODO(en): 保存</string>
-    <string name="prompt_hint_v2">TODO(en): prompt_hint_v2</string>
-    <string name="back_press_exit_hint">TODO(en): 再按一次退出应用</string>
+    <string name="settings_title">Settings</string>
 
-    <!-- fix-ai-config-ux · 模型管理强化(英文 TODO 占位) -->
-    <string name="model_management_status_configured">TODO(en): 已配置</string>
-    <string name="model_management_status_not_configured">TODO(en): 未配置</string>
-    <string name="model_management_status_enabled">TODO(en): 已启用</string>
-    <string name="model_management_btn_configure">TODO(en): 配置</string>
-    <string name="model_management_btn_modify">TODO(en): 修改</string>
-    <string name="model_provider_detail_save_override">TODO(en): 保存(覆盖)</string>
-    <string name="model_provider_detail_banner_new">TODO(en): 新配置</string>
-    <string name="model_provider_detail_banner_existing">TODO(en): 已配置 · 点下方覆盖</string>
-    <string name="model_provider_detail_placeholder_new">TODO(en): 输入 API Key</string>
-    <string name="model_provider_detail_placeholder_override">TODO(en): 输入新 key 覆盖旧的</string>
+    <string name="model_management_title">AI Model Management</string>
+    <string name="model_management_subtitle">Select an AI provider and enter apikey to enable real AI streaming output</string>
+    <string name="model_provider_deepseek">DeepSeek</string>
+    <string name="model_provider_minimax">MiniMax</string>
+    <string name="model_provider_mimo">Xiaomi MiMo</string>
+    <string name="model_management_test_ping">Test connection</string>
+    <string name="model_management_ping_idle">Not tested</string>
+    <string name="model_management_ping_success">Available · %1$dms</string>
+    <string name="model_management_ping_failed">Failed: %1$s</string>
+    <string name="model_provider_detail_base_url">Base URL</string>
+    <string name="model_provider_detail_save">Save</string>
+    <string name="model_provider_detail_show_key">Show API Key</string>
+    <string name="model_provider_detail_saved_toast">Saved</string>
+    <string name="settings_prompt_title">AI Prompt Template</string>
+    <string name="prompt_op_expand">Expand</string>
+    <string name="prompt_op_polish">Polish</string>
+    <string name="prompt_op_organize">Organize</string>
+    <string name="prompt_hint">Customize the system prompt for AI ops. Empty uses default. Takes effect on next AI call.</string>
+    <string name="prompt_hint_label">System prompt content</string>
+    <string name="prompt_reset_default">Restore default</string>
+    <string name="prompt_save">Save</string>
+    <string name="prompt_hint_v2">Customize the system prompt for AI ops. Save to apply; empty uses default.</string>
+    <string name="back_press_exit_hint">Press back again to exit</string>
 
-    <!-- C4 修:VM 不再硬编码中文,改为 messageRes + rawDetail,UI 层 stringResource 渲染 -->
+    <string name="model_management_status_configured">Configured</string>
+    <string name="model_management_status_not_configured">Not configured</string>
+    <string name="model_management_status_enabled">Enabled</string>
+    <string name="model_management_btn_configure">Configure</string>
+    <string name="model_management_btn_modify">Modify</string>
+    <string name="model_provider_detail_save_override">Save (override)</string>
+    <string name="model_provider_detail_banner_new">New configuration</string>
+    <string name="model_provider_detail_banner_existing">Configured · tap below to override</string>
+    <string name="model_provider_detail_placeholder_new">Enter API Key</string>
+    <string name="model_provider_detail_placeholder_override">Enter new key to override</string>
+    <string name="model_provider_detail_btn_update_key">Update API key</string>
+
     <string name="model_provider_detail_api_key_label">API Key</string>
     <string name="model_provider_detail_save_failed_fmt">Save failed: %1$s</string>
     <string name="model_management_error_unknown">Unknown error</string>
     <string name="model_management_error_no_apikey">API key not configured</string>
 
-    <!-- model-management-detail-dropdown · protocol + model dropdown -->
     <string name="model_provider_detail_api_format_label">Protocol</string>
     <string name="model_provider_detail_api_format_anthropic">Anthropic compatible</string>
     <string name="model_provider_detail_api_format_openai">OpenAI compatible</string>
@@ -221,7 +239,6 @@
     <string name="model_provider_detail_model_default_suffix">(default)</string>
     <string name="model_provider_detail_base_url_locked_hint">Endpoint preset by provider; not editable</string>
 
-    <!-- note-association -->
     <string name="note_association_section_title">Related</string>
     <string name="note_association_related_title">Related Notes</string>
     <string name="note_association_related_empty">No related notes yet</string>
@@ -240,7 +257,6 @@
     <string name="note_association_signal_ai">AI</string>
     <string name="note_association_signal_backlink">Ref</string>
 
-    <!-- feishu-bidir-sync -->
     <string name="quicknote_detail_sync_to_feishu">Sync to Feishu</string>
     <string name="quicknote_detail_pull_from_feishu">Pull from Feishu URL</string>
     <string name="quicknote_detail_open_in_feishu">Open in Feishu</string>
@@ -263,7 +279,6 @@
     <string name="feishu_clip_label_error">feishu_error</string>
     <string name="note_association_signal_entity">Entity</string>
 
-    <!-- entity-extraction-association · alias management + threshold + backfill progress -->
     <string name="entity_alias_management_title">Entity alias management</string>
     <string name="entity_alias_explanation_title">What is an entity alias?</string>
     <string name="entity_alias_explanation_body">An entity alias merges different spellings of the same real-world entity into one canonical entity. For example, if your notes mention 小明, 小名, and XiaoMing — they are the same person. Merge them to the canonical 小明, and AI association/linking will treat them as one entity, avoiding duplicates and gaps.</string>
@@ -295,7 +310,6 @@
     <string name="entity_type_number">Number</string>
     <string name="quicknote_detail_add_image">Add image</string>
 
-    <!-- ===== app-bottom-tab-bar · bottom tab bar + Me screen ===== -->
     <string name="tab_notes">Notes</string>
     <string name="tab_my">Me</string>
     <string name="tab_new_note_cd">New note</string>
@@ -304,22 +318,35 @@
     <string name="me_model_title">AI Models</string>
     <string name="me_prompt_title">Prompt Template</string>
     <string name="me_alias_title">Entity Aliases</string>
-    <string name="me_feishu_title">Feishu Sync</string>
+    <string name="me_feishu_title">Feishu Auth</string>
+    <string name="me_note_association_title">Note Association</string>
     <string name="me_settings_title">Settings</string>
+    <string name="me_section_ai_config">AI</string>
+    <string name="me_section_display">Display</string>
+    <string name="me_section_data">Data Management</string>
+    <string name="me_section_about">About</string>
     <string name="feishu_auth_title">Feishu Authorization</string>
     <string name="feishu_command_prompt_intro">Available Feishu operations: create_doc / read_doc / update_doc / append_block</string>
     <string name="me_about_title">About</string>
     <string name="me_data_export_all">Export all as ZIP</string>
 
-    <!-- app-self-hosted-update · About screen + update dialog -->
-    <!-- H8 · FeishuAuthScreen 权限说明 -->
+    <!-- ux-2026-06-28 #7:About screen "Check for update" entry + feedback -->
+    <string name="me_check_update_title">Check for update</string>
+    <string name="me_check_update_checking">Checking…</string>
+    <string name="me_check_update_up_to_date_fmt">Up to date v%1$s</string>
+    <string name="me_check_update_failed">Check failed, try later</string>
+    <string name="me_check_update_dialog_title">New version available</string>
+    <string name="me_check_update_dialog_remote_version_fmt">New version v%1$s</string>
+    <string name="me_check_update_btn_download">Download</string>
+    <string name="me_check_update_btn_later">Later</string>
+
     <string name="common_back">Back</string>
     <string name="common_more_cd">More options</string>
     <string name="common_remove_cd">Remove</string>
     <string name="common_add_cd">Add</string>
+    <string name="common_close">Close</string>
     <string name="common_acknowledge">Got it</string>
 
-    <!-- entity-extraction-polish §4.5:Note association settings -->
     <string name="note_association_settings_title">Note Association</string>
     <string name="note_association_threshold_label">Association threshold</string>
     <string name="note_association_threshold_value_fmt">Current: %1$.2f</string>
@@ -337,7 +364,6 @@
     <string name="note_association_migration_banner">Default threshold tightened from 0.25 to 0.10; raise if too strict</string>
     <string name="note_association_settings_entry_desc">Threshold · Pause · Re-run · Progress</string>
 
-    <!-- H8 · FeishuAuthScreen (feishu-user-oauth) -->
     <string name="feishu_oauth_title">Feishu Auth</string>
     <string name="feishu_oauth_app_id_label">App ID</string>
     <string name="feishu_oauth_login_button">Login with Feishu</string>
@@ -345,7 +371,174 @@
     <string name="feishu_oauth_connected">Connected to Feishu account</string>
     <string name="feishu_oauth_keystore_unavailable">Encrypted storage unavailable, check system keystore</string>
 
-    <!-- H8 · FeishuAuthScreen (feishu-user-oauth) — 复用 -->
-    <string name="feishu_oauth_authorization_intro">Authorize with your Feishu account. Documents you create will appear under "My Documents".</string>
+    <string name="feishu_oauth_authorization_intro">Authorize with your Feishu account. Documents you create will appear under \"My Documents\".</string>
     <string name="feishu_oauth_required_permissions">Required permissions: docx:document, drive:drive. Enable them in Feishu Open Platform → Permission Management. Takes about 1 minute to take effect.</string>
+    <string name="feishu_oauth_error_appid_empty">App ID cannot be empty</string>
+    <string name="feishu_oauth_error_secret_empty">App Secret cannot be empty</string>
+    <string name="feishu_oauth_error_launch_failed">Failed to launch Feishu OAuth</string>
+    <!-- ux-2026-06-28:Android Keystore unavailable (e.g. ColorOS rkpd_client failure) -->
+    <string name="feishu_oauth_error_keystore_unavailable">Android Keystore unavailable. Check Settings → Security → Credential storage and retry.</string>
+    <!-- ux-2026-06-28:no browser/CustomTabs handler found -->
+    <string name="feishu_oauth_error_browser_unavailable">No browser available. Install Chrome or another browser and retry.</string>
+    <!-- ux-2026-06-28:add secret input + callback URL display + feishu open platform setup steps -->
+    <!-- H4 fix:OAuthCodeReceiver Toast messages (previously hardcoded Chinese) -->
+    <string name="feishu_oauth_state_expired">Auth failed: state expired or missing, please retry</string>
+    <string name="feishu_oauth_state_mismatch">Auth failed: state validation failed</string>
+    <string name="feishu_oauth_success">Feishu auth succeeded</string>
+    <string name="feishu_oauth_failed">Auth failed</string>
+    <string name="feishu_oauth_exchange_failed_fmt">Auth failed: %1$s</string>
+    <string name="feishu_oauth_exchange_network_fmt">Auth failed: network error %1$s</string>
+    <string name="feishu_oauth_exchange_unknown">Auth failed: unknown error</string>
+
+    <string name="feishu_oauth_app_secret_label">App Secret</string>
+    <string name="feishu_oauth_secret_helper">Stored encrypted on device only, never sent in URL, never leaves device</string>
+    <string name="feishu_oauth_setup_steps_title">Feishu Open Platform setup</string>
+    <string name="feishu_oauth_setup_step1">1. Open https://open.feishu.cn/app and select your app</string>
+    <string name="feishu_oauth_setup_step2">2. In \"Security Settings → Redirect URL\" add exactly this URL:</string>
+    <string name="feishu_oauth_setup_step3">3. In \"Permissions\" enable docx:document and drive:drive</string>
+    <string name="feishu_oauth_setup_step4">4. In \"Version Management\" create and publish a version (only for self-built apps)</string>
+    <string name="feishu_oauth_setup_step5">5. Copy App ID and App Secret from \"Credentials\" into the form above</string>
+    <string name="feishu_oauth_redirect_uri_label">Callback URL</string>
+    <string name="feishu_oauth_redirect_uri_helper">Tap to copy, paste it into the Feishu Open Platform field</string>
+
+    <!-- feishu-sync-end-to-end · settings sync log section + conflict dialog -->
+    <string name="feishu_sync_log_title">Feishu sync log</string>
+    <string name="feishu_sync_log_disclaimer">Sync uses no AI tokens, only Feishu API</string>
+    <string name="feishu_sync_log_empty">No sync events yet</string>
+    <string name="feishu_sync_direction_push">Push</string>
+    <string name="feishu_sync_direction_pull">Pull</string>
+    <string name="feishu_sync_direction_bidir">Bidirectional</string>
+    <string name="feishu_sync_status_ok">OK</string>
+    <string name="feishu_sync_status_error">Error</string>
+    <string name="feishu_sync_status_fallback_to_update">Fallback to update</string>
+    <string name="feishu_conflict_title">Feishu sync conflict</string>
+    <string name="feishu_conflict_body">Both local and Feishu have been edited. Choose which version to keep:</string>
+    <string name="feishu_conflict_local_label">Local version:</string>
+    <string name="feishu_conflict_remote_label">Feishu version:</string>
+    <string name="feishu_conflict_keep_local">Keep local</string>
+    <string name="feishu_conflict_keep_remote">Keep Feishu</string>
+    <string name="feishu_conflict_cancel">Cancel</string>
+
+    <!-- ===== M6 custom-model · Custom Provider ===== -->
+    <string name="custom_provider_new_title">New custom model</string>
+    <string name="custom_provider_edit_title">Edit custom model</string>
+    <string name="custom_provider_tag_custom">Custom</string>
+
+    <string name="custom_provider_section_connection">Connection</string>
+    <string name="custom_provider_section_models_auth">Models &amp; Auth</string>
+    <string name="custom_provider_section_advanced">Advanced</string>
+
+    <string name="custom_provider_display_name_label">Display name</string>
+    <string name="custom_provider_display_name_hint">e.g. My Claude</string>
+    <!-- ux-2026-06-28 #3:full URL — user enters the complete endpoint incl. path, no more Base URL + Endpoint split. -->
+    <string name="custom_provider_base_url_label">Full URL</string>
+    <string name="custom_provider_base_url_hint">e.g. https://api.example.com/v1/messages</string>
+    <string name="custom_provider_base_url_helper">Anthropic-compatible — enter the full URL ending in /v1/messages</string>
+
+    <string name="custom_provider_auth_style_label">Auth style</string>
+    <string name="custom_provider_auth_style_authorization">Authorization: Bearer &lt;key&gt;</string>
+    <string name="custom_provider_auth_style_x_api_key">X-API-Key: &lt;key&gt;</string>
+    <string name="custom_provider_auth_style_custom_header">Custom Header</string>
+    <string name="custom_provider_custom_header_label">Custom header name</string>
+    <string name="custom_provider_custom_header_hint">e.g. api-key</string>
+    <string name="custom_provider_default_model_label">Default model</string>
+    <string name="custom_provider_default_model_hint">e.g. gpt-4</string>
+    <string name="custom_provider_supported_models_label">Supported models</string>
+    <string name="custom_provider_add_model_hint">Press Enter after each model</string>
+
+    <string name="custom_provider_endpoint_path_label">Endpoint Path</string>
+    <string name="custom_provider_endpoint_path_hint">e.g. /chat/completions</string>
+    <string name="custom_provider_api_format_label">API format</string>
+    <string name="custom_provider_api_format_anthropic">Anthropic compatible</string>
+    <string name="custom_provider_api_format_openai">OpenAI compatible</string>
+
+    <string name="custom_provider_test_connection">Test connection</string>
+    <string name="custom_provider_ping_testing">Testing…</string>
+
+    <string name="custom_provider_error_missing_fields">Fill required fields</string>
+    <string name="custom_provider_error_missing_apikey">Enter API Key</string>
+    <string name="custom_provider_error_id_builtin_collision">ID collides with a built-in model; pick another</string>
+    <string name="custom_provider_error_not_found">This custom model no longer exists</string>
+    <string name="custom_provider_error_fmt">%1$s: %2$s</string>
+
+    <string name="custom_provider_save">Save</string>
+    <string name="custom_provider_menu_edit">Edit</string>
+    <string name="custom_provider_menu_delete">Delete</string>
+    <string name="custom_provider_delete_title">Delete custom model</string>
+    <string name="custom_provider_delete_message">Delete this custom model? The API key will also be cleared.</string>
+    <string name="custom_provider_delete_confirm">Delete</string>
+    <string name="custom_provider_delete_cancel">Cancel</string>
+
+    <string name="model_management_models_summary_selected_fmt">%1$d models · Selected %2$s</string>
+    <string name="model_management_models_summary_default_fmt">%1$d models</string>
+    <!-- fix-2026-06-28-ai-model-selection-actually-used:card shows "actually call" model -->
+    <string name="model_management_actual_call_fmt">Will actually call: %1$s</string>
+    <string name="model_management_actual_call_using">Will use: %1$s</string>
+    <string name="model_management_dropdown_save_failed">Model switch failed, please retry</string>
+    <string name="model_provider_detail_default_model_fmt">Default model: %1$s</string>
+
+    <!-- ux-2026-06-28 #4:card top-right badge — built-in vs custom, replaces inline tag -->
+    <string name="model_management_badge_builtin">Built-in</string>
+    <string name="model_management_badge_custom">Custom</string>
+
+    <string name="quicknote_untitled">Untitled</string>
+
+    <string name="settings_cloud_sync">Cloud sync</string>
+    <string name="settings_cloud_sync_status">Not configured</string>
+    <string name="settings_cloud_sync_connect">Connect</string>
+
+    <!-- ===== v1 internal testing ===== -->
+    <string name="internal_testing_title">Internal Testing</string>
+    <string name="internal_testing_howto">This is a 5-person internal test build (self-use + friends). Debug channel only. To participate, contact the owner directly.</string>
+    <string name="internal_testing_scope_title">Test scope</string>
+    <string name="internal_testing_scope_body">5 testers across 5 device roles: Xiaomi MIUI / Huawei HarmonyOS / OPPO ColorOS / vivo OriginOS / Other. Each tester covers their device\'s widget, predictive back, and AI op quirks.</string>
+    <string name="internal_testing_feedback_title">Feedback channel</string>
+    <string name="internal_testing_feedback_body">Send bug reports via the configured channel — see docs/usage/feedback-channel.md.</string>
+    <string name="internal_testing_known_issues_hint">Before reporting, check docs/usage/known-issues.md. Your issue may already be tracked with a workaround.</string>
+    <string name="internal_testing_apk_location">Download APK from nananxue.cn/app/debug/</string>
+    <string name="internal_testing_duration">Internal testing lasts 4 weeks from first APK release. After that we cut a release candidate if no blocker bugs remain.</string>
+    <string name="internal_testing_release_gate">Release channel will not open until all known issues reach [resolved] / [won\'t fix] / [deferred-accepted], and 0 blocker bugs in feedback.</string>
+    <string name="internal_testing_provider_label">Real provider check (DeepSeek)</string>
+    <string name="internal_testing_provider_body">Verify the DeepSeek checklist in docs/usage/real-provider-integration.md before reporting AI op bugs.</string>
+
+    <!-- provider_step_* mirrors real-provider-integration.md DeepSeek checklist -->
+    <string name="provider_step_1_install">Step 1: Install the debug APK; launcher shows the Xiaozha icon.</string>
+    <string name="provider_step_2_consent">Step 2: On first launch, scroll the consent page to the bottom, tap "Accept and continue".</string>
+    <string name="provider_step_3_apikey_intro">Step 3: On the API key intro screen, read it and tap "Got it".</string>
+    <string name="provider_step_4_note_and_ai">Step 4: Open Quick Notes, write a note, open detail, select text, tap the AI button. Action sheet appears.</string>
+    <string name="provider_step_5_open_model_mgmt">Step 5: Open Me → Settings → AI Models. Verify 4 cards: DeepSeek / MiniMax / MiMo / Custom.</string>
+    <string name="provider_step_6_configure_deepseek">Step 6: Tap the DeepSeek card. API Key field is empty; default model is deepseek-v4-flash. Paste your DeepSeek apikey and Save. Toast shows "Saved".</string>
+    <string name="provider_step_7_trigger_expand">Step 7: Back to note detail, retrigger AI button, tap Expand. Streaming panel shows generated content within seconds.</string>
+    <string name="provider_step_8_verify_history">Step 8: Optional — check the ai_history table or logcat to confirm token usage and latency were recorded.</string>
+
+    <!-- ===== animation-system-and-consent-redesign · Animation style (anim_*) ===== -->
+    <string name="action_back">Back</string>
+    <string name="anim_style_title">Animation style</string>
+    <string name="anim_style_minimal">Minimal</string>
+    <string name="anim_style_minimal_desc">Fast and light; barely noticeable but smooth</string>
+    <string name="anim_style_fluid">Fluid</string>
+    <string name="anim_style_fluid_desc">Spring physics with organic overshoot</string>
+    <string name="anim_style_immersive">Immersive</string>
+    <string name="anim_style_immersive_desc">Large slide, dramatic; iOS-style push</string>
+    <string name="anim_style_none">None</string>
+    <string name="anim_style_none_desc">Instant switch, no animation (system reduce-motion)</string>
+    <string name="anim_style_reduce_motion_banner">System \"reduce motion\" is on — switched to None automatically</string>
+    <string name="anim_style_preview_nav">Navigation</string>
+    <string name="anim_style_preview_tab">Tab</string>
+
+    <!-- ===== Consent page card summaries (consent_section_*) ===== -->
+    <string name="consent_section_data_summary">Notes are stored in a local database. Export/import uses ZIP. Cloud sync is off by default.</string>
+    <string name="consent_section_ai_summary">AI features rely on third-party services. You provide the API key; fees are billed directly by the provider.</string>
+    <string name="consent_section_third_party_summary">No AI provider is bundled. All calls go through your configured endpoint using a standard protocol.</string>
+    <string name="consent_section_withdraw_summary">Clear app data or uninstall in Settings to withdraw consent. Withdrawing clears local notes and the consent state.</string>
+    <string name="consent_section_contact_summary">Bug reports: use the in-app feedback channel. Email listed on the About page.</string>
+
+    <!-- ===== Consent page bottom bar (consent_*) ===== -->
+    <string name="consent_accept">Accept and continue</string>
+    <string name="consent_decline">Reject and exit</string>
+    <string name="consent_bottom_hint">Scroll to the bottom to continue</string>
+    <string name="consent_bottom_ready">All sections reviewed</string>
+
+    <!-- ===== Consent page policy load failure fallback ===== -->
+    <string name="onboarding_policy_load_failed">Could not load privacy policy. Check your network and retry.</string>
 </resources>

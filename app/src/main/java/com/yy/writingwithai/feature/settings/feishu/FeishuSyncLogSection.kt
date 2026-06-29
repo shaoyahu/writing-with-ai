@@ -10,50 +10,43 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventDao
+import com.yy.writingwithai.R
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
 import com.yy.writingwithai.core.feishu.sync.SyncDirection
 import java.text.DateFormat
 import java.util.Date
 
 /**
- * fix-2026-06-26-review-r3 M2:`DateFormat` 实例提到顶层,避免 `SyncEventRow` 每行 / 每次
- * 重组重新构造。`DateFormat.getDateTimeInstance` 内部用 `Calendar.getInstance` + 缓存
- * `DateFormatSymbols`,构造开销小但频繁;顶部同步日志滚动时常驻可见。
+ * ThreadLocal DateFormat:DateFormat / SimpleDateFormat 非线程安全,共享顶层实例在并行
+ * 重组下会损坏 Calendar 状态。每个线程持一份,format() 互不干扰。
  */
-private val SYNC_EVENT_TIME_FORMAT =
-    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM)
+private val SYNC_EVENT_TIME_FORMAT: ThreadLocal<DateFormat> =
+    ThreadLocal.withInitial { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM) }
 
 /**
  * feishu-bidir-sync · 设置页「飞书同步日志」section(tasks §7)。
+ *
+ * feishu-sync-end-to-end 重构:本 section 纯渲染,数据由 caller 通过 [events] 传入
+ * (caller 用 [FeishuSyncEventDao.observeLast] collectAsStateWithLifecycle 拿响应式 list)。
  *
  * 显示最近 20 条 sync event;每条:时间 / 方向 / 状态 / 错误。
  * 顶部 disclaimer:同步不消耗 AI token。
  */
 @Composable
-fun FeishuSyncLogSection(eventDao: FeishuSyncEventDao, modifier: Modifier = Modifier) {
-    var events by remember { mutableStateOf<List<FeishuSyncEventEntity>>(emptyList()) }
-    LaunchedEffect(Unit) {
-        events = eventDao.listLast(20)
-    }
-
+fun FeishuSyncLogSection(events: List<FeishuSyncEventEntity>, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
-            text = "飞书同步日志",
+            text = stringResource(R.string.feishu_sync_log_title),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Medium
         )
         Spacer(Modifier.padding(top = 2.dp))
         Text(
-            text = "同步不消耗 AI token,只调飞书 API",
+            text = stringResource(R.string.feishu_sync_log_disclaimer),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -61,7 +54,7 @@ fun FeishuSyncLogSection(eventDao: FeishuSyncEventDao, modifier: Modifier = Modi
         HorizontalDivider()
         if (events.isEmpty()) {
             Text(
-                text = "暂无同步记录",
+                text = stringResource(R.string.feishu_sync_log_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -77,17 +70,25 @@ fun FeishuSyncLogSection(eventDao: FeishuSyncEventDao, modifier: Modifier = Modi
 
 @Composable
 private fun SyncEventRow(event: FeishuSyncEventEntity) {
-    val directionText = when (event.direction) {
-        SyncDirection.PUSH -> "推送"
-        SyncDirection.PULL -> "拉取"
-        SyncDirection.BIDIR -> "双向"
+    val directionRes = when (event.direction) {
+        SyncDirection.PUSH -> R.string.feishu_sync_direction_push
+        SyncDirection.PULL -> R.string.feishu_sync_direction_pull
+        SyncDirection.BIDIR -> R.string.feishu_sync_direction_bidir
     }
-    val timeText = SYNC_EVENT_TIME_FORMAT.format(Date(event.createdAt))
+    val statusRes = when (event.status) {
+        "OK" -> R.string.feishu_sync_status_ok
+        "ERROR" -> R.string.feishu_sync_status_error
+        "FALLBACK_TO_UPDATE" -> R.string.feishu_sync_status_fallback_to_update
+        else -> null
+    }
+    val directionText = stringResource(directionRes)
+    val statusText = statusRes?.let { stringResource(it) } ?: event.status
+    val timeText = SYNC_EVENT_TIME_FORMAT.get().format(Date(event.createdAt))
 
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "$directionText · ${event.status}",
+                text = "$directionText · $statusText",
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium
             )

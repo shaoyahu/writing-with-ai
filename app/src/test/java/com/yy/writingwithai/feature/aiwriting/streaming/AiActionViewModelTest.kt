@@ -54,6 +54,9 @@ class AiActionViewModelTest {
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(dispatcher)
+        // fix-2026-06-28-ai-model-selection-actually-used:VM.start 调 aiGateway.listProviders()
+        // 拿 defaultModel(走 resolveActualModel 算 actualModel);默认返空,fake provider 路径继续。
+        coEvery { aiGateway.listProviders() } returns emptyList()
     }
 
     @AfterEach
@@ -63,7 +66,7 @@ class AiActionViewModelTest {
 
     @Test
     fun start_drives_state_to_done_with_accumulated_text() = runTest {
-        coEvery { aiGateway.streamWritingOp(WritingOp.EXPAND, "x", "fake", any(), null, any()) } returns
+        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } returns
             flowOf(
                 AiStreamEvent.Delta("你"),
                 AiStreamEvent.Delta("好"),
@@ -95,7 +98,7 @@ class AiActionViewModelTest {
     fun accept_replace_upserts_and_writes_ai_metadata() = runTest {
         val note = sampleNote("n1", content = "x")
         val noteWithTags = NoteWithTags(note, emptyList())
-        coEvery { aiGateway.streamWritingOp(WritingOp.POLISH, "x", "fake", any(), null, any()) } returns
+        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } returns
             flowOf(AiStreamEvent.Delta("新"), AiStreamEvent.Done)
         // M2 修后:acceptReplace 用 observeNoteWithTags 一次 IO 拿 Note + tags,不再单独调 getNote。
         coEvery { noteRepository.observeNoteWithTags("n1") } returns flowOf(noteWithTags)
@@ -129,7 +132,7 @@ class AiActionViewModelTest {
 
     @Test
     fun reject_does_not_touch_repository() = runTest {
-        coEvery { aiGateway.streamWritingOp(WritingOp.EXPAND, "x", "fake", any(), null, any()) } returns
+        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } returns
             flowOf(AiStreamEvent.Delta("新"), AiStreamEvent.Done)
 
         val vm =
@@ -155,7 +158,7 @@ class AiActionViewModelTest {
 
     @Test
     fun failed_event_drives_state_to_failed_and_dismiss_returns_to_idle() = runTest {
-        coEvery { aiGateway.streamWritingOp(WritingOp.EXPAND, "x", "fake", any(), null, any()) } returns
+        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } returns
             flowOf(AiStreamEvent.Failed(AiError.Network(500, "timeout"), recoverable = true))
 
         val vm =
@@ -182,7 +185,7 @@ class AiActionViewModelTest {
     @Test
     fun regenerate_reuses_last_op_source_and_noteId() = runTest {
         val seq = mutableListOf<WritingOp>()
-        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any()) } answers {
+        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } answers {
             val op = firstArg<WritingOp>()
             seq.add(op)
             flowOf(AiStreamEvent.Delta("v${seq.size}"), AiStreamEvent.Done)
@@ -212,7 +215,7 @@ class AiActionViewModelTest {
     @Test
     fun cancel_during_streaming_returns_to_idle() = runTest {
         val channel = Channel<AiStreamEvent>(capacity = Channel.UNLIMITED)
-        coEvery { aiGateway.streamWritingOp(WritingOp.EXPAND, "x", "fake", any(), null, any()) } returns
+        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } returns
             channel.consumeAsFlow()
 
         val vm =

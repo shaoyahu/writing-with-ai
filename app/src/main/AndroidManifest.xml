@@ -78,7 +78,14 @@
         </receiver>
 
         <!-- feishu-user-oauth · 回调接收 Activity。
-             OAuthLauncher.REDIRECT_URI 与此处的 scheme/host/path 必须一致。 -->
+             OAuthLauncher.REDIRECT_URI 与此处的 scheme/host/path 必须一致。
+             ux-2026-06-29 r2:不用 taskAffinity="" 隔离 task。原因:独立 task 时
+             receiver finish 后系统回退到 intent source(浏览器 task),startMainActivity
+             创建的 MainActivity task 反而不是"front"task,用户被丢回浏览器。
+             改用默认 affinity → receiver 跟 MainActivity 共享同一 task → receiver
+             finish 时 MainActivity 在同 task back stack 下方自动顶上,用户留在 app。
+             re-delivery(手动开 app 触发原始 intent 重投)由 OAuthCodeReceiver.onCreate
+             内的 hasPendingExchange 幂等检查兜底,不依赖 task 隔离。 -->
         <activity
             android:name=".core.feishu.auth.OAuthCodeReceiver"
             android:exported="true"
@@ -125,6 +132,24 @@
     <queries>
         <intent>
             <action android:name="android.intent.action.INSTALL_PACKAGE" />
+        </intent>
+
+        <!-- 飞书 OAuth · targetSdk 30+ 包可见性:声明 ACTION_VIEW + http/https intent,
+             否则 CustomTabsIntent.launchUrl 与 ACTION_VIEW fallback 解析不到任何浏览器 →
+             ActivityNotFoundException → 误报「未找到可用的浏览器」(跟设备有没有自带浏览器
+             无关,Android 11+ 默认屏蔽未声明的 intent visibility)。
+             Custom Tabs service 声明供 androidx.browser 在选默认 chrome custom tab provider
+             时用,不在 <queries> 时同样解析不到。 -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
         </intent>
     </queries>
 

@@ -9,6 +9,7 @@ import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.api.ProviderDescriptor
 import com.yy.writingwithai.core.ai.api.WritingOp
+import com.yy.writingwithai.core.ai.fake.FakeAiProvider
 import com.yy.writingwithai.core.ai.provider.AnthropicCompatibleAdapter
 import com.yy.writingwithai.core.ai.provider.CustomProviderStore
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStore
@@ -74,7 +75,10 @@ constructor(
                 id = provider.id,
                 displayName = provider.displayName,
                 models = provider.supportedModels,
-                isConfigured = true
+                isConfigured = true,
+                // fix-2026-06-28-ai-model-selection-actually-used:把 provider 的 defaultModel
+                // 透出给 UI,卡片据此显示「实际将调用」行(消除「选 pro 实际调 flash」歧义)。
+                defaultModel = provider.defaultModel
             )
         }
         val custom = customProviderStore.getAll().map { config ->
@@ -82,7 +86,8 @@ constructor(
                 id = config.id,
                 displayName = config.displayName,
                 models = config.supportedModels,
-                isConfigured = true
+                isConfigured = true,
+                defaultModel = config.defaultModel
             )
         }
         return (custom + builtin).distinctBy { it.id }
@@ -115,12 +120,15 @@ constructor(
                 )
             )
 
-        // fix-review-r3-high H4:之前 `: "unknown"` 把 "unknown" 字符串静默发到 provider,
-        // 大多数 provider 会返 400/422(模型不存在),错误信息混淆 provider 真错 vs
-        // 配置错。现在 modelName + supportedModels 都为空时直接 emit ProviderNotConfigured,
-        // 让 caller 一眼看出是配置问题。
-        val resolvedModel = modelName ?: provider.supportedModels.firstOrNull()
-        if (resolvedModel == null) {
+        // fix-2026-06-28-ai-model-selection-actually-used:
+        //   modelName 为 null 时 fallback 走 `provider.defaultModel` 而非
+        //   `provider.supportedModels.firstOrNull()`。前者是 provider 显式声明的
+        //   "无用户偏好时用这个",有业务语义;后者是 list 顺序副作用,deepseek 的
+        //   flash 在前完全因为按 "lite→贵" 排,选了 pro 但 gateway 拿 null 仍走
+        //   flash,正是 change 标题里要修的 bug。defaultModel 同样为 blank 时
+        //   仍 emit ProviderNotConfigured,不静默发 "unknown" 字面量。
+        val resolvedModel = modelName?.takeIf { it.isNotBlank() } ?: provider.defaultModel
+        if (resolvedModel.isBlank()) {
             return flowOf(
                 AiStreamEvent.Failed(
                     AiError.ProviderNotConfigured,
@@ -162,6 +170,9 @@ constructor(
                     providerId = providerId,
                     model = model,
                     op = op.name.lowercase(),
+                    // fix-review-r4 L5:sourceText.length / 2 是中文场景粗估(1 CJK 字 ≈ 2
+                    // 字符 ≈ 1 token);纯 ASCII 时低估约 4x(1 char ≈ 0.25 token)。
+                    // 仅作 fallback 估算——provider 未返回 Usage 时使用,不影响计费。
                     inputTokens = lastUsage?.inputTokens ?: (sourceText.length / 2),
                     outputTokens = lastUsage?.outputTokens ?: outputBuilder.length,
                     totalTokens =
@@ -183,14 +194,17 @@ constructor(
         apiFormatOverride: ApiFormat?
     ): String? {
         val provider = resolveProvider(providerId) ?: return "provider $providerId not registered"
-        if (provider.id == "fake") {
+        if (provider.id == FakeAiProvider.PROVIDER_ID) {
             // fix-review-r3-high H2:契约是 `@return null 表示成功`,fake provider 不应被静默
             // 返 null(看上去像"成功")——也不应抛 IllegalStateException 打断契约。
             // 返回 ProviderNotConfigured 摘要,让 UI 进入"未配置"分支,引导用户到
             // 设置 → 模型管理配真实 apikey。
             return AiError.ProviderNotConfigured.summary()
         }
-        val effectiveModel = provider.supportedModels.firstOrNull() ?: modelName
+        // fix-2026-06-28-ai-model-selection-actually-used:ping fallback 也走
+        //   `provider.defaultModel`,跟 streamWritingOp 行为一致;若 ping 入参 modelName
+        //   非空,优先用入参(允许 UI 指定非默认 model 测连通性)。
+        val effectiveModel = modelName.takeIf { it.isNotBlank() } ?: provider.defaultModel
         // X 方案:ping 也走用户选的 apiFormat,endpoint 跟着切。
         // H1 修:ping 是 suspend,可在函数顶部 await providerPrefsStore.getApiFormat 而无需 runBlocking。
         val effectiveApiFormat = apiFormatOverride ?: providerPrefsStore.getApiFormat(providerId)

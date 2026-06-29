@@ -1,5 +1,6 @@
 package com.yy.writingwithai.feature.settings.prompt
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,14 +28,15 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.core.ai.api.WritingOp
+import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
 
 /**
  * fix-ai-config-ux · PromptTemplate 编辑屏:
@@ -45,7 +47,7 @@ import com.yy.writingwithai.core.ai.api.WritingOp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PromptTemplateScreen(viewModel: PromptTemplateViewModel, onBack: () -> Unit) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val tabs =
         listOf(
             WritingOp.EXPAND to R.string.prompt_op_expand,
@@ -103,16 +105,32 @@ fun PromptTemplateScreen(viewModel: PromptTemplateViewModel, onBack: () -> Unit)
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-                value = uiState.drafts[uiState.currentOp] ?: "",
-                onValueChange = { viewModel.onPromptChange(uiState.currentOp, it) },
-                label = { Text(stringResource(R.string.prompt_hint_label)) },
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                maxLines = 10
-            )
+            // animation-system · tab 切换接 token(spec §REQ 6):currentOp 变化时
+            // AnimatedContent 用 tabContentSpec 平滑过渡新旧内容(spec MINIMAL=tween 200ms,
+            // IMMERSIVE=tween 350ms, NONE=snap 即时切)。
+            // NOTE:transitionSpec lambda 不是 @Composable,需提前读 token 再引用。
+            val tabSpec = LocalAnimationTokens.current.tabContentSpec
+            AnimatedContent(
+                targetState = uiState.currentOp,
+                transitionSpec = {
+                    androidx.compose.animation.ContentTransform(
+                        targetContentEnter = androidx.compose.animation.fadeIn(animationSpec = tabSpec),
+                        initialContentExit = androidx.compose.animation.fadeOut(animationSpec = tabSpec)
+                    )
+                },
+                label = "PromptTemplateScreen.content"
+            ) { currentOp ->
+                OutlinedTextField(
+                    value = uiState.drafts[currentOp] ?: "",
+                    onValueChange = { viewModel.onPromptChange(currentOp, it) },
+                    label = { Text(stringResource(R.string.prompt_hint_label)) },
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    maxLines = 10
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(

@@ -33,7 +33,15 @@ sealed interface AiActionUiState {
         val delta: String = "",
         /** 累积总长(用于 progress 估算),UI 仍按需显示拼接后的文本。 */
         val accumulatedLength: Int = 0,
-        val isCancelled: Boolean = false
+        val isCancelled: Boolean = false,
+        /**
+         * fix-2026-06-28-ai-model-selection-actually-used:实际将调用 model 名(经过
+         * selectedModel ?: defaultModel fallback),给 UI 显示"AI 正在用 X 跑" —
+         * 与 `ModelManagementScreen` 卡片显示的"实际将调用"行算法一致
+         * (统一走 [resolveActualModel])。空串 = 计算失败(无 provider 描述),
+         * UI 应隐藏。
+         */
+        val actualModel: String = ""
     ) : AiActionUiState
 
     data class Done(

@@ -53,6 +53,7 @@ constructor(
     override val id = config.id
     override val displayName = config.displayName
     override val supportedModels = config.supportedModels
+    override val defaultModel = config.defaultModel
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -67,11 +68,18 @@ constructor(
             val baseUrl = credentials.baseUrlOverride ?: config.baseUrl
             // model-management-detail-dropdown X 方案:用户在详情页可切 OpenAI/Anthropic,endpoint path 跟着切
             val effectiveApiFormat = request.apiFormatOverride ?: config.apiFormat
-            val path = when (effectiveApiFormat) {
-                ApiFormat.OPENAI -> "/chat/completions"
-                ApiFormat.ANTHROPIC -> "/anthropic/v1/messages"
+            // ux-2026-06-28 #3:custom 表单走"完整 URL",endpointPath 留空 → 直用 baseUrl;
+            // 内置 provider(deepseek/minimax/mimo)的 config.endpointPath 非空,继续走
+            // "$baseUrl$path" 拼接,行为不变。
+            val url = if (config.endpointPath.isBlank()) {
+                baseUrl
+            } else {
+                val path = when (effectiveApiFormat) {
+                    ApiFormat.OPENAI -> "/chat/completions"
+                    ApiFormat.ANTHROPIC -> "/anthropic/v1/messages"
+                }
+                "$baseUrl$path"
             }
-            val url = "$baseUrl$path"
             // fix-2026-06-24-review-r1-high H9:strip role-marker + cap length 8192
             val systemPrompt = sanitizeSystemPrompt(request.systemPrompt ?: systemPromptFor(request.op))
 

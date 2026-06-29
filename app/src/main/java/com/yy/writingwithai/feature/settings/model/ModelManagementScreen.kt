@@ -3,6 +3,7 @@
 package com.yy.writingwithai.feature.settings.model
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -41,6 +43,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,6 +63,7 @@ import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.app.ui.theme.Spacing
 import com.yy.writingwithai.app.ui.theme.customColors
 import com.yy.writingwithai.core.ai.api.ProviderDescriptor
+import com.yy.writingwithai.core.ai.api.resolveActualModel
 
 /**
  * fix-ai-config-ux · M6 custom-model · 模型管理主屏:
@@ -156,6 +160,9 @@ fun ModelManagementScreen(
                     isSelected = state.selectedProviderId == descriptor.id,
                     hasApiKey = state.configuredProviderIds.contains(descriptor.id),
                     isCustom = isCustom,
+                    // ux-2026-06-28 P2:传 nullable selectedModel,不兜底 firstOrNull。
+                    // null → ProviderInfoCard 显示 "X 个模型"(无"默认"字样)。
+                    selectedModel = state.selectedModelByProvider[descriptor.id],
                     onSelect = { viewModel.selectProvider(descriptor.id) },
                     onConfigure = { onProviderClick(descriptor.id) },
                     onEditCustom = { onEditCustomClick(descriptor.id) },
@@ -291,6 +298,8 @@ private fun ProviderInfoCard(
     isSelected: Boolean,
     hasApiKey: Boolean,
     isCustom: Boolean,
+    // ux-2026-06-28 #2:由调用方传入;非空表示用户已选,空表示未设 → 走 defaultModel 兜底。
+    selectedModel: String?,
     onSelect: () -> Unit,
     onConfigure: () -> Unit,
     onEditCustom: () -> Unit,
@@ -302,130 +311,178 @@ private fun ProviderInfoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = if (isSelected) {
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-        } else {
-            null
+        // ux-2026-06-28 #4:未选中卡片按类型上边 — 内置=灰边,自定义=淡蓝边(primary @ 40%);
+        // 选中保持 2dp primary 高亮。
+        border = when {
+            isSelected -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            isCustom -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+            else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         },
         onClick = onSelect
     ) {
-        Column(modifier = Modifier.padding(spacing.lg)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = descriptor.displayName,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    if (isCustom) {
+        // ux-2026-06-28 #4:角标走绝对定位的 Box(右上角 8dp 偏移),与卡片主内容互不挤压;
+        // 替代之前在标题旁内嵌的「自定义」tag。
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(spacing.lg)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = descriptor.displayName,
+                            style = MaterialTheme.typography.titleMedium
+                        )
                         Spacer(Modifier.width(spacing.sm))
                         SuggestionChip(
                             onClick = {},
-                            label = { Text(stringResource(R.string.custom_provider_tag_custom)) }
-                        )
-                    }
-                    Spacer(Modifier.width(spacing.sm))
-                    SuggestionChip(
-                        onClick = {},
-                        label = {
-                            Text(
-                                if (hasApiKey) {
-                                    stringResource(R.string.model_management_status_configured)
+                            label = {
+                                Text(
+                                    if (hasApiKey) {
+                                        stringResource(R.string.model_management_status_configured)
+                                    } else {
+                                        stringResource(R.string.model_management_status_not_configured)
+                                    }
+                                )
+                            },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = if (hasApiKey) {
+                                    MaterialTheme.colorScheme.primaryContainer
                                 } else {
-                                    stringResource(R.string.model_management_status_not_configured)
+                                    MaterialTheme.colorScheme.surfaceVariant
                                 }
                             )
-                        },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = if (hasApiKey) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            }
-                        )
-                    )
-                }
-                if (isSelected && hasApiKey) {
-                    SuggestionChip(
-                        onClick = {},
-                        label = {
-                            Text(
-                                stringResource(R.string.model_management_status_enabled),
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        icon = {
-                            Icon(
-                                Icons.Filled.Check,
-                                contentDescription = null,
-                                tint = MaterialTheme.customColors.successDark
-                            )
-                        },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.customColors.success.copy(alpha = 0.15f),
-                            labelColor = MaterialTheme.customColors.successDark
-                        )
-                    )
-                }
-                if (isCustom) {
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.common_more_cd))
-                    }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.custom_provider_menu_edit)) },
-                            onClick = {
-                                menuExpanded = false
-                                onEditCustom()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Filled.Edit, contentDescription = null)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.custom_provider_menu_delete)) },
-                            onClick = {
-                                menuExpanded = false
-                                onDeleteCustom()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Filled.Delete, contentDescription = null)
-                            }
                         )
                     }
+                    if (isSelected && hasApiKey) {
+                        SuggestionChip(
+                            onClick = {},
+                            label = {
+                                Text(
+                                    stringResource(R.string.model_management_status_enabled),
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            icon = {
+                                Icon(
+                                    Icons.Filled.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.customColors.successDark
+                                )
+                            },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = MaterialTheme.customColors.success.copy(alpha = 0.15f),
+                                labelColor = MaterialTheme.customColors.successDark
+                            )
+                        )
+                    }
+                    if (isCustom) {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.common_more_cd))
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.custom_provider_menu_edit)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onEditCustom()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Filled.Edit, contentDescription = null)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.custom_provider_menu_delete)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onDeleteCustom()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Filled.Delete, contentDescription = null)
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(spacing.xs))
+                // ux-2026-06-28 #2:卡片显示「当前已选 model」(`selectedModel` 由调用方传入,
+                // 已选时显示「已选 X」,未设走 `descriptor.models.firstOrNull()` 兜底显示「默认 X」)。
+                val summaryText = if (selectedModel != null) {
+                    stringResource(
+                        R.string.model_management_models_summary_selected_fmt,
+                        descriptor.models.size,
+                        selectedModel
+                    )
+                } else {
+                    stringResource(
+                        R.string.model_management_models_summary_default_fmt,
+                        descriptor.models.size
+                    )
+                }
+                Text(
+                    text = summaryText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                // fix-2026-06-28-ai-model-selection-actually-used:卡片显示「实际将调用
+                // model」 — `resolveActualModel` 是 selectedModel ?: defaultModel 的
+                // 统一算法(空白串也 fallback)。让用户看到「选了 pro 实际会调 pro」,消
+                // 除「选 pro 实际用 flash」歧义。
+                val actualModel = resolveActualModel(selectedModel, descriptor.defaultModel)
+                Text(
+                    text = stringResource(
+                        R.string.model_management_actual_call_fmt,
+                        actualModel
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(spacing.sm))
+                OutlinedButton(
+                    onClick = onConfigure,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.Settings, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (hasApiKey) {
+                            stringResource(R.string.model_management_btn_modify)
+                        } else {
+                            stringResource(R.string.model_management_btn_configure)
+                        }
+                    )
                 }
             }
-            Spacer(Modifier.height(spacing.xs))
-            val summaryText = descriptor.models.firstOrNull()?.let {
-                stringResource(
-                    R.string.model_management_models_summary_fmt,
-                    descriptor.models.size,
-                    it
+            // ux-2026-06-28 #4:右上角角标 — Surface 背景区分内置(灰)和自定义(淡蓝 primary@12%)。
+            // 位于 Card 边角内,不被 Row 挤占空间。
+            val (badgeText, badgeBg, badgeFg) = if (isCustom) {
+                Triple(
+                    stringResource(R.string.model_management_badge_custom),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    MaterialTheme.colorScheme.primary
                 )
-            } ?: "—"
-            Text(
-                text = summaryText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(spacing.sm))
-            OutlinedButton(
-                onClick = onConfigure,
-                modifier = Modifier.fillMaxWidth()
+            } else {
+                Triple(
+                    stringResource(R.string.model_management_badge_builtin),
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Surface(
+                color = badgeBg,
+                contentColor = badgeFg,
+                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = spacing.sm, end = spacing.sm)
             ) {
-                Icon(Icons.Filled.Settings, contentDescription = null)
-                Spacer(Modifier.width(4.dp))
                 Text(
-                    if (hasApiKey) {
-                        stringResource(R.string.model_management_btn_modify)
-                    } else {
-                        stringResource(R.string.model_management_btn_configure)
-                    }
+                    text = badgeText,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
         }

@@ -39,12 +39,28 @@ interface FeishuAuthStore {
     val prefsInitError: Throwable?
 
     suspend fun setOAuthCredentials(appId: String, accessToken: String, refreshToken: String, expiresAt: Long)
+
+    /**
+     * ux-2026-06-28 · 仅写 appId(tokens 尚未到达时,供 OAuthCodeReceiver 首次回调
+     * 通过 [getAppIdSnapshot] 取回 appId 完成 exchange)。setOAuthCredentials 需要
+     * 全部 4 个字段,在 token exchange 完成前无法调用。
+     */
+    suspend fun setAppId(appId: String)
+
     suspend fun setAuthState(state: FeishuAuthState)
     suspend fun clearAll()
 
     fun getAccessTokenSnapshot(): Pair<String, Long>?
     fun getRefreshTokenSnapshot(): String?
     fun getFolderTokenSnapshot(): String?
+
+    /**
+     * ux-2026-06-28 · 仅读 appId(无 refreshToken 也能读,供 OAuthCodeReceiver 首次回调时
+     * 拿到 appId 完成 token exchange)。原 [getAppIdAndRefreshToken] 要求 refreshToken 存在,
+     * 首次 OAuth 流程未结束时取不到 appId。
+     */
+    fun getAppIdSnapshot(): String?
+
     fun getAppIdAndRefreshToken(): Pair<String, String>?
 
     /**
@@ -148,6 +164,13 @@ constructor(
         stateFlow.value = FeishuAuthState.CONNECTED
     }
 
+    // ux-2026-06-28:仅写 appId(OAuthLauncher.launch 在跳浏览器前调用,让 OAuthCodeReceiver
+    // 首次回调时能取回 appId)。不动 token / state。
+    override suspend fun setAppId(appId: String) = withContext(Dispatchers.IO) {
+        val p = requirePrefs() ?: return@withContext
+        p.edit().putString(KEY_APP_ID, appId).apply()
+    }
+
     override suspend fun setAuthState(state: FeishuAuthState) {
         stateFlow.value = state
     }
@@ -169,6 +192,10 @@ constructor(
 
     override fun getRefreshTokenSnapshot(): String? = requirePrefs()?.getString(KEY_REFRESH, null)
     override fun getFolderTokenSnapshot(): String? = requirePrefs()?.getString(KEY_FOLDER, null)
+
+    // ux-2026-06-28:仅读 appId,首次 OAuth 回调时(refreshToken 尚未写入)也能取到。
+    override fun getAppIdSnapshot(): String? = requirePrefs()?.getString(KEY_APP_ID, null)
+
     override fun getAppIdAndRefreshToken(): Pair<String, String>? {
         val p = requirePrefs() ?: return null
         val id = p.getString(KEY_APP_ID, null) ?: return null
@@ -255,25 +282,55 @@ constructor(
 
     override suspend fun persistOAuthState(state: String, ttlMs: Long) {
         withContext(Dispatchers.IO) {
-            val p = requirePrefs() ?: return@withContext
+            val p = requirePrefs() ?: run {
+                Log.w(TAG, "persistOAuthState: requirePrefs returned null, state NOT written")
+                return@withContext
+            }
             val expiresAt = System.currentTimeMillis() + ttlMs
             p.edit()
                 .putString(KEY_OAUTH_STATE_VALUE, state)
                 .putLong(KEY_OAUTH_STATE_EXPIRES, expiresAt)
                 .apply()
+            // 读回验证:EncryptedSharedPreferences 的 apply() 是异步落盘,立即读应可见
+            val verifyValue = p.getString(KEY_OAUTH_STATE_VALUE, null)
+            val verifyExpires = p.getLong(KEY_OAUTH_STATE_EXPIRES, 0L)
+            Log.i(
+                TAG,
+                "persistOAuthState: state=*** expiresAt=$expiresAt " +
+                    "verifyValue=${if (verifyValue != null) "***" else "null"} verifyExpires=$verifyExpires"
+            )
         }
     }
 
     override fun consumeOAuthState(): String? {
-        val p = requirePrefs() ?: return null
-        val value = p.getString(KEY_OAUTH_STATE_VALUE, null) ?: return null
+        val p = requirePrefs() ?: run {
+            Log.w(TAG, "consumeOAuthState: requirePrefs returned null (prefs not initialized)")
+            return null
+        }
+        val value = p.getString(KEY_OAUTH_STATE_VALUE, null)
         val expiresAt = p.getLong(KEY_OAUTH_STATE_EXPIRES, 0L)
+        Log.i(
+            TAG,
+            "consumeOAuthState: read value=${if (value != null) "***" else "null"} expiresAt=$expiresAt " +
+                "nowMs=${System.currentTimeMillis()}"
+        )
+        if (value == null) {
+            // 一次性消费也清残留 key(以防上轮写入残留)
+            p.edit()
+                .remove(KEY_OAUTH_STATE_VALUE)
+                .remove(KEY_OAUTH_STATE_EXPIRES)
+                .apply()
+            return null
+        }
         // 一次性消费:不论是否过期都清,避免 replay
         p.edit()
             .remove(KEY_OAUTH_STATE_VALUE)
             .remove(KEY_OAUTH_STATE_EXPIRES)
             .apply()
-        if (System.currentTimeMillis() > expiresAt) return null
+        if (System.currentTimeMillis() > expiresAt) {
+            Log.w(TAG, "consumeOAuthState: state expired (nowMs > expiresAt)")
+            return null
+        }
         return value
     }
 
@@ -324,6 +381,9 @@ constructor(
         private const val KEY_PENDING_CREATED_AT = "feishu_pending_created_at"
         private const val PENDING_TTL_MS: Long = 10L * 60L * 1000L // 10 min
 
-        private fun secretKeyFor(requestId: String) = KEY_SECRET_PREFIX + requestId
+        private fun secretKeyFor(requestId: String): String {
+            require(requestId.isNotBlank()) { "secretKeyFor: requestId must not be blank" }
+            return KEY_SECRET_PREFIX + requestId
+        }
     }
 }

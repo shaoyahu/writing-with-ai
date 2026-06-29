@@ -80,6 +80,8 @@ constructor(
                 return@launch
             }
             val savedKey = secureApiKeyStore.get(providerId).orEmpty()
+            // ux-2026-06-28 #3:endpoint + apiFormat 不再出现在表单(完整 URL 输入,
+            // 协议只走 anthropic 兼容),回填时跳过这两个字段。
             _state.update {
                 it.copy(
                     isEditMode = true,
@@ -91,8 +93,6 @@ constructor(
                     customAuthHeaderName = config.customAuthHeaderName.orEmpty(),
                     defaultModel = config.defaultModel,
                     supportedModels = config.supportedModels,
-                    endpointPath = config.endpointPath,
-                    apiFormat = config.apiFormat,
                     customHeaders = config.customHeaders
                 )
             }
@@ -143,13 +143,8 @@ constructor(
     fun onAuthStyleChanged(style: AuthStyle) = _state.update { it.copy(authStyle = style) }
     fun onCustomAuthHeaderNameChanged(name: String) = _state.update { it.copy(customAuthHeaderName = name) }
     fun onDefaultModelChanged(model: String) = _state.update { it.copy(defaultModel = model) }
-    fun onEndpointPathChanged(path: String) = _state.update { it.copy(endpointPath = path) }
-    fun onApiFormatChanged(format: ApiFormat) = _state.update { it.copy(apiFormat = format) }
     fun toggleModelsAuthExpanded() = _state.update {
         it.copy(isModelsAuthExpanded = !it.isModelsAuthExpanded)
-    }
-    fun toggleAdvancedExpanded() = _state.update {
-        it.copy(isAdvancedExpanded = !it.isAdvancedExpanded)
     }
     fun toggleRevealApiKey() = _state.update { it.copy(revealApiKey = !it.revealApiKey) }
     fun clearSaving() = _state.update { it.copy(isSaving = false) }
@@ -194,11 +189,11 @@ constructor(
             // H9 修:走 coreAiGateway.ping(内部 observer 写 ai_history,符合 CLAUDE.md "Token / 成本可观测" 规则)。
             // apikey 走局部变量,函数退出 GC,不延长生命周期。
             val reason = try {
+                // ux-2026-06-28 #3:协议只走 anthropic 兼容,不再传 apiFormatOverride。
                 coreAiGateway.ping(
                     providerId = config.id,
                     apikey = s.apiKey,
-                    modelName = config.defaultModel,
-                    apiFormatOverride = config.apiFormat
+                    modelName = config.defaultModel
                 )
             } catch (e: CancellationException) {
                 throw e
@@ -228,7 +223,7 @@ constructor(
             return
         }
         val apiKey = s.apiKey.trim()
-        if (apiKey.isBlank()) {
+        if (apiKey.isBlank() && !s.isEditMode) {
             _events.tryEmit(
                 CustomProviderEditEvent.SaveFailed(Res(R.string.custom_provider_error_missing_apikey))
             )
@@ -243,14 +238,26 @@ constructor(
             return
         }
         viewModelScope.launch {
+            // ux-2026-06-28 P1:编辑模式空 apiKey + 已有密钥 → 跳过 key 写入。
+            val skipKeyWrite = apiKey.isBlank() && s.isEditMode && secureApiKeyStore.has(s.providerId)
+            if (apiKey.isBlank() && !skipKeyWrite) {
+                _events.tryEmit(
+                    CustomProviderEditEvent.SaveFailed(Res(R.string.custom_provider_error_missing_apikey))
+                )
+                _state.update { it.copy(isSaving = false) }
+                return@launch
+            }
             // fix-2026-06-26-review-r3 H17:原顺序 `save(config) → save(key) → setSelected` —
             // 第二步失败 → config 已落库 + key 缺失,UI 假成功。
             // 改为:key 先 → config 后 → selectedProviderId 最后;失败时回滚已成功步骤。
             var keySaved = false
             var configSaved = false
             try {
-                secureApiKeyStore.save(config.id, apiKey)
-                keySaved = true
+                // ux-2026-06-28 P1:编辑模式已有密钥 → 跳过 key 写入,保留原值。
+                if (!skipKeyWrite) {
+                    secureApiKeyStore.save(config.id, apiKey)
+                    keySaved = true
+                }
                 customProviderStore.save(config)
                 configSaved = true
                 providerPrefsStore.setSelectedProviderId(config.id)
@@ -289,17 +296,19 @@ constructor(
             return null
         }
         val models = if (s.supportedModels.isEmpty()) listOf(model) else s.supportedModels
+        // ux-2026-06-28 #3:完整 URL 输入 — baseUrl 已是用户给的完整地址,
+        // 不再追加 path;endpointPath 留空让 adapter 直用 baseUrl(见 AnthropicCompatibleAdapter)。
         return ProviderConfig(
             id = id,
             displayName = name,
             baseUrl = url.removeSuffix("/"),
-            endpointPath = s.endpointPath.trim().ifBlank { "/chat/completions" },
+            endpointPath = "",
             authStyle = s.authStyle,
             customAuthHeaderName = s.customAuthHeaderName.trim().ifBlank { null },
             defaultModel = model,
             supportedModels = models,
             customHeaders = s.customHeaders,
-            apiFormat = s.apiFormat
+            apiFormat = ApiFormat.ANTHROPIC
         )
     }
 
@@ -317,6 +326,8 @@ data class CustomProviderEditUiState(
     val displayName: String = "",
     val providerId: String = "",
     val idLocked: Boolean = false,
+    // ux-2026-06-28 #3:baseUrl 改成"完整 URL" — 用户输入 https://api.example.com/v1/messages,
+    // adapter 不再追加 path(endpointPath 留空,见 buildConfig)。
     val baseUrl: String = "",
     val apiKey: String = "",
     val authStyle: AuthStyle = AuthStyle.AUTHORIZATION,
@@ -324,11 +335,10 @@ data class CustomProviderEditUiState(
     val defaultModel: String = "",
     val supportedModels: List<String> = emptyList(),
     val newModelInput: String = "",
-    val endpointPath: String = "/chat/completions",
-    val apiFormat: ApiFormat = ApiFormat.ANTHROPIC,
     val customHeaders: Map<String, String> = emptyMap(),
+    // ux-2026-06-28 #3:协议只走 anthropic 兼容,不再需要模型&认证段折叠;保留字段避免破坏
+    // 旧 state 结构,默认收起对用户无感(屏幕上不再用)。
     val isModelsAuthExpanded: Boolean = false,
-    val isAdvancedExpanded: Boolean = false,
     val pingResult: PingResult = PingResult.Idle,
     val isSaving: Boolean = false,
     val isEditMode: Boolean = false,

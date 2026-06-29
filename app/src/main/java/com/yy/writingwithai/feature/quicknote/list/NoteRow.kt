@@ -1,7 +1,9 @@
 package com.yy.writingwithai.feature.quicknote.list
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,7 +41,7 @@ import com.yy.writingwithai.app.ui.theme.LocalSpacing
  * ui-redesign-v2 · 笔记行组件:Card 改为 border-card(elevation=0 + 1dp outlineVariant border + md 12dp 圆角),
  * 左侧 3dp 彩色竖条(tag 色或 primary)。
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun NoteRow(
     title: String,
@@ -49,17 +51,24 @@ fun NoteRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isPinned: Boolean = false,
-    updatedAt: String? = null
+    updatedAt: String? = null,
+    // note-list-card-actions · 长按回调,默认空,保持向后兼容
+    onLongClick: () -> Unit = {}
 ) {
     val spacing = LocalSpacing.current
     val cornerRadius = LocalCornerRadius.current
     // M3 fix: remember(tags) 缓存颜色,避免每次重组重新计算 Color.hsl()
     val isDark = isSystemInDarkTheme()
-    val accentColor = remember(tags, isDark) { tagAccentColor(tags, isDark) }
+    // fix-review-r4:tagAccentColor 在 remember{} 内调用,不是 @Composable 上下文,
+    // 不能在里面读 MaterialTheme。把 primary 颜色从 Composable 上下文传入。
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val accentColor = remember(tags, isDark) { tagAccentColor(tags, isDark, primaryColor) }
 
     Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            // note-list-card-actions · combinedClickable 同时支持单击进详情 + 长按弹菜单
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape = RoundedCornerShape(cornerRadius.md),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -170,14 +179,6 @@ fun NoteRow(
 }
 
 /**
- * fix-2026-06-26-review-r3 LOW:竖条颜色命名常量,替代 magic hex。
- * 暗色 primary 亮色变体 / 亮色 primary,来自 ColorScheme 定义但 Compose 不暴露
- * 具体色值常量,这里显式记录实际值便于视觉校验。
- */
-private val TAG_ACCENT_DARK = Color(0xFF8CD8AB)
-private val TAG_ACCENT_LIGHT = Color(0xFF1B6B4A)
-
-/**
  * 从第一个 tag 名推导竖条颜色:tag 为空则用 primary。
  * 暗色模式用更高 lightness 保证对比度。
  *
@@ -185,10 +186,13 @@ private val TAG_ACCENT_LIGHT = Color(0xFF1B6B4A)
  * `[0, 360)` 区间。原 `Int.mod(Float)` 实现对负数先做 `%`,再用 `let { if (it < 0) ... }`
  * 二次校正,语义上等价但读起来绕;改写为单次无分支映射更直观。同时把 `hashCode` 先
  * 转 `UInt` 再取模,避免 `Int.MIN_VALUE` 在 `% 360` 时被解释成负数后再校正。
+ *
+ * fix-2026-06-27-review-r4 M11:空 tag 不再用 hardcoded hex,统一走
+ * `MaterialTheme.colorScheme.primary`,跟暗色/亮色主题自动适配。
  */
-private fun tagAccentColor(tags: List<String>, isDark: Boolean): Color {
+private fun tagAccentColor(tags: List<String>, isDark: Boolean, primaryColor: Color): Color {
     if (tags.isEmpty()) {
-        return if (isDark) TAG_ACCENT_DARK else TAG_ACCENT_LIGHT
+        return primaryColor
     }
     val rawHash = tags.first().hashCode()
     // UInt 转换 → 无符号 32-bit → % 360 → [0, 360)

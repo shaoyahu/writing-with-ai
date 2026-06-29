@@ -2,6 +2,103 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log,单次评审查 `docs/reviews/`,规划查 `docs/plans/`。
 
+## 2026-06-27 · real-provider-integration change 收口(provider 字段校准 + AiError 本地化 + 真机前 smoke)
+
+- **OpenSpec change**:`real-provider-integration`(active 队列,等用户决定 archive 时机)
+- **§1 3 provider config 字段校准**:`DeepseekConfig` / `MinimaxConfig` / `MimoConfig` 对齐 2026-06-27 官方 docs(模型清单 + endpoint + auth 头 + apiFormat);`AnthropicCompatibleAdapterR3RegressionTest` 旧单测仍过
+- **§2 3 provider docs 同步**:`docs/usage/api-{deepseek,minimax,mimo}.md` 字段表与 config 一致;`api-anthropic-compatible.md` 公共协议描述无漂移(2026-06-27 时间锚点)
+- **§3 AiErrorLocalizedMapper**:`core/ai/api/AiErrorLocalizedMapper.kt` 纯函数 object,13 个 variant → 10 个 stringRes(9 个专属 + 4 个兜底到 `ai_error_unknown`);10 个 i18n key 双语集合 diff 空
+- **§4 QuickNoteDetailScreen 接入**:`SecureApiKeyStore.configuredProviderIds` 经 LaunchedEffect 收集 → 空配置时直接 Snackbar `ai_error_provider_not_configured` + action 跳 `ModelManagementRoute`,绕开 `AiActionViewModel.start` 避免假 SSE 失败;失败后 Snackbar 走 mapper 渲染
+- **§5 真机前 smoke 脚本**:`scripts/real-provider-smoke.sh` bash + curl,env var 接收 apikey(命令行 / 日志 / 仓库都无痕),按 PROVIDER 选 baseUrl + endpoint + auth 头,首字节 2xx exit 0 + 401/402/404/429/5xx 分桶 exit 4-9;`scripts/README.md` 文档化用法 + 退出码 + 注意事项(不要 `set -x` / `tee`)
+- **§6 AiErrorLocalizedMapperTest 5 用例**:9 专属 variant 互不相同 / 4 兜底 variant → `ai_error_unknown` / RateLimited+ServerError 参数无关 / 纯函数确定性 / 13 variant 全覆盖防新增 variant 编译器不报错;ktlintFormat 自动修 7 处 trailing comma
+- **§7 真机端到端 USER-OWNED**:7.1-7.7 留给用户跑(3 provider 真 apikey + SSE 流式 + Auth/Network 错误触发 + smoke 脚本端到端),AI 不代
+- **§8 收口**:`./gradlew :app:assembleDebug` 2s ✓ / `:app:ktlintCheck` 0 violations ✓ / `:app:testDebugUnitTest` 13s 全绿(含新 5 用例);progress.md 本条目 = §8.4
+- **8.4 真机校准证据待补**:3 provider 各 1 行 SSE 响应摘录待 §7 跑完写入本条目 / 8.5 `verification-report.md` 同等 §7
+- **下一步候选**:用户跑 §7 真机 verify → 补 8.4 SSE 摘录 + 8.5 report → `/opsx:archive real-provider-integration` 收口;或开 v1 内测 APK 真机体验 round-2
+
+## 2026-06-27 · feishu-sync-end-to-end change 收口(挂载同步日志 + VM 包装 + i18n)
+
+- **OpenSpec change**:`feishu-sync-end-to-end`(active 队列,等用户决定 archive 时机)
+- **决策**:对 proposal/design 做 reality audit 后改写对齐现状 — 不拆重写已有详情页 push/pull/conflict 4 入口,只补 5 件真缺失(同步日志挂载 / DAO 升 Flow / i18n 收尾 / VM 单测覆盖 / 用户侧真机 verify)
+- **§1 设置页同步日志挂载**:`FeishuSyncEventDao.observeLast(limit): Flow<List<...>>` 增量(沿用 `listLast` 同 SQL);`FeishuAuthViewModel` 注入 `eventDao`,新增 `events: StateFlow<...>` 经 `stateIn(WhileSubscribed(5_000))`;`FeishuAuthScreen` CONNECTED 分支挂载 `FeishuSyncLogSection(events = events)`;`FeishuSyncLogSection` 签名简化纯渲染,删除内部 `LaunchedEffect + collectAsStateWithLifecycle`,改由 caller 收集
+- **§2 FeishuShareViewModel 薄包装**:`@HiltViewModel` 注入 `FeishuSyncService` + `FeishuRefDao`,暴露 sealed `ShareState`(Idle/Pushing/Pushed/Pulling/Pulled/Conflict/Error 7 态);`push`/`pull` 复用 `FeishuSyncService` 既有签名(`push(noteId): String` / `pull(docId, docUrl, titleHint): String`);VM 内 `extractDocId` 正则 `/docx?/(id)`,与 `FeishuDocService.extractDocIdFromUrl` 解耦;`resolveConflictKeepLocal/Remote` 重置 ref.status 后重触发 push/pull;**不绑 UI** — 详情页 inline 路径完全不动,只供单测 + 未来替换
+- **§3 i18n 收尾**:6 个新双语 key(zh/en key 集合 diff 空) — `feishu_sync_log_title` / `feishu_sync_log_disclaimer` / `feishu_sync_log_empty` / `feishu_conflict_title` / `feishu_conflict_keep_local` / `feishu_conflict_keep_remote`;`FeishuSyncLogSection` 3 处 + `ConflictResolutionDialog` 3 处硬编码中文替换 `stringResource(R.string.feishu_*)`;任务预估 9 key 实际 6(3 个已存在复用 + 列表 chip 4 key 已存在)
+- **§4 JVM 单测**:`FeishuShareViewModelTest` 7 用例(push OK / push fail / pull OK / pull fail / clearState / resolveConflictKeepLocal OK + 边界 missing ref);Fake `FeishuSyncEventDao` 补 `observeLast` 实现走 `flowOf(store.snapshot)`;首轮 fail 2 处(`FeishuError.Network` 类不存在 → 改名 `NetworkError` / `state.message` 是父类 prefix "飞书网络错误:" 不是 raw arg),二次 pass
+- **§5 端到端 USER-OWNED**:tasks 5.1~5.6 留给用户在真机端跑(配 appId/secret → OAuth → 日志 section → push/pull → 冲突 dialog → 列表 chip 4 态),AI 不代
+- **§6 收口**:`./gradlew :app:assembleDebug` 3s ✓ / `:app:ktlintCheck` 0 violations(ktlintFormat 自动修 3 处:file 末尾换行 / line 60 超 120 字符 / `{` 后换行) / `:app:testDebugUnitTest` 全绿
+- **下一步候选**:用户决定 archive `feishu-sync-end-to-end` / `onboarding-consent-card-redesign` / `real-provider-integration` 顺序;或跑 §5 真机 verify 确认 4 入口端到端后 archive
+
+## 2026-06-29 · animation-system-and-consent-redesign 收口(R7 scope leak 决策 Option A 背书)
+
+- **OpenSpec change**:`animation-system-and-consent-redesign` 已 archive(归档名 `2026-06-29-animation-system-and-consent-redesign`),main spec 同步 +8 animation-system + 7 consent-page-redesign
+- **R7 决策**:CRITICAL scope leak 走 Option A(补 spec 背书,不回滚);不再走 Option B(全部 revert) — 7 untracked + 12+ M 文件 + 52 i18n key 全部保留,补齐 proposal/design/tasks/specs 文档化
+- **scope leak 根因**(proposal.md 新增"Scope Leak 追溯"段):(1) plan mode 文件当 change 用,没走 `/opsx:propose`;(2) 用户指令触发的"快速"心态,省略"先 spec 后代码"仪式;(3) R6 review 没扫 untracked 业务文件 → R7 review 暴露
+- **吸取教训**:(AI) 任何新功能先 `/opsx:propose` 再动代码;plan ≠ change;(Review) R0 必跑 `openspec list --json` + grep "用户指令" 文件头;(User) 给新功能指令时主动触发 `/opsx:propose` 前缀
+- **§1~§12 tasks 全部已实现**(tasks.md 38/39 check,13.4 真机 USER-OWNED 保留);proposal.md 新增"Scope Leak 追溯"section 永久记录
+- **§13 验证**:`./gradlew :app:assembleDebug` ✓ / `:app:ktlintCheck` 0 violations ✓ / `:app:testDebugUnitTest` 全绿
+- **Plan 文件作废**:`~/.claude/plans/warm-zooming-spark.md` 内容已转 proposal/design/specs/tasks,plan 文件本体删除(下次 AI 写 plan 后主动提议转 OpenSpec)
+- **下一步候选**:删 plan 文件 + commit OpenSpec 改动 + 跑真机 USER-OWNED 13.4(4 场景)
+
+## 2026-06-27 · onboarding-consent-card-redesign change 收口(条款页卡片化)
+
+- **OpenSpec change**:`onboarding-consent-card-redesign`(active 队列,等用户决定 archive 时机)
+- **§1 OnboardingScreen UI 改写**:保持对外签名 `OnboardingScreen(scrolledToBottom, onScrolledToBottomChange, onAccept, onReject)`,内部拆 3 个 `ColumnScope` 私有 composable;`loadPrivacyPolicyOrNull` 走 zh → en → null fallback,失败不抛;`summaryResolver` 闭包内置按 H2 关键词命中 5 个 `consent_section_*_summary` stringRes(顺序:第三方 → AI → 撤回 → 数据 → 联系,防"三、第三方 AI provider 列表"误中 ai_summary);`Set<Int>` 多张同展,首张默认 expanded
+- **§2 fallback 路径**:`policy == null` 时仍渲染品牌头部 + `ConsentProgressBar(0f)` + `onboarding_policy_load_failed` + `ConsentBottomBar(scrolledToBottom=false)`;decline 永远 enabled,accept 灰显,decline 走 `OnboardingViewModel.reject()` → `Action.ExitApp` 路径不变
+- **§3 JVM 单测**:`OnboardingScreenIntegrationTest` 7 用例(parseGroupedMarkdown × 2 zh/en / summaryResolver 命中 / computeScrollProgress × 3 边界 / loadPrivacyPolicyOrNull IOException 返 null),纯 MockK 不挂 Robolectric
+- **§4 收口**:`./gradlew :app:assembleDebug` 2s ✓ / `:app:ktlintCheck` 0 violations ✓ / `:app:testDebugUnitTest` 全绿 12s ✓;strings.xml 双侧 10 个 `consent_*` / `consent_section_*` / `onboarding_policy_load_failed` key 集合 diff 空(任务预估 14,实际 10,对称性 OK)
+- **§5 跨 change 关闭**:`openspec/changes/animation-system-and-consent-redesign/tasks.md` 9.1 NOTE 从"延后 polish"改为"由 onboarding-consent-card-redesign 在 2026-06-27 完成实际接入"
+- **下一步候选**:用户决定 archive `onboarding-consent-card-redesign` / `feishu-sync-end-to-end` / `real-provider-integration` 顺序;或在 v1.1 修 KI-008 ktlint drift + KI-009 DAO 测试覆盖率
+
+## 2026-06-27 · release-preflight-automation change 收口(KI-012 fix)
+
+- **OpenSpec change**:`release-preflight-automation`(待用户决定 archive 时机)
+- **§1 buildSrc 模块**:新增 `buildSrc/build.gradle.kts`(`kotlin-dsl` plugin + JUnit5 test 依赖)+ `buildSrc/src/main/kotlin/com/yy/writingwithai/buildlogic/PreflightCheck.kt`(`PreflightFailure` data class + `parseGrepOutput`);被 `app/build.gradle.kts` import,JVM 单测覆盖 4 个 case
+- **§2 Gradle Task**:`app/build.gradle.kts` 注册 `checkReleaseReadiness`(group=verification),`afterEvaluate { tasks.named("assembleRelease") { dependsOn("checkReleaseReadiness", "ktlintCheck") } }` 挂载 release 钩子;debug 不挂 preflight(快速迭代)
+- **§3 4 项 preflight**:check-1 `__TODO__` 在 values-en/strings.xml / check-2 明文 apikey 字面量在主源码 / check-3 backup_rules.xml + data_extraction_rules.xml 必须存在 / check-4 预留(见 design §R5)
+- **§4 E2E 验证**:check-1/2/3 各命中 1 行(故意注入 → `Preflight FAILED [check-N]: file:line — message`);基线 `./gradlew :app:assembleDebug` 52s ✓ + `:app:assembleRelease` 70s ✓(unsigned APK,preflight + ktlintCheck 双重通过);`./gradlew :app:ktlintCheck` ✓ + `:buildSrc:test` 4 用例 ✓
+- **§5 文档**:`docs/usage/known-issues.md` KI-012 `[open]` → `[resolved]`(归档待连续 2 个 release 未复发后按维护说明移到 `docs/reviews/`)
+- **下一步候选**:用户决定 archive `release-preflight-automation` / `onboarding-consent-card-redesign` / `feishu-sync-end-to-end` / `real-provider-integration` 顺序;或在 v1.1 修 KI-008 ktlint drift + KI-009 DAO 测试覆盖率
+
+## 2026-06-27 · v1-internal-testing change 收口(文档 / i18n / verify)
+
+- **OpenSpec change**:`v1-internal-testing`(active 队列,等用户拉首版 internal testing APK + 真机 verify 后 archive)
+- **§1 i18n 收尾**:`values-en/strings.xml` 全部 `__TODO__` / 占位英文补完(品牌名 `DeepSeek` / `MiniMax` / `MiMo` / `Anthropic` / `Claude` 保留原文);新增 9 条 `internal_testing_*` + 9 条 `provider_step_*` 双语 key;key 集合双侧完全一致
+- **§2 3 份新文档**:`docs/usage/internal-testing.md`(5 人 5 类 ROM 角色 / debug 通道 / 4 周 MVP 验收 / 升级 release 条件)+ `docs/usage/known-issues.md`(12 条 KI,severity/description/workaround/fix plan 四字段齐,R5 + R6 + entity-extraction-polish + 国产 ROM 4 源汇总)+ `docs/usage/feedback-channel.md`(7 字段 bug 模板 + 提单流程 + SLA)
+- **§3 ROM 矩阵 + runbook verify 状态**:`rom-compatibility-notes.md` 末尾新 v1 内测真机验证矩阵 5 行(小米 / 华为 / OPPO / vivo / 其它),全 `[pending]`;`real-provider-integration.md` 用户操作链 8 条加 Verify 状态列,全 `[pending]`
+- **§4 known-issues 维护说明**:AI 主动汇总 + 用户审,每周巡检一次,状态机 `[open] → [resolved] / [won't fix] / [deferred-accepted]`
+- **§5 验证**:`./gradlew :app:ktlintCheck` 0 violations / `:app:testDebugUnitTest` 全绿 16s / `:app:assembleDebug` 全绿 2s;`grep __TODO__ values-en/strings.xml` = 0(阈值 ≤5)
+- **§6 用户侧动作清单**(AI 不代,仅跟踪):替换 feedback-channel.md 反馈入口为真实联系方式 / 拉 5 人内测名单+每人 ROM 角色 / 5 台真机跑 ROM 矩阵 verify / 跑 DeepSeek 段 checklist 真机端到端 / 走 `publish-release.sh debug` 发首版 internal testing APK / 邀请 5 名内测人员走反馈渠道
+- **推迟到 v1.1**:release preflight 4 项 grep 校验挂 `release.buildTypes.dependsOn("checkReleaseReadiness")` Gradle 任务(KI-012)
+- **下一步候选**:用户跑 §6 真机 verify;首版 internal testing APK 发布后 `/opsx:archive v1-internal-testing` 收口;R7 review 暂停
+
+## 2026-06-27 · 全量 review R6 复审 R5 fix + 7 项 R6 fix 落地
+
+- **报告**:`docs/reviews/2026-06-27-full-project-code-review-r6.md`(R5 修复后 working tree 复审;5 项 R5 fix verify + 7 项 R6 findings)
+- **R6 findings**:
+  - **R6-1 CRITICAL** `OnboardingScreen.kt:188-205` `loadPrivacyPolicy` 内 Log.w/Log.e 漏 gate(R5-4 局部回退),Release 跑污染 logcat;**修**:删 Log 调用 + `import android.util.Log`,保留 runCatching 三层 fallback
+  - **R6-2 CRITICAL** `AppNav.kt:291-317` Effect C `consentFlow.first()` 同步返 EMPTY 漏 filter(R5-1 局部回退),已同意用户首次 widget click 不跳转;**修**:对齐 R5-1,加 `.filter { it != ConsentState.EMPTY }.first()`
+  - **R6-3 HIGH** `core/prefs/UserPrefsStore` 反向依赖 `app/ui/theme/AnimationStyle` + 枚举背 R.string(架构级 reverse dep);**修**:枚举构造去 `@StringRes`,文案映射改 companion 静态函数;`UserPrefsStore` 改 `Flow<String>` + `setAnimationStyleName`;VM/Theme/Screen 边界做 `fromName()` 映射
+  - **R6-4 MEDIUM** `values-en/strings.xml` 缺 `me_section_ai_config / me_section_data / me_section_about` 3 字符串;**修**:加 3 行翻译
+  - **R6-5 MEDIUM** `core/ui/AnimatedSwitch.kt` YAGNI 壳,纯 Switch 转发无 token 消费;**修**:`rm` 文件,2 处调用点 `AnimatedSwitch → Switch`
+  - **R6-6 HIGH** `CustomProviderEditScreen.kt:113-143` `LifecycleResumeEffect(Unit) + onPauseOrDispose { job.cancel() }` 在 onPause 期间丢 VM Saved/SaveFailed events;**修**:改 `LaunchedEffect(viewModel) { viewModel.events.collect { ... } }`,删 LifecycleResumeEffect 相关 imports
+  - **R6-7 HIGH** `AppNav.kt:276-287` `ApikeyPromptRoute.onFinished` 内手动 navigate 与上方 Effect B 双 navigate race(违反 CLAUDE.md 单点导航 hard rule);**修**:`onFinished = {}` 空 lambda,单点导航交给 Effect B
+- **build 验证**:`./gradlew :app:ktlintCheck :app:assembleDebug :app:testDebugUnitTest` 全绿 12s
+- **设计盲点反思**:R5 fix 局部回退模式 — 大型 fix 改动后必须重新 review 全 app,不只是 review 修改点本身(R5-1 Effect A 修法 → R6-2 Effect C 同根因漏修;R5-4 Log gate 修法 → R6-1 OnboardingScreen 同根因漏修)
+- **下一步候选**:起 v1 内测 change + 真 provider 联调(已在 `docs/usage/real-provider-integration.md`);R7 暂停
+
+## 2026-06-27 · 全量 review R5 复审 R4 fix + 4 项 R5 fix 落地
+
+- **报告**:`docs/reviews/2026-06-27-full-project-code-review-r5.md`(R4 修复后 working tree 复审;13 项 R4 fix verify + 5 项 R5 findings)
+- **R5 findings**:
+  - **R5-1 CRITICAL** `AppNav.kt:121-129` `consentFlow.first()` 同步返 EMPTY → 已同意用户冷启闪 onboarding;`consentFlow` 走 `stateIn(Eagerly, EMPTY)`,`.first()` 不挂起直接取 EMPTY;**修**:`.filter { it != ConsentState.EMPTY }.first()`(对齐 line 161 已有 guard 模式)
+  - **R5-2 HIGH** `AppNav.kt:137-156` `widgetPendingRoute` 回放条件仅在 `currentRoute.contains("onboarding")`,已同意用户冷启到 AppShell 时 MainActivity 后写入的 pending 被静默丢;**修**:扩 `else if (pending != null)` 分支到非 onboarding 路由
+  - **R5-3 HIGH** `OnboardingScreen.kt:62-67` `produceState("", context)` 初始 `""` 与 fallback `""` 同语义,冷启闪"条款加载失败"提示;**修**:改 `produceState<String?>(null, ...)` 三态 + `policyLoading`/`policyLoadFailed`/`else` 三态 UI 分支;内层 fallback catch 加 `Log.e` 兜底文件缺失排查
+  - **R5-4 MEDIUM** `Theme.kt:89` + `SettingsScreen.kt:75` `Log.w` 在 runCatching.onFailure 无 gate,Release 跑污染 logcat;**修**:`val isPreview = LocalInspectionMode.current` + `if (isPreview) Log.w(...)`
+  - **R5-5 MEDIUM** skip(`ackApikeyPrompt=false` initialValue 跟 consentFlow 哲学相反但语义正确 — consent 是状态可推,ack 是行为可推;doc-only fix,加注释说明不对称原因)
+- **build 验证**:`./gradlew :app:ktlintCheck :app:assembleDebug :app:testDebugUnitTest` 全绿 16s
+- **设计盲点反思**:R4 fix 暴露 `produceState<String>` 状态机不严谨、`collectAsStateWithLifecycle` 不传 initialValue 需 paired with `.first()` guard
+- **下一步候选**:进入 M5 polish(真 provider 联调 / AI 历史持久化等),暂停 review 循环
+
 ## 2026-06-27 · M6 entity-extraction 6 项 deferred polish 收口
 
 - **OpenSpec change**:`entity-extraction-polish`(archive 到 `2026-06-26-entity-extraction-polish`),把 roadmap §13 M6 列的 6 项 polish deferred 集中清掉

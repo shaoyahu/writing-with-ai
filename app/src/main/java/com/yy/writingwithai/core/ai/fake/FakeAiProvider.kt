@@ -20,9 +20,15 @@ import kotlinx.coroutines.flow.flow
 class FakeAiProvider
 @Inject
 constructor() : AiProvider {
-    override val id = "fake"
+    // fix-2026-06-27-review-r4 L2:ID 提为常量,供外部引用,避免 "fake" magic string 散落。
+    override val id = PROVIDER_ID
     override val displayName = "Fake (Testing)"
     override val supportedModels = listOf("fake-model")
+    override val defaultModel = "fake-model"
+
+    companion object {
+        const val PROVIDER_ID = "fake"
+    }
 
     override fun stream(request: AiRequest, credentials: AiCredentials): Flow<AiStreamEvent> = flow {
         val cfg = FakeConfigHolder.config

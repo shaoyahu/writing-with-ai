@@ -2,19 +2,30 @@
 
 package com.yy.writingwithai.feature.quicknote.edit
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -23,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,10 +45,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
@@ -63,6 +77,19 @@ fun QuickNoteEditorScreen(
     LaunchedEffect(prefillFocus) {
         if (prefillFocus) contentFocusRequester.requestFocus()
     }
+    // ux-2026-06-28 #8:新建笔记时附件 Uri 先缓存;保存时落库。现有笔记(走路由 id)直接 observe 已落库附件。
+    val pendingUris by viewModel.pendingAttachmentUris.collectAsStateWithLifecycle()
+    var existingAttachments by remember {
+        mutableStateOf(emptyList<com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity>())
+    }
+    LaunchedEffect(state.isNew) {
+        if (!state.isNew) {
+            viewModel.observeAttachments().collect { existingAttachments = it }
+        }
+    }
+    val attachmentPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let { viewModel.addAttachment(it) } }
 
     Scaffold(
         topBar = {
@@ -254,6 +281,109 @@ fun QuickNoteEditorScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = spacing.md, vertical = spacing.xs)
                 )
+            }
+
+            // ux-2026-06-28 #8:图片附件行 — 添加按钮 + pending/已落库缩略图。
+            // 新建笔记时只能看到 pending 计数 + 移除;编辑现有笔记可直接看已落库缩略图。
+            AttachmentRow(
+                pendingUris = pendingUris,
+                existingAttachments = existingAttachments,
+                onAddClick = {
+                    attachmentPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                onRemovePending = viewModel::removePendingAttachment
+            )
+        }
+    }
+}
+
+/**
+ * ux-2026-06-28 #8:编辑器底部附件行。
+ * - 「+ 图片」按钮 → 调起 photo picker。
+ * - pending URIs / 已落库 NoteAttachmentEntity 各自以 chip 形式展示。
+ * - pending 只有移除按钮(尚未压缩);已落库 chip 不提供移除(由 detail 屏统一管理)。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AttachmentRow(
+    pendingUris: List<android.net.Uri>,
+    existingAttachments: List<com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity>,
+    onAddClick: () -> Unit,
+    onRemovePending: (android.net.Uri) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        // 已有附件(编辑现有笔记时)+ pending 缩略图
+        if (existingAttachments.isNotEmpty() || pendingUris.isNotEmpty()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(existingAttachments, key = { it.id }) { att ->
+                    ThumbnailChip(
+                        label = att.localPath.substringAfterLast('/'),
+                        onRemove = null
+                    )
+                }
+                items(pendingUris) { uri ->
+                    ThumbnailChip(
+                        label = uri.lastPathSegment ?: uri.toString(),
+                        onRemove = { onRemovePending(uri) }
+                    )
+                }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Filled.Image,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            TextButton(onClick = onAddClick) {
+                Text(stringResource(R.string.quicknote_detail_add_image))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThumbnailChip(label: String, onRemove: (() -> Unit)?) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier
+            .size(width = 120.dp, height = 64.dp)
+            .clip(RoundedCornerShape(8.dp))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label.take(12),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            if (onRemove != null) {
+                IconButton(onClick = onRemove, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

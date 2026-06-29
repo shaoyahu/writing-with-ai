@@ -21,6 +21,10 @@ class FakeProviderPrefsStore(
     private val selectedModels = MutableStateFlow<Map<String, String>>(emptyMap())
     private val apiFormats = MutableStateFlow<Map<String, ApiFormat>>(emptyMap())
 
+    // fix-2026-06-28-ai-model-selection-actually-used §5.3 测试 hook:让
+    // setSelectedModel 注入异常。null = 不注入,正常写 map。
+    var setSelectedModelError: Throwable? = null
+
     override suspend fun getSelectedProviderId(): String? = flow.value
 
     override suspend fun setSelectedProviderId(providerId: String) {
@@ -34,9 +38,18 @@ class FakeProviderPrefsStore(
     }
 
     override suspend fun setSelectedModel(providerId: String, model: String) {
+        setSelectedModelError?.let { throw it }
         // fix-review-r3-medium M6:用 update{} 原子读-改-写,避免 read-modify-write
         // 与观察者并发时丢更新(原版先 get 后 set,中间窗口竞态)。
         selectedModels.update { it + (providerId to model) }
+    }
+
+    // fix-2026-06-28-ai-model-selection-actually-used:仅 key 不存在时落,模拟
+    // ProviderPrefsStoreImpl 行为(原子存在性检查 + put)。
+    override suspend fun setSelectedModelIfMissing(providerId: String, defaultModel: String) {
+        selectedModels.update { current ->
+            if (current[providerId].isNullOrBlank()) current + (providerId to defaultModel) else current
+        }
     }
 
     override fun observeSelectedModel(providerId: String): Flow<String?> {

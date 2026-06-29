@@ -1,5 +1,6 @@
 package com.yy.writingwithai.feature.settings
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,22 +13,24 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
+import com.yy.writingwithai.app.ui.theme.WritingAppTheme
+import com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
+import com.yy.writingwithai.core.ui.AnimatedSwitch
 import dagger.hilt.EntryPoint
-import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 
 /**
@@ -58,16 +61,28 @@ fun SettingsScreen(
                     }
                 }
             )
-        }
+        },
+        // ux-2026-06-28 #5:跟 Me tab 视觉一致(SectionCard 用 surface 在 surfaceVariant 上浮起)。
+        containerColor = MaterialTheme.colorScheme.surfaceVariant
     ) { padding ->
         val ctx = LocalContext.current
+        // R5-4 fix: 仅在 Preview(InspectionMode)打 Log.w,避免 Release 日志被每次冷启污染。
+        val isPreview = LocalInspectionMode.current
+        // H2 fix: runCatching 防 Preview 崩溃; observeEnabled + collectAsStateWithLifecycle 保持状态同步
         val settings = remember {
-            EntryPoints.get(
-                ctx.applicationContext,
-                SettingsEntryPoint::class.java
-            ).noteAssociationSettings()
+            runCatching {
+                EntryPointAccessors.fromApplication(
+                    ctx.applicationContext,
+                    SettingsEntryPoint::class.java
+                ).noteAssociationSettings()
+            }.onFailure { if (isPreview) Log.w("SettingsScreen", "Hilt EntryPoint unavailable (Preview?)", it) }
+                .getOrNull()
         }
-        var llmEnabled by remember { mutableStateOf(settings.isEnabled()) }
+        val llmEnabled by (
+            settings?.observeEnabled()
+                ?: kotlinx.coroutines.flow.flowOf(false)
+            )
+            .collectAsStateWithLifecycle(initialValue = false)
 
         LazyColumn(modifier = Modifier.padding(padding)) {
             // 反馈 #4:移除 AI 模型管理 / 提示词模板 / 实体别名 ListItem(已迁到"我的" tab)
@@ -81,11 +96,10 @@ fun SettingsScreen(
                         Text(stringResource(R.string.note_association_ai_setting_desc))
                     },
                     trailingContent = {
-                        Switch(
+                        AnimatedSwitch(
                             checked = llmEnabled,
                             onCheckedChange = { enabled ->
-                                llmEnabled = enabled
-                                settings.setEnabled(enabled)
+                                settings?.setEnabled(enabled)
                             }
                         )
                     }
@@ -108,15 +122,15 @@ fun SettingsScreen(
     }
 }
 
+// M11 fix: 移除未使用的 feishuSyncEventDao 声明
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface SettingsEntryPoint {
-    fun noteAssociationSettings(): com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
-    fun feishuSyncEventDao(): com.yy.writingwithai.core.feishu.sync.FeishuSyncEventDao
+    fun noteAssociationSettings(): NoteAssociationSettingsStore
 }
 
 @Preview(name = "Settings", showBackground = true)
 @Composable
 private fun SettingsScreenPreview() {
-    MaterialTheme { SettingsScreen() }
+    WritingAppTheme { SettingsScreen() }
 }

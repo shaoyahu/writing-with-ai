@@ -38,7 +38,7 @@ api-key: <API_KEY>
 | `mimo-v2.5-flash` | 快速模型 |
 | `mimo-v2.5-mini` | 极小模型 |
 
-**v1 UI 默认**:`mimo-v2.5-flash`(性价比);设置里允许切换。
+**v1 UI 默认**:`mimo-v2.5-pro`(推荐体验);设置里允许切换到 `mimo-v2.5-flash`(速度优先) / `mimo-v2.5-mini`(极致小)。
 
 > ⚠️ **V2 系列 2026-06-30 正式下线**(V2 Flash / V2 TTS 等已于 2026-06-18~25 陆续转 V2.5)。**v1 UI 不展示 V2 模型名**;若用户在 v2+ "自定义模型"里填了 V2 名,运行时由 mimo 自行处理(返回 404 或自动映射,以实际为准)。
 
@@ -83,16 +83,17 @@ mimo 文档**未单独给出 SSE 事件格式**。**v1 按 Anthropic 标准 SSE 
       endpointPath = "/anthropic/v1/messages",
       authStyle = AuthStyle.CUSTOM_HEADER,
       customAuthHeaderName = "api-key",   // ⚠️ 不是 x-api-key
+      defaultModel = "mimo-v2.5-pro",   // review-H3:从 v2.5-flash 改 v2.5-pro
       supportedModels = listOf(
-          "mimo-v2.5-flash",  // v1 default
-          "mimo-v2.5-pro",
+          "mimo-v2.5-flash",
+          "mimo-v2.5-pro",  // v1 default
           "mimo-v2.5-mini",
       ),
   )
   ```
 - **不需要单独写 `stream()` 实现**,由通用 `AnthropicCompatibleAdapter` 处理;`authStyle = CUSTOM_HEADER` 时由 adapter 反射式加 header。
 - 流式事件按 Anthropic 标准解析(等真实调用验证)。
-- 模型名用 `enum class MimoModel(val apiName: String)`,default = `V2_5_FLASH`。
+- 模型名用 `enum class MimoModel(val apiName: String)`,default = `V2_5_PRO`。
 
 ## 9. 参考
 

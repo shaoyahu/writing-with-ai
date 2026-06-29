@@ -32,7 +32,7 @@ Authorization: Bearer <API_KEY>
 | `deepseek-v4-pro` | 主力模型,带思考 |
 | `deepseek-v4-flash` | 快速模型,无思考 |
 
-**v1 UI 默认**:`deepseek-v4-flash`(性价比高);设置里允许切换到 `deepseek-v4-pro`。
+**v1 UI 默认**:`deepseek-v4-pro`(推荐体验);设置里允许切换到 `deepseek-v4-flash`(速度优先)。
 
 > **已停用参考**:`deepseek-chat` / `deepseek-reasoner` 于 **2026-07-24** 停用。v1 UI 不展示这两个名字;若用户在"自定义模型名"里填了它们,运行时由 deepseek 自动映射(见 §4)。
 
@@ -77,7 +77,7 @@ Authorization: Bearer <API_KEY>
 
 ## 8. 本项目实现要点
 
-- 走 `core/ai/provider/deepseek/DeepseekConfig.kt`,`ProviderConfig(id="deepseek", baseUrl="https://api.deepseek.com", endpointPath="/chat/completions", authStyle=AUTHORIZATION, supportedModels=[v4-flash, v4-pro], apiFormat=OPENAI)`。
+- 走 `core/ai/provider/deepseek/DeepseekConfig.kt`,`ProviderConfig(id="deepseek", baseUrl="https://api.deepseek.com", endpointPath="/chat/completions", authStyle=AUTHORIZATION, defaultModel="deepseek-v4-pro", supportedModels=[v4-flash, v4-pro], apiFormat=OPENAI)`。
 - 复用 `AnthropicCompatibleAdapter` 多格式路径:根据 `config.apiFormat == ApiFormat.OPENAI` 切到 OpenAI 协议分支(走 `messages[]` 数组 + `Authorization: Bearer` + OpenAI SSE chunk 格式)。
 - 错误映射走 `core/ai/net/ErrorMapper.kt` 通用版本;401/403 触发"apikey 无效"提示,引导用户去设置页。
 - 模型名存储:Settings 用 `enum class DeepseekModel(val apiName: String) { V4Flash("deepseek-v4-flash"), V4Pro("deepseek-v4-pro") }`,避免业务层散落字符串。

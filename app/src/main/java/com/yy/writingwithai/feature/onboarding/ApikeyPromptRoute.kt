@@ -2,9 +2,9 @@ package com.yy.writingwithai.feature.onboarding
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * onboarding-apikey-prompt · ApikeyPrompt Route(Wire VM → Screen)。
@@ -17,7 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
  */
 @Composable
 fun ApikeyPromptRoute(onFinished: () -> Unit, viewModel: ApikeyPromptViewModel = hiltViewModel()) {
-    val action by viewModel.action.collectAsState()
+    val action by viewModel.action.collectAsStateWithLifecycle()
 
     LaunchedEffect(action) {
         if (action == ApikeyPromptViewModel.Action.Finished) {

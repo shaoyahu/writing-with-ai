@@ -10,10 +10,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.yy.writingwithai.R
 
 /**
  * feishu-bidir-sync · 冲突解决对话框(tasks §5.1)。
+ *
+ * feishu-sync-end-to-end §3:3 处硬编码中文(标题/保留本地/保留飞书)替换为 stringResource,
+ * 走 `R.string.feishu_conflict_*` 双语键。
  *
  * spec: openspec/changes/feishu-bidir-sync/specs/feishu-bidir-sync/spec.md
  * "Conflict detection and resolution"
@@ -30,13 +35,13 @@ fun ConflictResolutionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("飞书同步冲突") },
+        title = { Text(stringResource(R.string.feishu_conflict_title)) },
         text = {
             Column {
-                Text("本地和飞书两端都被修改过,请选择保留哪一版:")
+                Text(stringResource(R.string.feishu_conflict_body))
                 Spacer(modifier = Modifier.padding(top = 12.dp))
                 Text(
-                    text = "本地版本:",
+                    text = stringResource(R.string.feishu_conflict_local_label),
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
@@ -45,7 +50,7 @@ fun ConflictResolutionDialog(
                 )
                 Spacer(modifier = Modifier.padding(top = 8.dp))
                 Text(
-                    text = "飞书版本:",
+                    text = stringResource(R.string.feishu_conflict_remote_label),
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
@@ -56,17 +61,17 @@ fun ConflictResolutionDialog(
         },
         confirmButton = {
             TextButton(onClick = onResolveKeepRemote) {
-                Text("保留飞书")
+                Text(stringResource(R.string.feishu_conflict_keep_remote))
             }
         },
         dismissButton = {
             Row {
                 TextButton(onClick = onCancel) {
-                    Text("取消")
+                    Text(stringResource(R.string.feishu_conflict_cancel))
                 }
                 Spacer(modifier = Modifier.padding(start = 8.dp))
                 TextButton(onClick = onResolveKeepLocal) {
-                    Text("保留本地")
+                    Text(stringResource(R.string.feishu_conflict_keep_local))
                 }
             }
         }

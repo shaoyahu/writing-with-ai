@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -36,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.work.WorkInfo
 import com.yy.writingwithai.R
+import com.yy.writingwithai.core.ui.AnimatedSwitch
 
 /**
  * entity-extraction-polish §4.2:笔记关联设置屏。
@@ -68,7 +68,9 @@ fun NoteAssociationSettingsScreen(onBack: () -> Unit, viewModel: NoteAssociation
                     }
                 }
             )
-        }
+        },
+        // ux-2026-06-28 #5:跟 Me tab 一致,surfaceVariant 底色让 ListItem / Card 自然浮起。
+        containerColor = MaterialTheme.colorScheme.surfaceVariant
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -176,7 +178,7 @@ private fun PauseSection(paused: Boolean, onToggle: (Boolean) -> Unit) {
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.weight(1f)
         )
-        Switch(checked = paused, onCheckedChange = onToggle)
+        AnimatedSwitch(checked = paused, onCheckedChange = onToggle)
     }
 }
 

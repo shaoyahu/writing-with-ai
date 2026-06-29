@@ -1,6 +1,8 @@
 // writing-with-ai · app module build.gradle.kts
 // 见 docs/usage/development-setup.md 与 gradle/libs.versions.toml。
 
+import com.yy.writingwithai.buildlogic.PreflightFailure
+import com.yy.writingwithai.buildlogic.parseGrepOutput
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -225,4 +227,86 @@ ktlint {
             "standard:multiline-expression-wrapping"
         )
     )
+}
+
+// release-preflight-automation:release 前置 4 项校验。
+// 见 openspec/changes/release-preflight-automation/{proposal,design}.md。
+// check-1: values-en/strings.xml 残留 __TODO__ 占位
+// check-2: 主源码出现明文 apikey 字面量(16+ 字母数字字符)
+// check-3: res/xml/backup_rules.xml + data_extraction_rules.xml 存在
+// check-4: 保留,见 design.md §R5 风险说明
+// 失败格式:`Preflight FAILED [check-N]: file:line — message`
+tasks.register("checkReleaseReadiness") {
+    group = "verification"
+    description = "Run 4 preflight checks before release builds"
+    doLast {
+        val failures = mutableListOf<PreflightFailure>()
+
+        fun runGrep(args: List<String>): String {
+            val proc = ProcessBuilder(args).redirectErrorStream(true).start()
+            val text = proc.inputStream.bufferedReader().readText()
+            proc.waitFor()
+            return text
+        }
+
+        // check-1: __TODO__ 占位
+        parseGrepOutput(
+            runGrep(
+                listOf(
+                    "grep",
+                    "-rn",
+                    "__TODO__",
+                    file("src/main/res/values-en/strings.xml").absolutePath
+                )
+            )
+        ).forEach { failures += it.copy(checkId = "check-1") }
+
+        // check-2: 明文 apikey 字面量
+        parseGrepOutput(
+            runGrep(
+                listOf(
+                    "grep",
+                    "-rnE",
+                    "\\bapikey\\s*=\\s*\"[a-zA-Z0-9_-]{16,}\"",
+                    file("src/main/java/com/yy/writingwithai/").absolutePath
+                )
+            )
+        ).forEach { failures += it.copy(checkId = "check-2") }
+
+        // check-3: 备份规则 xml 必须存在
+        val backupRules = file("src/main/res/xml/backup_rules.xml")
+        val dataExtractionRules = file("src/main/res/xml/data_extraction_rules.xml")
+        if (!backupRules.exists()) {
+            failures += PreflightFailure(
+                checkId = "check-3",
+                file = "src/main/res/xml/backup_rules.xml",
+                line = 0,
+                message = "missing required file"
+            )
+        }
+        if (!dataExtractionRules.exists()) {
+            failures += PreflightFailure(
+                checkId = "check-3",
+                file = "src/main/res/xml/data_extraction_rules.xml",
+                line = 0,
+                message = "missing required file"
+            )
+        }
+
+        if (failures.isNotEmpty()) {
+            val msg = failures.joinToString("\n") { f ->
+                "Preflight FAILED [${f.checkId}]: ${f.file}:${f.line} — ${f.message}"
+            }
+            throw GradleException("Preflight FAILED:\n$msg")
+        }
+    }
+}
+
+// release-preflight-automation:release 出包前必须先跑 preflight + ktlint。
+// debug 出包不挂 preflight(快速迭代)。
+// 用 afterEvaluate 避开 buildTypes DSL 嵌套 tasks 块的类型问题。
+afterEvaluate {
+    tasks.named("assembleRelease") {
+        dependsOn("checkReleaseReadiness", "ktlintCheck")
+    }
 }

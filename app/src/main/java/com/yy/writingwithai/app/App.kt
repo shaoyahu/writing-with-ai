@@ -8,10 +8,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import com.yy.writingwithai.app.ui.theme.WritingAppTheme
+import com.yy.writingwithai.core.prefs.UserPrefsStore
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 
 /**
  * writing-with-ai · 应用根 Composable。
@@ -29,7 +36,8 @@ fun App(
     widgetPendingRoute: MutableState<String?> = mutableStateOf(null),
     onNavControllerReady: (NavController) -> Unit = {}
 ) {
-    WritingAppTheme {
+    val userPrefsStore = rememberUserPrefsStore()
+    WritingAppTheme(userPrefsStore = userPrefsStore) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
@@ -48,5 +56,26 @@ fun App(
 private fun AppPreview() {
     WritingAppTheme {
         App()
+    }
+}
+
+/** Hilt EntryPoint 用于在 @Composable 中获取 [UserPrefsStore](Theme 不反向依赖 core/prefs 构造参数)。 */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface AppUserPrefsStoreEntryPoint {
+    fun userPrefsStore(): UserPrefsStore
+}
+
+/** 从 Application context 通过 Hilt EntryPoint 获取 [UserPrefsStore]。 */
+@Composable
+private fun rememberUserPrefsStore(): UserPrefsStore? {
+    val context = LocalContext.current
+    return remember(context) {
+        runCatching {
+            EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                AppUserPrefsStoreEntryPoint::class.java
+            ).userPrefsStore()
+        }.getOrNull()
     }
 }

@@ -8,6 +8,7 @@ import com.yy.writingwithai.core.ai.api.AiError
 import com.yy.writingwithai.core.ai.api.AiGateway
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.WritingOp
+import com.yy.writingwithai.core.ai.api.resolveActualModel
 import com.yy.writingwithai.core.ai.prompt.DefaultPrompts
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStore
 import com.yy.writingwithai.core.data.repo.NoteRepository
@@ -72,6 +73,22 @@ constructor(
         const val DEFAULT_PROVIDER = "deepseek"
     }
 
+    init {
+        // review-M1:初始化期 eager 拉一次 provider list,把 id → defaultModel 缓存进
+        // [defaultModelsByProvider]。start() 命中即用,避免每次 AI 调用穿透到
+        // CustomProviderStore.getAll()。失败保持空 map 走 start() fallback inline。
+        viewModelScope.launch {
+            try {
+                defaultModelsByProvider.value =
+                    aiGateway.listProviders().associate { it.id to it.defaultModel }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // 保持空 cache;start() 会在 cache miss 时 fallback inline 再拉一次。
+            }
+        }
+    }
+
     /**
      * review r2 修:删 `runBlocking` 同步读取 consent/ack — 在 ViewModel 构造函数中
      * runBlocking 阻塞主线程等待 DataStore,冷启动或低端设备上可能 ANR;且构造时快照
@@ -85,6 +102,13 @@ constructor(
     val state: StateFlow<AiActionUiState> = _state.asStateFlow()
 
     private var streamJob: Job? = null
+
+    // review-M1:start() 每次调 aiGateway.listProviders() 拿 defaultModel,频繁触发
+    // CustomProviderStore.getAll()(潜在 Room query)。在 VM 构造时 eager 拉一次缓
+    // 存到 MutableStateFlow,start() 命中缓存即用;缓存 miss(冷启动 init 块未完成
+    // 极窄窗口、或用户 mid-session 加 custom provider)走 fallback inline,行为不
+    // 退化但摊销单次 Remote/Local query。
+    private val defaultModelsByProvider = MutableStateFlow<Map<String, String>>(emptyMap())
 
     // fix-2026-06-26-review-r3 M6:`streamJob?.cancel()` 之后旧协程可能还在 `_state.update`
     // 调用栈上(cancel 是异步),新协程已置 Streaming → 旧协程在取消检查点前最后 emit
@@ -142,8 +166,26 @@ constructor(
                     }
                     return@launch
                 }
+                // fix-2026-06-28-ai-model-selection-actually-used:start() 内显式算
+                // actualModel(走 resolveActualModel),与 `ModelManagementScreen` 卡片
+                // 算法一致;透传 modelName 给 gateway,UI Streaming state 同步携带,
+                // 让用户在 AI 跑的时候看到"正在用 X"。
+                // review-M1:defaultModel 优先走 [defaultModelsByProvider] 缓存,cache miss
+                // 时 (冷启动 init 块未完成、或 mid-session 加 custom provider) fallback
+                // inline 再拉一次 listProviders。摊销单次 Remote/Local query。
+                val selectedModel = providerPrefsStore.getSelectedModel(providerId)
+                val cachedDefault = defaultModelsByProvider.value[providerId]
+                val defaultModel = if (!cachedDefault.isNullOrBlank()) {
+                    cachedDefault
+                } else {
+                    aiGateway.listProviders()
+                        .firstOrNull { it.id == providerId }
+                        ?.defaultModel
+                        .orEmpty()
+                }
+                val actualModel = resolveActualModel(selectedModel, defaultModel)
                 if (streamGeneration == currentGeneration) {
-                    _state.value = AiActionUiState.Streaming(op = op)
+                    _state.value = AiActionUiState.Streaming(op = op, actualModel = actualModel)
                 }
                 val systemPrompt =
                     promptTemplateStore.getForOp(op) ?: DefaultPrompts.forOp(op)
@@ -154,7 +196,7 @@ constructor(
                         sourceText = sourceText,
                         providerId = providerId,
                         apikey = apikey ?: "",
-                        modelName = providerPrefsStore.getSelectedModel(providerId),
+                        modelName = actualModel,
                         systemPrompt = systemPrompt,
                         apiFormatOverride = apiFormatOverride
                     ).collect { event ->
@@ -172,7 +214,11 @@ constructor(
                                     AiActionUiState.Streaming(
                                         op = op,
                                         delta = event.text,
-                                        accumulatedLength = builder.length
+                                        accumulatedLength = builder.length,
+                                        // fix-2026-06-28-ai-model-selection-actually-used:
+                                        // Delta 阶段沿用 start() 计算的 actualModel,
+                                        // 避免 UI 闪一次空值。
+                                        actualModel = actualModel
                                     )
                                 }
                             }

@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val STOP_TIMEOUT_MS = 5_000L
 
@@ -105,6 +107,57 @@ constructor(
     }
 
     fun getSelectedNoteIds(): List<String> = _selectedIds.value.toList()
+
+    // ---- note-list-card-actions · 长按菜单 / 左滑背景按钮共用入口 ----
+
+    /**
+     * note-list-card-actions · 切换置顶状态。失败 Log.w,不传播(列表屏无 Snackbar)。
+     */
+    fun togglePinned(noteId: String, currentPinned: Boolean) {
+        viewModelScope.launch {
+            try {
+                repository.setPinned(noteId, !currentPinned)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                android.util.Log.w("QuickNoteListVM", "togglePinned failed for noteId=$noteId", e)
+            }
+        }
+    }
+
+    /**
+     * note-list-card-actions · 删除笔记(走 NonCancellable,详情页 delete 的同款反 race 保护)。
+     * 列表删除不需要 back 回调:observeAll 自动从列表移除,UI 自动刷新。
+     */
+    fun deleteNote(noteId: String) {
+        viewModelScope.launch {
+            withContext(kotlinx.coroutines.NonCancellable) {
+                try {
+                    repository.delete(noteId)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    android.util.Log.w("QuickNoteListVM", "deleteNote failed for noteId=$noteId", e)
+                }
+            }
+        }
+    }
+
+    /**
+     * note-list-card-actions · 长按菜单「添加已有标签」触发。
+     * 挂已有 tag(IGNORE 策略,重复挂 no-op)。
+     */
+    fun addExistingTag(noteId: String, tag: String) {
+        viewModelScope.launch {
+            try {
+                repository.addTagToNote(noteId, tag)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                android.util.Log.w("QuickNoteListVM", "addExistingTag failed for noteId=$noteId", e)
+            }
+        }
+    }
 
     private val _feishuRefs = MutableStateFlow<Map<String, FeishuRefEntity>>(emptyMap())
     val feishuRefs: StateFlow<Map<String, FeishuRefEntity>> = _feishuRefs.asStateFlow()

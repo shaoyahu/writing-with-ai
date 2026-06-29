@@ -1,5 +1,6 @@
 package com.yy.writingwithai.feature.quicknote.detail
 
+import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,6 +48,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
@@ -55,14 +59,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
@@ -70,6 +76,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
+import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.data.model.Note
@@ -77,6 +84,7 @@ import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
+import com.yy.writingwithai.core.prefs.SecureApiKeyStore
 import com.yy.writingwithai.feature.aiwriting.AiActionUiState
 import com.yy.writingwithai.feature.aiwriting.AiActionViewModel
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
@@ -87,8 +95,12 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.components.ActivityComponent
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * note-association:详情屏用的 Hilt EntryPoint(ConsentStore + NoteLinker)。
@@ -100,6 +112,9 @@ internal interface DetailScreenEntryPoint {
     fun noteLinker(): NoteLinker
     fun noteAssociationSettings(): com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
     fun llmExtractor(): com.yy.writingwithai.core.note.impl.SemanticNoteLinker?
+
+    // real-provider-integration §4:UI 早返回 apikey-missing Snackbar,需实时监听已配 provider
+    fun secureApiKeyStore(): SecureApiKeyStore
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -110,6 +125,8 @@ fun QuickNoteDetailScreen(
     onDeleted: () -> Unit,
     onNavigateToNote: (id: String) -> Unit,
     onNavigateToSettings: () -> Unit,
+    // real-provider-integration §4:apikey 缺失时 Snackbar action "去设置" 跳模型管理页
+    onNavigateToModelManagement: () -> Unit,
     onRequestConsent: () -> Unit,
     viewModel: QuickNoteDetailViewModel = hiltViewModel()
 ) {
@@ -134,8 +151,16 @@ fun QuickNoteDetailScreen(
     }
     val noteLinker = detailEntry.noteLinker()
     val noteAssocSettings = detailEntry.noteAssociationSettings()
-    val showAiButton = noteAssocSettings.isEnabled()
-    val state by viewModel.uiState.collectAsState()
+    val showAiButton by noteAssocSettings.observeEnabled()
+        .collectAsStateWithLifecycle(initialValue = noteAssocSettings.isEnabled())
+    // real-provider-integration §4:UI 早返回 apikey-missing Snackbar
+    val secureApiKeyStore = detailEntry.secureApiKeyStore()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
+    val apikeyMissingMessage = stringResource(R.string.ai_error_provider_not_configured)
+    val apikeyMissingAction = stringResource(R.string.ai_error_action_go_settings)
+    // M2 fix:uiState 是驱动整个详情屏的主 Flow,必须 lifecycle-aware。
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var menuExpanded by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
@@ -375,6 +400,7 @@ fun QuickNoteDetailScreen(
         floatingActionButton = {
             // ui-redesign-v2: FAB 已移除,操作走底部栏
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
             // ui-redesign-v2 · 固定底部操作栏:Share + AI 两个常驻图标
             if (current != null && noteId != null) {
@@ -382,7 +408,7 @@ fun QuickNoteDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 8.dp),
+                            .padding(horizontal = LocalSpacing.current.lg, vertical = LocalSpacing.current.sm),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         IconButton(onClick = { context.shareNoteMarkdown(current.note.note) }) {
@@ -397,7 +423,24 @@ fun QuickNoteDetailScreen(
                                 IconButton(
                                     onClick = {
                                         if (consentFlow.accepted) {
-                                            actionMenuOpen = true
+                                            // real-provider-integration §4:apikey 未配置 → Snackbar 早返回
+                                            // 不弹 sheet / 不发请求 / 不让用户走到 AiActionViewModel.start()
+                                            snackbarScope.launch {
+                                                val configured =
+                                                    secureApiKeyStore.observeConfiguredProviders().first()
+                                                if (configured.isEmpty()) {
+                                                    val result =
+                                                        snackbarHostState.showSnackbar(
+                                                            message = apikeyMissingMessage,
+                                                            actionLabel = apikeyMissingAction
+                                                        )
+                                                    if (result == SnackbarResult.ActionPerformed) {
+                                                        onNavigateToModelManagement()
+                                                    }
+                                                    return@launch
+                                                }
+                                                actionMenuOpen = true
+                                            }
                                         } else {
                                             onRequestConsent()
                                         }
@@ -437,14 +480,11 @@ fun QuickNoteDetailScreen(
         ) { uri ->
             uri?.let { viewModel.addAttachment(it) }
         }
-        var attachments by remember {
-            mutableStateOf(emptyList<com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity>())
-        }
-        androidx.compose.runtime.LaunchedEffect(state) {
-            if (state is NoteDetailUiState.Content) {
-                viewModel.observeAttachments().collect { attachments = it }
-            }
-        }
+        // H8 fix:用 collectAsStateWithLifecycle 替代 LaunchedEffect + collect,
+        // 让 attachment Flow 感知 lifecycle(onStop 暂停 collect,onStart 恢复),
+        // 避免后台持续 collect 浪费资源。
+        val attachments by viewModel.observeAttachments()
+            .collectAsStateWithLifecycle(initialValue = emptyList())
 
         when (val s = state) {
             NoteDetailUiState.Loading -> Unit
@@ -539,20 +579,55 @@ fun QuickNoteDetailScreen(
                     )
                     Spacer(Modifier.height(LocalSpacing.current.md))
                     // media-attachment-infrastructure · 附件图片 LazyRow
+                    // ux-2026-06-28 #8:之前用 ColorPainter 当 placeholder 显示空白方块;
+                    // 改为 produceState 在 IO 线程 decodeFile → ImageBitmap,失败回退占位色。
                     if (attachments.isNotEmpty()) {
                         Spacer(Modifier.height(LocalSpacing.current.md))
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(LocalSpacing.current.sm)) {
                             items(attachments, key = { it.id }) { att ->
-                                Image(
-                                    painter = androidx.compose.ui.graphics.painter.ColorPainter(
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(80.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                                )
+                                val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+                                    initialValue = null,
+                                    key1 = att.localPath
+                                ) {
+                                    value = withContext(Dispatchers.IO) {
+                                        runCatching {
+                                            // 80dp 缩略:目标 160px(inSampleSize 取 2^n),省内存
+                                            BitmapFactory.Options().apply {
+                                                inJustDecodeBounds = true
+                                            }.let { bounds ->
+                                                BitmapFactory.decodeFile(att.localPath, bounds)
+                                                BitmapFactory.Options().apply {
+                                                    inSampleSize = calculateThumbSample(
+                                                        bounds.outWidth,
+                                                        bounds.outHeight,
+                                                        160
+                                                    )
+                                                    inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+                                                }
+                                            }.let { opts ->
+                                                BitmapFactory.decodeFile(att.localPath, opts)
+                                            }
+                                        }.getOrNull()?.asImageBitmap()
+                                    }
+                                }
+                                val placeholderColor = MaterialTheme.colorScheme.surfaceVariant
+                                if (bitmap != null) {
+                                    Image(
+                                        bitmap = bitmap!!,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .clip(RoundedCornerShape(LocalCornerRadius.current.sm))
+                                            .background(placeholderColor)
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .clip(RoundedCornerShape(LocalCornerRadius.current.sm))
+                                            .background(placeholderColor)
+                                    )
+                                }
                             }
                         }
                     }
@@ -566,7 +641,7 @@ fun QuickNoteDetailScreen(
                         }
                     ) {
                         Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(LocalSpacing.current.xs))
                         Text(stringResource(R.string.quicknote_detail_add_image))
                     }
                     Spacer(Modifier.height(LocalSpacing.current.md))
@@ -670,13 +745,19 @@ fun QuickNoteDetailScreen(
     }
 
     // feishu-bidir-sync:sync result message
+    // CR-FIX-M6:消费 SyncMessage sealed 事件,不再 startsWith("同步完成:") 解析。
     if (syncMessage != null && !showSyncMessageDialog) {
         LaunchedEffect(syncMessage) { showSyncMessageDialog = true }
     }
     if (showSyncMessageDialog && syncMessage != null) {
         val ctx = androidx.compose.ui.platform.LocalContext.current
         val msg = syncMessage
-        val isSuccess = msg?.startsWith("同步完成:") == true
+        val isSuccess = msg is SyncMessage.Success
+        val displayText: String = when (msg) {
+            is SyncMessage.Success -> msg.docUrl
+            is SyncMessage.Failure -> msg.reason
+            null -> ""
+        }
         AlertDialog(
             onDismissRequest = {
                 showSyncMessageDialog = false
@@ -693,14 +774,14 @@ fun QuickNoteDetailScreen(
                     }
                 )
             },
-            text = { Text(msg ?: "") },
+            text = { Text(displayText) },
             confirmButton = {
                 TextButton(onClick = {
                     val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
                         as android.content.ClipboardManager
                     // 成功时复制 URL(打开看文档);失败时复制错误消息
                     val label = if (isSuccess) feishuClipUrlLabel else feishuClipErrorLabel
-                    cm.setPrimaryClip(android.content.ClipData.newPlainText(label, msg ?: ""))
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText(label, displayText))
                     showSyncMessageDialog = false
                     viewModel.clearSyncMessage()
                 }) {
@@ -723,6 +804,21 @@ fun QuickNoteDetailScreen(
             }
         )
     }
+}
+
+/**
+ * ux-2026-06-28 #8:缩略图 inSampleSize 计算。80dp ≈ 160px(2x density),
+ * `reqPx` 上下浮动,长边 ≤ reqPx 时 sampleSize=1。
+ */
+private fun calculateThumbSample(srcWidth: Int, srcHeight: Int, reqPx: Int): Int {
+    if (srcWidth <= 0 || srcHeight <= 0) return 1
+    var sample = 1
+    val halfW = srcWidth / 2
+    val halfH = srcHeight / 2
+    while (halfW / sample >= reqPx && halfH / sample >= reqPx) {
+        sample *= 2
+    }
+    return sample
 }
 
 /** M3:把 lastAiOp("expand"/"polish"/"organize") 映射到 R.string.aiwriting_action_* 中文资源。 */

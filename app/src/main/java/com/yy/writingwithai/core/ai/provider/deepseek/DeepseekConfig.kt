@@ -12,7 +12,7 @@ internal object DeepseekConfig {
             baseUrl = "https://api.deepseek.com",
             endpointPath = "/chat/completions",
             authStyle = AuthStyle.AUTHORIZATION,
-            defaultModel = "deepseek-v4-flash",
+            defaultModel = "deepseek-v4-pro",
             supportedModels = listOf("deepseek-v4-flash", "deepseek-v4-pro"),
             apiFormat = ApiFormat.OPENAI
         )

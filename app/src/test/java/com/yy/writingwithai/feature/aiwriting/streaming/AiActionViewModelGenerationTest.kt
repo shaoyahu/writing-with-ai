@@ -58,6 +58,9 @@ class AiActionViewModelGenerationTest {
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(dispatcher)
+        // fix-2026-06-28-ai-model-selection-actually-used:VM.start 调 aiGateway.listProviders()
+        // 拿 defaultModel;默认返空,fake provider 路径继续。
+        coEvery { aiGateway.listProviders() } returns emptyList()
     }
 
     @AfterEach
@@ -73,7 +76,7 @@ class AiActionViewModelGenerationTest {
         val secondChannel = Channel<AiStreamEvent>(capacity = Channel.UNLIMITED)
 
         var call = 0
-        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any()) } answers {
+        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } answers {
             call++
             if (call == 1) firstChannel.consumeAsFlow() else secondChannel.consumeAsFlow()
         }

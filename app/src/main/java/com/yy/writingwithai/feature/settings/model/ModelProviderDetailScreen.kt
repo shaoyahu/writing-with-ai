@@ -28,6 +28,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
@@ -38,31 +39,45 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
-import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.provider.ProviderConfig
+import kotlinx.coroutines.launch
 
 /**
- * model-management-detail-dropdown X 方案 · Provider 详情屏:
- * - baseURL 完全隐藏(roadmap §6.3:endpoint 由 apiFormat 自动推,provider 内部细节)
- * - 协议类型下拉可写(用户可在 OpenAI / Anthropic 间切)
- * - 选择模型下拉,默认项带「(默认)」后缀;切换 → VM.onModelSelected 写 prefs
- * - VM.getProviderConfig suspend 拿配置
+ * model-management-detail-dropdown · Provider 详情屏(三级页 — 点进具体服务商):
+ *
+ * ux-2026-06-29:重写 — 协议类型只支持 Anthropic 兼容,不再让用户在 OpenAI / Anthropic 间切换
+ * (用户指示 v1 收敛到 Anthropic 兼容)。原 [ApiFormatDropdown] 删,改成静态「协议」行
+ * 展示 "Anthropic 兼容"。endpoint / 鉴权方式 / 路径都按 Anthropic 兼容协议走,
+ * baseURL 等 provider 内部细节对用户透明。
+ *
+ * 保留:
+ * - 选择模型下拉(默认项带「(默认)」后缀;切换 → VM.onModelSelected 写 prefs)
+ * - apikey 输入(已配默认隐藏 + 「修改 apikey」按钮显式触发,见 ux-2026-06-28 #1)
  * - 区分新配置 vs 覆盖(banner + 按钮文案 + placeholder)
  * - SharedFlow 接收 save 事件 → Toast + 自动 onBack
+ *
+ * 删:
+ * - ApiFormatDropdown composable
+ * - currentApiFormat state + VM.loadApiFormat / VM.onApiFormatSelected 调用
+ * - ApiFormat import
+ *
+ * 未改(基础设施,后续单独清理任务):
+ * - CoreAiGateway / AnthropicCompatibleAdapter 仍支持 ApiFormat.OPENAI 分支
+ * - ModelManagementViewModel.onApiFormatSelected / loadApiFormat 仍存在
+ * - ProviderPrefsStore.setApiFormat / getApiFormat 仍存在
+ * - DeepseekConfig.apiFormat = ApiFormat.OPENAI(OPENAI 仍走 chat/completions 端点,
+ *   但 UI 不再让用户选,默认透传)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +90,6 @@ fun ModelProviderDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val spacing = LocalSpacing.current
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val isExisting = state.configuredProviderIds.contains(providerId)
 
     var config by remember { mutableStateOf<ProviderConfig?>(null) }
@@ -85,47 +99,57 @@ fun ModelProviderDetailScreen(
 
     var apiKey by remember { mutableStateOf("") }
     var revealKey by remember { mutableStateOf(false) }
+    // ux-2026-06-28 #1:已配 apikey 默认隐藏输入框,显式「修改 apikey」按钮触发。
+    var editingKey by remember { mutableStateOf(false) }
 
-    // X 方案:进屏回填当前 model + 当前 apiFormat
+    // 进屏回填当前 model
     var currentModel by remember { mutableStateOf<String?>(null) }
-    var currentApiFormat by remember { mutableStateOf<ApiFormat?>(null) }
     LaunchedEffect(providerId, config) {
         val cfg = config ?: return@LaunchedEffect
         currentModel = viewModel.loadSelectedModel(providerId) ?: cfg.defaultModel
-        currentApiFormat = viewModel.loadApiFormat(providerId)
     }
 
     LaunchedEffect(Unit) {
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            viewModel.saveEvents.collect { result ->
-                when (result) {
-                    is SaveResult.Success -> {
-                        Toast.makeText(
-                            context,
-                            R.string.model_provider_detail_saved_toast,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        onBack()
-                    }
-                    is SaveResult.Failed -> {
-                        val detail = result.rawDetail.orEmpty()
-                        val text = if (detail.isBlank()) {
-                            context.getString(result.messageRes)
-                        } else {
-                            context.getString(
-                                R.string.model_provider_detail_save_failed_fmt,
-                                detail
-                            )
-                        }
-                        Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
-                    }
-                    else -> {}
+        viewModel.saveEvents.collect { result ->
+            when (result) {
+                is SaveResult.Success -> {
+                    Toast.makeText(
+                        context,
+                        R.string.model_provider_detail_saved_toast,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    onBack()
                 }
+                is SaveResult.Failed -> {
+                    // fix-2026-06-28-ai-model-selection-actually-used:按 operationKind
+                    // 选文案。MODEL_SELECT 文案由 VM 直接传 messageRes(无 rawDetail
+                    // 拼接,纯本地切换,无 save 上下文),不混入 save_failed_fmt。
+                    val text = when (result.operationKind) {
+                        SaveResult.OperationKind.MODEL_SELECT ->
+                            context.getString(result.messageRes)
+                        SaveResult.OperationKind.SAVE -> {
+                            val detail = result.rawDetail.orEmpty()
+                            if (detail.isBlank()) {
+                                context.getString(result.messageRes)
+                            } else {
+                                context.getString(
+                                    R.string.model_provider_detail_save_failed_fmt,
+                                    detail
+                                )
+                            }
+                        }
+                    }
+                    Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+                }
+                else -> {}
             }
         }
     }
 
     val displayName = config?.displayName ?: providerId
+    // fix-2026-06-28-ai-model-selection-actually-used:onModelSelected 改为 suspend 后,
+    // Composable 调它需要 coroutine scope。
+    val modelSelectScope = rememberCoroutineScope()
 
     Scaffold(
         modifier = modifier,
@@ -176,19 +200,17 @@ fun ModelProviderDetailScreen(
                 )
             )
 
-            // X 方案:协议类型下拉可写
-            currentApiFormat?.let { fmt ->
-                ApiFormatDropdown(
-                    selected = fmt,
-                    onSelected = { picked ->
-                        currentApiFormat = picked
-                        viewModel.onApiFormatSelected(providerId, picked)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(Modifier.height(spacing.sm))
-            }
+            // 协议类型 — ux-2026-06-29 重写:只支持 Anthropic 兼容,静态展示
+            // (原 ApiFormatDropdown 让用户在 OpenAI / Anthropic 间切,已删除)。
+            // 走 read-only OutlinedTextField 保持表单风格一致。
+            OutlinedTextField(
+                value = stringResource(R.string.model_provider_detail_api_format_anthropic),
+                onValueChange = {},
+                readOnly = true,
+                enabled = false,
+                label = { Text(stringResource(R.string.model_provider_detail_api_format_label)) },
+                modifier = Modifier.fillMaxWidth()
+            )
 
             // 选择模型下拉
             config?.let { cfg ->
@@ -198,91 +220,67 @@ fun ModelProviderDetailScreen(
                     supportedModels = cfg.supportedModels,
                     onSelected = { picked ->
                         currentModel = picked
-                        viewModel.onModelSelected(providerId, picked)
+                        // fix-2026-06-28-ai-model-selection-actually-used:VM.onModelSelected
+                        // 现在是 suspend,失败会 emit SaveResult.Failed(MODEL_SELECT) 走
+                        // saveEvents SharedFlow,UI 在 LaunchedEffect 收事件弹 Toast。
+                        modelSelectScope.launch { viewModel.onModelSelected(providerId, picked) }
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
             Spacer(Modifier.height(spacing.md))
-            OutlinedTextField(
-                value = apiKey,
-                onValueChange = { apiKey = it },
-                label = { Text(stringResource(R.string.model_provider_detail_api_key_label)) },
-                placeholder = {
-                    Text(
-                        if (isExisting) {
-                            stringResource(R.string.model_provider_detail_placeholder_override)
-                        } else {
-                            stringResource(R.string.model_provider_detail_placeholder_new)
-                        }
-                    )
-                },
-                singleLine = true,
-                visualTransformation = if (revealKey) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { revealKey = !revealKey }) {
-                        Icon(
-                            imageVector = if (revealKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = stringResource(R.string.model_provider_detail_show_key)
+            // ux-2026-06-28 #1:已配 apikey 默认隐藏输入框,显示「修改 apikey」按钮;点击展开输入框。
+            if (isExisting && !editingKey) {
+                OutlinedButton(
+                    onClick = { editingKey = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.model_provider_detail_btn_update_key))
+                }
+            } else {
+                OutlinedTextField(
+                    value = apiKey,
+                    onValueChange = { apiKey = it },
+                    label = { Text(stringResource(R.string.model_provider_detail_api_key_label)) },
+                    placeholder = {
+                        Text(
+                            if (isExisting) {
+                                stringResource(R.string.model_provider_detail_placeholder_override)
+                            } else {
+                                stringResource(R.string.model_provider_detail_placeholder_new)
+                            }
                         )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
+                    },
+                    singleLine = true,
+                    visualTransformation = if (revealKey) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { revealKey = !revealKey }) {
+                            Icon(
+                                imageVector = if (revealKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = stringResource(R.string.model_provider_detail_show_key)
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             Spacer(Modifier.height(spacing.md))
             Button(
                 onClick = {
-                    if (apiKey.isNotBlank()) {
-                        viewModel.saveProvider(providerId, apiKey, currentModel)
-                    }
+                    viewModel.saveProvider(providerId, apiKey, currentModel)
                 },
-                enabled = apiKey.isNotBlank(),
+                // ux-2026-06-28 #1:已配 apikey 时允许空 key 保存(VM 跳过 key 写盘),仅切模型 / provider。
+                enabled = apiKey.isNotBlank() || isExisting,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Filled.Save, contentDescription = null)
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(spacing.xs))
                 Text(
                     if (isExisting) {
                         stringResource(R.string.model_provider_detail_save_override)
                     } else {
                         stringResource(R.string.model_provider_detail_save)
-                    }
-                )
-            }
-        }
-    }
-}
-
-/** 协议类型下拉可写 — 切时调 onSelected,VM 写 prefs apiFormat 覆盖。 */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ApiFormatDropdown(selected: ApiFormat, onSelected: (ApiFormat) -> Unit, modifier: Modifier = Modifier) {
-    var expanded by remember { mutableStateOf(false) }
-    val labels = mapOf(
-        ApiFormat.ANTHROPIC to R.string.model_provider_detail_api_format_anthropic,
-        ApiFormat.OPENAI to R.string.model_provider_detail_api_format_openai
-    )
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = modifier
-    ) {
-        OutlinedTextField(
-            value = stringResource(labels.getValue(selected)),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.model_provider_detail_api_format_label)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            ApiFormat.entries.forEach { format ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(labels.getValue(format))) },
-                    onClick = {
-                        onSelected(format)
-                        expanded = false
                     }
                 )
             }

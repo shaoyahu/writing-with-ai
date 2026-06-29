@@ -177,6 +177,24 @@ constructor(
         noteDao.setPinned(id, pinned)
     }
 
+    /**
+     * note-list-card-actions · 给单条笔记挂已有 tag(幂等)。
+     *
+     * - NoteTagDao.add 用 IGNORE 策略 → 重复挂同一 tag 自动 no-op,不需要先查再插
+     * - 走事务外(单条 INSERT)+ NonCancellable 包 widget 刷新(同 upsert/delete 模式)
+     * - tag 自动 trim + 空过滤,与 upsert 的 cleaned 行为一致
+     */
+    suspend fun addTagToNote(noteId: String, tag: String) {
+        val cleaned = tag.trim()
+        if (cleaned.isEmpty()) return
+        if (BuildConfig.DEBUG) {
+            android.util.Log.d("NoteRepo", "addTagToNote noteId=$noteId tag.size=${cleaned.length}")
+        }
+        noteTagDao.add(NoteTagCrossRef(noteId = noteId, tag = cleaned))
+        withContext(NonCancellable) { widgetUpdater.updateAll(context) }
+        recomputeFlow.tryEmit(noteId)
+    }
+
     suspend fun updateAiMetadata(noteId: String, op: String, at: Long) {
         noteDao.updateAiMetadata(noteId, op, at)
     }

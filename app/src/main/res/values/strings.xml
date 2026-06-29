@@ -15,6 +15,20 @@
     <string name="quicknote_list_search_hint">搜索标题或正文</string>
     <string name="quicknote_list_fab_new">新建</string>
     <string name="quicknote_list_filter_all">全部</string>
+    <!-- note-list-card-actions · 列表卡片长按菜单 + 左滑操作 -->
+    <string name="quicknote_list_action_pin">置顶</string>
+    <string name="quicknote_list_action_unpin">取消置顶</string>
+    <string name="quicknote_list_action_delete">删除</string>
+    <string name="quicknote_list_action_add_tag">添加标签</string>
+    <string name="quicknote_list_add_tag_dialog_title">选择已有标签</string>
+    <string name="quicknote_list_add_tag_dialog_empty">暂无其他标签</string>
+    <string name="quicknote_list_add_tag_dialog_current_cd">已挂标签 %1$s</string>
+    <string name="quicknote_list_swipe_pin_cd">置顶</string>
+    <string name="quicknote_list_swipe_delete_cd">删除</string>
+    <string name="quicknote_list_delete_confirm_title">删除这条笔记?</string>
+    <string name="quicknote_list_delete_confirm_message">删除后无法恢复。</string>
+    <string name="quicknote_list_delete_confirm_ok">删除</string>
+    <string name="quicknote_list_delete_confirm_cancel">取消</string>
 
     <!-- 详情 -->
     <string name="quicknote_detail_title">笔记详情</string>
@@ -28,12 +42,15 @@
     <string name="quicknote_search_sort_time">按时间</string>
     <string name="quicknote_search_sort_relevance">按相关性</string>
     <string name="quicknote_search_history_title">搜索历史</string>
-    <string name="quicknote_search_history_clear">清除搜索历史</string>    <string name="quicknote_list_select_mode_title">已选 %1$d 篇</string>
+    <string name="quicknote_search_history_clear">清除搜索历史</string>
+    <string name="quicknote_list_select_mode_title">已选 %1$d 篇</string>
     <string name="settings_cloud_sync">云同步</string>
     <string name="settings_cloud_sync_status">未配置</string>
-    <string name="settings_cloud_sync_connect">连接</string>    <string name="quicknote_list_export_selected">导出选中</string>
+    <string name="settings_cloud_sync_connect">连接</string>
+    <string name="quicknote_list_export_selected">导出选中</string>
     <string name="quicknote_export_success">导出成功</string>
-    <string name="quicknote_export_error">导出失败</string>    <string name="quicknote_detail_delete">删除</string>
+    <string name="quicknote_export_error">导出失败</string>
+    <string name="quicknote_detail_delete">删除</string>
     <string name="quicknote_detail_pin">固定</string>
     <string name="quicknote_detail_unpin">取消固定</string>
     <string name="quicknote_detail_not_found">笔记不存在</string>
@@ -144,10 +161,25 @@
     <string name="aiwriting_error_server">AI 服务暂时不可用,请稍后重试</string>
     <string name="aiwriting_error_cancelled">已取消</string>
 
+    <!-- real-provider-integration · AiError → R.string 映射(10 个 key) -->
+    <string name="ai_error_network">网络连接失败,请检查后重试</string>
+    <string name="ai_error_auth">认证失败,请检查 API key</string>
+    <string name="ai_error_insufficient_balance">账户余额不足</string>
+    <string name="ai_error_rate_limited">请求过于频繁,请稍后再试</string>
+    <string name="ai_error_server_error">AI 服务暂时不可用,请稍后重试</string>
+    <string name="ai_error_timeout">请求超时,请稍后重试</string>
+    <string name="ai_error_user_consent_required">请先同意隐私条款</string>
+    <string name="ai_error_provider_not_configured">请先在「我的 → AI 模型」配置 API key</string>
+    <string name="ai_error_cancellation">已取消</string>
+    <string name="ai_error_unknown">出错了,请稍后重试</string>
+    <!-- real-provider-integration §4:Snackbar action 跳模型管理 -->
+    <string name="ai_error_action_go_settings">去设置</string>
+
     <!-- ===== M4-1 桌面小组件 home-screen-widget ===== -->
     <string name="widget_2x2_title">随手记</string>
     <string name="widget_4x2_title">随手记</string>
-    <string name="widget_1x1_label">记笔记</string>    <string name="widget_1x4_title">随手记</string>
+    <string name="widget_1x1_label">记笔记</string>
+    <string name="widget_1x4_title">随手记</string>
     <string name="widget_1x4_layout_label">4x1 横条</string>
     <string name="widget_empty">还没有笔记\n点 + 创建第一条</string>
     <!-- widget-rome-compat · 国产 ROM widget 自启动提示 -->
@@ -180,7 +212,7 @@
 
     <!-- ===== M4-4 onboarding-consent ===== -->
     <!-- OnboardingScreen 顶部 / 滚动提示 / 主次按钮 -->
-    <string name="onboarding_title">欢迎使用 writing-with-ai</string>
+    <string name="onboarding_title">欢迎使用 小札</string>
     <string name="onboarding_subtitle">请阅读并同意以下条款</string>
     <string name="onboarding_accept">同意并继续</string>
     <string name="onboarding_reject">拒绝并退出</string>
@@ -251,6 +283,7 @@
     <string name="model_provider_detail_banner_existing">已配置 · 点下方覆盖</string>
     <string name="model_provider_detail_placeholder_new">输入 API Key</string>
     <string name="model_provider_detail_placeholder_override">输入新 key 覆盖旧的</string>
+    <string name="model_provider_detail_btn_update_key">修改 apikey</string>
 
     <!-- C4 修:VM 不再硬编码中文,改为 messageRes + rawDetail,UI 层 stringResource 渲染 -->
     <string name="model_provider_detail_api_key_label">API Key</string>
@@ -291,9 +324,11 @@
 
     <!-- 连接字段 -->
     <string name="custom_provider_display_name_label">显示名称</string>
-    <string name="custom_provider_display_name_hint">如:我的 OpenAI</string>
-    <string name="custom_provider_base_url_label">Base URL</string>
-    <string name="custom_provider_base_url_hint">如:https://api.openai.com</string>
+    <string name="custom_provider_display_name_hint">如:我的 Claude</string>
+    <!-- ux-2026-06-28 #3:完整 URL — 用户填入含 path 的完整接口地址,不再拆 Base URL + Endpoint。 -->
+    <string name="custom_provider_base_url_label">完整 URL</string>
+    <string name="custom_provider_base_url_hint">如:https://api.example.com/v1/messages</string>
+    <string name="custom_provider_base_url_helper">Anthropic 兼容协议,需填入含 /v1/messages 路径的完整接口地址</string>
 
     <!-- 模型 & 认证字段 -->
     <string name="custom_provider_auth_style_label">认证方式</string>
@@ -334,8 +369,17 @@
     <string name="custom_provider_delete_confirm">删除</string>
     <string name="custom_provider_delete_cancel">取消</string>
 
-    <!-- 主屏 provider 卡片摘要 -->
-    <string name="model_management_models_summary_fmt">%1$d 个模型 · 默认 %2$s</string>
+    <!-- ux-2026-06-28 #2:主屏 provider 卡片摘要 — 已选 vs 未设(去掉"默认"后缀) -->
+    <string name="model_management_models_summary_selected_fmt">%1$d 个模型 · 已选 %2$s</string>
+    <string name="model_management_models_summary_default_fmt">%1$d 个模型</string>
+    <!-- fix-2026-06-28-ai-model-selection-actually-used:卡片显示「实际调用 model」(消除「选 pro 实际调 flash」歧义) -->
+    <string name="model_management_actual_call_fmt">实际调用: %1$s</string>
+    <string name="model_management_actual_call_using">实际将使用: %1$s</string>
+    <string name="model_management_dropdown_save_failed">模型切换失败,请重试</string>
+
+    <!-- ux-2026-06-28 #4:卡片右上角角标 — 区分内置 / 自定义,替代之前内嵌在标题旁的「自定义」tag -->
+    <string name="model_management_badge_builtin">系统内置</string>
+    <string name="model_management_badge_custom">自定义</string>
 
     <!-- Provider 详情屏 -->
     <string name="model_provider_detail_default_model_fmt">默认 model:%1$s</string>
@@ -385,19 +429,32 @@
     <string name="tab_my">我的</string>
     <string name="tab_new_note_cd">新建笔记</string>
     <string name="me_title">我的</string>
+    <!-- ux-2026-06-28 #5:动画风格拆到独立"显示"section,AI 配置只留 AI 相关条目。 -->
     <string name="me_section_ai_config">AI 配置</string>
+    <string name="me_section_display">显示</string>
     <string name="me_section_data">数据管理</string>
     <string name="me_section_about">关于</string>
     <string name="me_data_title">数据导入导出</string>
     <string name="me_model_title">AI 模型管理</string>
     <string name="me_prompt_title">Prompt 模板</string>
     <string name="me_alias_title">实体别名</string>
-    <string name="me_feishu_title">飞书同步</string>
+    <string name="me_feishu_title">飞书授权</string>
+    <string name="me_note_association_title">笔记关联</string>
     <string name="me_settings_title">设置</string>
     <string name="feishu_auth_title">飞书授权</string>
     <string name="feishu_command_prompt_intro">可用飞书操作:create_doc / read_doc / update_doc / append_block</string>
     <string name="me_about_title">关于</string>
     <string name="me_data_export_all">导出全部为 ZIP</string>
+
+    <!-- ux-2026-06-28 #7:关于页「检查更新」入口 + 提示反馈 -->
+    <string name="me_check_update_title">检查更新</string>
+    <string name="me_check_update_checking">正在检查…</string>
+    <string name="me_check_update_up_to_date_fmt">已是最新 v%1$s</string>
+    <string name="me_check_update_failed">检查失败,稍后重试</string>
+    <string name="me_check_update_dialog_title">发现新版本</string>
+    <string name="me_check_update_dialog_remote_version_fmt">新版本 v%1$s</string>
+    <string name="me_check_update_btn_download">下载</string>
+    <string name="me_check_update_btn_later">稍后</string>
 
     <!-- app-self-hosted-update · 关于屏 + 更新 dialog -->
     <!-- H8 · FeishuAuthScreen 权限说明 -->
@@ -407,6 +464,7 @@
     <string name="common_more_cd">更多选项</string>
     <string name="common_remove_cd">移除</string>
     <string name="common_add_cd">添加</string>
+    <string name="common_close">关闭</string>
     <string name="common_acknowledge">知道了</string>
 
     <!-- entity-extraction-polish §4.5:笔记关联设置页 i18n keys(双语) -->
@@ -438,4 +496,104 @@
     <!-- H8 · FeishuAuthScreen (feishu-user-oauth) — 复用 -->
     <string name="feishu_oauth_authorization_intro">用飞书账号授权,创建的文档会出现在你的「我的文档」中。</string>
     <string name="feishu_oauth_required_permissions">需要开通的权限: docx:document、drive:drive。在飞书开放后台 → 权限管理 中开通后约 1 分钟生效。</string>
+    <string name="feishu_oauth_error_appid_empty">App ID 不能为空</string>
+    <string name="feishu_oauth_error_secret_empty">App Secret 不能为空</string>
+    <string name="feishu_oauth_error_launch_failed">启动飞书授权失败</string>
+    <!-- ux-2026-06-28:系统密钥库不可用(ColorOS rkpd_client 通信失败等),引导用户检查系统密钥库 -->
+    <string name="feishu_oauth_error_keystore_unavailable">系统密钥库不可用,请到「设置 → 安全 → 凭据存储」检查密钥库状态后重试</string>
+    <!-- ux-2026-06-28:浏览器/CustomTabs 启动失败,提示安装或启用浏览器 -->
+    <string name="feishu_oauth_error_browser_unavailable">未找到可用的浏览器,请安装 Chrome 或其他浏览器后重试</string>
+    <!-- ux-2026-06-28:补 secret 输入 + 回调地址展示 + 飞书开放后台配置步骤 -->
+    <!-- H4 fix:OAuthCodeReceiver Toast 文案(之前硬编码中文) -->
+    <string name="feishu_oauth_state_expired">授权失败: state 已过期或不存在,请重试</string>
+    <string name="feishu_oauth_state_mismatch">授权失败: state 校验失败</string>
+    <string name="feishu_oauth_success">飞书授权成功</string>
+    <string name="feishu_oauth_failed">授权失败</string>
+    <string name="feishu_oauth_exchange_failed_fmt">授权失败: %1$s</string>
+    <string name="feishu_oauth_exchange_network_fmt">授权失败: 网络异常 %1$s</string>
+    <string name="feishu_oauth_exchange_unknown">授权失败: 未知错误</string>
+
+    <string name="feishu_oauth_app_secret_label">App Secret</string>
+    <string name="feishu_oauth_secret_helper">仅本机加密存储,不入 URL,不离开设备</string>
+    <string name="feishu_oauth_setup_steps_title">飞书开放后台配置步骤</string>
+    <string name="feishu_oauth_setup_step1">1. 打开 https://open.feishu.cn/app → 选中你的应用</string>
+    <string name="feishu_oauth_setup_step2">2. 「安全设置 → 重定向 URL」中新增以下地址(必须完全一致):</string>
+    <string name="feishu_oauth_setup_step3">3. 「权限管理」中开通 docx:document 与 drive:drive</string>
+    <string name="feishu_oauth_setup_step4">4. 「应用发布 → 版本管理与发布」创建并发布一个版本(仅自建应用需要,商店应用免)</string>
+    <string name="feishu_oauth_setup_step5">5. 「应用凭证」页拿到 App ID 与 App Secret 填入上方表单</string>
+    <string name="feishu_oauth_redirect_uri_label">回调 URL</string>
+    <string name="feishu_oauth_redirect_uri_helper">点击复制,在飞书开放后台填入此项</string>
+
+    <!-- feishu-sync-end-to-end · 设置页同步日志 section + 冲突 dialog -->
+    <string name="feishu_sync_log_title">飞书同步日志</string>
+    <string name="feishu_sync_log_disclaimer">同步不消耗 AI token,只调飞书 API</string>
+    <string name="feishu_sync_log_empty">暂无同步记录</string>
+    <string name="feishu_sync_direction_push">推送</string>
+    <string name="feishu_sync_direction_pull">拉取</string>
+    <string name="feishu_sync_direction_bidir">双向</string>
+    <string name="feishu_sync_status_ok">成功</string>
+    <string name="feishu_sync_status_error">失败</string>
+    <string name="feishu_sync_status_fallback_to_update">降级到 update</string>
+    <string name="feishu_conflict_title">飞书同步冲突</string>
+    <string name="feishu_conflict_body">本地和飞书两端都被修改过,请选择保留哪一版:</string>
+    <string name="feishu_conflict_local_label">本地版本:</string>
+    <string name="feishu_conflict_remote_label">飞书版本:</string>
+    <string name="feishu_conflict_keep_local">保留本地</string>
+    <string name="feishu_conflict_keep_remote">保留飞书</string>
+    <string name="feishu_conflict_cancel">取消</string>
+
+    <!-- ===== v1 内测 ===== -->
+    <string name="internal_testing_title">v1 内测</string>
+    <string name="internal_testing_howto">本次为 5 人内测构建(自用 + 朋友),仅 debug 通道分发,有意参与请联系作者本人。</string>
+    <string name="internal_testing_scope_title">测试范围</string>
+    <string name="internal_testing_scope_body">5 名内测人员覆盖 5 类设备角色:小米 MIUI / 华为 HarmonyOS / OPPO ColorOS / vivo OriginOS / 其它,每人覆盖自己设备的 widget、预测式返回、AI 操作等差异。</string>
+    <string name="internal_testing_feedback_title">反馈渠道</string>
+    <string name="internal_testing_feedback_body">请通过配置好的渠道反馈 bug,详见 docs/usage/feedback-channel.md。</string>
+    <string name="internal_testing_known_issues_hint">反馈前请先查阅 docs/usage/known-issues.md,问题可能已被记录并附临时方案。</string>
+    <string name="internal_testing_apk_location">从 nananxue.cn/app/debug/ 下载 APK</string>
+    <string name="internal_testing_duration">内测期为首版 APK 发布起 4 周,期满且无阻塞 bug 则出 release candidate。</string>
+    <string name="internal_testing_release_gate">所有已知问题状态为 [resolved] / [won\'t fix] / [deferred-accepted] 且反馈流 0 阻塞 bug,才打开 release 通道。</string>
+    <string name="internal_testing_provider_label">真 provider 验证(DeepSeek)</string>
+    <string name="internal_testing_provider_body">反馈 AI 操作 bug 前,请先按 docs/usage/real-provider-integration.md 的 DeepSeek 清单跑一遍。</string>
+
+    <!-- provider_step_* 镜像 real-provider-integration.md DeepSeek checklist -->
+    <string name="provider_step_1_install">步骤 1:安装 debug APK,启动器显示小札图标。</string>
+    <string name="provider_step_2_consent">步骤 2:首次启动,滑到条款页底部,点击「同意并继续」。</string>
+    <string name="provider_step_3_apikey_intro">步骤 3:API Key 说明页,阅读后点击「知道了」。</string>
+    <string name="provider_step_4_note_and_ai">步骤 4:进入随手记,写一条笔记,打开详情,选中文字,点击 AI 按钮,弹出操作面板。</string>
+    <string name="provider_step_5_open_model_mgmt">步骤 5:进入「我的」→「设置」→「AI 模型管理」,确认有 4 张卡:DeepSeek / Minimax / MiMo / 自定义。</string>
+    <string name="provider_step_6_configure_deepseek">步骤 6:点 DeepSeek 卡,API Key 栏为空,默认模型为 deepseek-v4-flash,粘贴 DeepSeek apikey 并保存,Toast 显示「已保存」。</string>
+    <string name="provider_step_7_trigger_expand">步骤 7:返回笔记详情,再次点 AI 按钮,选「扩写」,流式面板在秒级展示生成内容。</string>
+    <string name="provider_step_8_verify_history">步骤 8:可选 — 查看 ai_history 表或 logcat,确认 token 用量与耗时已落库。</string>
+
+    <!-- ===== animation-system-and-consent-redesign · 动画风格设置(anim_*) ===== -->
+    <string name="action_back">返回</string>
+    <string name="anim_style_title">动画风格</string>
+    <string name="anim_style_minimal">极简</string>
+    <string name="anim_style_minimal_desc">快速轻量,几乎感觉不到但顺畅</string>
+    <string name="anim_style_fluid">弹性</string>
+    <string name="anim_style_fluid_desc">Spring 物理动画,有机弹性,有过冲</string>
+    <string name="anim_style_immersive">沉浸</string>
+    <string name="anim_style_immersive_desc">大幅滑动,戏剧感,类 iOS push</string>
+    <string name="anim_style_none">无</string>
+    <string name="anim_style_none_desc">即时切换,无动画(尊重系统无障碍)</string>
+    <string name="anim_style_reduce_motion_banner">系统已开启「减少动画」,已自动切换到「无」</string>
+    <string name="anim_style_preview_nav">导航</string>
+    <string name="anim_style_preview_tab">标签</string>
+
+    <!-- ===== 同意页卡片摘要(consent_section_*) ===== -->
+    <string name="consent_section_data_summary">笔记以本地数据库存储,导出 / 导入走 ZIP,默认关闭云同步</string>
+    <string name="consent_section_ai_summary">AI 能力依赖第三方服务,需在设置中填入 API Key,费用由 provider 直接收取</string>
+    <string name="consent_section_third_party_summary">本应用不内置任何 AI provider,所有调用经用户填写的 endpoint 走标准协议</string>
+    <string name="consent_section_withdraw_summary">可在设置中清除应用数据或卸载应用,撤回同意 = 清空本地笔记 + 撤销同意状态</string>
+    <string name="consent_section_contact_summary">bug / 反馈:通过应用内「反馈渠道」提交;邮箱见「关于」页</string>
+
+    <!-- ===== 同意页底部栏(consent_*) ===== -->
+    <string name="consent_accept">同意并继续</string>
+    <string name="consent_decline">拒绝并退出</string>
+    <string name="consent_bottom_hint">请滚动到底部以继续</string>
+    <string name="consent_bottom_ready">已阅读全部条款</string>
+
+    <!-- ===== 同意页政策加载失败回退 ===== -->
+    <string name="onboarding_policy_load_failed">无法加载隐私政策,请检查网络后重试</string>
 </resources>

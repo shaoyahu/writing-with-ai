@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.CopyOnWriteArraySet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -57,7 +58,9 @@ private val Context.customProviderDataStore: DataStore<Preferences> by preferenc
 )
 
 class CustomProviderStoreImpl(
-    private val context: Context
+    // fix-review-r4 L6:显式 @ApplicationContext,防御性标记 — 当前由 PrefsModule @Provides
+    // 注入(已保证),若未来改 @Inject constructor 则此注解生效。
+    @ApplicationContext private val context: Context
 ) : CustomProviderStore {
     private val json = Json { ignoreUnknownKeys = true }
 

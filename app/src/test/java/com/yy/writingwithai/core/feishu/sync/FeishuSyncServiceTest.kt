@@ -49,6 +49,10 @@ class FeishuSyncServiceTest {
         override fun getRefreshTokenSnapshot(): String? = null
         override fun getFolderTokenSnapshot(): String? = null
         override fun getAppIdAndRefreshToken(): Pair<String, String>? = null
+
+        // ux-2026-06-28:新增 setAppId + getAppIdSnapshot stub
+        override suspend fun setAppId(appId: String) {}
+        override fun getAppIdSnapshot(): String? = null
         override suspend fun persistAppSecret(requestId: String, secret: String) {}
         override suspend fun clearAppSecret(requestId: String) {}
         override fun getAppSecretSnapshot(requestId: String): String? = null

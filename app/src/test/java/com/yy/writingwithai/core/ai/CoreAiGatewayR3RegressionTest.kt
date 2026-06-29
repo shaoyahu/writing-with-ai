@@ -133,6 +133,64 @@ class CoreAiGatewayR3RegressionTest {
         assertTrue(events.any { it is AiStreamEvent.Failed || it is AiStreamEvent.Started })
     }
 
+    /**
+     * fix-2026-06-28-ai-model-selection-actually-used 5.1:modelName=null + provider 显式
+     * 声明 `defaultModel="X"` → fallback 走 defaultModel,不走 `supportedModels[0]`。
+     * 这正是 change 标题"选 pro 实际用 flash"要修的语义。`supportedModels` 故意把
+     * "list-first" 放最前,如果 gateway 还在用 firstOrNull fallback 就会发 list-first,
+     * 测出来 fail。
+     */
+    @Test
+    fun stream_with_null_modelName_falls_back_to_defaultModel_not_supported_first() = runTest {
+        val provider = DefaultModelProvider(
+            id = "deepseek",
+            supportedModels = listOf("deepseek-v4-flash", "deepseek-v4-pro"),
+            defaultModel = "deepseek-v4-pro"
+        )
+        val gateway = gatewayWithProviders(mapOf("deepseek" to provider))
+
+        val events = gateway.streamWritingOp(
+            op = WritingOp.EXPAND,
+            sourceText = "hi",
+            providerId = "deepseek",
+            apikey = "k",
+            modelName = null
+        ).toList()
+
+        // 走 defaultModel("deepseek-v4-pro"),不是 supportedModels[0]("deepseek-v4-flash")。
+        assertEquals(1, provider.streamCallCount)
+        assertEquals("deepseek-v4-pro", provider.lastModel)
+        assertTrue(events.any { it is AiStreamEvent.Started || it is AiStreamEvent.Done })
+    }
+
+    /**
+     * fix-2026-06-28-ai-model-selection-actually-used 5.2:modelName=null + provider
+     * `defaultModel == ""`(啥都没声明)→ emit Failed(ProviderNotConfigured),
+     * `provider.stream` 0 次调用(不静默发 "unknown" 字面量)。
+     */
+    @Test
+    fun stream_with_null_modelName_and_blank_defaultModel_emits_provider_not_configured() = runTest {
+        val provider = DefaultModelProvider(
+            id = "blank-default",
+            supportedModels = listOf("a", "b"),
+            defaultModel = ""
+        )
+        val gateway = gatewayWithProviders(mapOf("blank-default" to provider))
+
+        val events = gateway.streamWritingOp(
+            op = WritingOp.EXPAND,
+            sourceText = "hi",
+            providerId = "blank-default",
+            apikey = "k",
+            modelName = null
+        ).toList()
+
+        val failed = events.filterIsInstance<AiStreamEvent.Failed>().firstOrNull()
+        assertNotNull(failed)
+        assertEquals(AiError.ProviderNotConfigured, failed!!.error)
+        assertEquals(0, provider.streamCallCount)
+    }
+
     // ---- helpers ----
 
     private fun gatewayWithProviders(providers: Map<String, AiProvider>): AiGateway {
@@ -160,6 +218,35 @@ class CoreAiGatewayR3RegressionTest {
         override val id = "empty"
         override val displayName = "Empty"
         override val supportedModels: List<String> = emptyList()
+
+        // fix-2026-06-28-ai-model-selection-actually-used:H4 场景默认 defaultModel
+        // 也空(模拟"provider 啥都没声明"),走 gateway fallback → Failed(ProviderNotConfigured)。
+        // 想测 fallback 命中 defaultModel 的,新加 [DefaultModelProvider]。
+        override val defaultModel: String = ""
+        var streamCallCount = 0
+        var lastModel: String? = null
+
+        override fun stream(
+            request: AiRequest,
+            credentials: com.yy.writingwithai.core.ai.api.AiCredentials
+        ): Flow<AiStreamEvent> {
+            streamCallCount++
+            lastModel = request.model
+            return flowOf(AiStreamEvent.Started, AiStreamEvent.Done)
+        }
+    }
+
+    /**
+     * fix-2026-06-28-ai-model-selection-actually-used:支持显式声明 defaultModel 的 fake
+     * provider。`id` / `supportedModels` / `defaultModel` 全部外部传入,方便 5.1/5.2
+     * 不同组合验证 fallback 行为。
+     */
+    private class DefaultModelProvider(
+        override val id: String,
+        override val supportedModels: List<String>,
+        override val defaultModel: String
+    ) : AiProvider {
+        override val displayName: String = "DefaultModelProvider"
         var streamCallCount = 0
         var lastModel: String? = null
 
@@ -181,6 +268,9 @@ internal object NoopProviderPrefsStore : ProviderPrefsStore {
     override fun observeSelectedProviderId(): Flow<String?> = flowOf(null)
     override suspend fun getSelectedModel(providerId: String): String? = null
     override suspend fun setSelectedModel(providerId: String, model: String) {}
+
+    // fix-2026-06-28-ai-model-selection-actually-used:补新接口方法,noop 默认 no-op。
+    override suspend fun setSelectedModelIfMissing(providerId: String, defaultModel: String) {}
     override fun observeSelectedModel(providerId: String): Flow<String?> = flowOf(null)
     override suspend fun getApiFormat(providerId: String): ApiFormat? = null
     override suspend fun setApiFormat(providerId: String, format: ApiFormat) {}
