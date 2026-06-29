@@ -3,6 +3,7 @@ package com.yy.writingwithai.core.feishu
 import com.yy.writingwithai.core.feishu.api.FeishuApiClientImpl
 import com.yy.writingwithai.core.feishu.api.FeishuError
 import com.yy.writingwithai.core.feishu.auth.PendingExchange
+import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLHandshakeException
 import kotlinx.coroutines.test.runTest
@@ -56,6 +57,7 @@ class MediumR3FixesTest {
             }
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(5, TimeUnit.SECONDS)
+            .proxy(Proxy.NO_PROXY)
             .build()
         api = FeishuApiClientImpl(client)
     }
@@ -79,6 +81,7 @@ class MediumR3FixesTest {
             .dns(throwingDns)
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(2, TimeUnit.SECONDS)
+            .proxy(Proxy.NO_PROXY)
             .build()
         val apiBad = FeishuApiClientImpl(clientBad)
         val ex = assertThrows(FeishuError.NetworkError::class.java) {
@@ -98,6 +101,7 @@ class MediumR3FixesTest {
             }
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(2, TimeUnit.SECONDS)
+            .proxy(Proxy.NO_PROXY)
             .build()
         val apiSSL = FeishuApiClientImpl(clientSSL)
         val ex = assertThrows(FeishuError.NetworkError::class.java) {
@@ -134,6 +138,7 @@ class MediumR3FixesTest {
             }
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(5, TimeUnit.SECONDS)
+            .proxy(Proxy.NO_PROXY)
             .build()
         val slowApi = FeishuApiClientImpl(slowClient)
         // enqueue 一个空 body → getBlocks 会直接返回
