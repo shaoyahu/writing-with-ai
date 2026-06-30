@@ -209,7 +209,12 @@ class CoreAiGatewayR3RegressionTest {
             customProviderStore = customStore,
             okHttpClient = OkHttpClient(),
             historyRepo = historyLazy,
-            providerPrefsStore = prefs
+            providerPrefsStore = prefs,
+            // fix-2026-06-30-full-review-r1 H10:CoreAiGateway 加 ConsentStore 门控,
+            // 测试里 mock 为"已同意"放行。
+            consentStore = mockk(relaxed = true) {
+                io.mockk.coEvery { isConsented(any()) } returns true
+            }
         )
     }
 

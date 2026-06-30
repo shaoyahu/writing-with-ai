@@ -79,7 +79,10 @@ class NoteRepositoryDeleteOrderTest {
             noteAttachmentDao = db.noteAttachmentDao(),
             widgetUpdater = widgetUpdater,
             noteLinker = noteLinker,
-            attachmentStore = attachmentStore
+            attachmentStore = attachmentStore,
+            // fix-2026-06-30-full-review-r1 H5:NoteRepository.delete 级联删 ai_history,
+            // 注入 AppDatabase 的 aiHistoryDao(真实 in-memory DB 走 cascade,不 mock)。
+            aiHistoryDao = db.aiHistoryDao()
         )
     }
 
