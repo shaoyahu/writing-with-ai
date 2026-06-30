@@ -205,9 +205,11 @@ private fun AppTabBar(
                     onClick = { onSelectTab(Notes) },
                     modifier = Modifier.weight(1f)
                 )
+                // ux-2026-06-30:CenterCreateCard 宽度收窄到 0.85,小于两侧 TabCard(weight 1f),
+                // 避免 primaryContainer 高亮 + "+ 新建" label 字数多造成视觉过重;两侧仍是主焦点。
                 CenterCreateCard(
                     onClick = onCenterFabClick,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(0.85f)
                 )
                 val meSelected = currentDestination?.hasRoute<Me>() == true
                 TabCard(
