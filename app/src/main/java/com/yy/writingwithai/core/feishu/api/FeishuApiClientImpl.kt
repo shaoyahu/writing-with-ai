@@ -289,8 +289,15 @@ constructor(
     }
 
     /**
-     * 构造飞书 API URL。`BASE_HOST` 是硬编码到飞书默认 host(未来若需多租户,
-     * 从 `FeishuAuthStore` 读 `tenant_domain` 拼 host,见 M4 TODO)。
+     * 构造飞书 API URL。
+     *
+     * 飞书所有 Open API 基地址为 `https://open.feishu.cn/open-apis/`,
+     * [segments] 传的是 `open-apis/` 之后的路径(如 `docx/v1/documents`)。
+     *
+     * fix(feishu-sync-error):补上 `open-apis/` 前缀 — 原版 `addPathSegments` 直接拼
+     * `docx/v1/documents` 到 host,导致请求发到 `open.feishu.cn/docx/v1/documents`
+     * (缺少 `/open-apis/` 段),飞书服务器返回 404 或非 JSON body → 客户端报错。
+     * v1 docx 和 v2 docs_ai 的所有 endpoint 都受影响。
      *
      * fix-MEDIUM(feishu M5):用 `addPathSegments(segments, alreadyEncoded=false)` 显式
      * 声明不做预编码,让 okhttp/okio 内部的 RFC 3986 path encoder 负责。
@@ -304,6 +311,7 @@ constructor(
         return HttpUrl.Builder()
             .scheme("https")
             .host(BASE_HOST)
+            .addPathSegments("open-apis")
             .addPathSegments(safe)
             .build()
             .toString()
