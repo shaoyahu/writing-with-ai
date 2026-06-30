@@ -330,6 +330,12 @@
     <string name="custom_provider_base_url_hint">如:https://api.example.com/v1/messages</string>
     <string name="custom_provider_base_url_helper">Anthropic 兼容协议,需填入含 /v1/messages 路径的完整接口地址</string>
 
+    <!-- custom-provider-api-format:helper 文案按协议下拉动态切换,只描述 body / SSE 格式,
+         不给具体 path 字面提示(各家 URL 形态不一,字面提示会误导)。
+         协议下拉本身复用下方「高级字段」段的 custom_provider_api_format_* 资源。 -->
+    <string name="custom_provider_helper_anthropic">Anthropic Messages API 协议:body 含 system 顶层字段 + messages 数组;SSE 事件 content_block_delta。baseUrl 填厂家文档的 base URL(不含 path),path `/v1/messages` 由协议自动拼。示例:DeepSeek = https://api.deepseek.com/anthropic,Minimax = https://api.minimaxi.com/anthropic。</string>
+    <string name="custom_provider_helper_openai">OpenAI Chat Completions 协议:body 含 messages 数组(无 system 顶层);SSE 事件 data: {choices: [...]}。baseUrl 填厂家文档的 base URL(不含 path),path `/chat/completions` 由协议自动拼。示例:DeepSeek = https://api.deepseek.com,Moonshot = https://api.moonshot.cn/v1。</string>
+
     <!-- 模型 & 认证字段 -->
     <string name="custom_provider_auth_style_label">认证方式</string>
     <string name="custom_provider_auth_style_authorization">Authorization: Bearer &lt;key&gt;</string>

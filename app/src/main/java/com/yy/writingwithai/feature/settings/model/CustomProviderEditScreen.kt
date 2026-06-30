@@ -66,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.app.ui.theme.Spacing
+import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.provider.AuthStyle
 
 /**
@@ -191,9 +192,22 @@ fun CustomProviderEditScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 modifier = Modifier.fillMaxWidth()
             )
-            // ux-2026-06-28 #3:helper 文字直接露出,告知用户协议约束(Anthropic 兼容 + 完整 URL)。
+            // custom-provider-api-format:协议下拉(OpenAI 兼容 / Anthropic 兼容)。
+            ApiFormatDropdown(
+                selected = state.apiFormat,
+                onSelected = viewModel::onApiFormatChanged,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // custom-provider-api-format:helper 文案按 state.apiFormat 动态切换,只描述
+            // body / SSE 协议,不给具体 path 字面提示(各家 URL 形态不一)。
             Text(
-                text = stringResource(R.string.custom_provider_base_url_helper),
+                text = stringResource(
+                    when (state.apiFormat) {
+                        ApiFormat.OPENAI -> R.string.custom_provider_helper_openai
+                        ApiFormat.ANTHROPIC -> R.string.custom_provider_helper_anthropic
+                    }
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -372,6 +386,44 @@ private fun FormPingSection(pingResult: PingResult, canPing: Boolean, onPing: ()
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ApiFormatDropdown(selected: ApiFormat, onSelected: (ApiFormat) -> Unit, modifier: Modifier = Modifier) {
+    // custom-provider-api-format:协议下拉(OpenAI 兼容 / Anthropic 兼容)。
+    // 跟 AuthStyleDropdown 同源结构(ExposedDropdownMenuBox + readOnly OutlinedTextField),
+    // 切换后 viewModel state.apiFormat 更新 → helper 文案跟随切换。
+    var expanded by remember { mutableStateOf(false) }
+    val labels = mapOf(
+        ApiFormat.ANTHROPIC to R.string.custom_provider_api_format_anthropic,
+        ApiFormat.OPENAI to R.string.custom_provider_api_format_openai
+    )
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = stringResource(labels.getValue(selected)),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.custom_provider_api_format_label)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            ApiFormat.entries.forEach { format ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(labels.getValue(format))) },
+                    onClick = {
+                        onSelected(format)
+                        expanded = false
+                    }
+                )
+            }
+        }
     }
 }
 

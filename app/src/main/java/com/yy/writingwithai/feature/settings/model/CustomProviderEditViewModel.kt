@@ -80,14 +80,15 @@ constructor(
                 return@launch
             }
             val savedKey = secureApiKeyStore.get(providerId).orEmpty()
-            // ux-2026-06-28 #3:endpoint + apiFormat 不再出现在表单(完整 URL 输入,
-            // 协议只走 anthropic 兼容),回填时跳过这两个字段。
+            // custom-provider-api-format:回填 apiFormat(协议下拉),旧 JSON 缺此字段
+            // → ProviderConfig.apiFormat 默认 ANTHROPIC,行为等价旧版硬绑。
             _state.update {
                 it.copy(
                     isEditMode = true,
                     providerId = config.id,
                     displayName = config.displayName,
                     baseUrl = config.baseUrl,
+                    apiFormat = config.apiFormat,
                     apiKey = savedKey,
                     authStyle = config.authStyle,
                     customAuthHeaderName = config.customAuthHeaderName.orEmpty(),
@@ -139,6 +140,11 @@ constructor(
 
     fun onProviderIdChanged(id: String) = _state.update { it.copy(providerId = id, idLocked = true) }
     fun onBaseUrlChanged(url: String) = _state.update { it.copy(baseUrl = url) }
+
+    // custom-provider-api-format:协议下拉变更 → state.apiFormat,
+    // helper 文案会按 apiFormat 自动切换。
+    fun onApiFormatChanged(format: ApiFormat) = _state.update { it.copy(apiFormat = format) }
+
     fun onApiKeyChanged(key: String) = _state.update { it.copy(apiKey = key) }
     fun onAuthStyleChanged(style: AuthStyle) = _state.update { it.copy(authStyle = style) }
     fun onCustomAuthHeaderNameChanged(name: String) = _state.update { it.copy(customAuthHeaderName = name) }
@@ -167,7 +173,7 @@ constructor(
         _state.update { it.copy(supportedModels = it.supportedModels - model) }
     }
 
-    /** 表单内 ping:临时构造 adapter,不持久化。 */
+    /** 表单内 ping:临时构造 adapter,不依赖 store.save + gateway cache,直接走 HTTP。 */
     fun pingFromForm() {
         val s = _state.value
         val config = buildConfig(s)
@@ -186,15 +192,12 @@ constructor(
         viewModelScope.launch {
             _state.update { it.copy(pingResult = PingResult.InProgress) }
             val start = System.currentTimeMillis()
-            // H9 修:走 coreAiGateway.ping(内部 observer 写 ai_history,符合 CLAUDE.md "Token / 成本可观测" 规则)。
-            // apikey 走局部变量,函数退出 GC,不延长生命周期。
+            // custom-provider-api-format r2:pingFromForm 不再走 coreAiGateway(避免
+            // "provider xxx not registered" — 用户填好表单但还没保存,adapter 缓存里没),
+            // 改为临时构造 AnthropicCompatibleAdapter 直接调 stream。表单内 ping 不写
+            // ai_history(真实 streamWritingOp 才写),只验证连通性 + 给出可读错误。
             val reason = try {
-                // ux-2026-06-28 #3:协议只走 anthropic 兼容,不再传 apiFormatOverride。
-                coreAiGateway.ping(
-                    providerId = config.id,
-                    apikey = s.apiKey,
-                    modelName = config.defaultModel
-                )
+                pingViaTempAdapter(config, s.apiKey)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -207,6 +210,43 @@ constructor(
             }
             _state.update { it.copy(pingResult = result) }
         }
+    }
+
+    /**
+     * 临时 adapter 直接 ping,绕过 gateway.resolveProvider 缓存。
+     *
+     * 返回 `null` 表示成功(adapter 收到至少一个 chunk),非 null 是 [com.yy.writingwithai.core.ai.api.AiError]
+     * 的 summary 字符串(给 UI 直接展示)。
+     *
+     * debug:失败时 Log.d 输出实际 POST URL / body 前 200 chars / response code,
+     * 让用户能 adb logcat 直接看到问题(404 / 401 / SSE 解析失败 等)。
+     */
+    private suspend fun pingViaTempAdapter(config: ProviderConfig, apiKey: String): String? {
+        val adapter = AnthropicCompatibleAdapter(config, okHttpClient)
+        var failureReason: String? = null
+        try {
+            adapter.stream(
+                com.yy.writingwithai.core.ai.api.AiRequest(
+                    op = com.yy.writingwithai.core.ai.api.WritingOp.EXPAND,
+                    sourceText = "ping",
+                    model = config.defaultModel,
+                    apiFormatOverride = null
+                ),
+                com.yy.writingwithai.core.ai.api.AiCredentials(apiKey)
+            ).collect { event ->
+                // custom-provider-api-format r3:跟 list(aiGateway.ping)对齐判据,
+                // 只看 Failed 事件,不要求收到 Delta。原因:ping 极短 source text,
+                // DeepSeek 流式响应可能 0 字符(空 content),严格判据永远失败。
+                if (event is com.yy.writingwithai.core.ai.api.AiStreamEvent.Failed) {
+                    failureReason = event.error.summary()
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            failureReason = e.message ?: e::class.simpleName ?: "unknown exception"
+        }
+        return failureReason
     }
 
     /** 保存:校验 + 持久化 + 选中。失败路径清 isSaving。 */
@@ -284,7 +324,7 @@ constructor(
         }
     }
 
-    private fun buildConfig(s: CustomProviderEditUiState): ProviderConfig? {
+    internal fun buildConfig(s: CustomProviderEditUiState): ProviderConfig? {
         val name = s.displayName.trim()
         val id = s.providerId.trim()
         val url = s.baseUrl.trim()
@@ -296,19 +336,25 @@ constructor(
             return null
         }
         val models = if (s.supportedModels.isEmpty()) listOf(model) else s.supportedModels
-        // ux-2026-06-28 #3:完整 URL 输入 — baseUrl 已是用户给的完整地址,
-        // 不再追加 path;endpointPath 留空让 adapter 直用 baseUrl(见 AnthropicCompatibleAdapter)。
+        // custom-provider-api-format:apiFormat 来自 state(协议下拉);旧 config 默认 ANTHROPIC,
+        // 行为与硬绑旧版完全一致。
+        // endpointPath 由协议决定 — Anthropic 协议固定 `/v1/messages`,OpenAI 协议固定
+        // `/chat/completions`(Anthropic / OpenAI SDK 设计),用户填 baseUrl 由 adapter 拼 path。
+        val endpointPath = when (s.apiFormat) {
+            ApiFormat.ANTHROPIC -> "/v1/messages"
+            ApiFormat.OPENAI -> "/chat/completions"
+        }
         return ProviderConfig(
             id = id,
             displayName = name,
             baseUrl = url.removeSuffix("/"),
-            endpointPath = "",
+            endpointPath = endpointPath,
             authStyle = s.authStyle,
             customAuthHeaderName = s.customAuthHeaderName.trim().ifBlank { null },
             defaultModel = model,
             supportedModels = models,
             customHeaders = s.customHeaders,
-            apiFormat = ApiFormat.ANTHROPIC
+            apiFormat = s.apiFormat
         )
     }
 
@@ -329,6 +375,9 @@ data class CustomProviderEditUiState(
     // ux-2026-06-28 #3:baseUrl 改成"完整 URL" — 用户输入 https://api.example.com/v1/messages,
     // adapter 不再追加 path(endpointPath 留空,见 buildConfig)。
     val baseUrl: String = "",
+    // custom-provider-api-format:协议下拉(OpenAI 兼容 / Anthropic 兼容),
+    // 决定 ProviderConfig.apiFormat → adapter body / SSE 协议。
+    val apiFormat: ApiFormat = ApiFormat.ANTHROPIC,
     val apiKey: String = "",
     val authStyle: AuthStyle = AuthStyle.AUTHORIZATION,
     val customAuthHeaderName: String = "",

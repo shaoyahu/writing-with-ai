@@ -69,17 +69,25 @@ constructor(
             // model-management-detail-dropdown X 方案:用户在详情页可切 OpenAI/Anthropic,endpoint path 跟着切
             val effectiveApiFormat = request.apiFormatOverride ?: config.apiFormat
             // ux-2026-06-28 #3:custom 表单走"完整 URL",endpointPath 留空 → 直用 baseUrl;
-            // 内置 provider(deepseek/minimax/mimo)的 config.endpointPath 非空,继续走
-            // "$baseUrl$path" 拼接,行为不变。
-            val url = if (config.endpointPath.isBlank()) {
-                baseUrl
-            } else {
-                val path = when (effectiveApiFormat) {
-                    ApiFormat.OPENAI -> "/chat/completions"
-                    ApiFormat.ANTHROPIC -> "/anthropic/v1/messages"
-                }
-                "$baseUrl$path"
-            }
+// 内置 provider(deepseek/minimax/mimo)的 config.endpointPath 非空,继续走
+// "$baseUrl${endpointPath}" 拼接,行为不变。
+//
+// custom-provider-api-format r2:删掉硬编码 path(原 line 77-80 按 effectiveApiFormat
+// 拼 /chat/completions 或 /anthropic/v1/messages),统一用 config.endpointPath:
+// - custom 表单:buildConfig 按 state.apiFormat 设 endpointPath = /v1/messages
+//   (Anthropic SDK) 或 /chat/completions (OpenAI SDK),path 由 SDK 设计固定,
+//   厂家可能把 /anthropic 子路径塞进 baseUrl(DeepSeek 风格)。
+// - 内置 provider:endpointPath 显式配置(MinimaxConfig = /anthropic/v1/messages,
+//   适配 Minimax 自家 SDK 行为)。
+//
+// 之前硬编码 path = /anthropic/v1/messages 对 DeepSeek 用户造成 /anthropic 重复
+// (logcat 23:53:08 验证:POST https://api.deepseek.com/anthropic/anthropic/v1/messages
+// → 404,因为 DeepSeek baseUrl 已经含 /anthropic,adapter 不应再拼)。
+val url = if (config.endpointPath.isBlank()) {
+    baseUrl
+} else {
+    "$baseUrl${config.endpointPath}"
+}
             // fix-2026-06-24-review-r1-high H9:strip role-marker + cap length 8192
             val systemPrompt = sanitizeSystemPrompt(request.systemPrompt ?: systemPromptFor(request.op))
 
@@ -141,6 +149,10 @@ constructor(
             // CancellationException,需要在通用 catch 前先 rethrow。
             val response = client.newCall(httpRequest).execute()
             try {
+                // custom-provider-api-format r2 debug:成功也打 logcat,失败时上面的
+                // Log.d 在 !isSuccessful 分支打。两条 log 都带 "AnthropicAdapter" tag,
+                // 用户跑 `adb logcat -s AnthropicAdapter` 直接看真实 POST URL。
+                android.util.Log.i("AnthropicAdapter", "POST $url → ${response.code}")
                 if (!response.isSuccessful) {
                     val code = response.code
                     // review r2 修:readUtf8(byteCount) 在 body 小于 byteCount 时抛 EOFException,
@@ -163,6 +175,13 @@ constructor(
                     // M3 修:截断 raw body 长度(provider 5xx 经常返回 KB 级 HTML,可能含 Authorization header 回显),
                     // 脱敏 apikey / Bearer / x-api-key pattern(避免 provider 把请求 header 回显到错误页)。
                     val detail = sanitizeErrorDetail(rawDetail)
+                    // custom-provider-api-format r2 debug:把 url + code 一并写到 logcat + error detail,
+                    // 让用户 adb logcat 直接看真实 POST URL / 响应码(404 / 401 / 5xx 等)
+                    // 不用猜是 URL 拼错还是 protocol 不匹配。Log.d 标签固定 "AnthropicAdapter"。
+                    android.util.Log.d(
+                        "AnthropicAdapter",
+                        "POST $url → $code body=${rawDetail.take(200)}"
+                    )
                     emit(
                         AiStreamEvent.Failed(
                             error =
