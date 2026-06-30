@@ -75,7 +75,11 @@ constructor(
                         updatedAt = exportNote.updatedAt,
                         isPinned = exportNote.isPinned,
                         lastAiOp = exportNote.lastAiOp,
-                        lastAiAt = exportNote.lastAiAt
+                        lastAiAt = exportNote.lastAiAt,
+                        // fix-2026-06-30-full-review-r1 H4:round-trip 保留同步状态
+                        syncRevision = exportNote.syncRevision,
+                        syncStatus = exportNote.syncStatus,
+                        lastSyncedAt = exportNote.lastSyncedAt
                     )
                 noteRepository.upsert(note, tags[exportNote.id].orEmpty())
                 success++

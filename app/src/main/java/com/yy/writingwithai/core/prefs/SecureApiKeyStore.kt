@@ -132,7 +132,10 @@ constructor(
     override suspend fun save(providerId: String, apikey: String) {
         withContext(Dispatchers.IO) {
             val p = prefs ?: return@withContext
-            p.edit().putString(keyFor(providerId), apikey).apply()
+            // fix-2026-06-30-full-review-r1 MEDIUM M1:apply() 异步落盘,app 崩溃可能丢
+            // apikey(用户输入的密钥无法恢复)。改 commit() 同步落盘,在 IO 调度器上
+            // 不阻塞主线程。clear() / clearAll() 同理。
+            p.edit().putString(keyFor(providerId), apikey).commit()
         }
     }
 
@@ -145,7 +148,7 @@ constructor(
     override suspend fun clear(providerId: String) {
         withContext(Dispatchers.IO) {
             val p = prefs ?: return@withContext
-            p.edit().remove(keyFor(providerId)).apply()
+            p.edit().remove(keyFor(providerId)).commit()
             revealStates[providerId]?.value = RevealState.Hidden
         }
     }
@@ -153,7 +156,7 @@ constructor(
     override suspend fun clearAll() {
         withContext(Dispatchers.IO) {
             val p = prefs ?: return@withContext
-            p.edit().clear().apply()
+            p.edit().clear().commit()
             revealStates.values.forEach { it.value = RevealState.Hidden }
         }
     }
@@ -224,7 +227,9 @@ constructor(
             }
             return
         }
-        val expiresAt = now + REVEAL_TIMEOUT_MS
+        // fix-2026-06-30-full-review-r1 MEDIUM M2:`now` 是 IO 挂起前取的,IO 期间
+        // 实际时间已推进 50-200ms,expiresAt 立刻显示为负。改在 IO 之后重算。
+        val expiresAt = System.currentTimeMillis() + REVEAL_TIMEOUT_MS
         flow.value = RevealState.Revealed(apikey = apikey, expiresAt = expiresAt)
         // 起一次性 5s timer,过期 emit Hidden。
         scope.launch {

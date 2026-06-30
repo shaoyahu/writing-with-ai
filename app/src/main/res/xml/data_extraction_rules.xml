@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Android 12+ data extraction rules(M4-4 升级)。
-  apikey 加密存到 EncryptedSharedPreferences,文件名 writingwithai_secure_prefs.xml;
+  排除敏感凭证文件(EncryptedSharedPreferences):
+  - writingwithai_secure_prefs.xml:AI provider apikeys
+  - feishu_oauth_prefs.xml:飞书 OAuth tokens + appSecret + pending exchange + CSRF state
   双 exclude(cloud-backup + device-transfer)防止敏感凭证外流。
   本文件由 M0 占位落地,M4-4 验:allowBackup="false" 时不生效,forward-looking 留 M5 polish 用。
 -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="writingwithai_secure_prefs.xml" />
+        <exclude domain="sharedpref" path="feishu_oauth_prefs.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="writingwithai_secure_prefs.xml" />
+        <exclude domain="sharedpref" path="feishu_oauth_prefs.xml" />
     </device-transfer>
 </data-extraction-rules>

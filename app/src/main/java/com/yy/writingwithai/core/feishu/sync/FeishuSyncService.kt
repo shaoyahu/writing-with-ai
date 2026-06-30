@@ -35,11 +35,16 @@ constructor(
     private val eventDao: FeishuSyncEventDao,
     private val authStore: FeishuAuthStore,
     private val noteDao: com.yy.writingwithai.core.data.db.NoteDao,
-    private val txExecutor: TransactionExecutor
+    private val txExecutor: TransactionExecutor,
+    private val conflictResolver: FeishuConflictResolver
 ) {
     /**
      * push 工作流(design D2):委托 `FeishuDocService.createDoc` / `.updateDoc`。
      * 无 ref → `createDoc`;有 ref → `updateDoc`。
+     *
+     * fix-2026-06-30-full-review-r1 CRITICAL C2:有 ref 时,updateDoc 前先 readDoc 拿
+     * 远端当前 revision,与 ref.remoteRevision 比较:不一致 → 标记 ref.status = CONFLICT
+     * 并抛 [FeishuError.Conflict] 让 UI 弹冲突对话框,不再静默覆盖远端修改。
      */
     suspend fun push(noteId: String): String = withContext(Dispatchers.IO) {
         val note = noteRepository.getNote(noteId) ?: throw FeishuError.NotFound("note $noteId")
@@ -50,6 +55,20 @@ constructor(
             val ref = docService.createDoc(note, folderToken)
             "同步完成: ${ref.docUrl}"
         } else {
+            // C2 修:远端 revision 若已变,不让 push 静默覆盖。
+            val remoteContent = runCatching { docService.readDoc(existingRef.docUrl) }.getOrNull()
+            val newRemoteRev = remoteContent?.revisionId.orEmpty()
+            val conflict = conflictResolver.detect(
+                localRev = note.updatedAt,
+                lastSyncedAt = existingRef.lastSyncedAt,
+                storedRemoteRev = existingRef.remoteRevision,
+                newRemoteRev = newRemoteRev
+            )
+            if (conflict == ConflictResult.BOTH_DIRTY) {
+                refDao.upsert(existingRef.copy(status = FeishuRefStatus.CONFLICT))
+                recordEventSafe(noteId, SyncDirection.PUSH, "CONFLICT", "remote_changed_after_local_edit")
+                throw FeishuError.Conflict(noteId, existingRef.docId, existingRef.docUrl)
+            }
             val ref = docService.updateDoc(note, existingRef)
             "同步完成: ${ref.docUrl}"
         }
@@ -58,6 +77,10 @@ constructor(
     /**
      * pull 工作流(design D3):委托 `FeishuDocService.readDoc` 拿真 markdown + 写本地 note。
      * 飞书侧 markdown 为空时抛 BadRequest,不覆盖本地。
+     *
+     * fix-2026-06-30-full-review-r1 CRITICAL C2:有 ref 且本地有修改(localRev > lastSyncedAt)
+     * 时,标记 ref.status = CONFLICT 并抛 [FeishuError.Conflict] 让 UI 弹冲突对话框,不再静默
+     * 覆盖本地编辑。
      */
     suspend fun pull(docId: String, docUrl: String, titleHint: String = "来自飞书"): String = withContext(Dispatchers.IO) {
         val content = docService.readDoc(docUrl)
@@ -72,16 +95,43 @@ constructor(
         val markdown = content.markdown
 
         val existingRef = refDao.getByDocId(resolvedDocId)
+
+        // C2 修:本地有未推修改时不让 pull 静默覆盖。
+        val conflict = if (existingRef != null) {
+            val existingNote = noteRepository.getNote(existingRef.noteId)
+            val localRev = existingNote?.updatedAt ?: 0L
+            conflictResolver.detect(
+                localRev = localRev,
+                lastSyncedAt = existingRef.lastSyncedAt,
+                storedRemoteRev = existingRef.remoteRevision,
+                newRemoteRev = content.revisionId
+            )
+        } else {
+            ConflictResult.NO_CONFLICT
+        }
+        if (existingRef != null && conflict == ConflictResult.BOTH_DIRTY) {
+            refDao.upsert(existingRef.copy(status = FeishuRefStatus.CONFLICT))
+            recordEventSafe(existingRef.noteId, SyncDirection.PULL, "CONFLICT", "local_changed_before_pull")
+            throw FeishuError.Conflict(existingRef.noteId, existingRef.docId, existingRef.docUrl)
+        }
+
         // M3 修:note + ref 必须在同一事务,避免 crash 留 orphan ref。
         // 走 FeishuRefDao.upsertNoteWithRef 已有 @Transaction 包装。
         val noteId: String = txExecutor.execute {
             val resolvedNoteId: String
             val noteToWrite: Note
+            // fix-2026-06-30-full-review-r1 MEDIUM M3:pull 成功后 NoteEntity.syncStatus
+            // 必须切到 SYNCED,与 FeishuRefEntity.status 对齐;默认 LOCAL 或保留旧 DIRTY
+            // 会让 NoteEntity 与 FeishuRefEntity 状态不一致。
             if (existingRef != null) {
                 resolvedNoteId = existingRef.noteId
                 val existingNote = noteRepository.getNote(resolvedNoteId)
                 if (existingNote != null) {
-                    noteToWrite = existingNote.copy(content = markdown, title = title)
+                    noteToWrite = existingNote.copy(
+                        content = markdown,
+                        title = title,
+                        syncStatus = com.yy.writingwithai.core.data.db.entity.SyncStatus.SYNCED
+                    )
                 } else {
                     noteToWrite = Note(
                         id = resolvedNoteId,
@@ -91,7 +141,8 @@ constructor(
                         updatedAt = System.currentTimeMillis(),
                         isPinned = false,
                         lastAiOp = null,
-                        lastAiAt = null
+                        lastAiAt = null,
+                        syncStatus = com.yy.writingwithai.core.data.db.entity.SyncStatus.SYNCED
                     )
                 }
             } else {
@@ -104,7 +155,8 @@ constructor(
                     updatedAt = System.currentTimeMillis(),
                     isPinned = false,
                     lastAiOp = null,
-                    lastAiAt = null
+                    lastAiAt = null,
+                    syncStatus = com.yy.writingwithai.core.data.db.entity.SyncStatus.SYNCED
                 )
             }
             // fix-2026-06-26-review-r3 HIGH H12:localRevision 不应被 pull 重置为 now。

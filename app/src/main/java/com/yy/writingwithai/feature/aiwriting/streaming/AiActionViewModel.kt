@@ -352,11 +352,16 @@ constructor(
 
     fun cancel() {
         if (_state.value !is AiActionUiState.Streaming) return
+        // fix-2026-06-30-full-review-r1 HIGH H2:bump generation,旧协程在 cancel window
+        // 期间残余的 Delta/Failed/Done 事件被 generation 检查过滤掉,不再覆盖 Idle。
+        streamGeneration++
         streamJob?.cancel()
         _state.value = AiActionUiState.Idle
     }
 
     fun dismiss() {
+        // fix-2026-06-30-full-review-r1 HIGH H2:同 cancel,旧协程残余事件不能覆盖 Idle。
+        streamGeneration++
         streamJob?.cancel()
         lastOriginalContent = null
         _state.value = AiActionUiState.Idle

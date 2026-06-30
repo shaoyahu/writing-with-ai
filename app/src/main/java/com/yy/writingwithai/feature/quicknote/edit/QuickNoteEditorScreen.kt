@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -79,14 +80,12 @@ fun QuickNoteEditorScreen(
     }
     // ux-2026-06-28 #8:新建笔记时附件 Uri 先缓存;保存时落库。现有笔记(走路由 id)直接 observe 已落库附件。
     val pendingUris by viewModel.pendingAttachmentUris.collectAsStateWithLifecycle()
-    var existingAttachments by remember {
-        mutableStateOf(emptyList<com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity>())
-    }
-    LaunchedEffect(state.isNew) {
-        if (!state.isNew) {
-            viewModel.observeAttachments().collect { existingAttachments = it }
-        }
-    }
+    // fix-2026-06-30-full-review-r1 MEDIUM M10:用 collectAsStateWithLifecycle 替代
+    // LaunchedEffect + collect,app 在后台时不再持续收集 Room Flow,避免 Room query
+    // 重复发射。空列表 initialValue 是合理占位(已有 attachments 时会被实际值替换)。
+    val existingAttachments by viewModel.observeAttachments()
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val visibleAttachments = if (state.isNew) emptyList() else existingAttachments
     val attachmentPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri -> uri?.let { viewModel.addAttachment(it) } }
@@ -287,7 +286,7 @@ fun QuickNoteEditorScreen(
             // 新建笔记时只能看到 pending 计数 + 移除;编辑现有笔记可直接看已落库缩略图。
             AttachmentRow(
                 pendingUris = pendingUris,
-                existingAttachments = existingAttachments,
+                existingAttachments = visibleAttachments,
                 onAddClick = {
                     attachmentPicker.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -331,7 +330,10 @@ private fun AttachmentRow(
                         onRemove = null
                     )
                 }
-                items(pendingUris) { uri ->
+                itemsIndexed(pendingUris) { index, uri ->
+                    // fix-2026-06-30-full-review-r1 LOW L2:加稳定 key(index 在本列表
+                    // 生命周期内单调,虽然不跨重组稳定,但足够 Compose 区分"已渲染项"防止
+                    // 短暂错位)。更好的方案是 wrap Uri + uuid 持久 id,留 M5 polish。
                     ThumbnailChip(
                         label = uri.lastPathSegment ?: uri.toString(),
                         onRemove = { onRemovePending(uri) }

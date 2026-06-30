@@ -1,5 +1,6 @@
 package com.yy.writingwithai.core.note
 
+import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import com.yy.writingwithai.core.data.db.dao.RelatedRow
@@ -36,6 +37,7 @@ class CompositeNoteLinkerTest {
     private lateinit var entity: EntityBacklinker
     private lateinit var llm: SemanticNoteLinker
     private lateinit var settings: NoteAssociationSettingsStore
+    private lateinit var db: AppDatabase
     private lateinit var linker: CompositeNoteLinker
 
     @BeforeEach
@@ -47,6 +49,7 @@ class CompositeNoteLinkerTest {
         entity = mockk()
         llm = mockk(relaxed = true)
         settings = mockk()
+        db = mockk(relaxed = true)
         every { settings.isEnabled() } returns false
         // entity-extraction-polish §2.2:CompositeNoteLinker 现在调 settings.threshold() 传 DAO / NoteLinkCap。
         every { settings.threshold() } returns 0.10f
@@ -54,7 +57,15 @@ class CompositeNoteLinkerTest {
         // 默认:每个 noteId 的 local/wiki/entity 都返空,这样 recomputeForNote 安全 noop。
         coEvery { local.compute(any()) } returns emptyList()
         coEvery { wiki.index(any()) } returns emptyList()
-        linker = CompositeNoteLinker(noteLinkDao, noteDao, local, wiki, entity, llm, settings)
+        // fix-2026-06-30-full-review-r1 CRITICAL C1:delete + upsert 现在走 db.withTransaction。
+        // withTransaction 是 Room 扩展,单元测试中直接同步执行 block 即可。
+        coEvery { db.withTransaction<Boolean>(any()) } coAnswers {
+            @Suppress("UNCHECKED_CAST")
+            val block = args[0] as suspend () -> Unit
+            kotlinx.coroutines.runBlocking { block() }
+            true
+        }
+        linker = CompositeNoteLinker(db, noteLinkDao, noteDao, local, wiki, entity, llm, settings)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.yy.writingwithai.core.ai
 
+import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.ai.api.AiCredentials
 import com.yy.writingwithai.core.ai.api.AiError
 import com.yy.writingwithai.core.ai.api.AiGateway
@@ -14,6 +15,7 @@ import com.yy.writingwithai.core.ai.provider.AnthropicCompatibleAdapter
 import com.yy.writingwithai.core.ai.provider.CustomProviderStore
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStore
 import com.yy.writingwithai.core.data.repo.AiHistoryRepository
+import com.yy.writingwithai.core.prefs.ConsentStore
 import dagger.Lazy
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -46,7 +48,8 @@ constructor(
     private val customProviderStore: CustomProviderStore,
     @Named("ai") private val okHttpClient: OkHttpClient,
     private val historyRepo: Lazy<AiHistoryRepository>,
-    private val providerPrefsStore: ProviderPrefsStore
+    private val providerPrefsStore: ProviderPrefsStore,
+    private val consentStore: ConsentStore
 ) : AiGateway {
     /** 动态 adapter 缓存:providerId → AnthropicCompatibleAdapter。 */
     private val customAdapterCache = ConcurrentHashMap<String, AnthropicCompatibleAdapter>()
@@ -112,6 +115,15 @@ constructor(
         systemPrompt: String?,
         apiFormatOverride: ApiFormat?
     ): Flow<AiStreamEvent> {
+        // fix-2026-06-30-full-review-r1 HIGH H10:在 gateway 入口加 consent 门控。
+        // 项目 CLAUDE.md 规定"首次 AI 调用必须有用户同意",Gateway 是 AI 调用的
+        // 单一抽象层(项目规则),应作为强制执行点,防 deep link / 进程恢复后状态
+        // 还原绕过导航层 consent 检查。
+        if (!consentStore.isConsented(BuildConfig.CONSENT_VERSION)) {
+            return flowOf(
+                AiStreamEvent.Failed(AiError.UserConsentRequired, false)
+            )
+        }
         val provider = resolveProvider(providerId)
             ?: return flowOf(
                 AiStreamEvent.Failed(
@@ -165,25 +177,38 @@ constructor(
                         ?: "${cause::class.simpleName}: ${cause.message}"
                 }
                 val duration = System.currentTimeMillis() - startTime
-                historyRepo.get().record(
-                    noteId = null,
-                    providerId = providerId,
-                    model = model,
-                    op = op.name.lowercase(),
-                    // fix-review-r4 L5:sourceText.length / 2 是中文场景粗估(1 CJK 字 ≈ 2
-                    // 字符 ≈ 1 token);纯 ASCII 时低估约 4x(1 char ≈ 0.25 token)。
-                    // 仅作 fallback 估算——provider 未返回 Usage 时使用,不影响计费。
-                    inputTokens = lastUsage?.inputTokens ?: (sourceText.length / 2),
-                    outputTokens = lastUsage?.outputTokens ?: outputBuilder.length,
-                    totalTokens =
-                    lastUsage?.totalTokens
-                        ?: (sourceText.length / 2 + outputBuilder.length),
-                    durationMs = duration,
-                    createdAt = System.currentTimeMillis(),
-                    inputSnapshot = sourceText,
-                    outputSnapshot = outputBuilder.toString(),
-                    error = errorMsg
-                )
+                // fix-2026-06-30-full-review-r1 HIGH H3:onCompletion 中 record() 是 suspend
+                // Room 写,可能抛 DB 异常。CancellationException 必须保留(结构化并发),
+                // 其它异常吞掉 + log,不让 DB 失败覆盖流终止信号。
+                try {
+                    historyRepo.get().record(
+                        noteId = null,
+                        providerId = providerId,
+                        model = model,
+                        op = op.name.lowercase(),
+                        // fix-review-r4 L5:sourceText.length / 2 是中文场景粗估(1 CJK 字 ≈ 2
+                        // 字符 ≈ 1 token);纯 ASCII 时低估约 4x(1 char ≈ 0.25 token)。
+                        // 仅作 fallback 估算——provider 未返回 Usage 时使用,不影响计费。
+                        inputTokens = lastUsage?.inputTokens ?: (sourceText.length / 2),
+                        outputTokens = lastUsage?.outputTokens ?: outputBuilder.length,
+                        totalTokens =
+                        lastUsage?.totalTokens
+                            ?: (sourceText.length / 2 + outputBuilder.length),
+                        durationMs = duration,
+                        createdAt = System.currentTimeMillis(),
+                        inputSnapshot = sourceText,
+                        outputSnapshot = outputBuilder.toString(),
+                        error = errorMsg
+                    )
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    android.util.Log.w(
+                        "CoreAiGateway",
+                        "history record failed for provider=$providerId op=${op.name}",
+                        e
+                    )
+                }
             }
     }
 
@@ -193,6 +218,10 @@ constructor(
         modelName: String,
         apiFormatOverride: ApiFormat?
     ): String? {
+        // fix-2026-06-30-full-review-r1 H10:ping 也走 consent 门,保证单一抽象层一致。
+        if (!consentStore.isConsented(BuildConfig.CONSENT_VERSION)) {
+            return AiError.UserConsentRequired.summary()
+        }
         val provider = resolveProvider(providerId) ?: return "provider $providerId not registered"
         if (provider.id == FakeAiProvider.PROVIDER_ID) {
             // fix-review-r3-high H2:契约是 `@return null 表示成功`,fake provider 不应被静默

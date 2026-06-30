@@ -97,6 +97,8 @@ constructor(
         if (_uiState.value !is DataUiState.Idle) return
         viewModelScope.launch {
             _uiState.value = DataUiState.Exporting
+            // fix-2026-06-30-full-review-r1 HIGH H12:catch Exception 前先 rethrow
+            // CancellationException,不让协程取消被吞成"导出失败"。
             try {
                 val exportedCount =
                     withContext(ioDispatcher) {
@@ -109,6 +111,8 @@ constructor(
                         ImportReport(successCount = exportedCount),
                         isImport = false
                     )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _uiState.value = DataUiState.Failed(e.message ?: "未知错误")
             }
@@ -128,6 +132,7 @@ constructor(
         if (_uiState.value !is DataUiState.Idle) return
         viewModelScope.launch {
             _uiState.value = DataUiState.Importing
+            // fix-2026-06-30-full-review-r1 HIGH H12:同 exportToJsonZip,先 rethrow 取消。
             try {
                 val report =
                     withContext(ioDispatcher) {
@@ -144,6 +149,8 @@ constructor(
                         r
                     }
                 _uiState.value = DataUiState.Done(report, isImport = true)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _uiState.value = DataUiState.Failed(e.message ?: "未知错误")
             }

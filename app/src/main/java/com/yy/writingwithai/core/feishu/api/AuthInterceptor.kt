@@ -72,14 +72,26 @@ constructor(
         if (!isTokenInvalid(response)) return response
 
         response.close()
-        tokenProvider.invalidate()
+        // fix-2026-06-30-full-review-r1 H7:invalidate 变 suspend;AuthInterceptor 是
+        // 同步 OkHttp 契约,用 runBlocking 桥接(本类已用 runBlocking 桥接 getToken)。
+        runBlocking(interceptorScope.coroutineContext) { tokenProvider.invalidate() }
         val secondToken = runBlocking(interceptorScope.coroutineContext) {
             refreshMutex.withLock {
                 withTimeoutOrNull(5_000) { tokenProvider.getToken() }
             }
         }
-        // 第二次仍取不到(网络/配置问题)— 直接返回第一个 401 response,不再递归重试。
-        if (secondToken == null) return response
+        // 第二次仍取不到(网络/配置问题)— 用 firstToken==null 同 path 走 noAuthReq
+        // 重发,不再返回已关闭的 response(use-after-close → IllegalStateException
+        // 或 OkHttp 静默丢错误)。fix-2026-06-30-full-review-r1 HIGH H6。
+        if (secondToken == null) {
+            val noAuthReq = request.newBuilder()
+                .removeHeader("Authorization")
+                .header(noAuthKey, "1")
+                .build()
+            return chain.proceed(
+                noAuthReq.newBuilder().removeHeader(noAuthKey).build()
+            )
+        }
         return chain.proceed(
             request.newBuilder().header("Authorization", "Bearer $secondToken").build()
         )

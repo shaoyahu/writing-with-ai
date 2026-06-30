@@ -36,6 +36,16 @@ interface NoteDao {
     fun observeAll(): Flow<List<NoteEntity>>
 
     /**
+     * fix-2026-06-30-full-review-r1 MEDIUM M4:observeRecent(limit) 走 SQL LIMIT,
+     * 避免 `observeAll() + take(limit)` 加载全表再截断。大库下造成不必要的内存分配
+     * 和 GC 压力(每次 Room invalidation 重新发射全表)。
+     */
+    @Query(
+        "SELECT * FROM notes ORDER BY isPinned DESC, updatedAt DESC LIMIT :limit"
+    )
+    fun observeRecent(limit: Int): Flow<List<NoteEntity>>
+
+    /**
      * 按 tag 筛选:JOIN `note_tags`,保持固定优先 + 时间倒序。
      */
     @Query(

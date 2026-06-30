@@ -15,10 +15,12 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -36,6 +38,9 @@ import kotlinx.coroutines.launch
  * 删除原 appSecret 输入框(走 OAuth 隐式收集凭证);
  * folderToken 输入框在 CONNECTED 状态下展示,供用户指定同步目标文件夹。
  * [startOAuth] 触发 [OAuthLauncher] 跳系统浏览器。
+ *
+ * fix-2026-06-30-full-review-r1 LOW L3:一次性 _oneShot 改 SharedFlow,
+ * replay=0 + buffer=1 + DROP_OLDEST,避免 StateFlow 状态合并/重组重发问题。
  */
 @HiltViewModel
 class FeishuAuthViewModel @Inject constructor(
@@ -74,8 +79,12 @@ class FeishuAuthViewModel @Inject constructor(
         )
 
     /** 一次性操作状态(startOAuth 失败 / pending exchange 状态) */
-    private val _oneShot = MutableStateFlow<OneShotEvent?>(null)
-    val oneShot: StateFlow<OneShotEvent?> = _oneShot.asStateFlow()
+    private val _oneShot = MutableSharedFlow<OneShotEvent>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val oneShot: SharedFlow<OneShotEvent> = _oneShot.asSharedFlow()
 
     /**
      * 启动飞书 OAuth 流程。
@@ -91,11 +100,11 @@ class FeishuAuthViewModel @Inject constructor(
      */
     fun startOAuth(appId: String, appSecret: String) {
         if (appId.isBlank()) {
-            _oneShot.value = OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_appid_empty)
+            _oneShot.tryEmit(OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_appid_empty))
             return
         }
         if (appSecret.isBlank()) {
-            _oneShot.value = OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_secret_empty)
+            _oneShot.tryEmit(OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_secret_empty))
             return
         }
         viewModelScope.launch {
@@ -103,13 +112,13 @@ class FeishuAuthViewModel @Inject constructor(
                 oauthLauncher.launch(context, appId, appSecret)
             } catch (e: OAuthLaunchException.KeystoreUnavailable) {
                 Log.e(TAG, "OAuth launch failed: Android Keystore unavailable", e)
-                _oneShot.value = OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_keystore_unavailable)
+                _oneShot.tryEmit(OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_keystore_unavailable))
             } catch (e: OAuthLaunchException.LaunchFailed) {
                 Log.e(TAG, "OAuth launch failed: browser launch failed", e)
-                _oneShot.value = OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_browser_unavailable)
+                _oneShot.tryEmit(OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_browser_unavailable))
             } catch (e: Throwable) {
                 Log.e(TAG, "OAuth launch failed: ${e.message}", e)
-                _oneShot.value = OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_launch_failed)
+                _oneShot.tryEmit(OneShotEvent.OAuthFailed(R.string.feishu_oauth_error_launch_failed))
             }
         }
     }
@@ -128,8 +137,9 @@ class FeishuAuthViewModel @Inject constructor(
         }
     }
 
+    /** no-op:SharedFlow 无状态可消费,保留为旧 caller 兼容。 */
     fun consumeOneShot() {
-        _oneShot.value = null
+        // no-op
     }
 
     sealed interface OneShotEvent {

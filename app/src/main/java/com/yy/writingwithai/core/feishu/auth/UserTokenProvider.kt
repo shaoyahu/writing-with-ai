@@ -67,9 +67,17 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
         return userState.token ?: throw FeishuError.NotAuthorized
     }
 
-    fun invalidate() {
-        // best-effort;full reset inside mutex on next getToken
-        userState = userState.copy(token = null, invalidated = true)
+    /**
+     * fix-2026-06-30-full-review-r1 HIGH H7:invalidate 写入 userState 之前抢 mutex,
+     * 避免与 getToken() 内部 mutex 内的读 / mutex 外的 return 形成 race。
+     * 之前在 mutex 外写,getToken() 在 mutex 内读到 token,mutex 外 return 前 invalidate
+     * 抢先设 null,导致返回 null 抛 NotAuthorized。invalidate 改成 suspend + mutex
+     * 锁内执行,保证写与读在统一临界区。
+     */
+    suspend fun invalidate() {
+        refreshMutex.withLock {
+            userState = userState.copy(token = null, invalidated = true)
+        }
     }
 
     /**

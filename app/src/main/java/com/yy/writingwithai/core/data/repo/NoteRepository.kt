@@ -3,6 +3,7 @@ package com.yy.writingwithai.core.data.repo
 import android.content.Context
 import androidx.room.withTransaction
 import com.yy.writingwithai.BuildConfig
+import com.yy.writingwithai.core.data.db.AiHistoryDao
 import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.NoteTagDao
@@ -50,6 +51,7 @@ constructor(
     private val noteDao: NoteDao,
     private val noteTagDao: NoteTagDao,
     private val noteAttachmentDao: NoteAttachmentDao,
+    private val aiHistoryDao: AiHistoryDao,
     private val widgetUpdater: QuickNoteWidgetUpdater,
     private val noteLinker: NoteLinker,
     private val attachmentStore: AttachmentStore
@@ -157,9 +159,14 @@ constructor(
         // 顺序:DB 事务先删行(attachment row + tag row + note row),再删文件。
         // 若文件删除失败,DB 已删,下次 attach-less delete 是干净的;文件会成 orphan,
         // 但 orphan attachment dir 没 DB 行引用,后续 cleanup 仍能回收。
+        //
+        // fix-2026-06-30-full-review-r1 HIGH H5:同步删 ai_history 行,避免 orphan。
+        // AiHistoryEntity.noteId 无 ForeignKey,必须手动清,否则 observeByNoteId
+        // 仍会发射孤儿行,observeTotalTokens 计入脏数据。
         db.withTransaction {
             noteAttachmentDao.deleteForNote(id)
             noteTagDao.removeAllForNote(id)
+            aiHistoryDao.deleteByNoteId(id)
             noteDao.deleteById(id)
         }
         try {
@@ -202,9 +209,12 @@ constructor(
 
     fun observeAllTags(): Flow<List<String>> = noteTagDao.observeAllTags().distinctUntilChanged()
 
-    /** M4-1:Widget 取最近 N 条笔记(内存截断,Room SQL 不变);Room 已按 updatedAt desc 排序(M1 既有 `observeAll()`)。 */
+    /**
+     * fix-2026-06-30-full-review-r1 MEDIUM M4:走 NoteDao.observeRecent(limit) SQL LIMIT,
+     * 不再加载全表在内存截断。Room 仍按 updatedAt desc 排序,固定优先在头部。
+     */
     fun observeRecent(limit: Int): Flow<List<Note>> =
-        noteDao.observeAll().map { list -> list.take(limit).map { it.toModel() } }
+        noteDao.observeRecent(limit).map { list -> list.map { it.toModel() } }
 
     companion object {
         private const val DEBOUNCE_MS = 500L

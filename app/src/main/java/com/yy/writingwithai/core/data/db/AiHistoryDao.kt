@@ -23,4 +23,12 @@ interface AiHistoryDao {
 
     @Query("SELECT SUM(totalTokens) FROM ai_history")
     fun observeTotalTokens(): Flow<Long?>
+
+    /**
+     * fix-2026-06-30-full-review-r1 HIGH H5:删 note 时清掉对应 ai_history 行,避免
+     * observeByNoteId 持续发射孤儿行 + observeTotalTokens 计入脏数据。AiHistoryEntity.noteId
+     * 无 ForeignKey,所以必须由业务层显式清理。
+     */
+    @Query("DELETE FROM ai_history WHERE noteId = :noteId")
+    suspend fun deleteByNoteId(noteId: String): Int
 }

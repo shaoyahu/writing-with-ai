@@ -87,7 +87,9 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
                 return
             }
             if (!actualSha.equals(manifest.apkSha256, ignoreCase = true)) {
-                Log.w(TAG, "sha mismatch: expected=${manifest.apkSha256} actual=$actualSha")
+                // fix-2026-06-30-full-review-r1 MEDIUM M8:不 log actual hash(下载文件哈希
+                // 可能协助攻击者理解服务内容),只记 downloadId 便于排查。
+                Log.w(TAG, "sha mismatch for downloadId=$downloadId")
                 runCatching { context.contentResolver.delete(uri, null, null) }
                 Toast.makeText(context, "下载文件损坏,请重试", Toast.LENGTH_LONG).show()
                 return

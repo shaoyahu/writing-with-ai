@@ -27,6 +27,12 @@ class ApkDownloader @Inject constructor(
 ) {
 
     fun start(manifest: AppUpdateManifest): Long {
+        // fix-2026-06-30-full-review-r1 CRITICAL C3:强制 apkUrl HTTPS,防 manifest
+        // 被劫持(明文 / file:// / ftp://)时通过 DownloadManager 投毒。SHA-256
+        // 校验仅防 APK 内容篡改,URL scheme 校验防网络层拦截下载源。
+        require(manifest.apkUrl.startsWith(HTTPS_PREFIX)) {
+            "apkUrl must use HTTPS: ${manifest.apkUrl}"
+        }
         val safeFileName = PathSafety.safeName(manifest.apkName, fallback = DEFAULT_APK_NAME)
         val request = DownloadManager.Request(Uri.parse(manifest.apkUrl))
             .setTitle("写作助手 v${manifest.versionName}")
@@ -53,5 +59,8 @@ class ApkDownloader @Inject constructor(
         private const val MIME_APK = "application/vnd.android.package-archive"
         private const val DOWNLOAD_SUBDIR = "app-update/"
         private const val DEFAULT_APK_NAME = "update.apk"
+
+        // fix-2026-06-30-full-review-r1 C3:HTTPS-only transport 强制。
+        private const val HTTPS_PREFIX = "https://"
     }
 }

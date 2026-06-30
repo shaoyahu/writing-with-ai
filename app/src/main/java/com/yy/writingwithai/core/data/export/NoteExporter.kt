@@ -76,7 +76,11 @@ private fun com.yy.writingwithai.core.data.model.Note.toExport() = ExportNote(
     updatedAt = updatedAt,
     isPinned = isPinned,
     lastAiOp = lastAiOp,
-    lastAiAt = lastAiAt
+    lastAiAt = lastAiAt,
+    // fix-2026-06-30-full-review-r1 H4:补同步字段,导出-导入 round-trip 不丢状态
+    syncRevision = syncRevision,
+    syncStatus = syncStatus,
+    lastSyncedAt = lastSyncedAt
 )
 
 private fun com.yy.writingwithai.core.data.model.AiHistory.toExport() = ExportAiHistory(

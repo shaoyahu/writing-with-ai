@@ -51,7 +51,7 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         SyncMetaEntity::class,
         NoteAttachmentEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -62,7 +62,11 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         AutoMigration(from = 7, to = 8),
         // F3 fix L1:review r1 syncStatus String → SyncStatus enum。SQLite 列类型仍是 TEXT,
         // 列名/默认值/索引都不变,AutoMigration 跑通无 schema diff。
-        AutoMigration(from = 8, to = 9)
+        AutoMigration(from = 8, to = 9),
+        // fix-2026-06-30-full-review-r1 MEDIUM M5 + LOW L1:加 feishu_ref.docId 索引 +
+        // feishu_sync_event.noteId 索引 + noteId ForeignKey CASCADE。SQLite 加索引 /
+        // 外键是 schema diff,AutoMigration 会自动建。
+        AutoMigration(from = 9, to = 10)
     ]
 )
 @TypeConverters(SyncStatusConverter::class)

@@ -78,6 +78,10 @@ internal object SseParser {
                 // 时 removePrefix 不移除前缀,payload 残留 `DATA:...` 导致解析失败。
                 // 改用 substring(5) + trimStart(),与 startsWith 的 ignoreCase 对齐。
                 line.startsWith("data:", ignoreCase = true) -> {
+                    // fix-2026-06-30-full-review-r1 HIGH H1:新 data 行开始累加时,清掉之前
+                    // 空行 / [DONE] 留下的 cleanTermination=true。否则流 `data: first\n\ndata: second`
+                    // (EOF 无尾换行)第二个事件继承 true,被误判为 Done 而非 EOF 截断。
+                    cleanTermination = false
                     val payload = line.substring(5).trimStart()
                     if (payload == "[DONE]") {
                         if (dataBuffer.isNotEmpty()) {

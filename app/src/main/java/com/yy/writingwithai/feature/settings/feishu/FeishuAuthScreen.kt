@@ -78,21 +78,22 @@ import com.yy.writingwithai.core.feishu.auth.OAuthLauncher
 @Composable
 fun FeishuAuthScreen(onBack: () -> Unit, viewModel: FeishuAuthViewModel = hiltViewModel()) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
-    val oneShot by viewModel.oneShot.collectAsStateWithLifecycle()
     val ctx = LocalContext.current
 
     var appIdInput by remember { mutableStateOf("") }
     var appSecretInput by remember { mutableStateOf("") }
     var revealSecret by remember { mutableStateOf(false) }
 
-    // one-shot 事件消费
-    LaunchedEffect(oneShot) {
-        when (val ev = oneShot) {
-            is FeishuAuthViewModel.OneShotEvent.OAuthFailed -> {
-                Toast.makeText(ctx, ctx.getString(ev.messageRes), Toast.LENGTH_LONG).show()
-                viewModel.consumeOneShot()
+    // fix-2026-06-30-full-review-r1 LOW L3:oneShot 改 SharedFlow,
+    // LaunchedEffect(Unit) + collect 替代 collectAsState + LaunchedEffect(oneShot),
+    // 避免重组重发 / 事件丢失。
+    LaunchedEffect(Unit) {
+        viewModel.oneShot.collect { event ->
+            when (event) {
+                is FeishuAuthViewModel.OneShotEvent.OAuthFailed -> {
+                    Toast.makeText(ctx, ctx.getString(event.messageRes), Toast.LENGTH_LONG).show()
+                }
             }
-            null -> Unit
         }
     }
 

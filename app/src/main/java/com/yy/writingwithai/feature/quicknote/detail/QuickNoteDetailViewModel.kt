@@ -153,6 +153,11 @@ constructor(
                 val docUrl = feishuSyncService.push(id).removePrefix("同步完成:").trim()
                 _syncMessage.value = SyncMessage.Success(docUrl)
                 _feishuRef.value = feishuSyncService.getRef(id)
+            } catch (e: FeishuError.Conflict) {
+                // fix-2026-06-30-full-review-r1 CRITICAL C2:冲突 → 弹对话框,不再静默覆盖
+                _feishuRef.value = feishuSyncService.getRef(id)
+                _showConflictDialog.value = true
+                _syncMessage.value = SyncMessage.Failure("同步冲突:请选择保留本地或远端")
             } catch (e: FeishuError) {
                 _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -173,6 +178,11 @@ constructor(
                 val docId = extractDocId(docUrl)
                 feishuSyncService.pull(docId, docUrl)
                 _syncMessage.value = SyncMessage.Success(docUrl)
+            } catch (e: FeishuError.Conflict) {
+                // fix-2026-06-30-full-review-r1 CRITICAL C2:冲突 → 弹对话框
+                noteId?.let { _feishuRef.value = feishuSyncService.getRef(it) }
+                _showConflictDialog.value = true
+                _syncMessage.value = SyncMessage.Failure("同步冲突:请选择保留本地或远端")
             } catch (e: FeishuError) {
                 _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             } catch (e: kotlinx.coroutines.CancellationException) {

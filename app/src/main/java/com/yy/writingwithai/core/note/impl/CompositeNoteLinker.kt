@@ -1,5 +1,7 @@
 package com.yy.writingwithai.core.note.impl
 
+import androidx.room.withTransaction
+import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import com.yy.writingwithai.core.data.db.dao.RelatedRow
@@ -17,6 +19,7 @@ import kotlinx.coroutines.coroutineScope
 class CompositeNoteLinker
 @Inject
 constructor(
+    private val db: AppDatabase,
     private val noteLinkDao: NoteLinkDao,
     private val noteDao: NoteDao,
     private val localLinker: LocalNoteLinker,
@@ -26,9 +29,13 @@ constructor(
     private val assocSettings: NoteAssociationSettingsStore
 ) : NoteLinker {
 
+    /**
+     * fix-2026-06-30-full-review-r1 CRITICAL C1:delete + upsert 包 `db.withTransaction`。
+     * 之前 delete 与 upsert 之间无事务边界,进程被杀(系统回收 / OOM killer / 用户强杀)
+     * 落在中间窗口 → 该笔记所有出站链接永久丢失。注入 AppDatabase 走 Room 事务。
+     */
     override suspend fun recomputeForNote(noteId: String) = coroutineScope {
-        noteLinkDao.deleteBySrc(noteId)
-
+        // 三个子计算先并发跑(纯计算 + DAO read,无写入竞争),拿到结果后再进事务写入
         val localDeferred = async { localLinker.compute(noteId) }
         val wikiDeferred = async { wikilinkIndexer.index(noteId) }
         val entityDeferred = async { entityBacklinker.compute(noteId) }
@@ -53,7 +60,12 @@ constructor(
         // entity-extraction-polish §2.4:阈值由 store 提供(同步 SharedPreferences 读取,无需挂起)。
         val threshold = assocSettings.threshold().toDouble()
         val capped = NoteLinkCap.enforce(allRows, threshold = threshold)
-        if (capped.isNotEmpty()) noteLinkDao.upsertAll(capped)
+
+        // C1 修:delete + upsertAll 走单事务,process kill 不留 link 丢失窗口
+        db.withTransaction {
+            noteLinkDao.deleteBySrc(noteId)
+            if (capped.isNotEmpty()) noteLinkDao.upsertAll(capped)
+        }
 
         // tasks §3.3:共享实体 < 1 时回退到 LLM 语义抽取
         val entityDstCount = entityRows.map { it.dstNoteId }.distinct().size

@@ -427,6 +427,7 @@
     <!-- ===== app-bottom-tab-bar · 底部 tab 栏 + 我的 ===== -->
     <string name="tab_notes">笔记</string>
     <string name="tab_my">我的</string>
+    <string name="tab_new_note">+ 新建</string>
     <string name="tab_new_note_cd">新建笔记</string>
     <string name="me_title">我的</string>
     <!-- ux-2026-06-28 #5:动画风格拆到独立"显示"section,AI 配置只留 AI 相关条目。 -->

@@ -33,4 +33,16 @@ sealed class FeishuError(message: String, cause: Throwable? = null) : Exception(
 
     /** 飞书 code == 99991663(token invalid) — 内部触发重取的标志。 */
     data object TokenInvalid : FeishuError("飞书 token 失效")
+
+    /**
+     * fix-2026-06-30-full-review-r1 CRITICAL C2:同步冲突。
+     * push/pull 检测到远端与本地同时被改(localRev > lastSyncedAt 且 remoteRevision 变化),
+     * 标记 ref.status = CONFLICT 后抛此错,UI 弹 [ConflictResolutionDialog] 让用户选
+     * keep local / keep remote,不再静默覆盖对方修改。
+     */
+    data class Conflict(
+        val noteId: String,
+        val docId: String,
+        val docUrl: String
+    ) : FeishuError("飞书同步冲突: $docUrl")
 }

@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -117,7 +116,7 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
             when (val s = state) {
                 DataUiState.Idle -> {
                     // H2 修:r1 review。导出按钮在 notesCount == 0 时置灰 + 显示 no_data 文案。
-                    val notesCount by viewModel.notesCount.collectAsState()
+                    val notesCount by viewModel.notesCount.collectAsStateWithLifecycle()
                     val canExport = notesCount > 0
                     Button(
                         enabled = canExport,

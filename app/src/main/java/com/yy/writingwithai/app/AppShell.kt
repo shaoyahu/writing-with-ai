@@ -3,7 +3,6 @@
 package com.yy.writingwithai.app
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,13 +10,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
@@ -25,8 +22,7 @@ import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -158,20 +154,20 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
 }
 
 /**
- * app-bottom-tab-bar · 底部 tab 栏 + 中央凸起圆形 FAB。
+ * app-tab-bar-redesign v4 · 底部 tab 栏(三槽内嵌布局,全宽铺满)。
  *
  * 视觉对齐【我的】tab(MyScreen.kt)的 SectionCard 圆角 + primary tint icon + surfaceVariant
- * 容器:外层 1 个 surfaceVariant Surface(顶部 24dp 圆角 + 1dp tonalElevation),
- * 2 个 Surface 子卡(16dp 圆角)分别装 Notes / Me(selected = primary 容器色)。
+ * 容器:外层 1 个 surfaceVariant Surface(**全宽无圆角**,顶部 HorizontalDivider 1dp 分隔),
+ * 内部 `Row` 内嵌 3 个 16dp 圆角 Surface 子卡,均匀分布(spacedBy 8dp),完全 inline 无凸起:
  *
- * 槽位 1:笔记(Surface 子卡)
- * 槽位 2:中央 FAB(Spacer 占位 + Box overlay 抬出)
- * 槽位 3:我的(Surface 子卡)
+ * - 槽位 1(笔记):`TabCard`,selected = primary 容器色
+ * - 槽位 2(中央创建):`CenterCreateCard`,**始终** primaryContainer 高亮,含"+ 新建" label
+ * - 槽位 3(我的):`TabCard`,selected = primary 容器色
  *
- * 手势导航设备:用 `WindowInsets.systemBars.only(Bottom)` 保证 FAB / bar 不被裁。
+ * 全宽铺满避免圆角矩形在屏幕底部两侧露出底色(v4 修订:原 24dp 圆角在 MyScreen
+ * surfaceVariant 背景下可见白色间隙)。
  *
- * internal 暴露给 `app/src/test/.../app/AppTabBarTest` 验证视觉层级(spec 4.5 替代品 — 真机离线
- * 场景下用 Robolectric + Compose UI Test 渲染断言)。
+ * 手势导航设备:用 `WindowInsets.systemBars.only(Bottom)` 保证 bar 不被裁(挂在外层 Surface 上)。
  */
 @Composable
 private fun AppTabBar(
@@ -179,22 +175,17 @@ private fun AppTabBar(
     onSelectTab: (Any) -> Unit,
     onCenterFabClick: () -> Unit
 ) {
-    // 反馈(2026-06-23):FAB 用 Box overlay 绝对定位,不再塞进 bar 内部。
-    // 之前 FAB 在 Row slot 内 + offset(-16),顶部被 bar Surface 遮挡成横线。
-    // 现在外层 Surface 正常渲染 2 个 tab 子卡 + 中央 Spacer 间隔,FAB 作为兄弟层叠在上方,
-    // 用 align(TopCenter).offset 抬出 bar 上沿,完整圆形可见。
-    Box(
-        modifier = Modifier.windowInsetsPadding(
-            WindowInsets.systemBars.only(WindowInsetsSides.Bottom)
-        )
+    // 外层 surfaceVariant 全宽容器(无圆角,顶部 HorizontalDivider 分隔)
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(
+                WindowInsets.systemBars.only(WindowInsetsSides.Bottom)
+            )
     ) {
-        // 外层 surfaceVariant 卡片(跟【我的】tab 的 SectionCard 同源视觉)
-        Surface(
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            tonalElevation = 1.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Column {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -214,8 +205,10 @@ private fun AppTabBar(
                     onClick = { onSelectTab(Notes) },
                     modifier = Modifier.weight(1f)
                 )
-                // 槽 2 — 中央占位(56dp,给 FAB 抬出留空间)
-                Spacer(Modifier.size(56.dp))
+                CenterCreateCard(
+                    onClick = onCenterFabClick,
+                    modifier = Modifier.weight(1f)
+                )
                 val meSelected = currentDestination?.hasRoute<Me>() == true
                 TabCard(
                     selected = meSelected,
@@ -230,34 +223,13 @@ private fun AppTabBar(
                 )
             }
         }
-        // 中央 FAB overlay:绝对定位在 Surface 顶部中央,offset 抬出 bar 上沿。
-        // 容器色从 secondary 改 primary,跟 selected tab 视觉呼应。
-        FloatingActionButton(
-            onClick = onCenterFabClick,
-            shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 12.dp,
-                pressedElevation = 16.dp
-            ),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = (-20).dp)
-                .size(56.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Add,
-                contentDescription = stringResource(R.string.tab_new_note_cd)
-            )
-        }
     }
 }
 
 /**
  * app-bottom-tab-bar · 笔记 / 我的 tab 子卡(16dp 圆角 Surface)。
  * selected = primary 容器 + onPrimary 内容;unselected = 透明容器 + onSurfaceVariant 内容。
- * 整卡 clickable,触控目标 ≥ 48dp。
+ * 整卡 clickable,触控目标 ≥ 56dp(icon 24dp + 上下 padding 12dp × 2)。
  */
 @Composable
 private fun TabCard(
@@ -289,6 +261,44 @@ private fun TabCard(
             Icon(imageVector = icon, contentDescription = null)
             Spacer(Modifier.size(4.dp))
             Text(text = label, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+/**
+ * app-tab-bar-redesign v4 · 中央「+ 新建」创建入口子卡(16dp 圆角 Surface)。
+ *
+ * **始终** primaryContainer 高亮(无选中 / 未选中态切换),作为常驻「创建」主焦点。
+ * primaryContainer 色调比 primary 更柔和,视觉上不"笨重",同时仍传达"可创建"。
+ * 含 `Add` icon + "+ 新建" label,结构跟两侧 `TabCard` 对称(icon + spacer + label),
+ * 让用户一眼看出"所有位置都可以新建"。
+ * 无 elevation,无凸起,跟两侧 `TabCard` 同 baseline 完全 inline。
+ * 表面高度 = icon 24dp + spacer 4dp + label ~16dp + 上下 padding 12dp × 2 = 68dp,
+ * 跟 `TabCard` 等高,三 Surface 在 Row 内视觉基线对齐。
+ * 触控高度 = Surface 整体高度 = 68dp ≥ M3 触控目标 56dp。
+ */
+@Composable
+private fun CenterCreateCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = stringResource(R.string.tab_new_note_cd)
+            )
+            Spacer(Modifier.size(4.dp))
+            Text(
+                text = stringResource(R.string.tab_new_note),
+                style = MaterialTheme.typography.labelSmall
+            )
         }
     }
 }

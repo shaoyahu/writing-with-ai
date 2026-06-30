@@ -74,6 +74,9 @@ class FeishuSyncServiceTest {
     private val passthroughTx = object : TransactionExecutor {
         override suspend fun <R> execute(block: suspend () -> R): R = block()
     }
+
+    // fix-2026-06-30-full-review-r1 C2:push/pull 调 conflict resolver,test 注入真实实例。
+    private val conflictResolver = FeishuConflictResolver()
     private val service = FeishuSyncService(
         notes,
         docService,
@@ -81,7 +84,8 @@ class FeishuSyncServiceTest {
         events,
         fakeAuthStore,
         noteDao,
-        passthroughTx
+        passthroughTx,
+        conflictResolver
     )
 
     @Test

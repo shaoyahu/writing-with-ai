@@ -201,10 +201,11 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
             val linkMatch = Regex("""\[([^\]]+)\]\(([^)]+)\)""").find(remaining)
             // 2. inline code
             val codeMatch = Regex("""`([^`]+)`""").find(remaining)
-            // 3. bold **
-            val boldMatch = Regex("""\*\*([^*]+)\*\*""").find(remaining)
-            // 4. italic *
-            val italicMatch = Regex("""\*([^*]+)\*""").find(remaining)
+            // 3. bold ** —— fix-2026-06-30-full-review-r1 MEDIUM M7:非贪婪 + 允许内嵌 *,
+            //    支持 `**bold *italic* bold**` 嵌套
+            val boldMatch = Regex("""\*\*(.+?)\*\*""").find(remaining)
+            // 4. italic * —— 同 M7
+            val italicMatch = Regex("""\*(.+?)\*""").find(remaining)
 
             val first = listOfNotNull(
                 linkMatch?.let { Triple(it.range.first, it.range.last + 1, "link") },

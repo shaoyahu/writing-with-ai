@@ -29,6 +29,17 @@ class LlmBackfillWorker(
         // (LLM 返回异常 / provider 401 / 网络断) 不再 abort 整个 worker。
         // CancellationException 必须重新抛出,Worker 才能正常 cancel。
         val result = runLlmBackfillLoop(extractor, ids, isStopped = { isStopped })
+        // fix-2026-06-30-full-review-r1 HIGH H11:全部失败 → Result.failure() 让
+        // WorkManager 自动重试,而不是把"0 processed / N failed"当成功提交。EntityBackfillWorker
+        // 已有同样保护,这里补齐保持一致。
+        if (result.processed == 0 && result.failed > 0) {
+            return@withContext Result.failure(
+                androidx.work.workDataOf(
+                    "reason" to "all_failed",
+                    "failed" to result.failed
+                )
+            )
+        }
         Result.success(
             androidx.work.workDataOf("processed" to result.processed, "failed" to result.failed)
         )
