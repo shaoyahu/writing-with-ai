@@ -6,12 +6,8 @@ import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.prefs.ConsentStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -42,12 +38,10 @@ constructor(
     private val _scrolledToBottom = MutableStateFlow(false)
     val scrolledToBottom: StateFlow<Boolean> = _scrolledToBottom.asStateFlow()
 
-    private val _action = MutableSharedFlow<Action>(
-        replay = 0,
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
-    val action: SharedFlow<Action> = _action.asSharedFlow()
+    // fix-2026-06-30-full-review-r1 test build:SharedFlow 没有 .value,测试读不到最近 emit;
+    // 改 StateFlow<Action?>(默认 null)既兼容 .value 读取,consumeAction 也能正确清回 null。
+    private val _action = MutableStateFlow<Action?>(null)
+    val action: StateFlow<Action?> = _action.asStateFlow()
 
     fun setScrolledToBottom(value: Boolean) {
         _scrolledToBottom.update { value }
@@ -63,7 +57,7 @@ constructor(
     }
 
     fun reject() {
-        _action.tryEmit(Action.ExitApp)
+        _action.value = Action.ExitApp
     }
 
     /**
@@ -71,7 +65,8 @@ constructor(
      * 不抛错,让已有 Composable 代码不需立即改。
      */
     fun consumeAction() {
-        // no-op:SharedFlow.emit 不会"残留",consumer collect 一次就完事
+        // StateFlow 改 .value = null 清空,避免重复触发。
+        _action.value = null
     }
 
     sealed interface Action {

@@ -5,12 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.prefs.UserPrefsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -37,12 +33,10 @@ constructor(
     private val _acked = MutableStateFlow(false)
     val acked: StateFlow<Boolean> = _acked.asStateFlow()
 
-    private val _action = MutableSharedFlow<Action>(
-        replay = 0,
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
-    val action: SharedFlow<Action> = _action.asSharedFlow()
+    // fix-2026-06-30-full-review-r1 test build:SharedFlow 没有 .value,测试读不到最近 emit;
+    // 改 StateFlow<Action?>(默认 null)既兼容 .value 读取,consumeAction 也能正确清回 null。
+    private val _action = MutableStateFlow<Action?>(null)
+    val action: StateFlow<Action?> = _action.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -54,7 +48,7 @@ constructor(
     fun onAck() {
         viewModelScope.launch {
             userPrefsStore.setAckApikeyPrompt(true)
-            _action.tryEmit(Action.Finished)
+            _action.value = Action.Finished
         }
     }
 
@@ -62,7 +56,7 @@ constructor(
     fun onSkip() {
         viewModelScope.launch {
             userPrefsStore.setAckApikeyPrompt(true)
-            _action.tryEmit(Action.Finished)
+            _action.value = Action.Finished
         }
     }
 
@@ -70,13 +64,13 @@ constructor(
     fun onReset() {
         viewModelScope.launch {
             userPrefsStore.setAckApikeyPrompt(false)
-            _action.tryEmit(Action.Reset)
+            _action.value = Action.Reset
         }
     }
 
-    /** no-op:SharedFlow 无状态可消费,保留为旧 caller 兼容。 */
+    /** StateFlow.Action -> null,UI 已 navigate 后调,避免重复触发。 */
     fun consumeAction() {
-        // no-op
+        _action.value = null
     }
 
     sealed interface Action {

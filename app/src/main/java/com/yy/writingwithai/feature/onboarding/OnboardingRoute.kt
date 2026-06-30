@@ -39,6 +39,7 @@ fun OnboardingRoute(onExitApp: () -> Unit, viewModel: OnboardingViewModel = hilt
                     (context as? Activity)?.finishAffinity()
                     onExitApp()
                 }
+                null -> { /* StateFlow 初始 / consumeAction 后的 null,跳过 */ }
             }
         }
     }

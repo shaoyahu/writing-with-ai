@@ -22,6 +22,7 @@ fun ApikeyPromptRoute(onFinished: () -> Unit, viewModel: ApikeyPromptViewModel =
             when (action) {
                 ApikeyPromptViewModel.Action.Finished -> onFinished()
                 ApikeyPromptViewModel.Action.Reset -> { /* no navigation needed */ }
+                null -> { /* StateFlow 初始 / consumeAction 后的 null,跳过 */ }
             }
         }
     }
