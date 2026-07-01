@@ -18,7 +18,7 @@ import javax.inject.Inject
  * app-self-hosted-update · 下载完成广播接收。
  *
  * 流程:
- * 1. DownloadManager 查 downloadId 对应 local URI(API 29+ 通常是 content://,旧 API 是 file://)
+ * 1. DownloadManager 查 downloadId 对应 local URI(API 29+ 通常是 content://，旧 API 是 file://)
  * 2. ContentResolver.openInputStream(URI) 拿字节流算 SHA-256 → 与 manifest.apkSha256 比对
  * 3. 一致:FileProvider.getUriForFile 拿 content URI + 系统安装 intent
  * 4. 不一致:删文件 + Toast 报错
@@ -28,7 +28,7 @@ import javax.inject.Inject
  * - install 用 FileProvider 而不是 Uri.fromFile(API 24+ 会抛 FileUriExposedException)
  *
  * fix-2026-06-24-review-r1-critical 修:
- * - install Intent filename 从 `manifest.apkName` 派生(走 `PathSafety.safeName`),不再从服务器 URL `substringAfterLast('/')`
+ * - install Intent filename 从 `manifest.apkName` 派生(走 `PathSafety.safeName`)，不再从服务器 URL `substringAfterLast('/')`
  * - `cursor.getColumnIndex` 返回 -1 时显式 null 检查(防 lint Range error)
  */
 @AndroidEntryPoint
@@ -60,7 +60,7 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
             }
             if (cursor.getInt(statusIdx) != DownloadManager.STATUS_SUCCESSFUL) {
                 Log.w(TAG, "download not successful for id=$downloadId status=${cursor.getInt(statusIdx)}")
-                Toast.makeText(context, "下载未成功,请重试", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "下载未成功，请重试", Toast.LENGTH_LONG).show()
                 return
             }
 
@@ -88,14 +88,14 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
             }
             if (!actualSha.equals(manifest.apkSha256, ignoreCase = true)) {
                 // fix-2026-06-30-full-review-r1 MEDIUM M8:不 log actual hash(下载文件哈希
-                // 可能协助攻击者理解服务内容),只记 downloadId 便于排查。
+                // 可能协助攻击者理解服务内容)，只记 downloadId 便于排查。
                 Log.w(TAG, "sha mismatch for downloadId=$downloadId")
                 runCatching { context.contentResolver.delete(uri, null, null) }
-                Toast.makeText(context, "下载文件损坏,请重试", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "下载文件损坏，请重试", Toast.LENGTH_LONG).show()
                 return
             }
 
-            // fix r1:filename 来自 manifest.apkName 走 PathSafety 校验,不再从 URI 派生
+            // fix r1:filename 来自 manifest.apkName 走 PathSafety 校验，不再从 URI 派生
             val safeName = PathSafety.safeName(manifest.apkName, fallback = DEFAULT_APK_NAME)
             if (safeName != manifest.apkName) {
                 Log.w(TAG, "manifest.apkName='${manifest.apkName}' unsafe, fallback to $DEFAULT_APK_NAME")
@@ -134,7 +134,7 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
             context.startActivity(intent)
         } catch (e: Throwable) {
             Log.w(TAG, "install intent failed: ${e.javaClass.simpleName}")
-            Toast.makeText(context, "无法启动安装器,请手动到 /app/download/ 下载", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "无法启动安装器，请手动到 /app/download/ 下载", Toast.LENGTH_LONG).show()
         }
     }
 

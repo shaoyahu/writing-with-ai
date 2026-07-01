@@ -29,7 +29,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * fix-2026-06-26-review-r3-test:重写 NoteRepositoryDeleteOrderTest,改用 Robolectric +
+ * fix-2026-06-26-review-r3-test:重写 NoteRepositoryDeleteOrderTest，改用 Robolectric +
  * Room.inMemoryDatabaseBuilder 跑真 DB。
  *
  * 原版用 MockK 全 mock,`coEvery { db.withTransaction { block } } coAnswers { firstArg<...>().invoke() }`
@@ -37,16 +37,16 @@ import org.robolectric.annotation.Config
  * withContext(NonCancellable) 组合产生死锁(MockK 内部协程调度循环无法正确恢复异常)。
  *
  * 现版:
- * - 真 `AppDatabase`(Room in-memory)→ 真 `withTransaction` 实现,无 MockK coAnswers 死锁;
- * - 真 DAO 从 DB 拿 → 测的是真事务 + 真 SQL,不再只是调用顺序;
+ * - 真 `AppDatabase`(Room in-memory)→ 真 `withTransaction` 实现，无 MockK coAnswers 死锁;
+ * - 真 DAO 从 DB 拿 → 测的是真事务 + 真 SQL，不再只是调用顺序;
  * - `AttachmentStore` / `QuickNoteWidgetUpdater` / `NoteLinker` 用 MockK final mock
- *   (这些是 final class / interface,Robolectric 下用 mockk 仍 OK,且它们的 mock 不触发
- *   死锁,因为它们不是 suspend `withTransaction` 的 mock)。
- * - `android.util.Log.w` 由 Robolectric 桩,无 "Method not mocked" RuntimeException。
+ *   (这些是 final class / interface,Robolectric 下用 mockk 仍 OK，且它们的 mock 不触发
+ *   死锁，因为它们不是 suspend `withTransaction` 的 mock)。
+ * - `android.util.Log.w` 由 Robolectric 桩，无 "Method not mocked" RuntimeException。
  *
  * 验证 R3 H5 三个不变式:
  * - DB 事务(attachmentDao + tagDao + noteDao.deleteById)在 attachmentStore.deleteAllForNote **之前**
- * - 即使 attachmentStore 抛异常,DB 行已删(幂等 — orphan 文件 vs orphan DB row 的选择)
+ * - 即使 attachmentStore 抛异常，DB 行已删(幂等 — orphan 文件 vs orphan DB row 的选择)
  * - CancellationException 在 attachmentStore 失败时仍正确重抛
  */
 @RunWith(RobolectricTestRunner::class)
@@ -81,7 +81,7 @@ class NoteRepositoryDeleteOrderTest {
             noteLinker = noteLinker,
             attachmentStore = attachmentStore,
             // fix-2026-06-30-full-review-r1 H5:NoteRepository.delete 级联删 ai_history,
-            // 注入 AppDatabase 的 aiHistoryDao(真实 in-memory DB 走 cascade,不 mock)。
+            // 注入 AppDatabase 的 aiHistoryDao(真实 in-memory DB 走 cascade，不 mock)。
             aiHistoryDao = db.aiHistoryDao()
         )
     }
@@ -145,7 +145,7 @@ class NoteRepositoryDeleteOrderTest {
     }
 
     /**
-     * R3 H5 验证:attachmentStore 抛 IOException 不应阻塞业务(DB 行已删,业务已完成),
+     * R3 H5 验证:attachmentStore 抛 IOException 不应阻塞业务(DB 行已删，业务已完成),
      * 但要 log 出来便于 orphan 排查。
      */
     @Test
@@ -161,11 +161,11 @@ class NoteRepositoryDeleteOrderTest {
     }
 
     /**
-     * R3 H5 验证:CancellationException 在 attachmentStore 失败时仍正确重抛,
+     * R3 H5 验证:CancellationException 在 attachmentStore 失败时仍正确重抛，
      * 不被 catch (Exception) 静默吞掉。
      *
      * 注意:之前 MockK 全 mock 版会因 coEvery { throws CancellationException } + coAnswers
-     * 协程死锁。现在用真 DB + 普通 mock(every { throws ... }),不走 MockK 协程调度,
+     * 协程死锁。现在用真 DB + 普通 mock(every { throws ... })，不走 MockK 协程调度，
      * 死锁消失。
      */
     @Test

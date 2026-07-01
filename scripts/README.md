@@ -5,14 +5,14 @@
 ## `real-provider-smoke.sh`
 
 `real-provider-integration` change §5 的真机前 smoke 工具。直接对 3 家 provider
-(deepseek / minimax / mimo)真实端点发一条最小流式请求,验证 **网络 + apikey + endpoint** 三件套,
+(deepseek / minimax / mimo)真实端点发一条最小流式请求，验证 **网络 + apikey + endpoint** 三件套，
 无需装 APK。
 
 ### 安全约束
 
-- apikey **只**通过环境变量 `API_KEY` 传入,命令行 / 日志 / 仓库都不写。
-- 默认 silent,失败才打 stderr。
-- 15s 单次超时,失败返非 0 退出码。
+- apikey **只**通过环境变量 `API_KEY` 传入，命令行 / 日志 / 仓库都不写。
+- 默认 silent，失败才打 stderr。
+- 15s 单次超时，失败返非 0 退出码。
 
 ### 用法
 
@@ -46,9 +46,9 @@ MODEL=MiniMax-M2.7-highspeed API_KEY=sk-xxx ./scripts/real-provider-smoke.sh
 
 ### 适用场景
 
-- 改完 `core/ai/provider/<provider>/` 后,先跑这脚本验 endpoint 还活着再去装 APK 跑 §7。
-- 新增 provider 时,先在 `case` 里加一支 `PROVIDER=xxx`,再补 `docs/usage/api-<provider>.md` §2。
-- CI 跑不起来(没法装 APK)的场景,用它当最低限度的"真实 provider 还活着"健康检查。
+- 改完 `core/ai/provider/<provider>/` 后，先跑这脚本验 endpoint 还活着再去装 APK 跑 §7。
+- 新增 provider 时，先在 `case` 里加一支 `PROVIDER=xxx`，再补 `docs/usage/api-<provider>.md` §2。
+- CI 跑不起来(没法装 APK)的场景，用它当最低限度的"真实 provider 还活着"健康检查。
 
 ### 不适用场景
 
@@ -58,5 +58,5 @@ MODEL=MiniMax-M2.7-highspeed API_KEY=sk-xxx ./scripts/real-provider-smoke.sh
 ### 注意事项
 
 - 不要 `set -x` 或加 `trap DEBUG`(会把 API_KEY 打出来)。
-- 不要把输出 pipe 到 `tee` / 重定向到文件再上传 CI(响应里可能含 provider 上游 message,不一定有 apikey 但偏安全)。
-- macOS / Linux 都用 `/usr/bin/env bash`(shebang 固定),不依赖 bash 4+ 特性,兼容 bash 3.2。
+- 不要把输出 pipe 到 `tee` / 重定向到文件再上传 CI(响应里可能含 provider 上游 message，不一定有 apikey 但偏安全)。
+- macOS / Linux 都用 `/usr/bin/env bash`(shebang 固定)，不依赖 bash 4+ 特性，兼容 bash 3.2。

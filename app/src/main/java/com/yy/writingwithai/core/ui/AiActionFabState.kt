@@ -7,8 +7,8 @@ import androidx.compose.ui.text.TextRange
  *
  * polish-review-r2 M9:从 `feature/aiwriting/AiwritingEntry.kt` 底部挪到 `core/ui/`。
  *
- * 该类型是 `Selection → FAB enum` 纯投影,无 aiwriting 业务逻辑;`feature/quicknote` 与
- * `feature/aiwriting` 都引用,放 `core/ui/` 是恰当的跨 feature 共享层。
+ * 该类型是 `Selection → FAB enum` 纯投影，无 aiwriting 业务逻辑;`feature/quicknote` 与
+ * `feature/aiwriting` 都引用，放 `core/ui/` 是恰当的跨 feature 共享层。
  */
 data class AiActionFabState(
     val selectionEmpty: Boolean

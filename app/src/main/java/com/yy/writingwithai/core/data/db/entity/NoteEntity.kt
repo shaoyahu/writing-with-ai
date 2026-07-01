@@ -15,7 +15,7 @@ import androidx.room.PrimaryKey
  * - `isPinned`: 是否固定(列表置顶用)
  * - `lastAiOp` / `lastAiAt`: M2 AI 抽象层写入;M1 始终 null
  *
- * `updatedAt` 上建索引,因为列表按它降序排;`isPinned` 不单独建索引(基数太小)。
+ * `updatedAt` 上建索引，因为列表按它降序排;`isPinned` 不单独建索引(基数太小)。
  */
 @Entity(
     tableName = "notes",
@@ -32,7 +32,7 @@ data class NoteEntity(
     val lastAiAt: Long? = null,
     val syncRevision: String? = null,
     // F3 fix L1:syncStatus String → SyncStatus enum。ColumnInfo defaultValue 仍写 "local",
-    // 与 SyncStatusConverter.toSyncStatus("local") == LOCAL 对齐,旧 schema 不动。
+    // 与 SyncStatusConverter.toSyncStatus("local") == LOCAL 对齐，旧 schema 不动。
     @androidx.room.ColumnInfo(defaultValue = "local")
     val syncStatus: SyncStatus = SyncStatus.LOCAL,
     val lastSyncedAt: Long? = null

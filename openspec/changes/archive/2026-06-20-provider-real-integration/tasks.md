@@ -1,6 +1,6 @@
 ## 1. ProviderPrefsStore + DI
 
-- [ ] 1.1 新建 `app/src/main/java/com/yy/writingwithai/core/ai/provider/ProviderPrefsStore.kt` —— interface + `ProviderPrefsStoreImpl` 走 DataStore Preferences,key = `selected_provider_id`,默认 `"fake"`
+- [ ] 1.1 新建 `app/src/main/java/com/yy/writingwithai/core/ai/provider/ProviderPrefsStore.kt` —— interface + `ProviderPrefsStoreImpl` 走 DataStore Preferences,key = `selected_provider_id`，默认 `"fake"`
 - [ ] 1.2 `core/prefs/PrefsModule.kt`(已有)加 `provideProviderPrefsStore` Hilt provider
 - [ ] 1.3 新建 `app/src/test/java/com/yy/writingwithai/core/ai/provider/FakeProviderPrefsStore.kt` + `ProviderPrefsStoreTest.kt`(round-trip 2 个 test)
 
@@ -19,7 +19,7 @@
 
 - [ ] 4.1 新建 `app/src/main/java/com/yy/writingwithai/feature/settings/model/ModelManagementEntry.kt` —— `ModelManagementRoute` + `ModelProviderDetailRoute` Composable 入口
 - [ ] 4.2 新建 `ModelManagementScreen.kt` —— 3 个 provider Card + 当前选中 + "测试连通"按钮
-- [ ] 4.3 新建 `ModelManagementViewModel.kt` —— `@HiltViewModel`,接 `SecureApiKeyStore` + `ProviderPrefsStore` + `AiGateway`,提供 `setProvider(id, apiKey)` + `ping()`
+- [ ] 4.3 新建 `ModelManagementViewModel.kt` —— `@HiltViewModel`，接 `SecureApiKeyStore` + `ProviderPrefsStore` + `AiGateway`，提供 `setProvider(id, apiKey)` + `ping()`
 - [ ] 4.4 新建 `ModelProviderDetailScreen.kt` —— 表单 + "显示" toggle + "保存"按钮
 - [ ] 4.5 `app/AppNav.kt` 加 `@Serializable data object SettingsModelManagement` + `@Serializable data class SettingsModelProviderDetail(val providerId: String)` + 2 个 `composable<>` block
 

@@ -25,7 +25,7 @@ import com.yy.writingwithai.R
 
 /**
  * 1x1 快速记笔记纯按钮 widget。
- * 点击跳转编辑页(新建笔记,prefillFocus=true)。
+ * 点击跳转编辑页(新建笔记，prefillFocus=true)。
  */
 class QuickNote1x1Widget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single

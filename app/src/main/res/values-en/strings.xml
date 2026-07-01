@@ -280,10 +280,11 @@
     <string name="note_association_signal_entity">Entity</string>
 
     <string name="entity_alias_management_title">Entity alias management</string>
+    <string name="entity_alias_type_label">Entity type</string>
     <string name="entity_alias_explanation_title">What is an entity alias?</string>
-    <string name="entity_alias_explanation_body">An entity alias merges different spellings of the same real-world entity into one canonical entity. For example, if your notes mention 小明, 小名, and XiaoMing — they are the same person. Merge them to the canonical 小明, and AI association/linking will treat them as one entity, avoiding duplicates and gaps.</string>
+    <string name="entity_alias_explanation_body">An entity alias merges different spellings of the same real-world entity into one canonical entity. For example, if your notes mention 小明， 小名， and XiaoMing — they are the same person. Merge them to the canonical 小明， and AI association/linking will treat them as one entity, avoiding duplicates and gaps.</string>
     <string name="entity_alias_example_title">Example</string>
-    <string name="entity_alias_example_body">Type: Person, Alias: 小名, Canonical: 小明. All notes containing 小名 will be extracted to the 小明 entity, and backlink / suggestion will aggregate around 小明.</string>
+    <string name="entity_alias_example_body">Type: Person, Alias: 小名， Canonical: 小明. All notes containing 小名 will be extracted to the 小明 entity, and backlink / suggestion will aggregate around 小明.</string>
     <string name="model_management_menu_add">Add</string>
     <string name="entity_alias_management_desc">Merge same entity under different names (e.g. 小明 / XiaoMing)</string>
     <string name="entity_alias_input_alias">Alias</string>
@@ -547,4 +548,18 @@
 
     <!-- ===== Consent page policy load failure fallback ===== -->
     <string name="onboarding_policy_load_failed">Could not load privacy policy. Check your network and retry.</string>
+
+    <!-- language-switcher: i18n resources for in-app language picker (3 options) -->
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_section_display">Display language</string>
+    <string name="settings_language_option_system">Follow system</string>
+    <string name="settings_language_option_zh">中文</string>
+    <string name="settings_language_option_en">English</string>
+    <string name="settings_language_hint">Restart the app to apply. Navigation history will be lost.</string>
+    <string name="settings_language_selected">Selected</string>
+
+    <!-- i18n audit 补齐:values 有但 values-en 缺的 key -->
+    <string name="custom_provider_helper_anthropic">Anthropic Messages API protocol: body includes top-level system field + messages array; SSE event content_block_delta. baseUrl is the manufacturer-documented base URL (path excluded); the /v1/messages path is auto-appended by the protocol. Examples: DeepSeek = https://api.deepseek.com/anthropic, Minimax = https://api.minimaxi.com/anthropic.</string>
+    <string name="custom_provider_helper_openai">OpenAI Chat Completions protocol: body includes messages array (no top-level system); SSE event data: {choices: [...]}. baseUrl is the manufacturer-documented base URL (path excluded); the /chat/completions path is auto-appended by the protocol. Examples: DeepSeek = https://api.deepseek.com, Moonshot = https://api.moonshot.cn/v1.</string>
+    <string name="tab_new_note">+ New</string>
 </resources>

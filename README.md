@@ -1,7 +1,7 @@
 # writing-with-ai
 
-> 安卓原生轻量写作 APP:从桌面小组件快速记录灵感,必要时由 AI 辅助扩写 / 润色 / 整理。
-> apikey 本机加密,数据本地为主,**只发 APK,任何应用市场都不上架**。
+> 安卓原生轻量写作 APP:从桌面小组件快速记录灵感，必要时由 AI 辅助扩写 / 润色 / 整理。
+> apikey 本机加密，数据本地为主，**只发 APK，任何应用市场都不上架**。
 
 ## 快速开始(开发机)
 
@@ -43,16 +43,16 @@ M0~M6 全部落地;主屏/详情/编辑/小组件/AI 操作/同意门/自定义 
 - Gradle 8 + Version Catalog(`gradle/libs.versions.toml`)
 - minSdk 26 / targetSdk 35 / compileSdk 35,JDK 17
 - Hilt + KSP / Room / DataStore / OkHttp / Glance(桌面小组件)
-- AI:抽象层统一走 `core/ai/`,支持 Anthropic 兼容 + OpenAI 兼容格式,内置 DeepSeek / MiniMax / MiMo 三家,**用户可自定义 Provider**(模型管理 → FAB "+")
-- 多语言:`values/`(中文)+ `values-en/`(英文),跟随系统语言
+- AI:抽象层统一走 `core/ai/`，支持 Anthropic 兼容 + OpenAI 兼容格式，内置 DeepSeek / MiniMax / MiMo 三家，**用户可自定义 Provider**(模型管理 → FAB "+")
+- 多语言:`values/`(中文)+ `values-en/`(英文)，跟随系统语言
 - 包名:`com.yy.writingwithai`
 
 ## 隐私 / 分发
 
-- apikey **从不**入库,本机加密存 EncryptedSharedPreferences(Tink 包装 Android Keystore),不进 logcat / Auto Backup / BuildConfig。
-- 数据 **本地为主**,可选导出 JSON / Markdown;**无**后端、**无**账号、**无**云同步(v1)。
-- 分发渠道:**只发 APK**,任何国内国外应用市场都不上架。
+- apikey **从不**入库，本机加密存 EncryptedSharedPreferences(Tink 包装 Android Keystore)，不进 logcat / Auto Backup / BuildConfig。
+- 数据 **本地为主**，可选导出 JSON / Markdown;**无**后端、**无**账号、**无**云同步(v1)。
+- 分发渠道:**只发 APK**，任何国内国外应用市场都不上架。
 
 ## 项目本地工具
 
-- `package.json` / `node_modules/` 在仓库根目录存在(`headroom-ai` 等本地辅助脚本),已被 `.gitignore` 屏蔽,不进库。新开发机无需装 Node,除非要跑这些本地脚本。
+- `package.json` / `node_modules/` 在仓库根目录存在(`headroom-ai` 等本地辅助脚本)，已被 `.gitignore` 屏蔽，不进库。新开发机无需装 Node，除非要跑这些本地脚本。

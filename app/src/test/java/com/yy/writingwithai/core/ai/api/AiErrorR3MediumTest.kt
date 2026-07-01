@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test
 /**
  * fix-review-r3-medium · [AiError.summary] Markdown 注入防御回归。
  *
- * M2:`detail` / `message` 字段会被 AiHistoryEntity 落库,history 页直接 Markdown 渲染。
- * 攻击者可构造恶意 provider 响应(嵌入 `**[xxx]` `[click](http://evil)` 等),让 history
+ * M2:`detail` / `message` 字段会被 AiHistoryEntity 落库，history 页直接 Markdown 渲染。
+ * 攻击者可构造恶意 provider 响应(嵌入 `**[xxx]` `[click](http://evil)` 等)，让 history
  * 渲染出伪造的链接 / 列表 / 代码块。修后 summary() 必须转义所有 Markdown 控制字符。
  */
 class AiErrorR3MediumTest {

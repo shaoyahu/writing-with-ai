@@ -40,10 +40,10 @@ import kotlinx.coroutines.launch
  * Polish F-17: CancellationException 显式 rethrow。
  *
  * M6 custom-model:
- * - 合并内置 + 自定义 provider 列表(builtin 来自 aiGateway.listProviders(),避免双份硬编码)
- * - deleteCustomProvider: 清 apikey 在前,删 config 在后(cleanup 顺序)
- * - getProviderConfig(providerId): suspend,无 runBlocking(走 DataStore 异步 IO)
- * - ping: 用真实 config.defaultModel,不再传 "default"
+ * - 合并内置 + 自定义 provider 列表(builtin 来自 aiGateway.listProviders()，避免双份硬编码)
+ * - deleteCustomProvider: 清 apikey 在前，删 config 在后(cleanup 顺序)
+ * - getProviderConfig(providerId): suspend，无 runBlocking(走 DataStore 异步 IO)
+ * - ping: 用真实 config.defaultModel，不再传 "default"
  */
 @HiltViewModel
 class ModelManagementViewModel
@@ -58,10 +58,10 @@ constructor(
     private companion object {
         // review-H2:builtin provider id 单源 — 同步两份会随 provider 增删漏改。
         // 静态列表覆盖默认三家;mimo/deepseek/minimax 由 [aiGateway.listProviders()]
-        // 决定顺序与存在性,本列表仅在 init 块用,顺序无所谓。
+        // 决定顺序与存在性，本列表仅在 init 块用，顺序无所谓。
         val BUILTIN_PROVIDER_IDS = listOf("deepseek", "minimax", "mimo")
 
-        // review-L1:提取 TAG,避免字符串字面量散落 + 拼写漂移。
+        // review-L1:提取 TAG，避免字符串字面量散落 + 拼写漂移。
         const val TAG = "ModelMgmtVM"
     }
     private val _state = MutableStateFlow(ModelManagementUiState())
@@ -101,9 +101,9 @@ constructor(
             }
         }
         // ux-2026-06-28 #2:模型管理卡片显示「当前已选 model」。combine 监听 builtin + custom
-        // 每个 provider 的 observeSelectedModel,任意一个写 prefs 都会刷新 map。
-        // builtin 列表走 [BUILTIN_PROVIDER_IDS] 单源,custom 变化时由内层 combine 重建订阅集合。
-        // review-M2:每个 observeSelectedModel 加 catch { emit(null) },单 provider 抛错不
+        // 每个 provider 的 observeSelectedModel，任意一个写 prefs 都会刷新 map。
+        // builtin 列表走 [BUILTIN_PROVIDER_IDS] 单源，custom 变化时由内层 combine 重建订阅集合。
+        // review-M2:每个 observeSelectedModel 加 catch { emit(null) }，单 provider 抛错不
         // 取消整订阅。
         viewModelScope.launch {
             customProviderStore.observeAll().collect { customs ->
@@ -134,11 +134,11 @@ constructor(
             }
         }
         // fix-2026-06-28-ai-model-selection-actually-used:启动懒加载 — 扫所有已配 apikey
-        // 但 selectedModel_<id> 为空的 provider,补写 defaultModel。处理存量用户(改
-        // change 前已设 apikey 但没选过 model,getSelectedModel 返回 null,会走
+        // 但 selectedModel_<id> 为空的 provider，补写 defaultModel。处理存量用户(改
+        // change 前已设 apikey 但没选过 model,getSelectedModel 返回 null，会走
         // gateway fallback → 错调 list[0] 而非 defaultModel)。失败 Log 不阻塞启动。
         // review-H2:走 [BUILTIN_PROVIDER_IDS] 单源。
-        // review-L2:coroutineScope + async 并发,N provider 自举不再串行。
+        // review-L2:coroutineScope + async 并发，N provider 自举不再串行。
         viewModelScope.launch {
             val customIds = customProviderStore.getAll().map { it.id }
             val allIds = BUILTIN_PROVIDER_IDS + customIds
@@ -180,7 +180,7 @@ constructor(
         }
     }
 
-    /** 合并内置 + 自自定义 provider 描述列表(suspend)。builtin 来自 gateway,避免硬编码。 */
+    /** 合并内置 + 自自定义 provider 描述列表(suspend)。builtin 来自 gateway，避免硬编码。 */
     suspend fun providerDescriptors(): List<ProviderDescriptor> {
         val builtin = aiGateway.listProviders()
         val customIds = builtin.map { it.id }.toSet()
@@ -193,11 +193,11 @@ constructor(
                 // fix-2026-06-28-ai-model-selection-actually-used:custom 走 ProviderConfig.defaultModel。
                 defaultModel = config.defaultModel
             )
-        }.filter { it.id !in customIds } // 防 builtin 同名(防御性,gateway 已先返回 builtin)
+        }.filter { it.id !in customIds } // 防 builtin 同名(防御性，gateway 已先返回 builtin)
         return builtin + custom
     }
 
-    /** 供详情页统一获取 provider 配置(内置返回静态,自定义返回 DataStore)。suspend,无 runBlocking。 */
+    /** 供详情页统一获取 provider 配置(内置返回静态，自定义返回 DataStore)。suspend，无 runBlocking。 */
     suspend fun getProviderConfig(providerId: String): ProviderConfig? {
         return when (providerId) {
             "deepseek" -> com.yy.writingwithai.core.ai.provider.deepseek.DeepseekConfig.config
@@ -223,20 +223,20 @@ constructor(
 
     /** 保存 apikey + 切换 selected providerId;可选 model 同步落 selectedModel。
      *
-     * fix-2026-06-26-review-r3 H23:原实现 setSelectedProviderId 失败回滚时,自己的 try-catch
-     * 静默吞;且 setSelectedProviderId 已在第一步持久化,失败回滚到旧值,可能在旧值
-     * 与新值都已落盘后,用户看到不一致。改为"先 backup → 内存态 → 全成功才持久化":
+     * fix-2026-06-26-review-r3 H23:原实现 setSelectedProviderId 失败回滚时，自己的 try-catch
+     * 静默吞;且 setSelectedProviderId 已在第一步持久化，失败回滚到旧值，可能在旧值
+     * 与新值都已落盘后，用户看到不一致。改为"先 backup → 内存态 → 全成功才持久化":
      * 把 selectedProviderId 的更新推迟到最后一步;中间任何一步失败 → 不持久化 selected,
      * 内存态同步回到原值。
      *
      * ux-2026-06-28 #1:apikey 切换模型 — 当 apiKey 为空但 provider 已有 key,
-     * 跳过 apikey 写盘(避免覆盖成空),只更新 selected + model。
+     * 跳过 apikey 写盘(避免覆盖成空)，只更新 selected + model。
      */
     fun saveProvider(providerId: String, apiKey: String, model: String? = null) {
         viewModelScope.launch {
             _state.update { it.copy(lastSaveResult = SaveResult.InProgress) }
             val previousSelected = _state.value.selectedProviderId
-            // 仅更新内存态,先不持久化。
+            // 仅更新内存态，先不持久化。
             _state.update { it.copy(selectedProviderId = providerId) }
             val skipKeyWrite = apiKey.isBlank() && secureApiKeyStore.has(providerId)
             if (!skipKeyWrite) {
@@ -263,8 +263,8 @@ constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // setSelected 失败:apikey 已落 → 内存态 selected 回滚,UI 反映旧 selected;
-                // 但 apikey 已存,下次重启仍会用 providerId,需 Log 告知用户。
+                // setSelected 失败:apikey 已落 → 内存态 selected 回滚，UI 反映旧 selected;
+                // 但 apikey 已存，下次重启仍会用 providerId，需 Log 告知用户。
                 _state.update { it.copy(selectedProviderId = previousSelected) }
                 android.util.Log.e(
                     TAG,
@@ -288,8 +288,8 @@ constructor(
                 )
             }
             // fix-2026-06-28-ai-model-selection-actually-used:apikey + selectedProviderId
-            // 落盘成功后,自举 selectedModel(若 key 不存在)。不覆盖用户显式选择;
-            // 若用户传了 model,setSelectedModel 已落 key,这里 setSelectedModelIfMissing 跳过。
+            // 落盘成功后，自举 selectedModel(若 key 不存在)。不覆盖用户显式选择;
+            // 若用户传了 model,setSelectedModel 已落 key，这里 setSelectedModelIfMissing 跳过。
             val cfg = getProviderConfig(providerId)
             val bootstrapModel = cfg?.defaultModel
             if (!bootstrapModel.isNullOrBlank()) {
@@ -313,7 +313,7 @@ constructor(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Exception) {
-                    // 静默:apikey 已落,model 写失败不阻塞 save 成功反馈
+                    // 静默:apikey 已落，model 写失败不阻塞 save 成功反馈
                 }
             }
             val success = SaveResult.Success
@@ -326,8 +326,8 @@ constructor(
      * model-management-detail-dropdown: 详情页切换模型下拉时调用。
      *
      * fix-2026-06-28-ai-model-selection-actually-used:改为 `suspend fun` + 失败 emit
-     * [SaveResult.Failed] 走 [OperationKind.MODEL_SELECT] 分支,UI 弹「模型切换失败」
-     * Snackbar。写 prefs 成功 → 静默(纯本地切换,无 save 事件);写失败 → emit 失败事件。
+     * [SaveResult.Failed] 走 [OperationKind.MODEL_SELECT] 分支，UI 弹「模型切换失败」
+     * Snackbar。写 prefs 成功 → 静默(纯本地切换，无 save 事件);写失败 → emit 失败事件。
      *
      * 调用方需在 `viewModelScope.launch` 包装(Composable 用 `rememberCoroutineScope`)。
      */
@@ -353,7 +353,7 @@ constructor(
         return providerPrefsStore.getSelectedModel(providerId)
     }
 
-    /** X 方案:详情页切 OpenAI/Anthropic 兼容协议时调用。写 prefs,无 save 事件。 */
+    /** X 方案:详情页切 OpenAI/Anthropic 兼容协议时调用。写 prefs，无 save 事件。 */
     fun onApiFormatSelected(providerId: String, format: ApiFormat) {
         viewModelScope.launch {
             try {
@@ -361,7 +361,7 @@ constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // M15 修:同上,Log 留 trace。
+                // M15 修:同上，Log 留 trace。
                 android.util.Log.e(TAG, "setApiFormat $providerId/$format failed", e)
             }
         }
@@ -387,7 +387,7 @@ constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-                // 静默,UI 重新拉取
+                // 静默，UI 重新拉取
             }
             if (_state.value.selectedProviderId == providerId) {
                 try {
@@ -418,7 +418,7 @@ constructor(
                 return@launch
             }
             val config = getProviderConfig(providerId)
-            // model-management-detail-dropdown: 优先用用户在详情页选的 model,无值回退 config 默认
+            // model-management-detail-dropdown: 优先用用户在详情页选的 model，无值回退 config 默认
             val effectiveModel = loadSelectedModel(providerId)
                 ?: config?.defaultModel
                 ?: com.yy.writingwithai.core.ai.provider.deepseek.DeepseekConfig.config.defaultModel
@@ -453,8 +453,8 @@ data class ModelManagementUiState(
     val configuredProviderIds: Set<String> = emptySet(),
     val customProviders: List<ProviderConfig> = emptyList(),
     val lastSaveResult: SaveResult = SaveResult.Idle,
-    // ux-2026-06-28 #2:模型管理卡片显示「当前已选 model」,不再固定「默认」;
-    // 订阅每个 provider 的 observeSelectedModel 实时更新,未设置(null)走 defaultModel 兜底。
+    // ux-2026-06-28 #2:模型管理卡片显示「当前已选 model」，不再固定「默认」;
+    // 订阅每个 provider 的 observeSelectedModel 实时更新，未设置(null)走 defaultModel 兜底。
     val selectedModelByProvider: Map<String, String> = emptyMap()
 )
 
@@ -471,7 +471,7 @@ sealed interface SaveResult {
     data object Success : SaveResult
 
     /**
-     * fix-2026-06-28-ai-model-selection-actually-used:区分 [Failed] 来源,UI 据此选不同文案:
+     * fix-2026-06-28-ai-model-selection-actually-used:区分 [Failed] 来源，UI 据此选不同文案:
      * - [SAVE] — apikey / selectedProviderId 落盘失败
      * - [MODEL_SELECT] — 详情页下拉选 model 时 setSelectedModel 写盘失败
      */
@@ -480,7 +480,7 @@ sealed interface SaveResult {
     data class Failed(
         @StringRes val messageRes: Int,
         val rawDetail: String?,
-        // 默认 SAVE,向后兼容老 caller;新 caller 显式传 MODEL_SELECT。
+        // 默认 SAVE，向后兼容老 caller;新 caller 显式传 MODEL_SELECT。
         val operationKind: OperationKind = OperationKind.SAVE
     ) : SaveResult
 }

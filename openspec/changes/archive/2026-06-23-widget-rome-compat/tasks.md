@@ -39,8 +39,8 @@
 
 ## 5. DateUtils.getRelativeTimeSpanString 替换
 
-- [x] 5.1 改 `core/widget/QuickNoteWidget.kt`:`formatRelativeTime` / `formatRelativeTimeCompact` 改 `DateUtils.getRelativeTimeSpanString(...)`,删 30 行 `when (diff < m/h/d/7d)`
-- [x] 5.2 改 `core/widget/QuickNote1x4Widget.kt`:同 5.1(共享函数,WidgetSource 改一处全改)
+- [x] 5.1 改 `core/widget/QuickNoteWidget.kt`:`formatRelativeTime` / `formatRelativeTimeCompact` 改 `DateUtils.getRelativeTimeSpanString(...)`，删 30 行 `when (diff < m/h/d/7d)`
+- [x] 5.2 改 `core/widget/QuickNote1x4Widget.kt`:同 5.1(共享函数，WidgetSource 改一处全改)
 
 ## 6. widget empty state + ROM hint
 
@@ -68,7 +68,7 @@
 - [x] 10.1 `./gradlew :app:assembleDebug` BUILD SUCCESSFUL
 - [x] 10.2 `./gradlew :app:ktlintCheck` 0 violations
 - [x] 10.3 `./gradlew :app:lintDebug` 0 errors
-- [x] 10.4 `./gradlew :app:testDebugUnitTest` 全 PASS(项目全部测试,无新增)
+- [x] 10.4 `./gradlew :app:testDebugUnitTest` 全 PASS(项目全部测试，无新增)
 - [ ] 10.5 真机冒烟:Pixel Launcher + 模拟 MIUI / ColorOS(改 Build.MANUFACTURER)→ widget hint 显示正确 — **用户角色 3 真机反馈循环**
 
 ## 11. 文档

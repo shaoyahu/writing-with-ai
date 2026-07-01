@@ -2,15 +2,15 @@
 
 ## 1. spec delta
 
-- [x] 1.1 读 `openspec/specs/quick-note/spec.md`,定位 4 个 target Requirement(Tag many-to-many / List ordering / Search / Navigation routes)
-- [x] 1.2 在 `openspec/changes/fix-quicknote-tags-and-search/specs/quick-note/spec.md` 写 `## MODIFIED Requirements` 段,4 个 MODIFIED 每个加 1 个 Scenario
+- [x] 1.1 读 `openspec/specs/quick-note/spec.md`，定位 4 个 target Requirement(Tag many-to-many / List ordering / Search / Navigation routes)
+- [x] 1.2 在 `openspec/changes/fix-quicknote-tags-and-search/specs/quick-note/spec.md` 写 `## MODIFIED Requirements` 段，4 个 MODIFIED 每个加 1 个 Scenario
 
 ## 2. 列表屏 UI 强化
 
 - [x] 2.1 `feature/quicknote/list/QuickNoteListScreen.kt`
   - `OutlinedTextField` 加 `trailingIcon`(query 非空时 `IconButton` + `Icons.Filled.Close` + `viewModel::setQuery`)
   - `TagFilterRow` 选中 chip 加 `leadingIcon = Icons.Filled.Check`
-  - 选中 tag 时,在 search 与 TagFilterRow 中间插入 `Row` + `AssistChip("当前筛选 #$tag")` + trailing close → `viewModel.selectTag(null)`
+  - 选中 tag 时，在 search 与 TagFilterRow 中间插入 `Row` + `AssistChip("当前筛选 #$tag")` + trailing close → `viewModel.selectTag(null)`
 - [x] 2.2 `feature/quicknote/list/NoteRow.kt`
   - 签名加 `onTagClick: (String) -> Unit`
   - `AssistChip` 改 `colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)`,`onClick = { onTagClick(tagName) }`
@@ -42,7 +42,7 @@
 
 ## 6. 测试
 
-- [x] 6.1 跳过 — 无既有 `QuickNoteListViewModelTest`,本 change 纯 UI 强化 + import 调整,无数据层改动;现有 22 tests 全 PASS
+- [x] 6.1 跳过 — 无既有 `QuickNoteListViewModelTest`，本 change 纯 UI 强化 + import 调整，无数据层改动;现有 22 tests 全 PASS
 - [x] 6.2 跑 `./gradlew :app:testDebugUnitTest` 全 PASS(22 tests 0 fail)
 
 ## 7. 验证

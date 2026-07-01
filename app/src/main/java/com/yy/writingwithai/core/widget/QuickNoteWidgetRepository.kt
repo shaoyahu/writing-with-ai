@@ -5,7 +5,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * M4-1 · widget 数据源:封装 `NoteRepository.observeRecent(limit)`,给 widget UI 层用。
+ * M4-1 · widget 数据源:封装 `NoteRepository.observeRecent(limit)`，给 widget UI 层用。
  *
  * 独立 Hilt 单例便于 widget 测试 mock;Room 数据 schema 不变(走 M1 `observeAll()` + 内存 `take`)。
  */

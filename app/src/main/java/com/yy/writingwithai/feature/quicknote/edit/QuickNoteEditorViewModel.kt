@@ -48,7 +48,7 @@ constructor(
     private val savingFlow = MutableStateFlow(false)
     private val loadedFlow = MutableStateFlow(false)
 
-    // ux-2026-06-28 #8:新建笔记时 noteId 是 random UUID,note 行尚未入库,
+    // ux-2026-06-28 #8:新建笔记时 noteId 是 random UUID,note 行尚未入库，
     // NoteAttachmentEntity 有 FK → 必须等 repository.upsert(note) 成功后才能 insert 附件。
     // 这里只缓存 Uri;save() 内 upsert 后再压缩 + 写库(详见 save 末尾)。
     private val pendingAttachmentUrisFlow = MutableStateFlow<List<android.net.Uri>>(emptyList())
@@ -56,7 +56,7 @@ constructor(
     init {
         if (!isNew) {
             viewModelScope.launch {
-                // H2 修:记录用户是否已抢先输入;若是,init 不回填,避免覆盖。
+                // H2 修:记录用户是否已抢先输入;若是，init 不回填，避免覆盖。
                 val hadUserInput =
                     titleFlow.value.isNotEmpty() ||
                         contentFlow.value.isNotEmpty() ||
@@ -65,7 +65,7 @@ constructor(
                 if (existing != null && !hadUserInput) {
                     titleFlow.value = existing.title
                     contentFlow.value = existing.content
-                    // H1 修:用 .first() 一次性读 tags,不再持续订阅导致覆盖用户编辑。
+                    // H1 修:用 .first() 一次性读 tags，不再持续订阅导致覆盖用户编辑。
                     val item = repository.observeNoteWithTags(existing.id).first()
                     if (item != null) tagsFlow.value = item.tags
                 }
@@ -156,10 +156,10 @@ constructor(
         pendingAttachmentUrisFlow.update { current -> current.filterNot { it == uri } }
     }
 
-    /** ux-2026-06-28 #8:暴露给 UI 渲染待处理列表(新建笔记时还没落库,只能展示计数 + 移除)。 */
+    /** ux-2026-06-28 #8:暴露给 UI 渲染待处理列表(新建笔记时还没落库，只能展示计数 + 移除)。 */
     val pendingAttachmentUris: StateFlow<List<android.net.Uri>> = pendingAttachmentUrisFlow.asStateFlow()
 
-    /** ux-2026-06-28 #8:已存在的笔记(走路由 id)直接 observe;新建笔记没附件行,返回空列表。 */
+    /** ux-2026-06-28 #8:已存在的笔记(走路由 id)直接 observe;新建笔记没附件行，返回空列表。 */
     fun observeAttachments(): kotlinx.coroutines.flow.Flow<List<NoteAttachmentEntity>> =
         noteAttachmentDao.observeForNote(noteId)
 
@@ -194,11 +194,11 @@ constructor(
                 )
             val tagsToSave = tagsFlow.value
             // fix-2026-06-26-review-r3 H26:删 debug 日志。原 log 把 note.id(用户 UUID)+ tags
-            // 打到 logcat,在 debug 包也被 ADB / 抓 log 工具捕获,违反 CLAUDE.md "不放用户
-            // 数据到 logcat"原则。后续要排查 EditorVM 用 Android Studio debugger,不开 log。
+            // 打到 logcat，在 debug 包也被 ADB / 抓 log 工具捕获，违反 CLAUDE.md "不放用户
+            // 数据到 logcat"原则。后续要排查 EditorVM 用 Android Studio debugger，不开 log。
             repository.upsert(note, tagsToSave)
-            // ux-2026-06-28 #8:upsert 成功 → note 行已落库,FK 满足,现在可以 commit 待处理附件。
-            // 任一 Uri 失败不阻断其它;失败记 debug 日志(用户 UUID 仅在 DEBUG 包出现,符合 CLAUDE.md)。
+            // ux-2026-06-28 #8:upsert 成功 → note 行已落库，FK 满足，现在可以 commit 待处理附件。
+            // 任一 Uri 失败不阻断其它;失败记 debug 日志(用户 UUID 仅在 DEBUG 包出现，符合 CLAUDE.md)。
             val pending = pendingAttachmentUrisFlow.value
             if (pending.isNotEmpty()) {
                 pendingAttachmentUrisFlow.value = emptyList()
@@ -213,8 +213,8 @@ constructor(
 
     /**
      * ux-2026-06-28 #8:把单张图片 Uri 压缩 + 写入附件存储 + insert NoteAttachmentEntity。
-     * 复用 [QuickNoteDetailViewModel.addAttachment] 的实现策略,确保行为一致。
-     * 失败时只在 DEBUG 包 Log.e,避免 release 包污染 logcat。
+     * 复用 [QuickNoteDetailViewModel.addAttachment] 的实现策略，确保行为一致。
+     * 失败时只在 DEBUG 包 Log.e，避免 release 包污染 logcat。
      */
     private fun commitAttachment(uri: android.net.Uri, noteId: String) {
         viewModelScope.launch {

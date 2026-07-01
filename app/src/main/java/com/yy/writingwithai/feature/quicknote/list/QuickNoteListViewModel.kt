@@ -43,7 +43,7 @@ constructor(
     private val query = MutableStateFlow("")
     private val selectedTag = MutableStateFlow<String?>(null)
 
-    // review r2 修:暴露 StateFlow 而非 MutableStateFlow,防止外部直接写入。
+    // review r2 修:暴露 StateFlow 而非 MutableStateFlow，防止外部直接写入。
     private val _selectedIds = MutableStateFlow<Set<String>>(emptySet())
     val selectedIds: StateFlow<Set<String>> = _selectedIds.asStateFlow()
     private val _isSelectMode = MutableStateFlow(false)
@@ -52,7 +52,7 @@ constructor(
     val uiState: StateFlow<NoteListUiState> =
         combine(
             combine(query, selectedTag) { q, tag -> q to tag }
-                // M3 修:`observeAllTags` 提到外层,避免 selectedTag 变化触发 inner combine 重启
+                // M3 修:`observeAllTags` 提到外层，避免 selectedTag 变化触发 inner combine 重启
                 // 导致 allTags 首次 emit [] 引起列表闪烁。
                 .flatMapLatest { (q, tag) ->
                     repository.observeNotesWithTags(q, tag)
@@ -78,10 +78,10 @@ constructor(
 
     fun setQuery(q: String) {
         query.update { q }
-        // fix-2026-06-26-review-r3 M4:`SearchHistoryStore.add` 现在接进 `setQuery`,避免
-        // R3 报告中的"dead code"问题:生产代码之前只调 `getAll` / `remove`,从未写入,
-        // DataStore 永远是空集合,UI 顶部搜索历史区永远显示"暂无"。
-        // 600ms debounce 收敛连续 keystroke,空 query / 与上次相同时不写。
+        // fix-2026-06-26-review-r3 M4:`SearchHistoryStore.add` 现在接进 `setQuery`，避免
+        // R3 报告中的"dead code"问题:生产代码之前只调 `getAll` / `remove`，从未写入，
+        // DataStore 永远是空集合，UI 顶部搜索历史区永远显示"暂无"。
+        // 600ms debounce 收敛连续 keystroke，空 query / 与上次相同时不写。
         if (q.isNotBlank()) {
             viewModelScope.launch {
                 SearchHistoryStore.add(appContext, q.trim())
@@ -111,7 +111,7 @@ constructor(
     // ---- note-list-card-actions · 长按菜单 / 左滑背景按钮共用入口 ----
 
     /**
-     * note-list-card-actions · 切换置顶状态。失败 Log.w,不传播(列表屏无 Snackbar)。
+     * note-list-card-actions · 切换置顶状态。失败 Log.w，不传播(列表屏无 Snackbar)。
      */
     fun togglePinned(noteId: String, currentPinned: Boolean) {
         viewModelScope.launch {
@@ -126,8 +126,8 @@ constructor(
     }
 
     /**
-     * note-list-card-actions · 删除笔记(走 NonCancellable,详情页 delete 的同款反 race 保护)。
-     * 列表删除不需要 back 回调:observeAll 自动从列表移除,UI 自动刷新。
+     * note-list-card-actions · 删除笔记(走 NonCancellable，详情页 delete 的同款反 race 保护)。
+     * 列表删除不需要 back 回调:observeAll 自动从列表移除，UI 自动刷新。
      */
     fun deleteNote(noteId: String) {
         viewModelScope.launch {
@@ -145,7 +145,7 @@ constructor(
 
     /**
      * note-list-card-actions · 长按菜单「添加已有标签」触发。
-     * 挂已有 tag(IGNORE 策略,重复挂 no-op)。
+     * 挂已有 tag(IGNORE 策略，重复挂 no-op)。
      */
     fun addExistingTag(noteId: String, tag: String) {
         viewModelScope.launch {
@@ -164,7 +164,7 @@ constructor(
 
     init {
         // fix-2026-06-26-review-r3 H22:原 `uiState.collect` 在每次 query/tag/notes 变化时
-        // 立即触发 `getRefsForNotes`,搜索抖动时连发,加重 Room IO。
+        // 立即触发 `getRefsForNotes`，搜索抖动时连发，加重 Room IO。
         // 改为:`distinctUntilChangedBy(ids)` 只在 id 集合变化时触发 + `debounce(300ms)`
         // 收敛连续 keystroke + `collectLatest` 取消上一次未完成 IO。
         @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -190,7 +190,7 @@ constructor(
     }
 
     private companion object {
-        // 搜索抖动期间聚合多次 query 变化,只在用户停手 300ms 后才查 ref 表。
+        // 搜索抖动期间聚合多次 query 变化，只在用户停手 300ms 后才查 ref 表。
         const val REFS_DEBOUNCE_MS = 300L
     }
 }

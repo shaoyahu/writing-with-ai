@@ -7,10 +7,10 @@ import com.yy.writingwithai.R
  * real-provider-integration · AiError → 用户可读字符串资源。
  *
  * 单一职责:13 个 AiError 变体映射到 10 个 stringRes(ContentModeration / Deserialization /
- * ApikeyPromptNotAcked 三个细节错误合并到 [R.string.ai_error_unknown],详情由
- * [AiError.summary] 落 `ai_history` 表,不直接展示给终端用户)。
+ * ApikeyPromptNotAcked 三个细节错误合并到 [R.string.ai_error_unknown]，详情由
+ * [AiError.summary] 落 `ai_history` 表，不直接展示给终端用户)。
  *
- * 调用方在 Composable 里 `stringResource(AiErrorLocalizedMapper.localize(error))` 取文案,
+ * 调用方在 Composable 里 `stringResource(AiErrorLocalizedMapper.localize(error))` 取文案，
  * 不在 VM 里持有 Context / 字符串。
  */
 object AiErrorLocalizedMapper {

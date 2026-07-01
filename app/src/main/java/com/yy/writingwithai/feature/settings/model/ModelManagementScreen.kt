@@ -32,8 +32,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -64,6 +62,8 @@ import com.yy.writingwithai.app.ui.theme.Spacing
 import com.yy.writingwithai.app.ui.theme.customColors
 import com.yy.writingwithai.core.ai.api.ProviderDescriptor
 import com.yy.writingwithai.core.ai.api.resolveActualModel
+import com.yy.writingwithai.core.ui.dropdown.AppActionDropdown
+import com.yy.writingwithai.core.ui.dropdown.AppActionItem
 
 /**
  * fix-ai-config-ux · M6 custom-model · 模型管理主屏:
@@ -113,21 +113,20 @@ fun ModelManagementScreen(
                     IconButton(onClick = { headerMenuOpen = true }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.common_more_cd))
                     }
-                    DropdownMenu(
+                    AppActionDropdown(
                         expanded = headerMenuOpen,
-                        onDismissRequest = { headerMenuOpen = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.model_management_menu_add)) },
-                            onClick = {
-                                headerMenuOpen = false
-                                onCreateCustomClick()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Filled.Add, contentDescription = null)
-                            }
+                        onDismissRequest = { headerMenuOpen = false },
+                        items = listOf(
+                            AppActionItem(
+                                text = stringResource(R.string.model_management_menu_add),
+                                onClick = {
+                                    headerMenuOpen = false
+                                    onCreateCustomClick()
+                                },
+                                leadingIcon = Icons.Filled.Add
+                            )
                         )
-                    }
+                    )
                 }
             )
         }
@@ -380,31 +379,29 @@ private fun ProviderInfoCard(
                         IconButton(onClick = { menuExpanded = true }) {
                             Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.common_more_cd))
                         }
-                        DropdownMenu(
+                        AppActionDropdown(
                             expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.custom_provider_menu_edit)) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onEditCustom()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Filled.Edit, contentDescription = null)
-                                }
+                            onDismissRequest = { menuExpanded = false },
+                            items = listOf(
+                                AppActionItem(
+                                    text = stringResource(R.string.custom_provider_menu_edit),
+                                    onClick = {
+                                        menuExpanded = false
+                                        onEditCustom()
+                                    },
+                                    leadingIcon = Icons.Filled.Edit
+                                ),
+                                AppActionItem(
+                                    text = stringResource(R.string.custom_provider_menu_delete),
+                                    onClick = {
+                                        menuExpanded = false
+                                        onDeleteCustom()
+                                    },
+                                    leadingIcon = Icons.Filled.Delete,
+                                    isDestructive = true
+                                )
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.custom_provider_menu_delete)) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onDeleteCustom()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Filled.Delete, contentDescription = null)
-                                }
-                            )
-                        }
+                        )
                     }
                 }
                 Spacer(Modifier.height(spacing.xs))

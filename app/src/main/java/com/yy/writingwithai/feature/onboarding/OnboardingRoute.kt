@@ -19,7 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  *
  * 拒绝:`OnboardingViewModel.reject()` → Action.ExitApp → 调 Activity.finishAffinity()
  *
- * r1 L1 修:删 `consentStore` 死形参(navigate 由 AppNav 统一负责,本 Route 不再
+ * r1 L1 修:删 `consentStore` 死形参(navigate 由 AppNav 统一负责，本 Route 不再
  * collectAsState)。
  *
  * fix-2026-06-30-full-review-r1 MEDIUM M11:全部改 collectAsStateWithLifecycle,
@@ -39,7 +39,7 @@ fun OnboardingRoute(onExitApp: () -> Unit, viewModel: OnboardingViewModel = hilt
                     (context as? Activity)?.finishAffinity()
                     onExitApp()
                 }
-                null -> { /* StateFlow 初始 / consumeAction 后的 null,跳过 */ }
+                null -> { /* StateFlow 初始 / consumeAction 后的 null，跳过 */ }
             }
         }
     }

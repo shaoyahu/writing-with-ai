@@ -33,8 +33,8 @@ import okhttp3.OkHttpClient
  * - 根据 [providerId] 先从 Hilt 注入的 `Map<String, AiProvider>` 取内置 provider
  * - 未命中时查 [CustomProviderStore] 动态构造 [AnthropicCompatibleAdapter]
  * - adapter 缓存(ConcurrentHashMap)避免每次调用重建 OkHttp / SSE parser
- * - 订阅 store 的 onInvalidate 回调,save/delete 时清缓存,避免 stale config
- * - 委托 `AiProvider.stream()` 发起调用,流式返回 [AiStreamEvent]
+ * - 订阅 store 的 onInvalidate 回调，save/delete 时清缓存，避免 stale config
+ * - 委托 `AiProvider.stream()` 发起调用，流式返回 [AiStreamEvent]
  * - 每次调用(成功/失败)通过 `onCompletion` 自动落 [AiHistoryEntity]
  * - 超时/IO 异常由 provider 内部处理并 emit [AiStreamEvent.Failed]
  *
@@ -54,7 +54,7 @@ constructor(
     /** 动态 adapter 缓存:providerId → AnthropicCompatibleAdapter。 */
     private val customAdapterCache = ConcurrentHashMap<String, AnthropicCompatibleAdapter>()
 
-    // review r1 M1:用 listener 模式替代直接 `onInvalidate = { ... }` 赋值,
+    // review r1 M1:用 listener 模式替代直接 `onInvalidate = { ... }` 赋值，
     // 避免 Hilt 多次创建 CoreAiGateway 时 lambda 互相覆盖导致回调静默失效。
     private val customInvalidateListener: (String) -> Unit = { id ->
         if (id.isBlank()) {
@@ -69,9 +69,9 @@ constructor(
     }
 
     override suspend fun listProviders(): List<ProviderDescriptor> {
-        // fix-review-r3-medium M7:原版 builtin.distinctBy 后直接 + custom,如果用户在
+        // fix-review-r3-medium M7:原版 builtin.distinctBy 后直接 + custom，如果用户在
         // CustomProviderStore 存了一个 id 跟内置 provider 撞的(custom 落到 builtin 之后),
-        // UI 会看到两条同 id 的 ProviderDescriptor,后续 onClick 不知道选哪个。改成在合并后
+        // UI 会看到两条同 id 的 ProviderDescriptor，后续 onClick 不知道选哪个。改成在合并后
         // 一次性 distinctBy,custom 优先级更高(用户配置覆盖)。
         val builtin = providers.map { (_, provider) ->
             ProviderDescriptor(
@@ -80,7 +80,7 @@ constructor(
                 models = provider.supportedModels,
                 isConfigured = true,
                 // fix-2026-06-28-ai-model-selection-actually-used:把 provider 的 defaultModel
-                // 透出给 UI,卡片据此显示「实际将调用」行(消除「选 pro 实际调 flash」歧义)。
+                // 透出给 UI，卡片据此显示「实际将调用」行(消除「选 pro 实际调 flash」歧义)。
                 defaultModel = provider.defaultModel
             )
         }
@@ -96,7 +96,7 @@ constructor(
         return (custom + builtin).distinctBy { it.id }
     }
 
-    /** 按 providerId 取 AiProvider(内置优先,未命中查自定义)。suspend,无 runBlocking。 */
+    /** 按 providerId 取 AiProvider(内置优先，未命中查自定义)。suspend，无 runBlocking。 */
     private suspend fun resolveProvider(providerId: String): AiProvider? {
         providers[providerId]?.let { return it }
         customAdapterCache[providerId]?.let { return it }
@@ -117,7 +117,7 @@ constructor(
     ): Flow<AiStreamEvent> {
         // fix-2026-06-30-full-review-r1 HIGH H10:在 gateway 入口加 consent 门控。
         // 项目 CLAUDE.md 规定"首次 AI 调用必须有用户同意",Gateway 是 AI 调用的
-        // 单一抽象层(项目规则),应作为强制执行点,防 deep link / 进程恢复后状态
+        // 单一抽象层(项目规则)，应作为强制执行点，防 deep link / 进程恢复后状态
         // 还原绕过导航层 consent 检查。
         if (!consentStore.isConsented(BuildConfig.CONSENT_VERSION)) {
             return flowOf(
@@ -135,10 +135,10 @@ constructor(
         // fix-2026-06-28-ai-model-selection-actually-used:
         //   modelName 为 null 时 fallback 走 `provider.defaultModel` 而非
         //   `provider.supportedModels.firstOrNull()`。前者是 provider 显式声明的
-        //   "无用户偏好时用这个",有业务语义;后者是 list 顺序副作用,deepseek 的
-        //   flash 在前完全因为按 "lite→贵" 排,选了 pro 但 gateway 拿 null 仍走
-        //   flash,正是 change 标题里要修的 bug。defaultModel 同样为 blank 时
-        //   仍 emit ProviderNotConfigured,不静默发 "unknown" 字面量。
+        //   "无用户偏好时用这个"，有业务语义;后者是 list 顺序副作用，deepseek 的
+        //   flash 在前完全因为按 "lite→贵" 排，选了 pro 但 gateway 拿 null 仍走
+        //   flash，正是 change 标题里要修的 bug。defaultModel 同样为 blank 时
+        //   仍 emit ProviderNotConfigured，不静默发 "unknown" 字面量。
         val resolvedModel = modelName?.takeIf { it.isNotBlank() } ?: provider.defaultModel
         if (resolvedModel.isBlank()) {
             return flowOf(
@@ -149,7 +149,7 @@ constructor(
             )
         }
         val model = resolvedModel
-        // H1 修:`apiFormatOverride` 由 caller(Vm) 在 suspend 上下文读 prefs 后传入,
+        // H1 修:`apiFormatOverride` 由 caller(Vm) 在 suspend 上下文读 prefs 后传入，
         // 删原 `runBlocking { providerPrefsStore.getApiFormat(providerId) }`(主线程 ANR)。
         val request = AiRequest(op, sourceText, model, systemPrompt, apiFormatOverride)
         val credentials = AiCredentials(apikey = apikey)
@@ -178,8 +178,8 @@ constructor(
                 }
                 val duration = System.currentTimeMillis() - startTime
                 // fix-2026-06-30-full-review-r1 HIGH H3:onCompletion 中 record() 是 suspend
-                // Room 写,可能抛 DB 异常。CancellationException 必须保留(结构化并发),
-                // 其它异常吞掉 + log,不让 DB 失败覆盖流终止信号。
+                // Room 写，可能抛 DB 异常。CancellationException 必须保留(结构化并发),
+                // 其它异常吞掉 + log，不让 DB 失败覆盖流终止信号。
                 try {
                     historyRepo.get().record(
                         noteId = null,
@@ -188,7 +188,7 @@ constructor(
                         op = op.name.lowercase(),
                         // fix-review-r4 L5:sourceText.length / 2 是中文场景粗估(1 CJK 字 ≈ 2
                         // 字符 ≈ 1 token);纯 ASCII 时低估约 4x(1 char ≈ 0.25 token)。
-                        // 仅作 fallback 估算——provider 未返回 Usage 时使用,不影响计费。
+                        // 仅作 fallback 估算——provider 未返回 Usage 时使用，不影响计费。
                         inputTokens = lastUsage?.inputTokens ?: (sourceText.length / 2),
                         outputTokens = lastUsage?.outputTokens ?: outputBuilder.length,
                         totalTokens =
@@ -218,7 +218,7 @@ constructor(
         modelName: String,
         apiFormatOverride: ApiFormat?
     ): String? {
-        // fix-2026-06-30-full-review-r1 H10:ping 也走 consent 门,保证单一抽象层一致。
+        // fix-2026-06-30-full-review-r1 H10:ping 也走 consent 门，保证单一抽象层一致。
         if (!consentStore.isConsented(BuildConfig.CONSENT_VERSION)) {
             return AiError.UserConsentRequired.summary()
         }
@@ -226,16 +226,16 @@ constructor(
         if (provider.id == FakeAiProvider.PROVIDER_ID) {
             // fix-review-r3-high H2:契约是 `@return null 表示成功`,fake provider 不应被静默
             // 返 null(看上去像"成功")——也不应抛 IllegalStateException 打断契约。
-            // 返回 ProviderNotConfigured 摘要,让 UI 进入"未配置"分支,引导用户到
+            // 返回 ProviderNotConfigured 摘要，让 UI 进入"未配置"分支，引导用户到
             // 设置 → 模型管理配真实 apikey。
             return AiError.ProviderNotConfigured.summary()
         }
         // fix-2026-06-28-ai-model-selection-actually-used:ping fallback 也走
-        //   `provider.defaultModel`,跟 streamWritingOp 行为一致;若 ping 入参 modelName
-        //   非空,优先用入参(允许 UI 指定非默认 model 测连通性)。
+        //   `provider.defaultModel`，跟 streamWritingOp 行为一致;若 ping 入参 modelName
+        //   非空，优先用入参(允许 UI 指定非默认 model 测连通性)。
         val effectiveModel = modelName.takeIf { it.isNotBlank() } ?: provider.defaultModel
         // X 方案:ping 也走用户选的 apiFormat,endpoint 跟着切。
-        // H1 修:ping 是 suspend,可在函数顶部 await providerPrefsStore.getApiFormat 而无需 runBlocking。
+        // H1 修:ping 是 suspend，可在函数顶部 await providerPrefsStore.getApiFormat 而无需 runBlocking。
         val effectiveApiFormat = apiFormatOverride ?: providerPrefsStore.getApiFormat(providerId)
         var failureReason: String? = null
         try {

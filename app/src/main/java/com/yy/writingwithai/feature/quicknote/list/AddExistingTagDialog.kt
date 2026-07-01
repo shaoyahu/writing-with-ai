@@ -24,9 +24,9 @@ import com.yy.writingwithai.R
  * - 列出 [allTags] 全表 tag
  * - 已挂([currentTags] 包含)的 tag 显示 Check icon + clickable.enabled = false
  * - 未挂 tag 可点 → 触发 [onTagSelected] 后 dialog 自动关闭
- * - [allTags] 空时显示空态文案,仍可关闭
+ * - [allTags] 空时显示空态文案，仍可关闭
  *
- * feature 自包含,放 feature/quicknote/list/,不跨 feature 引用。
+ * feature 自包含，放 feature/quicknote/list/，不跨 feature 引用。
  */
 @Composable
 fun AddExistingTagDialog(

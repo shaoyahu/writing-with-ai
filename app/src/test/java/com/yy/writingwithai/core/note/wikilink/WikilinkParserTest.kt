@@ -32,7 +32,7 @@ class WikilinkParserTest {
 
     @Test fun `empty content`() = assertTrue(WikilinkParser.parse("").isEmpty())
 
-    // fix-2026-06-25-review-r1 H2:[[Alias|Target]] 形态:target 解析为段尾,alias 取段中。
+    // fix-2026-06-25-review-r1 H2:[[Alias|Target]] 形态:target 解析为段尾，alias 取段中。
     @Test fun `parses alias target`() = assertEquals(
         listOf(WikilinkMatch(target = "NoteA", alias = "显示别名")),
         WikilinkParser.parse("see [[显示别名|NoteA]]")

@@ -30,10 +30,10 @@ import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
  * animation-system-and-consent-redesign §8.1:可展开条款卡片。
  *
  * - 标题 + 图标 + 摘要(summaryRes)始终可见
- * - `expanded=true` 时,内容区用 [AnimatedVisibility] 接 [LocalAnimationTokens.current.expandSpec]
+ * - `expanded=true` 时，内容区用 [AnimatedVisibility] 接 [LocalAnimationTokens.current.expandSpec]
  *   / [LocalAnimationTokens.current.collapseSpec] 平滑展开/折叠(spec REQ 7)
  * - 整卡可点击切换展开
- * - 内容渲染走既有 [MarkdownBlockView](SimpleMarkdown.kt),不引入新渲染逻辑
+ * - 内容渲染走既有 [MarkdownBlockView](SimpleMarkdown.kt)，不引入新渲染逻辑
  */
 @Composable
 fun ConsentSectionCard(

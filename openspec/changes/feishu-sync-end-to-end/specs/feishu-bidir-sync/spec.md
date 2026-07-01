@@ -2,7 +2,7 @@
 
 ### Requirement: Sync engine is reachable from QuickNote detail UI
 
-QuickNote 详情 / 列表 UI MUST 把 `core/feishu/sync/FeishuSyncService` 的 push / pull / ref 查询能力端到端暴露给用户:详情 TopAppBar overflow menu 提供 "推送到飞书" / "从飞书拉取 URL" 入口,列表项右侧按 `FeishuRefEntity.status` 渲染 `AssistChip`,冲突场景弹 `FeishuConflictDialog`(3 选项强制选择)。
+QuickNote 详情 / 列表 UI MUST 把 `core/feishu/sync/FeishuSyncService` 的 push / pull / ref 查询能力端到端暴露给用户:详情 TopAppBar overflow menu 提供 "推送到飞书" / "从飞书拉取 URL" 入口，列表项右侧按 `FeishuRefEntity.status` 渲染 `AssistChip`，冲突场景弹 `FeishuConflictDialog`(3 选项强制选择)。
 
 #### Scenario: Detail page TopAppBar menu exposes push entry
 - **WHEN** user on `QuickNoteDetailScreen` viewing saved note

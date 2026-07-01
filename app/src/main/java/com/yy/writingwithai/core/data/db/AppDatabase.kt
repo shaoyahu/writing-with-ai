@@ -28,11 +28,11 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
 /**
  * 应用 Room 数据库。
  *
- * - version 1:首版 schema,对应 quick-note-feature
- * - version 2:加 ai_history 表,对应 ai-abstraction-layer
- * - version 3:加 note_links,对应 note-association
+ * - version 1:首版 schema，对应 quick-note-feature
+ * - version 2:加 ai_history 表，对应 ai-abstraction-layer
+ * - version 3:加 note_links，对应 note-association
  *   - `@AutoMigration(2, 3)` 走 schema diff 自动建新表 + 索引 + 外键 CASCADE
- * - version 4:加 feishu_ref + feishu_sync_event,对应 feishu-bidir-sync
+ * - version 4:加 feishu_ref + feishu_sync_event，对应 feishu-bidir-sync
  *   - `@AutoMigration(3, 4)` 走 schema diff
  * - `exportSchema = true` 配合 `app/build.gradle.kts` 的 KSP arg,
  *   schema JSON 输出到 `app/schemas/com.yy.writingwithai.core.data.db.AppDatabase/<version>.json`
@@ -61,7 +61,7 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         AutoMigration(from = 6, to = 7),
         AutoMigration(from = 7, to = 8),
         // F3 fix L1:review r1 syncStatus String → SyncStatus enum。SQLite 列类型仍是 TEXT,
-        // 列名/默认值/索引都不变,AutoMigration 跑通无 schema diff。
+        // 列名/默认值/索引都不变，AutoMigration 跑通无 schema diff。
         AutoMigration(from = 8, to = 9),
         // fix-2026-06-30-full-review-r1 MEDIUM M5 + LOW L1:加 feishu_ref.docId 索引 +
         // feishu_sync_event.noteId 索引 + noteId ForeignKey CASCADE。SQLite 加索引 /

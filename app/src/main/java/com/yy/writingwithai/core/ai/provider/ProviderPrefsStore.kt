@@ -18,16 +18,16 @@ import kotlinx.coroutines.flow.map
  * spec: openspec/changes/provider-real-integration/specs/model-management/spec.md
  * "ProviderPrefsStore 持久化 selected provider id"
  *
- * 单 string key,默认 `"fake"`(让老用户平滑过渡,`AiActionViewModel.resolveProviderId`
+ * 单 string key，默认 `"fake"`(让老用户平滑过渡，`AiActionViewModel.resolveProviderId`
  * 仍走 FakeProvider 直到用户在设置 → 模型管理改)。
  *
  * apikey 不在本 store —— 走 [com.yy.writingwithai.core.prefs.SecureApiKeyStore] 加密存。
- * 本 store 仅存"哪个 provider"的明文 id,无敏感数据。
+ * 本 store 仅存"哪个 provider"的明文 id，无敏感数据。
  */
 interface ProviderPrefsStore {
     /**
-     * fix-2026-06-24-review-r1-critical:返回 `String?`(null = 未选定,首次安装 / 清数据)。
-     * 旧版本默认 `"fake"` 改为 `null`,避免 release 用户首启默认走 FakeAiProvider。
+     * fix-2026-06-24-review-r1-critical:返回 `String?`(null = 未选定，首次安装 / 清数据)。
+     * 旧版本默认 `"fake"` 改为 `null`，避免 release 用户首启默认走 FakeAiProvider。
      */
     suspend fun getSelectedProviderId(): String?
 
@@ -44,7 +44,7 @@ interface ProviderPrefsStore {
     /**
      * fix-2026-06-28-ai-model-selection-actually-used:仅在 `selected_model_<providerId>` key
      * 不存在时落 [defaultModel];已存在则不覆盖(尊重用户显式选择)。在 `saveProvider` 成功
-     * 落 apikey + 启动 `init` 块扫存量时调用,确保「apikey 已落 → 必有 selectedModel」是
+     * 落 apikey + 启动 `init` 块扫存量时调用，确保「apikey 已落 → 必有 selectedModel」是
      * save 流程的不变式。
      */
     suspend fun setSelectedModelIfMissing(providerId: String, defaultModel: String)
@@ -55,7 +55,7 @@ interface ProviderPrefsStore {
     /**
      * model-management-detail-dropdown X 方案:per-provider 用户选定的 API 格式覆盖。
      * 无值 = `null`(走 ProviderConfig.apiFormat 兜底)。
-     * 存的是字符串,避免 enum 序列化耦合;解析失败回退 null。
+     * 存的是字符串，避免 enum 序列化耦合;解析失败回退 null。
      */
     suspend fun getApiFormat(providerId: String): ApiFormat?
 
@@ -69,8 +69,8 @@ private val Context.providerPrefsDataStore: DataStore<Preferences> by preference
 )
 
 class ProviderPrefsStoreImpl(
-    // fix-review-r4 L6:显式 @ApplicationContext,防御性标记 — 当前由 PrefsModule @Provides
-    // 注入(已保证),若未来改 @Inject constructor 则此注解生效。
+    // fix-review-r4 L6:显式 @ApplicationContext，防御性标记 — 当前由 PrefsModule @Provides
+    // 注入(已保证)，若未来改 @Inject constructor 则此注解生效。
     @ApplicationContext private val context: Context
 ) : ProviderPrefsStore {
     override suspend fun getSelectedProviderId(): String? = context.providerPrefsDataStore.data
@@ -96,7 +96,7 @@ class ProviderPrefsStoreImpl(
 
     override suspend fun setSelectedModelIfMissing(providerId: String, defaultModel: String) {
         // 单 `edit` 块内做存在性检查 + put,DataStore 串行化保证并发 caller 不会同时写。
-        // 已经在 edit lambda 里,后到的 caller 看到 key 已存在就跳过,不覆盖用户显式选择。
+        // 已经在 edit lambda 里，后到的 caller 看到 key 已存在就跳过，不覆盖用户显式选择。
         context.providerPrefsDataStore.edit { prefs ->
             val key = selectedModelKey(providerId)
             if (prefs[key].isNullOrBlank()) {
@@ -127,7 +127,7 @@ class ProviderPrefsStoreImpl(
 
     /**
      * M12 修:解析失败时 `Log.w` 而非静默 — 旧版本升上来的脏数据(老 enum name)
-     * 应该让开发 / 用户能看到,而不是悄悄回退 ProviderConfig 默认。
+     * 应该让开发 / 用户能看到，而不是悄悄回退 ProviderConfig 默认。
      */
     private fun parseApiFormat(providerId: String, name: String): ApiFormat? = try {
         ApiFormat.valueOf(name)
@@ -141,17 +141,17 @@ class ProviderPrefsStoreImpl(
         val DEFAULT_PROVIDER_ID: String? = null
         private val KEY_SELECTED_PROVIDER_ID = stringPreferencesKey("selected_provider_id")
         private const val TAG = "ProviderPrefsStore"
-        // TAG 与 KEY 合并到同一 companion object,避免拆分导致 IDE / compiler 看不到 const 引用。
+        // TAG 与 KEY 合并到同一 companion object，避免拆分导致 IDE / compiler 看不到 const 引用。
 
         /** per-provider selectedModel 的 Preferences.Key 工厂(动态 providerId 拼接)。
-         *  fix-2026-06-27-review-r4 M15:require providerId 非空,防止拼出无意义 key。 */
+         *  fix-2026-06-27-review-r4 M15:require providerId 非空，防止拼出无意义 key。 */
         fun selectedModelKey(providerId: String): Preferences.Key<String> {
             require(providerId.isNotBlank()) { "providerId must not be blank for selectedModelKey" }
             return stringPreferencesKey("selected_model_$providerId")
         }
 
         /** per-provider apiFormat 覆盖的 Preferences.Key 工厂(存枚举 name 字符串)。
-         *  fix-2026-06-27-review-r4 M15:同上,require providerId 非空。 */
+         *  fix-2026-06-27-review-r4 M15:同上，require providerId 非空。 */
         fun apiFormatKey(providerId: String): Preferences.Key<String> {
             require(providerId.isNotBlank()) { "providerId must not be blank for apiFormatKey" }
             return stringPreferencesKey("api_format_$providerId")

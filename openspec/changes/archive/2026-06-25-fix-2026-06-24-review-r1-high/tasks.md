@@ -6,14 +6,14 @@
 - [x] 1.4 `AnthropicCompatibleAdapter.kt`:`.retry(1)` 加 `emittedDelta` flag,emit 过 Delta 不 retry
 - [x] 1.5 `AnthropicCompatibleAdapter.kt`:`customHeaders` 走 RFC-7230 token regex + reject reserved
 - [ ] 1.6 新增 `ExtractionMetrics` 接口 + `NoOpMetrics` 默认实现(跳过;catch 已加 Log.w)
-- [x] 1.7 `LlmNoteLinkExtractor.kt`:`catch (e: Exception)` 前先 `Log.w`(M7 已有,无 metrics 注入)
+- [x] 1.7 `LlmNoteLinkExtractor.kt`:`catch (e: Exception)` 前先 `Log.w`(M7 已有，无 metrics 注入)
 - [x] 1.8 `LlmEntityExtractor.kt`:Log.w + TAG,parseJsonEntities 改严格 JSON.parseToJsonElement
 - [ ] 1.9 新增 `AnthropicAdapterRobustnessTest.kt`(MockWebServer)— 跳过(Robolectric 复杂)
 
 ## 2. Token 生命周期 (H5-H8)
 
 - [x] 2.1 `AuthInterceptor.kt`:`runBlocking` 改 `Dispatchers.IO + SupervisorJob + withTimeoutOrNull(5_000)`
-- [x] 2.2 `UserTokenProvider.kt`:合 `UserTokenState` + `AppTokenState` data class,全部走 `mutex.withLock {}`;删 `@Volatile invalidated`
+- [x] 2.2 `UserTokenProvider.kt`:合 `UserTokenState` + `AppTokenState` data class，全部走 `mutex.withLock {}`;删 `@Volatile invalidated`
 - [x] 2.3 `UserTokenProvider.kt`:`expires_in` parse fail fallback `FALLBACK_PARSE_TTL_S = 60L` + log WARN
 - [x] 2.4 `FeishuAuthStore.kt` + impl:删 `KEY_SECRET` EncryptedSharedPreferences 持久化;`persistAppSecret(requestId, secret)` 改 in-memory `ConcurrentHashMap`
 - [x] 2.5 跟尾 `FeishuAuthViewModel.kt` + `OAuthCodeReceiver.kt` + `FeishuSyncServiceTest.kt`:adapt 新 `persistAppSecret(requestId, secret)` 签名

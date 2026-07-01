@@ -10,7 +10,7 @@ import dagger.hilt.components.SingletonComponent
 
 /**
  * cloud-sync-foundation · 同步 Worker 骨架。
- * fix-2026-06-24-review-r1-high H14:`runAttemptCount > 3` 守卫,
+ * fix-2026-06-24-review-r1-high H14:`runAttemptCount > 3` 守卫，
  * 真实 sync 由 enqueue 端挂 Constraints(NetworkType.CONNECTED) + BackoffPolicy(EXPONENTIAL 30s)。
  */
 class SyncWorker(
@@ -29,7 +29,7 @@ class SyncWorker(
             is SyncResult.PushSuccess -> Result.success()
             is SyncResult.Conflict -> Result.retry()
             is SyncResult.Failure -> Result.retry()
-            is SyncResult.Unsupported -> Result.failure() // B5b 未实现,不再 silent-success
+            is SyncResult.Unsupported -> Result.failure() // B5b 未实现，不再 silent-success
         }
     }
 

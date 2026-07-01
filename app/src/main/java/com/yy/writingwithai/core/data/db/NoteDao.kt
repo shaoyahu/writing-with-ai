@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.Flow
  * 随手记主表 DAO。
  *
  * - `observe*` 返回 `Flow`,Room 在底层表变更时自动推送新结果
- * - `search` 走 `title LIKE :q OR content LIKE :q`(roadmap §5.2 拍板,不引入 FTS)
- * - 所有写操作 `suspend`,由 Repository 在 IO 调度器上调用
+ * - `search` 走 `title LIKE :q OR content LIKE :q`(roadmap §5.2 拍板，不引入 FTS)
+ * - 所有写操作 `suspend`，由 Repository 在 IO 调度器上调用
  * - 排序:固定优先 + 更新时间倒序(spec §"List ordering")
  *
  * 见 [openspec.changes.quick-note-feature.specs.quick-note.spec] §"Note CRUD via Repository"。
@@ -46,7 +46,7 @@ interface NoteDao {
     fun observeRecent(limit: Int): Flow<List<NoteEntity>>
 
     /**
-     * 按 tag 筛选:JOIN `note_tags`,保持固定优先 + 时间倒序。
+     * 按 tag 筛选:JOIN `note_tags`，保持固定优先 + 时间倒序。
      */
     @Query(
         """
@@ -59,9 +59,9 @@ interface NoteDao {
     fun observeByTag(tag: String): Flow<List<NoteEntity>>
 
     /**
-     * 搜索:title 或 content 含子串。空字符串由 Repository 拦截,不走 DAO。
+     * 搜索:title 或 content 含子串。空字符串由 Repository 拦截，不走 DAO。
      *
-     * H4 修:`LIKE :q ESCAPE '\'` 让 Repository 在传入 `q` 前对 `%` / `_` / `\` 转义,
+     * H4 修:`LIKE :q ESCAPE '\'` 让 Repository 在传入 `q` 前对 `%` / `_` / `\` 转义，
      * 避免用户输入 `100%` 时被当通配符。
      */
     @Query(
@@ -73,7 +73,7 @@ interface NoteDao {
     )
     fun search(q: String): Flow<List<NoteEntity>>
 
-    /** search-enhancement · FTS4 全文搜索,返回匹配的 note id 列表。 */
+    /** search-enhancement · FTS4 全文搜索，返回匹配的 note id 列表。 */
     @Query(
         """
         SELECT n.id FROM notes_fts fts
@@ -97,7 +97,7 @@ interface NoteDao {
     suspend fun updateAiMetadata(noteId: String, op: String, at: Long)
 
     /**
-     * Backfill 路径用:取全部 note id(单列,比 `observeAll().first()` 省内存 + 不解 entity)。
+     * Backfill 路径用:取全部 note id(单列，比 `observeAll().first()` 省内存 + 不解 entity)。
      * R3 fix M8:让 `CompositeNoteLinker.recomputeAll` 真正能跑全量回填。
      */
     @Query("SELECT id FROM notes")

@@ -22,7 +22,7 @@ class FeishuConflictResolver @Inject constructor() {
         if (storedRemoteRev.isEmpty()) return ConflictResult.NO_CONFLICT
         val remoteChanged = newRemoteRev.isNotEmpty() && newRemoteRev != storedRemoteRev
         if (!remoteChanged) return ConflictResult.NO_CONFLICT
-        // 远端变了,本地在上次同步后也有变更(localRev > lastSyncedAt)即冲突
+        // 远端变了，本地在上次同步后也有变更(localRev > lastSyncedAt)即冲突
         return if (localRev > lastSyncedAt) ConflictResult.BOTH_DIRTY else ConflictResult.REMOTE_WINS
     }
 }

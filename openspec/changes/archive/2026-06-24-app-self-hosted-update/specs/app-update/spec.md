@@ -15,7 +15,7 @@ The system SHALL allow the user to manually check for a newer version of the app
 
 #### Scenario: User checks for update and network fails
 - **WHEN** user taps "检查更新" and the HTTPS request fails with `IOException`
-- **THEN** system shows a non-blocking error "检查失败,稍后重试"
+- **THEN** system shows a non-blocking error "检查失败，稍后重试"
 - **AND** logs the exception (no PII)
 
 #### Scenario: User checks for update and server returns malformed JSON
@@ -42,7 +42,7 @@ The system SHALL download the APK referenced by the manifest and verify its SHA-
 - **WHEN** `ACTION_DOWNLOAD_COMPLETE` fires for the download ID
 - **AND** SHA-256 hash of the downloaded file DOES NOT match `manifest.apkSha256`
 - **THEN** system deletes the downloaded file
-- **AND** shows a Toast "下载文件损坏,请重试"
+- **AND** shows a Toast "下载文件损坏，请重试"
 
 ### Requirement: HTTPS-only transport
 The system SHALL fetch the version manifest over HTTPS and SHALL NOT fall back to HTTP.

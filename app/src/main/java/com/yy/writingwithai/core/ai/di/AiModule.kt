@@ -30,7 +30,7 @@ object AiModule {
 
     /**
      * fix-2026-06-24-review-r1-critical:仅在 `BuildConfig.DEBUG` 时注册 `FakeAiProvider`,
-     * release build 的 provider map 不含 `"fake"` key,真实用户不会误走 mock 输出。
+     * release build 的 provider map 不含 `"fake"` key，真实用户不会误走 mock 输出。
      */
     @Provides
     @Singleton

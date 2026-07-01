@@ -1,11 +1,11 @@
 ## 1. 数据层 — Room 实体与 DAO
 
 - [x] 1.1 新增 `EntityType` 枚举(12 类:PERSON / WORK / EVENT / LOCATION / ORG / CONCEPT / DATE / URL / QUOTE / PRODUCT / TASK / NUMBER)
-- [x] 1.2 新增 `NoteEntityRow` entity(`note_entities` 表,复合主键 `(noteId, entityKey)`,FK CASCADE 删 note)
-- [x] 1.3 新增 `EntityAliasRow` entity(`entity_aliases` 表,主键 `(entityType, aliasKey)`)
+- [x] 1.2 新增 `NoteEntityRow` entity(`note_entities` 表，复合主键 `(noteId, entityKey)`,FK CASCADE 删 note)
+- [x] 1.3 新增 `EntityAliasRow` entity(`entity_aliases` 表，主键 `(entityType, aliasKey)`)
 - [x] 1.4 新增 `NoteEntityDao`:upsertAll / getByNoteId / deleteByNoteId / querySharedEntityHits(srcNoteId, limit) / queryAllEntityKeys(limit, offset)
 - [x] 1.5 新增 `EntityAliasDao`:upsert / deleteByAlias / findByAliasKeys(List<String>)
-- [x] 1.6 Room version `3 → 4` → version 5(`note_entities` + `entity_aliases` 入库,`@AutoMigration(4,5)`)
+- [x] 1.6 Room version `3 → 4` → version 5(`note_entities` + `entity_aliases` 入库，`@AutoMigration(4,5)`)
 - [x] 1.7 `AppDatabase` 注册新 entity / 新 DAO
 - [x] 1.8 `NoteLinkEntity.LinkType` 新增 `ENTITY_HIT` 枚举值
 - [x] 1.9 `NoteLinkDao.getRelated` / `getBacklinks` SQL 加 ENTITY_HIT 档权重
@@ -15,7 +15,7 @@
 - [x] 2.1 新建 `core/note/entity/EntityExtractor.kt`(接口)
 - [x] 2.2 新建 `EntityType.kt`:枚举 + `keyPrefix` + `normalizeKey` 工厂
 - [x] 2.3 扩展 `LlmEntityExtractor` 走 `AiGateway.streamWritingOp(op=EXPAND)`
-- [x] 2.4 单语 prompt `ENTITY_EXTRACT_SYSTEM_ZH`(英文走同一 prompt key 命名,改写推迟)
+- [x] 2.4 单语 prompt `ENTITY_EXTRACT_SYSTEM_ZH`(英文走同一 prompt key 命名，改写推迟)
 - [x] 2.5 新建 `LlmEntityExtractor.kt`:JSON 容错 + key 规范化 + 写入
 - [x] 2.6 key 后处理:`lowercase()` + `replace(Regex("[^a-z0-9_]+"), "_")` + 前缀补齐
 - [x] 2.7 surfaceForm 截断保护:超过 80 字符截断
@@ -41,7 +41,7 @@
 
 - [x] 5.1 `NoteAssociationSettingsStore` 扩展 `threshold()` / `pauseBackfill()` + 配套 setter / observe
 - [x] 5.2 同步 API + Flow observe
-- [x] 5.3 Hilt binding 沿用既有 `NoteAssociationSettingsModule`,新方法无需新 module
+- [x] 5.3 Hilt binding 沿用既有 `NoteAssociationSettingsModule`，新方法无需新 module
 - [~] 5.4 设置页 slider「关联阈值」+ 按钮「立即重跑回填」(**deferred**:UI work 不阻塞数据层)
 - [~] 5.5 slider 双向绑定(**deferred**:与 5.4 同步推迟)
 
@@ -85,14 +85,14 @@
 - [~] 10.5 `EntityAliasDaoTest`(**deferred**:同上)
 - [~] 10.6 `EntityBackfillWorkerTest`(**deferred**:WorkManager 测试需要 instrumentation)
 - [~] 10.7 `NoteLinkDaoTest`(**deferred**:同上)
-- [x] 10.8 `CompositeNoteLinkerTest` 扩展 mock `EntityBacklinker`,验证 fan-out + cap 顺序(已有 4 case)
+- [x] 10.8 `CompositeNoteLinkerTest` 扩展 mock `EntityBacklinker`，验证 fan-out + cap 顺序(已有 4 case)
 
 ## 11. 编译 + ktlint + lint
 
 - [x] 11.1 `./gradlew :app:assembleDebug` 通过
 - [x] 11.2 `./gradlew :app:ktlintCheck` 通过(`ktlintFormat` 自动修 import 顺序)
 - [x] 11.3 `./gradlew :app:testDebugUnitTest` 全绿(169 tests)
-- [x] 11.4 `./gradlew :app:check` 全绿(`lint-baseline.xml` 含 2 个 pre-existing 错误,本 change 无关)
+- [x] 11.4 `./gradlew :app:check` 全绿(`lint-baseline.xml` 含 2 个 pre-existing 错误，本 change 无关)
 
 ## 12. 文档 + archive
 

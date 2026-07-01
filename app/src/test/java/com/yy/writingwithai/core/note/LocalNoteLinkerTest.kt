@@ -71,17 +71,17 @@ class LocalNoteLinkerTest {
 
     @Test
     fun `sanitizeForSearch escapes special LIKE chars before take`() {
-        // 51 字符 + 末尾 `\` + 后续 escape `\\\\` 应在 take 前完成,不会因 take 切到 `\` 中间。
+        // 51 字符 + 末尾 `\` + 后续 escape `\\\\` 应在 take 前完成，不会因 take 切到 `\` 中间。
         val raw = "a".repeat(50) + "\\"
         val out = LocalNoteLinker.sanitizeForSearch(raw).take(LocalNoteLinker.LIKE_PREFIX_LEN)
-        // take 之前的 escape 已把所有 `\` 变成 `\\`,所以 take(50) 切到任意位置,剩余部分仍是合法 LIKE 串。
+        // take 之前的 escape 已把所有 `\` 变成 `\\`，所以 take(50) 切到任意位置，剩余部分仍是合法 LIKE 串。
         // 关键:不能让 `\` 在 50 边界悬空导致 `ESCAPE '\'` 解析错位。
-        assertTrue(out.endsWith("a") || out.endsWith("\\"), "末尾必须是 a 或完整 \\,不应悬空")
+        assertTrue(out.endsWith("a") || out.endsWith("\\"), "末尾必须是 a 或完整 \\，不应悬空")
     }
 
     @Test
     fun `sanitizeForSearch roundtrips special chars`() {
-        // `\` `%` `_` → `\\` `\%` `\_`,配合 LIKE ESCAPE '\\' 必须能精确匹配。
+        // `\` `%` `_` → `\\` `\%` `\_`，配合 LIKE ESCAPE '\\' 必须能精确匹配。
         val raw = "100% off_coupon"
         val escaped = LocalNoteLinker.sanitizeForSearch(raw)
         assertEquals("100\\% off\\_coupon", escaped)
@@ -92,7 +92,7 @@ class LocalNoteLinkerTest {
     @Test
     fun `tokenize includes CJK unigrams for single chars`() {
         val tokens = LocalNoteLinker.tokenize("人")
-        assertTrue("人" in tokens, "单字 CJK 必须作为 unigram 出现,否则纯单字笔记 overlap=0")
+        assertTrue("人" in tokens, "单字 CJK 必须作为 unigram 出现，否则纯单字笔记 overlap=0")
     }
 
     @Test
@@ -109,7 +109,7 @@ class LocalNoteLinkerTest {
 
     @Test
     fun `keywordOverlapWeight covers single-char CJK`() {
-        // R3 fix M2 回归:之前纯单字 CJK 笔记 overlap=0,现在 ≥ 1(命中 unigram)。
+        // R3 fix M2 回归:之前纯单字 CJK 笔记 overlap=0，现在 ≥ 1(命中 unigram)。
         val w = LocalNoteLinker.keywordOverlapWeight("人", "人是什么")
         assertTrue(w > 0f, "单字 '人' 必须命中目标 '人是什么' 的 '人' unigram,w=$w")
     }

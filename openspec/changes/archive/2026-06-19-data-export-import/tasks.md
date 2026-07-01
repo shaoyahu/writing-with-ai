@@ -6,7 +6,7 @@
 ## 2. ExportModels 数据类
 
 - [x] 2.1 新建 `core/data/export/ExportModels.kt`(`@Serializable` data class 集):
-  - `ExportNote(id, title, content, createdAt, updatedAt, isPinned, lastAiOp, lastAiAt)`(字段集 = `Note`,含 `@SerialName` 兼容旧版本)
+  - `ExportNote(id, title, content, createdAt, updatedAt, isPinned, lastAiOp, lastAiAt)`(字段集 = `Note`，含 `@SerialName` 兼容旧版本)
   - `ExportAiHistory(id, noteId, providerId, model, op, inputTokens, outputTokens, totalTokens, durationMs, createdAt, inputSnapshot, outputSnapshot, truncated, error)`
   - `ExportTags(noteIdToTags: Map<String, List<String>>)`
   - `ExportMeta(exportTimestamp: String, appVersion: String, schemaVersion: String)`
@@ -30,7 +30,7 @@
   - `suspend fun exportToJsonZip(notes: List<Note>): File`
   - 内部:读 `notes` + `aiHistoryRepository.getAll()` + `noteTagDao.observeAllCrossRefs().first()` → 转 `ExportNote` / `ExportAiHistory` / `ExportTags` / `ExportMeta`
   - 写入 4 JSON 文件 + `notes/<noteId>.md` Markdown 文件(每条)
-- [x] 4.2 Markdown 导出:`# ${title.ifBlank { "Untitled" }}\n\n${content}`,文件名 `${noteId}.md`
+- [x] 4.2 Markdown 导出:`# ${title.ifBlank { "Untitled" }}\n\n${content}`，文件名 `${noteId}.md`
 - [x] 4.3 JUnit5 + Robolectric 测试 `NoteExporterTest`:
   - 导出 2 条 note → unzip 后含 `notes.json`(2 元素)+ `ai_history.json` + `tags.json` + `meta.json` + `notes/n1.md` + `notes/n2.md` 6 文件
 
@@ -42,9 +42,9 @@
   - 逐条 note 检查 `noteDao.getById(note.id)`:null → upsert(成功);非 null → skip(跳过);异常 → 收集到 ImportReport.failedNotes
   - tags 按 `tags.json[noteId]` 写 `note_tags` 表
   - ai_history 按 `noteId` 关联已存在的 note 写入(无关联跳过)
-- [x] 5.2 失败条目生成 `import_report.md`(纯文本 Markdown),含成功/跳过/失败条数 + 每条失败 note id + 错误
+- [x] 5.2 失败条目生成 `import_report.md`(纯文本 Markdown)，含成功/跳过/失败条数 + 每条失败 note id + 错误
 - [x] 5.3 JUnit5 + Robolectric 测试 `NoteImporterTest`:
-  - 导入 zip,Room 已有 `n1` → 跳过 n1,导入 n2,`ImportReport.successCount=1, skippedCount=1`
+  - 导入 zip,Room 已有 `n1` → 跳过 n1，导入 n2,`ImportReport.successCount=1, skippedCount=1`
   - 失败场景:Room UNIQUE 冲突 → `failedCount=1, failedNotes` 含 note id
 
 ## 6. AppNav 加 SettingsData route
@@ -90,15 +90,15 @@
   - `settings_data_import` = "导入数据"
   - `settings_data_exporting` = "导出中..."
   - `settings_data_importing` = "导入中..."
-  - `settings_data_done` = "完成,共 %1$d 条笔记"
+  - `settings_data_done` = "完成，共 %1$d 条笔记"
   - `settings_data_failed` = "导出/导入失败:%1$s"
   - `settings_data_no_data` = "暂无笔记可导出"
-  - `import_report_summary` = "导入完成:%1$d 成功 / %2$d 跳过 / %3$d 失败,详情见 import_report.md"
+  - `import_report_summary` = "导入完成:%1$d 成功 / %2$d 跳过 / %3$d 失败，详情见 import_report.md"
 - [x] 10.2 改 `values-en/strings.xml` 加 9 个对应英文 TODO 占位
 
 ## 11. ktlint + Compose PascalCase
 
-- [x] 11.1 跑 `./gradlew :app:ktlintCheck` → 已知 PascalCase follow-up 之外,0 新增;新 Composable 函数 PascalCase(`SettingsDataScreen` / `NoteExporter` / `NoteImporter` / `ZipHelper` 等)
+- [x] 11.1 跑 `./gradlew :app:ktlintCheck` → 已知 PascalCase follow-up 之外，0 新增;新 Composable 函数 PascalCase(`SettingsDataScreen` / `NoteExporter` / `NoteImporter` / `ZipHelper` 等)
 
 ## 12. 整体验收
 
@@ -108,14 +108,14 @@
 - [x] 12.4 `./gradlew :app:ktlintCheck` → 0 新增违规
 - [x] 12.5 手工冒烟(Pixel Launcher / AOSP 模拟器):
   - QuickNoteListScreen → TopAppBar overflow 图标 → "数据迁移" → SettingsDataScreen
-  - 点 "导出全部数据" → SAF 文件选择器 → 选位置 → 显示 "导出中..." → "完成,共 N 条笔记"
+  - 点 "导出全部数据" → SAF 文件选择器 → 选位置 → 显示 "导出中..." → "完成，共 N 条笔记"
   - 在文件管理器打开导出 zip → 含 `notes.json` + `ai_history.json` + `tags.json` + `meta.json` + `notes/*.md`
-  - 删除本地所有笔记(模拟新设备)→ 点 "导入数据" → SAF 选之前导出的 zip → 显示 "导入中..." → "完成,共 N 条成功"
+  - 删除本地所有笔记(模拟新设备)→ 点 "导入数据" → SAF 选之前导出的 zip → 显示 "导入中..." → "完成，共 N 条成功"
   - 再导一次(模拟重复导入)→ 全部 SKIPPED(因 id 已存在)
-  - 故意导入 1 条已修改的 zip(同 id,不同 content)→ 已存在的不覆盖
+  - 故意导入 1 条已修改的 zip(同 id，不同 content)→ 已存在的不覆盖
 
 ## 13. OpenSpec 收尾(apply 通过 review 后做)
 
-- [x] 13.1 review 通过后,跑 `openspec archive data-export-import -y`
+- [x] 13.1 review 通过后，跑 `openspec archive data-export-import -y`
 - [x] 13.2 更新 `docs/progress.md`:M4-3 完成
 - [x] 13.3 在 `docs/plans/writing-with-ai-mobile-roadmap.md` §13 标注 M4-3 完成;§15.2 标 `data-export-import` done

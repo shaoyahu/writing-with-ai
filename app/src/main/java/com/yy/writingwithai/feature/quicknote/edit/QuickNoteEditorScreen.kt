@@ -59,7 +59,7 @@ import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 
 /**
- * ui-redesign-v2 · 编辑器:标题用 BasicTextField(headlineMedium,无边框),
+ * ui-redesign-v2 · 编辑器:标题用 BasicTextField(headlineMedium，无边框),
  * 正文 BasicTextField(bodyLarge, weight(1f) 自适应高度), Tag 区 Surface 包裹视觉分离。
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -81,7 +81,7 @@ fun QuickNoteEditorScreen(
     // ux-2026-06-28 #8:新建笔记时附件 Uri 先缓存;保存时落库。现有笔记(走路由 id)直接 observe 已落库附件。
     val pendingUris by viewModel.pendingAttachmentUris.collectAsStateWithLifecycle()
     // fix-2026-06-30-full-review-r1 MEDIUM M10:用 collectAsStateWithLifecycle 替代
-    // LaunchedEffect + collect,app 在后台时不再持续收集 Room Flow,避免 Room query
+    // LaunchedEffect + collect,app 在后台时不再持续收集 Room Flow，避免 Room query
     // 重复发射。空列表 initialValue 是合理占位(已有 attachments 时会被实际值替换)。
     val existingAttachments by viewModel.observeAttachments()
         .collectAsStateWithLifecycle(initialValue = emptyList())
@@ -161,14 +161,14 @@ fun QuickNoteEditorScreen(
             )
 
             // fix-2026-06-26-review-r3 C4:wikilink 自动补全 offset 闭包捕获旧 content 会错位。
-            // 用 snapshot(content + offset + prefix)一起,onSelect 内重新定位 `[[`。
+            // 用 snapshot(content + offset + prefix)一起，onSelect 内重新定位 `[[`。
             // content 变化后 LaunchedEffect(content) 重新计算 prefix;若 prefix 为空就关闭弹层。
             // R3 C4 fix:之前 `onSelect` 闭包捕获 `content` 和 `lastOpen`,AI acceptReplace
             // 改 content 后用户再点补全 → 写错位;改为每次 onSelect 内部重新定位 `[[`。
             var wikilinkPrefix by remember { mutableStateOf("") }
             val content = state.content
-            // derivedStateOf 在 content 变化时重算,但 wikilink 弹层还在 → 用户点 onSelect 时
-            // 仍拿最新 content 重新匹配 `[[...prefix...]]`,不再依赖闭包旧值。
+            // derivedStateOf 在 content 变化时重算，但 wikilink 弹层还在 → 用户点 onSelect 时
+            // 仍拿最新 content 重新匹配 `[[...prefix...]]`，不再依赖闭包旧值。
             val lastOpen by remember {
                 derivedStateOf { content.lastIndexOf("[[") }
             }
@@ -178,7 +178,7 @@ fun QuickNoteEditorScreen(
                 if (closeIdx < 0 && afterOpen.length <= 64 && !afterOpen.contains("\n")) {
                     LaunchedEffect(content) { wikilinkPrefix = afterOpen.trim() }
                 } else {
-                    // 已关闭的 wikilink / 含换行 / 超长 → 清 prefix,关闭补全弹层
+                    // 已关闭的 wikilink / 含换行 / 超长 → 清 prefix，关闭补全弹层
                     LaunchedEffect(content) { wikilinkPrefix = "" }
                 }
             } else {
@@ -190,18 +190,18 @@ fun QuickNoteEditorScreen(
                     WikilinkAutocomplete(
                         prefix = wikilinkPrefix,
                         onSelect = { selected ->
-                            // R3 C4 fix:重新在最新 content 里查 `[[`,避免 AI 替换导致 stale offset。
+                            // R3 C4 fix:重新在最新 content 里查 `[[`，避免 AI 替换导致 stale offset。
                             val currentContent = state.content
                             val openIdx = currentContent.lastIndexOf("[[")
                             if (openIdx < 0) {
-                                // 弹层期间 content 已被外部改,丢掉这次插入
+                                // 弹层期间 content 已被外部改，丢掉这次插入
                                 wikilinkPrefix = ""
                                 return@WikilinkAutocomplete
                             }
                             val tail = currentContent.substring(openIdx + 2)
                             val tailClose = tail.indexOf("]]")
                             if (tailClose >= 0) {
-                                // 用户在弹层期间已手动关闭 wikilink,不再插入
+                                // 用户在弹层期间已手动关闭 wikilink，不再插入
                                 wikilinkPrefix = ""
                                 return@WikilinkAutocomplete
                             }
@@ -332,8 +332,8 @@ private fun AttachmentRow(
                 }
                 itemsIndexed(pendingUris) { index, uri ->
                     // fix-2026-06-30-full-review-r1 LOW L2:加稳定 key(index 在本列表
-                    // 生命周期内单调,虽然不跨重组稳定,但足够 Compose 区分"已渲染项"防止
-                    // 短暂错位)。更好的方案是 wrap Uri + uuid 持久 id,留 M5 polish。
+                    // 生命周期内单调，虽然不跨重组稳定，但足够 Compose 区分"已渲染项"防止
+                    // 短暂错位)。更好的方案是 wrap Uri + uuid 持久 id，留 M5 polish。
                     ThumbnailChip(
                         label = uri.lastPathSegment ?: uri.toString(),
                         onRemove = { onRemovePending(uri) }

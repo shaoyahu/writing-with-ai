@@ -10,10 +10,10 @@ import com.yy.writingwithai.core.data.model.Note
  * - title 为空 → `EXTRA_TEXT = content`
  * - title 非空 → `EXTRA_TEXT = "$title\n\n$content"`
  * - `Intent.ACTION_SEND` + `type = "text/markdown"`
- * - 不写文件,无权限
+ * - 不写文件，无权限
  *
  * H5 修:Android TV / 极简 ROM 上可能没有 app 处理 `ACTION_SEND text/markdown`,
- * `startActivity` 会抛 `ActivityNotFoundException`,这里 catch 后 toast 提示。
+ * `startActivity` 会抛 `ActivityNotFoundException`，这里 catch 后 toast 提示。
  */
 internal fun Context.shareNoteMarkdown(note: Note) {
     val markdown =

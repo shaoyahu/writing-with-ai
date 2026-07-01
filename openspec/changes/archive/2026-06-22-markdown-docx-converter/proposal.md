@@ -1,6 +1,6 @@
 ## Why
 
-飞书云文档(Docx v1)用 block 树存储;本地笔记是 Markdown。双向同步的核心障碍是结构差异。本 change 实现双向转换层,作为 `feishu-bidir-sync` 的纯函数依赖,**不**依赖飞书 token,可独立单测 + round-trip。
+飞书云文档(Docx v1)用 block 树存储;本地笔记是 Markdown。双向同步的核心障碍是结构差异。本 change 实现双向转换层，作为 `feishu-bidir-sync` 的纯函数依赖，**不**依赖飞书 token，可独立单测 + round-trip。
 
 ## What Changes
 
@@ -18,9 +18,9 @@
   - `---` ↔ divider
   - `**bold**` / `*italic*` / `` `inline code` `` ↔ text.run style
   - `[text](url)` ↔ text.run link
-  - `[text][ref]` ↔ text.run link(ref 表由 caller 提供,本 change 只解析行内形式)
+  - `[text][ref]` ↔ text.run link(ref 表由 caller 提供，本 change 只解析行内形式)
 - **新增** 不支持元素降级:
-  - 图片 `![alt](path)` → `Paragraph("图片：<path>")`(占位文本,飞书不渲染图片)
+  - 图片 `![alt](path)` → `Paragraph("图片：<path>")`(占位文本，飞书不渲染图片)
   - 表格 `| ... |` → `Bullet(items = cells每行)`(不支持单元格合并 / 列对齐)
   - HTML 标签 `<div>...</div>` → 原样保留为段落文本
   - mermaid / 流程图 → `CodeBlock(language="mermaid", text=raw)`
@@ -41,7 +41,7 @@
 
 ## Impact
 
-- **代码**:`core/feishu/converter/`(纯 Kotlin,无 Android 依赖,可 JVM 单测);`MarkdownRoundTripTester` 集成测试;`docs/usage/markdown-docx-mapping.md` 文档
+- **代码**:`core/feishu/converter/`(纯 Kotlin，无 Android 依赖，可 JVM 单测);`MarkdownRoundTripTester` 集成测试;`docs/usage/markdown-docx-mapping.md` 文档
 - **依赖**:无新增三方库;kotlinx.serialization JSON 已在
 - **测试**:10 条固定 sample(中英混合 + 各种 Markdown 元素);round-trip diff 工具 `MarkdownDiff` 自实现(LCS + char-level);覆盖率 100%(每种 block type 至少 1 个 case)
 - **不在范围**:富文本所见即所得同步(只做源码级);表格样式(列宽 / 背景);图片二进制上传(留给 `feishu-bidir-sync`);评论 / @ / 协作(超出 scope)

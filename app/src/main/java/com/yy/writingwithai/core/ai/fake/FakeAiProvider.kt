@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /**
- * Fake AI Provider:用于 M2/M3 所有单测和 UI 验收,不接真实 HTTP。
+ * Fake AI Provider:用于 M2/M3 所有单测和 UI 验收，不接真实 HTTP。
  *
  * 行为由 [FakeConfigHolder] 控制:固定文本 / 延迟 / token 用量 / 错误注入。
  */
@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.flow
 class FakeAiProvider
 @Inject
 constructor() : AiProvider {
-    // fix-2026-06-27-review-r4 L2:ID 提为常量,供外部引用,避免 "fake" magic string 散落。
+    // fix-2026-06-27-review-r4 L2:ID 提为常量，供外部引用，避免 "fake" magic string 散落。
     override val id = PROVIDER_ID
     override val displayName = "Fake (Testing)"
     override val supportedModels = listOf("fake-model")
@@ -79,6 +79,6 @@ constructor() : AiProvider {
         emit(AiStreamEvent.Done)
     }
 
-    /** 简单 tokenize:按空格+标点 split,每个 segment 作为一个 token。 */
+    /** 简单 tokenize:按空格+标点 split，每个 segment 作为一个 token。 */
     private fun tokenize(text: String): List<String> = text.split(Regex("(?<=\\s)|(?=\\s)")).filter { it.isNotBlank() }
 }

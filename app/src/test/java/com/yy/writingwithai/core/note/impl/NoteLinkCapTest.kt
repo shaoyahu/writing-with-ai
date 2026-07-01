@@ -67,7 +67,7 @@ class NoteLinkCapTest {
     @Test
     fun `enforce drops low-score candidates before 2-to-1 ratio truncation`() {
         val candidates = buildList {
-            // 200 个,score ∈ [0.05, 0.95]
+            // 200 个，score ∈ [0.05, 0.95]
             repeat(100) { i -> add(link("e$i", LinkType.ENTITY_HIT, 0.95f - i * 0.005f)) }
             repeat(100) { i -> add(link("l$i", LinkType.LLM_EXTRACT, 0.50f - i * 0.003f)) }
         }

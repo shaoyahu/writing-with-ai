@@ -28,16 +28,16 @@ import org.junit.jupiter.api.Test
 /**
  * fix-review-r3-high · [AnthropicCompatibleAdapter] 资源清理回归测试。
  *
- * H1:response.close() 之前分散在 success / failure 两条路径,取消路径下
- *    body source 泄漏(socket 不释放,可能拖到 socket 耗尽)。
- * H3:早期 body read 的 `catch (Throwable)` 吞 CancellationException,导致
+ * H1:response.close() 之前分散在 success / failure 两条路径，取消路径下
+ *    body source 泄漏(socket 不释放，可能拖到 socket 耗尽)。
+ * H3:早期 body read 的 `catch (Throwable)` 吞 CancellationException，导致
  *    协程取消不传播。修后该 catch 链增加 CancellationException rethrow,
  *    正常 IOException / EOFException 仍返回空串。
  *
  * 用 MockWebServer 模拟上游:
  * 1. 4xx / 5xx 错误路径 response 必须被关闭(修前取消路径下泄漏);
- * 2. 401 + 空 body 走 rawDetail 的 `catch (Throwable)` 路径,验证未影响正常错误映射;
- * 3. 成功路径在协程 cancel 后 response 被 try-finally 关闭,requestCount == 1。
+ * 2. 401 + 空 body 走 rawDetail 的 `catch (Throwable)` 路径，验证未影响正常错误映射;
+ * 3. 成功路径在协程 cancel 后 response 被 try-finally 关闭，requestCount == 1。
  */
 class AnthropicCompatibleAdapterR3RegressionTest {
     private lateinit var server: MockWebServer
@@ -55,8 +55,8 @@ class AnthropicCompatibleAdapterR3RegressionTest {
     }
 
     /**
-     * fix H1 regression:错误路径下 response 必须被关闭(try-finally),后续 enqueue
-     * 能正常 dispatch,证明上一个 socket 已释放。
+     * fix H1 regression:错误路径下 response 必须被关闭(try-finally)，后续 enqueue
+     * 能正常 dispatch，证明上一个 socket 已释放。
      */
     @Test
     fun error_path_response_is_closed_via_try_finally() = runTest {
@@ -67,7 +67,7 @@ class AnthropicCompatibleAdapterR3RegressionTest {
                 .setBody("{\"error\":\"internal\"}")
         )
         server.enqueue(
-            // 第二个 enqueue 必须能成功 dispatch 到 adapter,证明上一个 response 已关闭。
+            // 第二个 enqueue 必须能成功 dispatch 到 adapter，证明上一个 response 已关闭。
             MockResponse()
                 .setResponseCode(200)
                 .setHeader("Content-Type", "text/event-stream")
@@ -81,14 +81,14 @@ class AnthropicCompatibleAdapterR3RegressionTest {
         assertNotNull(firstFail)
         assertTrue(firstFail!!.error is AiError.ServerError)
 
-        // 第二次同 adapter 再发,MockWebServer 必须收到第二个请求(socket 不残留)。
+        // 第二次同 adapter 再发，MockWebServer 必须收到第二个请求(socket 不残留)。
         val second = adapter.stream(req(), AiCredentials("key")).toList()
         assertTrue(second.isNotEmpty())
         assertEquals(2, server.requestCount)
     }
 
     /**
-     * fix H3 regression:401 + 空 body 走 rawDetail 的 catch 路径,验证新增的
+     * fix H3 regression:401 + 空 body 走 rawDetail 的 catch 路径，验证新增的
      * CancellationException rethrow 不破坏正常错误映射(仍 emit Failed(Auth))。
      */
     @Test
@@ -119,7 +119,7 @@ class AnthropicCompatibleAdapterR3RegressionTest {
             MockResponse()
                 .setResponseCode(200)
                 .setHeader("Content-Type", "text/event-stream")
-                // 短 body 让 adapter 进入 read 阻塞,然后被 cancel。
+                // 短 body 让 adapter 进入 read 阻塞，然后被 cancel。
                 .setBody("data: {\"type\":\"message_start\"}\n\n")
         )
 

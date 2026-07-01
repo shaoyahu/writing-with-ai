@@ -5,16 +5,16 @@ TBD - created by archiving change ai-abstraction-layer. Update Purpose after arc
 ## Requirements
 ### Requirement: AiGateway provides a single entry point for all AI calls
 
-系统 MUST 提供 `AiGateway` 接口(实现为 `CoreAiGateway`),暴露:
+系统 MUST 提供 `AiGateway` 接口(实现为 `CoreAiGateway`)，暴露:
 - `listProviders(): List<ProviderDescriptor>` — 已注册的 provider(含 id / displayName / models)
-- `streamWritingOp(op, sourceText, providerId, apikey, modelName, systemPrompt): Flow<AiStreamEvent>` — 执⾏扩写/润色/整理,流式返回事件;**apikey 由 caller 提供,gateway 不持有凭证**
-- `ping(providerId, apikey, modelName): String?` — 验证连通性;apikey 由 caller 提供;返回 `null` 表示成功,非 null 返回 provider `AiError.summary()` 字符串供 UI 直接展示
+- `streamWritingOp(op, sourceText, providerId, apikey, modelName, systemPrompt): Flow<AiStreamEvent>` — 执⾏扩写/润色/整理，流式返回事件;**apikey 由 caller 提供，gateway 不持有凭证**
+- `ping(providerId, apikey, modelName): String?` — 验证连通性;apikey 由 caller 提供;返回 `null` 表示成功，非 null 返回 provider `AiError.summary()` 字符串供 UI 直接展示
 
 业务代码(ViewModel / Repository)**禁止**直接调 OkHttp / 构造 HTTP 请求;所有 AI 调用必须经过 `AiGateway`。
 
 #### Scenario: Gateway routes to provider by id
 - **WHEN** 调用 `AiGateway.streamWritingOp(op=EXPAND, sourceText="hello", providerId="fake", apikey="<任意非空>")`
-- **THEN** 系统从内部 `Map<String, AiProvider>` 取 `"fake"` → `FakeAiProvider`,并返回该 provider 的 `stream()` 结果 Flow
+- **THEN** 系统从内部 `Map<String, AiProvider>` 取 `"fake"` → `FakeAiProvider`，并返回该 provider 的 `stream()` 结果 Flow
 
 #### Scenario: Unknown provider id returns immediate Failed
 - **WHEN** 调用 `AiGateway.streamWritingOp(providerId="nonexistent", apikey="<任意>")`
@@ -26,19 +26,19 @@ TBD - created by archiving change ai-abstraction-layer. Update Purpose after arc
 
 ### Requirement: AiGateway does not depend on SecureApiKeyStore
 
-`CoreAiGateway` 构造 MUST **不** 注入 `SecureApiKeyStore` / `ProviderPrefsStore`;apikey 由 caller(`AiActionViewModel` / `ModelManagementViewModel`)在调 gateway 前通过 `SecureApiKeyStore.get(providerId)` 取得,`null` → caller 自行 emit `ProviderNotConfigured` Failed,非 null → 透传进 `AiGateway.streamWritingOp(..., apikey = apikey)` / `AiGateway.ping(..., apikey = apikey)`。理由:gateway 保持单一职责(只做 protocol 路由),凭证获取属于业务侧职责;`SecureApiKeyStore` 是业务设施(走 Hilt @ApplicationContext 注入),不应该被 `core/ai/api/AiGateway` 抽象依赖。
+`CoreAiGateway` 构造 MUST **不** 注入 `SecureApiKeyStore` / `ProviderPrefsStore`;apikey 由 caller(`AiActionViewModel` / `ModelManagementViewModel`)在调 gateway 前通过 `SecureApiKeyStore.get(providerId)` 取得，`null` → caller 自行 emit `ProviderNotConfigured` Failed，非 null → 透传进 `AiGateway.streamWritingOp(..., apikey = apikey)` / `AiGateway.ping(..., apikey = apikey)`。理由:gateway 保持单一职责(只做 protocol 路由)，凭证获取属于业务侧职责;`SecureApiKeyStore` 是业务设施(走 Hilt @ApplicationContext 注入)，不应该被 `core/ai/api/AiGateway` 抽象依赖。
 
 #### Scenario: CoreAiGateway 构造参数只有 AiProviders + history
 - **WHEN** 读 `core/ai/CoreAiGateway.kt` 构造签名
 - **THEN** 形参列表只含 `providers: Map<String, AiProvider>` + `historyRepo: Lazy<AiHistoryRepository>`,**不**包含 `SecureApiKeyStore` / `ProviderPrefsStore` / `Context` / `SharedPreferences`
 
 #### Scenario: caller 拿不到 apikey 不调 gateway
-- **WHEN** `AiActionViewModel.start(...)` 调用,`secureApiKeyStore.get(providerId)` 返回 `null`
+- **WHEN** `AiActionViewModel.start(...)` 调用，`secureApiKeyStore.get(providerId)` 返回 `null`
 - **THEN** ViewModel 内部 emit `Failed(op, ProviderNotConfigured)`,**不**调 `aiGateway.streamWritingOp(...)`(0 次调用),UI 显示"请先在设置 → 模型管理配置"
 
 ### Requirement: AiProvider SPI is data-driven via ProviderConfig
 
-系统 MUST 定义 `AiProvider` 接口,所有 provider(包括 `FakeAiProvider` 和 `AnthropicCompatibleAdapter`)实现此接口:
+系统 MUST 定义 `AiProvider` 接口，所有 provider(包括 `FakeAiProvider` 和 `AnthropicCompatibleAdapter`)实现此接口:
 ```kotlin
 interface AiProvider {
     val id: String
@@ -47,7 +47,7 @@ interface AiProvider {
 }
 ```
 
-对真实 provider,创建实例时传入 `ProviderConfig`,由 `ProviderConfig` 决定 HTTP 行为(认证方式 / URL / 模型列表),**禁止**在 `AiProvider` 实现中硬编码 URL 或 header 名。
+对真实 provider，创建实例时传入 `ProviderConfig`，由 `ProviderConfig` 决定 HTTP 行为(认证方式 / URL / 模型列表),**禁止**在 `AiProvider` 实现中硬编码 URL 或 header 名。
 
 #### Scenario: Anthropic adapter reads config for auth
 - **WHEN** `AnthropicCompatibleAdapter`(config=`ProviderConfig(authStyle=X_API_KEY, ...)`) 发起 HTTP 请求
@@ -59,7 +59,7 @@ interface AiProvider {
 
 ### Requirement: ProviderConfig for three preset providers
 
-系统 MUST 在 `core/ai/provider/{deepseek,minimax,mimo}/` 提供三家预置 provider 的 `ProviderConfig` 数据(纯 Kotlin object,零逻辑):
+系统 MUST 在 `core/ai/provider/{deepseek,minimax,mimo}/` 提供三家预置 provider 的 `ProviderConfig` 数据(纯 Kotlin object，零逻辑):
 
 | Provider | baseUrl | endpointPath | authStyle | defaultModel |
 | --- | --- | --- | --- | --- |
@@ -73,7 +73,7 @@ interface AiProvider {
 
 ### Requirement: AnthropicCompatibleAdapter sends Anthropic-compatible messages API requests
 
-系统 MUST 提供 `AnthropicCompatibleAdapter : AiProvider`,由 `ProviderConfig` 驱动,向 `$baseUrl/$endpointPath` 发 `POST` 请求,请求体走 Anthropic Messages API 格式:
+系统 MUST 提供 `AnthropicCompatibleAdapter : AiProvider`，由 `ProviderConfig` 驱动，向 `$baseUrl/$endpointPath` 发 `POST` 请求，请求体走 Anthropic Messages API 格式:
 ```json
 {
   "model": "...",
@@ -83,7 +83,7 @@ interface AiProvider {
   "messages": [{"role": "user", "content": "<sourceText>"}]
 }
 ```
-Body 构造由 `AnthropicCompatibleAdapter` 内部完成,调用方只传 `AiRequest`(op / sourceText / model)。
+Body 构造由 `AnthropicCompatibleAdapter` 内部完成，调用方只传 `AiRequest`(op / sourceText / model)。
 
 #### Scenario: Stream request body is well-formed
 - **WHEN** `AnthropicCompatibleAdapter.stream(AiRequest(op=EXPAND, sourceText="你好", model="deepseek-v4-flash"), credentials=AiCredentials(apikey="sk-test"))` 执行
@@ -91,7 +91,7 @@ Body 构造由 `AnthropicCompatibleAdapter` 内部完成,调用方只传 `AiRequ
 
 ### Requirement: SSE parser turns OkHttp streaming body into Flow<SseEvent>
 
-系统 MUST 提供 `SseParser`,接受 OkHttp `Response` 的 `BufferedSource`,返回 `Flow<SseEvent>`:
+系统 MUST 提供 `SseParser`，接受 OkHttp `Response` 的 `BufferedSource`，返回 `Flow<SseEvent>`:
 ```kotlin
 fun parse(source: BufferedSource): Flow<SseEvent>
 sealed interface SseEvent {
@@ -100,7 +100,7 @@ sealed interface SseEvent {
     data class Error(val t: Throwable) : SseEvent
 }
 ```
-解析逻辑:逐行读 `readUtf8Line()`,检测 `data: ` 前缀,聚合多行 → 一个 `Data`;检测 `[DONE]` → `Done`;IO 异常 → `Error`;30s 无新行 → `Error(SocketTimeoutException)`。
+解析逻辑:逐行读 `readUtf8Line()`，检测 `data: ` 前缀，聚合多行 → 一个 `Data`;检测 `[DONE]` → `Done`;IO 异常 → `Error`;30s 无新行 → `Error(SocketTimeoutException)`。
 
 #### Scenario: Normal SSE stream parsed
 - **WHEN** `SseParser.parse(source)` 接收连续行 `data: {"delta":{"text":"hello"}}\n\ndata: {"delta":{"text":"  world"}}\n\ndata: [DONE]\n\n`
@@ -108,7 +108,7 @@ sealed interface SseEvent {
 
 ### Requirement: AnthropicCompatibleAdapter maps SseEvent to AiStreamEvent
 
-系统 MUST 在 `AnthropicCompatibleAdapter.stream()` 内部把 `SseEvent.Data` parse 为 JSON,提取 `type` 字段,映射为 `AiStreamEvent`:
+系统 MUST 在 `AnthropicCompatibleAdapter.stream()` 内部把 `SseEvent.Data` parse 为 JSON，提取 `type` 字段，映射为 `AiStreamEvent`:
 - `message_start` / `content_block_start` → `Started`
 - `content_block_delta` → `Delta(text=delta.text)`
 - `message_delta`(含 `usage`) → `Usage(inputTokens=..., outputTokens=...)`
@@ -122,10 +122,10 @@ sealed interface SseEvent {
 
 ### Requirement: FakeProvider returns configurable fixed text with configurable delay and error
 
-系统 MUST 提供 `FakeAiProvider : AiProvider`,支持通过 `FakeConfigHolder` 在运行时配置:
+系统 MUST 提供 `FakeAiProvider : AiProvider`，支持通过 `FakeConfigHolder` 在运行时配置:
 - `text: String` — 模拟 AI 逐 token 输出的完整文本
 - `delayMs: Long` — 每个 `Delta` 事件之间的间隔
-- `errorAfterTokens: Int?` — 若 non-null,在 emit 指定 token 数后 emit `Failed`(模拟中断)
+- `errorAfterTokens: Int?` — 若 non-null，在 emit 指定 token 数后 emit `Failed`(模拟中断)
 - `tokenCounts: AiUsage` — Usage 事件的 token 数
 
 `FakeAiProvider.stream()` MUST 返回 `flow { ... }`,emit `Started` → 按 token 粒度 emit `Delta`(带 `delayMs` 延迟) → emit `Usage(...)` → `Done`。
@@ -140,21 +140,21 @@ sealed interface SseEvent {
 
 ### Requirement: Prompt templates exist for three writing operations
 
-系统 MUST 在 `core/ai/prompt/` 提供三类操作的 system prompt 模板(`ExpandPrompt.kt` / `PolishPrompt.kt` / `OrganizePrompt.kt`),每个 `internal object`:
-- `const val SYSTEM: String` — system prompt 纯常量,**不**接受用户输入
+系统 MUST 在 `core/ai/prompt/` 提供三类操作的 system prompt 模板(`ExpandPrompt.kt` / `PolishPrompt.kt` / `OrganizePrompt.kt`)，每个 `internal object`:
+- `const val SYSTEM: String` — system prompt 纯常量，**不**接受用户输入
 - `fun userMessage(sourceText: String): String` — 构造 user 消息
 
 #### Scenario: Expand prompt builds user message
 - **WHEN** `ExpandPrompt.userMessage("晨跑")` 调用
-- **THEN** 返回的字符串包含 `"晨跑"`,不包含 system prompt 片段
+- **THEN** 返回的字符串包含 `"晨跑"`，不包含 system prompt 片段
 
 #### Scenario: System prompt does not accept user input
 - **WHEN** `ExpandPrompt.SYSTEM` 被引用
-- **THEN** 返回纯常量字符串,其内容不 包含 `$` 或可注入的占位符
+- **THEN** 返回纯常量字符串，其内容不 包含 `$` 或可注入的占位符
 
 ### Requirement: Custom provider config supports user-defined Anthropic-compatible providers
 
-系统 MUST 在 `ProviderConfig` 中定义 `customHeaders: Map<String, String>` 字段(M2 留空,预留给 M3/M4 用户自定义 provider)。自定义 provider 走的仍是 `AnthropicCompatibleAdapter`,由用户填的配置构造 ProviderConfig。
+系统 MUST 在 `ProviderConfig` 中定义 `customHeaders: Map<String, String>` 字段(M2 留空，预留给 M3/M4 用户自定义 provider)。自定义 provider 走的仍是 `AnthropicCompatibleAdapter`，由用户填的配置构造 ProviderConfig。
 
 #### Scenario: Custom provider with extra headers
 - **WHEN** `ProviderConfig(authStyle=CUSTOM_HEADER, customHeaders=mapOf("api-key" to "sk-test", "X-Custom" to "foo"))` 传给 adapter

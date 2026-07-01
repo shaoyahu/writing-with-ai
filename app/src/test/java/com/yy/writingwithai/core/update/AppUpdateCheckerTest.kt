@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test
 /**
  * app-self-hosted-update · AppUpdateChecker 单测。
  *
- * 用 mockwebserver 模拟服务端响应,验证:
+ * 用 mockwebserver 模拟服务端响应，验证:
  * - 200 + 新版本 → fetch 返回 Success(AppUpdateManifest)
  * - 500 → fetch 返回 Failure(Http(500))
  * - JSON 损坏 → fetch 返回 Failure(Parse)

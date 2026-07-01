@@ -3,8 +3,8 @@
   writing-with-ai · Android Lint 配置
   见 openspec/changes/init-android-project/specs/localization/spec.md
   "Requirement: Hardcoded Chinese strings in Composable code are blocked by lint"
-  升级 HardcodedText 为 error(默认 warning),与 app/build.gradle.kts 的
-  `lint { abortOnError = true }` 配合,业务代码硬编码中文会阻断 build。
+  升级 HardcodedText 为 error(默认 warning)，与 app/build.gradle.kts 的
+  `lint { abortOnError = true }` 配合，业务代码硬编码中文会阻断 build。
 -->
 <lint>
     <issue id="HardcodedText" severity="error" />

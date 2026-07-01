@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 /**
- * custom-prompt-template · PromptTemplateStore Fake(测试用,in-memory)。
+ * custom-prompt-template · PromptTemplateStore Fake(测试用，in-memory)。
  *
  * spec: openspec/changes/custom-prompt-template/specs/custom-prompt-template/spec.md
  * "PromptTemplateStore persists templates via DataStore" Scenario "observeAll 实时反映变更"

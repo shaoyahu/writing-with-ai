@@ -144,7 +144,7 @@ class SettingsDataViewModelTest {
         assertTrue(state.error.contains("读 zip 失败"))
     }
 
-    // H2:r1 review。notesCount 暴露 Room 当前笔记总数,Screen 据此置灰导出按钮 + 显示 no_data。
+    // H2:r1 review。notesCount 暴露 Room 当前笔记总数，Screen 据此置灰导出按钮 + 显示 no_data。
     @Test
     fun notesCount_reflects_repository_value() = runTest {
         every { noteRepository.observeNotesWithTags(null, null) } returns
@@ -202,7 +202,7 @@ class SettingsDataViewModelTest {
         coEvery { noteExporter.exportToJsonZip(outputStream) } returns 5
 
         viewModel.exportToJsonZip(uri)
-        // 第二次调用,state 此时已是 Done(导出完成),guard 必须拒绝
+        // 第二次调用，state 此时已是 Done(导出完成),guard 必须拒绝
         viewModel.exportToJsonZip(uri)
 
         // exporter 只被调一次
@@ -228,7 +228,7 @@ class SettingsDataViewModelTest {
             noteImporter.importFromZip(any<java.io.InputStream>(), any<java.io.OutputStream>())
         } coAnswers
             {
-                // mock importer 写非空 bytes 到 out,模拟真实闭循环报告 zip
+                // mock importer 写非空 bytes 到 out，模拟真实闭循环报告 zip
                 val out = secondArg<java.io.OutputStream>()
                 out.write(byteArrayOf(0xCA.toByte(), 0xFE.toByte(), 0xBA.toByte(), 0xBE.toByte()))
                 expectedReport
@@ -254,7 +254,7 @@ class SettingsDataViewModelTest {
         )
         // Done 态不变
         assertTrue(viewModel.uiState.value is DataUiState.Done, "saveImportReport 成功 MUST 不破坏 Done 态")
-        // Success 信号触发后会被 LaunchedEffect reset;在 viewModel 层面,value 已被 set 为 Success
+        // Success 信号触发后会被 LaunchedEffect reset;在 viewModel 层面，value 已被 set 为 Success
         assertTrue(
             viewModel.lastSaveReportResult.value is SaveReportResult.Success,
             "saveImportReport 成功 MUST → lastSaveReportResult.Success, 实际 = ${viewModel.lastSaveReportResult.value}"
@@ -280,7 +280,7 @@ class SettingsDataViewModelTest {
 
     @Test
     fun saveImportReport_outputStreamFailurePreservesDoneState() = runTest {
-        // arrange:先 import 成功,vm 进入 Done(isImport=true)
+        // arrange:先 import 成功，vm 进入 Done(isImport=true)
         val importUri: Uri = mockk(relaxed = true)
         val inputStream = java.io.ByteArrayInputStream(byteArrayOf(1, 2, 3))
         val expectedReport =
@@ -306,7 +306,7 @@ class SettingsDataViewModelTest {
         val finalUiState = viewModel.uiState.value
         assertTrue(
             finalUiState is DataUiState.Done,
-            "SAF 写失败 MUST 不破坏 Done 态, 实际 = $finalUiState"
+            "SAF 写失败 MUST 不破坏 Done 态， 实际 = $finalUiState"
         )
         finalUiState as DataUiState.Done
         assertTrue(finalUiState.isImport, "Done MUST 仍 isImport = true")

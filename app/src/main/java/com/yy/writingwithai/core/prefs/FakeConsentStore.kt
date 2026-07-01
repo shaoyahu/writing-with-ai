@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * M4-4 测试用 fake,跑单元测试不需要真 DataStore。
+ * M4-4 测试用 fake，跑单元测试不需要真 DataStore。
  *
  * spec: openspec/changes/onboarding-consent/tasks.md §3.4
  */

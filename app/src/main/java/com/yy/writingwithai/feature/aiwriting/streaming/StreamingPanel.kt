@@ -53,7 +53,7 @@ import kotlinx.coroutines.flow.filter
 /**
  * AI 流式操作面板(M3 + ai-writing-ux-polish)。
  *
- * 挂载在详情屏之上(不走 NavController,见 quick-note spec "Navigation routes unchanged")。
+ * 挂载在详情屏之上(不走 NavController，见 quick-note spec "Navigation routes unchanged")。
  * 5 态:
  * - Idle → 不渲染内容
  * - Streaming → 顶部 op + "进行中" + typing indicator / partialText + 取消按钮
@@ -101,14 +101,14 @@ fun StreamingPanel(
                             stringResource(R.string.aiwriting_panel_streaming),
                         usage = null
                     )
-                    // H21 fix:Streaming 态只 emit 单次增量 delta;UI 用 remember 累加拼接,
+                    // H21 fix:Streaming 态只 emit 单次增量 delta;UI 用 remember 累加拼接，
                     // 不再依赖整段 partialText 整段 recompose。`accumulatedLength` 改 0 时
                     // (新一轮 start / reset) 同步重置本地累加缓冲。
                     //
                     // fix-2026-06-30-full-review-r1 HIGH H13:之前 `LaunchedEffect(state.delta)`
-                    // 在新 delta 到达时取消前一个 LaunchedEffect,中间 delta 来不及拼就被丢
-                    // (SSE ~50ms 一个 token,远快于 Compose 帧率)。改为 snapshotFlow
-                    // + collect 收 delta,LaunchedEffect 只挂一次,所有 delta 顺序拼接。
+                    // 在新 delta 到达时取消前一个 LaunchedEffect，中间 delta 来不及拼就被丢
+                    // (SSE ~50ms 一个 token，远快于 Compose 帧率)。改为 snapshotFlow
+                    // + collect 收 delta,LaunchedEffect 只挂一次，所有 delta 顺序拼接。
                     var accumulated by remember { mutableStateOf("") }
                     val deltaSnapshot = remember { mutableStateOf("") }
                     LaunchedEffect(state.accumulatedLength) {
@@ -126,7 +126,7 @@ fun StreamingPanel(
                                 deltaSnapshot.value = ""
                             }
                     }
-                    // ViewModel 新 delta → 推 snapshot,触发上面 collect
+                    // ViewModel 新 delta → 推 snapshot，触发上面 collect
                     if (state.delta.isNotEmpty() && state.delta != deltaSnapshot.value) {
                         deltaSnapshot.value = state.delta
                     }

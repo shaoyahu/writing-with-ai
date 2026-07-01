@@ -4,7 +4,7 @@
   排除敏感凭证文件(EncryptedSharedPreferences):
   - writingwithai_secure_prefs.xml:AI provider apikeys
   - feishu_oauth_prefs.xml:飞书 OAuth tokens + appSecret + pending exchange + CSRF state
-  M0 还没真用,先准备好;v1 allowBackup="false" 时不生效,forward-looking 留 M5 polish 用。
+  M0 还没真用，先准备好;v1 allowBackup="false" 时不生效，forward-looking 留 M5 polish 用。
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="writingwithai_secure_prefs.xml" />

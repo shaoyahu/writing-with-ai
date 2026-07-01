@@ -11,7 +11,7 @@ suspend fun updateDoc(note: Note, ref: FeishuRef): FeishuRef
 suspend fun appendBlock(note: Note, ref: FeishuRef, parentBlockId: String?, content: String): FeishuRef
 ```
 
-每个方法 MUST 复用现有 `FeishuApiClient` + `MarkdownToDocxConverter`,不重写 IO 层。
+每个方法 MUST 复用现有 `FeishuApiClient` + `MarkdownToDocxConverter`，不重写 IO 层。
 
 #### Scenario: createDoc 新建飞书文档
 - **WHEN** `createDoc(note)` 收到一个 `Note` 实例
@@ -35,7 +35,7 @@ suspend fun appendBlock(note: Note, ref: FeishuRef, parentBlockId: String?, cont
 
 ### Requirement: FeishuSyncService delegates to FeishuDocService via facade
 
-`core/feishu/sync/FeishuSyncService.kt` 公开 API(`push` / `pull`)保持不变,内部 MUST 委托 `FeishuDocService`。
+`core/feishu/sync/FeishuSyncService.kt` 公开 API(`push` / `pull`)保持不变，内部 MUST 委托 `FeishuDocService`。
 
 #### Scenario: push 无 ref 走 createDoc
 - **WHEN** `push(noteId)` 查 `refDao.findByNoteId(noteId)` 返回 null
@@ -51,19 +51,19 @@ suspend fun appendBlock(note: Note, ref: FeishuRef, parentBlockId: String?, cont
 
 #### Scenario: 公开 API 行为不变
 - **WHEN** `FeishuSyncRepository.push` / `.pull` 现有 caller 调用
-- **THEN** 行为与重构前一致(同输入同输出,无 breaking)
+- **THEN** 行为与重构前一致(同输入同输出，无 breaking)
 
 ### Requirement: FeishuCommandPrompt provides 4-operation JSON schema
 
-`core/ai/prompt/FeishuCommandPrompt.kt` MUST 提供 4 个飞书操作的 JSON schema + 1 个 dispatcher system prompt,供未来 AI 编排使用(本 change 不强制消费,留接口)。
+`core/ai/prompt/FeishuCommandPrompt.kt` MUST 提供 4 个飞书操作的 JSON schema + 1 个 dispatcher system prompt，供未来 AI 编排使用(本 change 不强制消费，留接口)。
 
 #### Scenario: 4 操作 schema
 - **WHEN** 读 `FeishuCommandPrompt.systemPrompt`
-- **THEN** 包含 4 个操作的 JSON 形态:`create_doc` / `read_doc` / `update_doc` / `append_block`,每个有必填字段说明
+- **THEN** 包含 4 个操作的 JSON 形态:`create_doc` / `read_doc` / `update_doc` / `append_block`，每个有必填字段说明
 
 #### Scenario: dispatcher 模板
 - **WHEN** 把用户输入 + systemPrompt 喂给 AiGateway
-- **THEN** 模型输出 JSON 形如 `{"op": "create_doc", "args": {"noteId": "..."}}`,可被后续 dispatcher 解析执行
+- **THEN** 模型输出 JSON 形如 `{"op": "create_doc", "args": {"noteId": "..."}}`，可被后续 dispatcher 解析执行
 
 #### Scenario: i18n 字符串
 - **WHEN** `R.string.feishu_command_prompt_intro` 在 strings.xml / values-en 中存在

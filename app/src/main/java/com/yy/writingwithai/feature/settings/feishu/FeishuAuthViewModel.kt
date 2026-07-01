@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
  * feishu-user-oauth · 飞书授权 ViewModel。
  *
  * 状态机(由 [FeishuAuthStore.authState] 驱动):
- * - DISCONNECTED:无 appId / 无 refreshToken,显示"登录飞书"按钮
+ * - DISCONNECTED:无 appId / 无 refreshToken，显示"登录飞书"按钮
  * - CONFIGURED:有 appId 但 token 未取过
  * - TOKEN_FETCHING:正在 POST 取 token
  * - CONNECTED:token 有效
@@ -36,11 +36,11 @@ import kotlinx.coroutines.launch
  * - KEYSTORE_UNAVAILABLE:EncryptedSharedPreferences 初始化失败
  *
  * 删除原 appSecret 输入框(走 OAuth 隐式收集凭证);
- * folderToken 输入框在 CONNECTED 状态下展示,供用户指定同步目标文件夹。
+ * folderToken 输入框在 CONNECTED 状态下展示，供用户指定同步目标文件夹。
  * [startOAuth] 触发 [OAuthLauncher] 跳系统浏览器。
  *
  * fix-2026-06-30-full-review-r1 LOW L3:一次性 _oneShot 改 SharedFlow,
- * replay=0 + buffer=1 + DROP_OLDEST,避免 StateFlow 状态合并/重组重发问题。
+ * replay=0 + buffer=1 + DROP_OLDEST，避免 StateFlow 状态合并/重组重发问题。
  */
 @HiltViewModel
 class FeishuAuthViewModel @Inject constructor(
@@ -60,7 +60,7 @@ class FeishuAuthViewModel @Inject constructor(
     /**
      * feishu-sync-end-to-end · 设置页同步日志 reactive 投影。
      *
-     * 暴露给 Composable 走 `collectAsStateWithLifecycle`,由 [FeishuAuthScreen] 在 `CONNECTED`
+     * 暴露给 Composable 走 `collectAsStateWithLifecycle`，由 [FeishuAuthScreen] 在 `CONNECTED`
      * 状态时挂载 [FeishuSyncLogSection] 渲染。
      */
     val events: StateFlow<List<FeishuSyncEventEntity>> = eventDao.observeLast(20)
@@ -137,7 +137,7 @@ class FeishuAuthViewModel @Inject constructor(
         }
     }
 
-    /** no-op:SharedFlow 无状态可消费,保留为旧 caller 兼容。 */
+    /** no-op:SharedFlow 无状态可消费，保留为旧 caller 兼容。 */
     fun consumeOneShot() {
         // no-op
     }

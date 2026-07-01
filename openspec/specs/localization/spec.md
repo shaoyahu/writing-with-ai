@@ -4,9 +4,9 @@
 
 TBD — synced from OpenSpec change `init-android-project`(2026-06-18)。原 change 在 `openspec/changes/archive/2026-06-18-init-android-project/`。
 
-`values/strings.xml`(中文 default)+ `values-en/strings.xml`,跟随系统语言;占位 `app_name` 等最少字符串;Lint 规则禁止 Compose 内硬编码中文字符串。
+`values/strings.xml`(中文 default)+ `values-en/strings.xml`，跟随系统语言;占位 `app_name` 等最少字符串;Lint 规则禁止 Compose 内硬编码中文字符串。
 
-> **已知限制**(2026-06-18 review r2):Requirement "Hardcoded Chinese strings in Composable code are blocked by lint" 当前无法 100% 自动验证 —— Android Lint `HardcodedText` 规则只扫描 XML 资源,**不扫 Kotlin / Compose 源码**。`app/lint.xml` 已配置升级 HardcodedText 为 error,作为未来 XML layout(M4 widget)的拦截兜底;Compose 业务代码拦截依赖 code review + 自审,等 `polish-and-internal-release` change(M5)补 detekt Compose 规则或改 spec 为"lint (XML) + code review (Compose)"双轨。
+> **已知限制**(2026-06-18 review r2):Requirement "Hardcoded Chinese strings in Composable code are blocked by lint" 当前无法 100% 自动验证 —— Android Lint `HardcodedText` 规则只扫描 XML 资源，**不扫 Kotlin / Compose 源码**。`app/lint.xml` 已配置升级 HardcodedText 为 error，作为未来 XML layout(M4 widget)的拦截兜底;Compose 业务代码拦截依赖 code review + 自审，等 `polish-and-internal-release` change(M5)补 detekt Compose 规则或改 spec 为"lint (XML) + code review (Compose)"双轨。
 
 ## Requirements
 

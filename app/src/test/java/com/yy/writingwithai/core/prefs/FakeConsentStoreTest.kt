@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M4-4 · FakeConsentStore 单测(用 fake 验证 API 行为,不依赖真 DataStore)。
+ * M4-4 · FakeConsentStore 单测(用 fake 验证 API 行为，不依赖真 DataStore)。
  */
 class FakeConsentStoreTest {
     @Test

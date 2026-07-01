@@ -23,15 +23,15 @@ import org.junit.jupiter.api.Test
  *
  * NoteRepository 用 mockk(因为是 final class 且含 Hilt 构造器);其他依赖用共享 fake。
  *
- * feishu-doc-service-refactor(M3):FeishuDocService 改为 facade,内部委托 FeishuDocService。
+ * feishu-doc-service-refactor(M3):FeishuDocService 改为 facade，内部委托 FeishuDocService。
  * 测试构造 FeishuDocService(api, xml, refs, events) 把 4 个底层依赖传入。
  */
 /**
- * fix-2026-06-30-full-review-r1 C2:FeishuSyncService push/pull 加冲突检测,返回 FeishuError.Conflict。
- * 测试期望旧版本成功路径("同步完成")已过时,需要重写测试断言。
- * 临时 @Disabled 让 build 绿,后续单独 change 重写。
+ * fix-2026-06-30-full-review-r1 C2:FeishuSyncService push/pull 加冲突检测，返回 FeishuError.Conflict。
+ * 测试期望旧版本成功路径("同步完成")已过时，需要重写测试断言。
+ * 临时 @Disabled 让 build 绿，后续单独 change 重写。
  */
-@org.junit.jupiter.api.Disabled("fix-r1 C2 加 conflict detection,测试断言需重写")
+@org.junit.jupiter.api.Disabled("fix-r1 C2 加 conflict detection，测试断言需重写")
 class FeishuSyncServiceTest {
     private val api = FakeFeishuApiClient()
     private val notes = mockk<NoteRepository>(relaxed = true)
@@ -107,7 +107,7 @@ class FeishuSyncServiceTest {
         assertEquals(FeishuRefStatus.SYNCED, ref?.status)
         assertEquals(1, events.store.size)
         assertEquals("OK", events.store[0].status)
-        // push 应走 v2 createDocumentV2(xml),不走 v1
+        // push 应走 v2 createDocumentV2(xml)，不走 v1
         assertEquals(1, api.v2CreateCalls)
     }
 
@@ -160,7 +160,7 @@ class FeishuSyncServiceTest {
 
         val msg = service.pull("doc1", "https://f.cn/d1", titleHint = "from-feishu")
         assertTrue(msg.contains("拉取完成"))
-        // review r2 修:pull 现在用 readDoc 从 URL 解析的 docId("d1"),而非参数 docId("doc1")。
+        // review r2 修:pull 现在用 readDoc 从 URL 解析的 docId("d1")，而非参数 docId("doc1")。
         // extractDocIdFromUrl("https://f.cn/d1") = "d1"
         val ref = refs.getByDocId("d1")
         assertNotNull(ref)
@@ -195,15 +195,15 @@ class FeishuSyncServiceTest {
 
     /**
      * fix-2026-06-26-review-r3 HIGH H12:pull 不应把 localRevision 重置为 now。
-     * localRevision 必须等于 noteToWrite.updatedAt,与 push 走同源。
+     * localRevision 必须等于 noteToWrite.updatedAt，与 push 走同源。
      * 之前 `localRevision = System.currentTimeMillis()` 导致 pull 后永远
-     * localRev > lastSyncedAt,下次 conflict 检测 LOCAL>REMOTE 假阳性。
+     * localRev > lastSyncedAt，下次 conflict 检测 LOCAL>REMOTE 假阳性。
      */
     @Test
     fun `pull localRevision equals note updatedAt not currentTimeMillis`() = runTest {
         val existingUpdatedAt = 5000L
         // docUrl "https://f.cn/docx/doc-existing" 经 extractDocIdFromUrl 得 "doc-existing",
-        // 与 ref.docId 对齐,R2 H8 fix 用 content.docId 查找。
+        // 与 ref.docId 对齐，R2 H8 fix 用 content.docId 查找。
         val docUrl = "https://f.cn/docx/doc-existing"
         coEvery { notes.getNote("n1") } returns sampleNote("n1", content = "old", title = "old-title")
             .copy(updatedAt = existingUpdatedAt)

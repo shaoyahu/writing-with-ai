@@ -58,8 +58,8 @@ class OAuthLauncherExceptionTest {
     }
 
     /**
-     * 回归:之前用 message.contains("Keystore", true) 嗅探,网络错误 message 里碰巧出现
-     * "keystore" 字样(如远程日志、stackoverflow 包装)会被误分类。新实现仅按类型,
+     * 回归:之前用 message.contains("Keystore", true) 嗅探，网络错误 message 里碰巧出现
+     * "keystore" 字样(如远程日志、stackoverflow 包装)会被误分类。新实现仅按类型，
      * 这种情况不再误分类。
      */
     @Test
@@ -92,7 +92,7 @@ class OAuthLauncherExceptionTest {
     }
 
     /**
-     * 直接调用 top-level `internal fun isKeystoreError`,无需反射构造 Hilt 类。
+     * 直接调用 top-level `internal fun isKeystoreError`，无需反射构造 Hilt 类。
      */
     private fun isKeystoreErrorPublic(t: Throwable): Boolean = isKeystoreError(t)
 }

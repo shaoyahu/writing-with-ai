@@ -25,13 +25,13 @@ class LlmBackfillWorker(
         val noteDao = entry.noteDao()
         val extractor = entry.llmExtractor()
         val ids = noteDao.observeAll().first().map { it.id }
-        // review r3 修 H8:逐条 note 包 try/catch + skip + log,单条 poisoned note
+        // review r3 修 H8:逐条 note 包 try/catch + skip + log，单条 poisoned note
         // (LLM 返回异常 / provider 401 / 网络断) 不再 abort 整个 worker。
-        // CancellationException 必须重新抛出,Worker 才能正常 cancel。
+        // CancellationException 必须重新抛出，Worker 才能正常 cancel。
         val result = runLlmBackfillLoop(extractor, ids, isStopped = { isStopped })
         // fix-2026-06-30-full-review-r1 HIGH H11:全部失败 → Result.failure() 让
-        // WorkManager 自动重试,而不是把"0 processed / N failed"当成功提交。EntityBackfillWorker
-        // 已有同样保护,这里补齐保持一致。
+        // WorkManager 自动重试，而不是把"0 processed / N failed"当成功提交。EntityBackfillWorker
+        // 已有同样保护，这里补齐保持一致。
         if (result.processed == 0 && result.failed > 0) {
             return@withContext Result.failure(
                 androidx.work.workDataOf(
@@ -62,7 +62,7 @@ class LlmBackfillWorker(
 
         /**
          * review r3 修 H8 测试点:逐条 note 包 try/catch + skip + log。
-         * 抽成 companion fun 让单测能直接调,不依赖 WorkManager runtime。
+         * 抽成 companion fun 让单测能直接调，不依赖 WorkManager runtime。
          */
         internal suspend fun runLlmBackfillLoop(
             extractor: SemanticNoteLinker,

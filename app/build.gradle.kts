@@ -30,12 +30,12 @@ android {
         vectorDrawables { useSupportLibrary = true }
 
         // M4-4 onboarding-consent:consent 版本号(改隐私条款时 bump)与
-        // gate 启用开关(回滚逃生口,设 false 即回到 M4-3 行为)。
+        // gate 启用开关(回滚逃生口，设 false 即回到 M4-3 行为)。
         buildConfigField("Boolean", "CONSENT_GATE_ENABLED", "true")
         buildConfigField("int", "CONSENT_VERSION", "1")
     }
 
-    // release-readiness:从 ~/.gradle/gradle.properties 读 4 凭据(keystore 不入库,本机维护)
+    // release-readiness:从 ~/.gradle/gradle.properties 读 4 凭据(keystore 不入库，本机维护)
     signingConfigs {
         create("release") {
             val props = Properties().apply {
@@ -52,7 +52,7 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
-            // debug 双通道:不同包名可同装,独立检查更新
+            // debug 双通道:不同包名可同装，独立检查更新
             applicationIdSuffix = ".debug"
             buildConfigField(
                 "String",
@@ -91,7 +91,7 @@ android {
     buildFeatures {
         compose = true
         // M2 修:启用 BuildConfig 以便 DataModule 用 BuildConfig.DEBUG gate
-        // `fallbackToDestructiveMigration()`,防止 release 升级 schema 时 wipe 用户笔记。
+        // `fallbackToDestructiveMigration()`，防止 release 升级 schema 时 wipe 用户笔记。
         buildConfig = true
     }
 
@@ -102,19 +102,19 @@ android {
     }
 
     lint {
-        // 占位字符串允许只用 default locale,关闭 MissingTranslation warning。
+        // 占位字符串允许只用 default locale，关闭 MissingTranslation warning。
         disable += setOf("MissingTranslation")
         warningsAsErrors = false
         abortOnError = true
-        // HardcodedText 升级为 error(见 app/lint.xml),与 abortOnError=true 配合阻断 hardcoded 中文字符串。
+        // HardcodedText 升级为 error(见 app/lint.xml)，与 abortOnError=true 配合阻断 hardcoded 中文字符串。
         lintConfig = file("lint.xml")
         // entity-extraction-association:已记录 2 个 pre-existing 错误(AppNav.kt:109 FlowOperator +
-        // ModelManagementScreen.kt:86 produceState),与本 change 无关;Step 3 / 独立 polish 修。
+        // ModelManagementScreen.kt:86 produceState)，与本 change 无关;Step 3 / 独立 polish 修。
         baseline = file("lint-baseline.xml")
     }
 
-    // onboarding-apikey-prompt:jvm 单测走 isReturnDefaultValues=true,允许 android.util.Log.* 等
-    // 未 mock Android 类返回默认值(0/null)而非抛 RuntimeException,降低 VM 内部日志对单测的耦合。
+    // onboarding-apikey-prompt:jvm 单测走 isReturnDefaultValues=true，允许 android.util.Log.* 等
+    // 未 mock Android 类返回默认值(0/null)而非抛 RuntimeException，降低 VM 内部日志对单测的耦合。
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
@@ -122,7 +122,7 @@ android {
 
 // Room schema export:把 Room 生成的 schema JSON 输出到 app/schemas/,
 // git 追踪后可以做 AutoMigration 或人工写 Migration。
-// 路径是相对项目根,见 openspec/changes/quick-note-feature/specs/quick-note/spec.md
+// 路径是相对项目根，见 openspec/changes/quick-note-feature/specs/quick-note/spec.md
 // §"Note database schema is exportable"。
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
@@ -159,10 +159,10 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // ----- Network(M0 占用,M2 真正用) -----
+    // ----- Network(M0 占用，M2 真正用) -----
     implementation(libs.okhttp)
 
-    // ----- Widget(M0 占用,M4 真正用) -----
+    // ----- Widget(M0 占用，M4 真正用) -----
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.documentfile)
@@ -182,7 +182,7 @@ dependencies {
     testImplementation(libs.bundles.junit5)
     testRuntimeOnly(libs.junit.jupiter.engine)
     // fix-2026-06-26-review-r3-test:启用 JUnit Vintage engine。
-    // 原因:Robolectric 的 @RunWith(RobolectricTestRunner::class) 是 JUnit4 注解,
+    // 原因:Robolectric 的 @RunWith(RobolectricTestRunner::class) 是 JUnit4 注解，
     // JUnit5 platform 通过 Vintage engine 才能跑 JUnit4 写法的 Robolectric 测试。
     // 重写 NoteRepositoryDeleteOrderTest 用 Robolectric + Room.inMemoryDatabaseBuilder
     // 消除 MockK coEvery { throws ... } coAnswers { ... } 死锁。
@@ -205,7 +205,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
-// JUnit5 启用 Jupiter 引擎;AGP 默认 JUnit 4,必须显式切换。
+// JUnit5 启用 Jupiter 引擎;AGP 默认 JUnit 4，必须显式切换。
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
@@ -217,7 +217,7 @@ ktlint {
     // 注意:本项目常量严格遵守 CLAUDE.md §"约定" UPPER_SNAKE_CASE,
     // 因此 standard:property-naming 不再禁用。
     // M5 fix:项目根 .editorconfig 用 ktlint 1.0 per-rule 下划线格式
-    // (disabledRules SetProperty 在 1.0.x rule-engine 不生效,
+    // (disabledRules SetProperty 在 1.0.x rule-engine 不生效，
     // 见 memory ktlint-compose-pascalcase-1.0)。
     disabledRules.set(
         setOf(
@@ -234,7 +234,7 @@ ktlint {
 // check-1: values-en/strings.xml 残留 __TODO__ 占位
 // check-2: 主源码出现明文 apikey 字面量(16+ 字母数字字符)
 // check-3: res/xml/backup_rules.xml + data_extraction_rules.xml 存在
-// check-4: 保留,见 design.md §R5 风险说明
+// check-4: 保留，见 design.md §R5 风险说明
 // 失败格式:`Preflight FAILED [check-N]: file:line — message`
 tasks.register("checkReleaseReadiness") {
     group = "verification"

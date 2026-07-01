@@ -4,12 +4,12 @@ import com.yy.writingwithai.core.data.db.entity.SyncStatus
 import kotlinx.serialization.Serializable
 
 /**
- * M4-3 · 导出/导入 Serializable 数据类(字段集 = M1 `Note` / M2 `AiHistory`,无缺无多)。
+ * M4-3 · 导出/导入 Serializable 数据类(字段集 = M1 `Note` / M2 `AiHistory`，无缺无多)。
  *
  * `@SerialName` 兼容旧版本:字段缺失时用默认值(`lastAiOp` / `lastAiAt` / `error` 可空)。
  *
  * fix-2026-06-30-full-review-r1 HIGH H4:补 syncRevision / syncStatus / lastSyncedAt 三个
- * 同步字段,导出-导入 round-trip 不再丢失同步状态(已同步笔记导入后默认 LOCAL,违反
+ * 同步字段，导出-导入 round-trip 不再丢失同步状态(已同步笔记导入后默认 LOCAL，违反
  * "导出字段集 = DB 字段集" 不变量)。
  */
 @Serializable
@@ -74,7 +74,7 @@ data class FailedNote(
     val error: String
 )
 
-// M2:r1 review 抽出 ListSerializer / Json 单例,避免每次 inline new。
+// M2:r1 review 抽出 ListSerializer / Json 单例，避免每次 inline new。
 val ExportNoteListSerializer =
     kotlinx.serialization.builtins.ListSerializer(ExportNote.serializer())
 

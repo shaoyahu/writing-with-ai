@@ -16,14 +16,14 @@
 
 - [x] 3.1 建 `core/ai/prompt/DefaultPrompts.kt`
 - [x] 3.2 搬 M3 原文(原样保留)
-- [x] 3.3 删 `core/ai/prompt/{ExpandPrompt, PolishPrompt, OrganizePrompt}.kt`(原文件名是 XxxPrompt.kt 不是 .kt,已删)
+- [x] 3.3 删 `core/ai/prompt/{ExpandPrompt, PolishPrompt, OrganizePrompt}.kt`(原文件名是 XxxPrompt.kt 不是 .kt，已删)
 
 ## 4. feature/settings/ 模块
 
 - [ ] 4.1 建 `feature/settings/SettingsEntry.kt`:`object SettingsEntry { ROUTE_SETTINGS = "settings"; ROUTE_PROMPT_TEMPLATE = "settings/prompt-template"; fun SettingsRoute(navController, ...); fun PromptTemplateRoute(onBack) }`
 - [ ] 4.2 建 `feature/settings/SettingsScreen.kt`:`@Composable fun SettingsScreen(navController, onConsented = {})` 渲染 1 项 LazyColumn"AI 提示词模板" → 跳 `SettingsPromptTemplate`
 - [ ] 4.3 建 `feature/settings/prompt/PromptTemplateScreen.kt`:TabRow 3 Tab + OutlinedTextField + "恢复默认" 按钮
-- [ ] 4.4 建 `feature/settings/prompt/PromptTemplateViewModel.kt`:`@HiltViewModel`,注入 `PromptTemplateStore`,暴露 `uiState: StateFlow<Map<WritingOp, PromptDraft>>`;`onPromptChange(op, value)` debounce 500ms 写;`onTabSwitch(op)` 立即 flush;`resetToDefault(op)` 调 store
+- [ ] 4.4 建 `feature/settings/prompt/PromptTemplateViewModel.kt`:`@HiltViewModel`，注入 `PromptTemplateStore`，暴露 `uiState: StateFlow<Map<WritingOp, PromptDraft>>`;`onPromptChange(op, value)` debounce 500ms 写;`onTabSwitch(op)` 立即 flush;`resetToDefault(op)` 调 store
 - [ ] 4.5 验证:UiState 含 `currentOp`(当前 Tab)+ `drafts: Map<WritingOp, String>`(3 op 各自草稿)
 
 ## 5. AppNav + overflow menu
@@ -34,7 +34,7 @@
 ## 6. AiActionViewModel 集成模板
 
 - [ ] 6.1 `feature/aiwriting/streaming/AiActionViewModel.kt` 构造函数加 `promptTemplateStore: PromptTemplateStore` + `secureApiKeyStore: SecureApiKeyStore` 依赖
-- [ ] 6.2 `start(op, sourceText, noteId)`:`val providerId = secureApiKeyStore.resolveProviderId()`(suspend,同步)+ `val systemPrompt = promptTemplateStore.getForOp(op) ?: DefaultPrompts.forOp(op)`(suspend)
+- [ ] 6.2 `start(op, sourceText, noteId)`:`val providerId = secureApiKeyStore.resolveProviderId()`(suspend，同步)+ `val systemPrompt = promptTemplateStore.getForOp(op) ?: DefaultPrompts.forOp(op)`(suspend)
 - [ ] 6.3 既有 `AiActionViewModelTest` 5 tests 补 mock `promptTemplateStore` / `secureApiKeyStore` 形参
 
 ## 7. i18n

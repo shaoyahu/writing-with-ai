@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /**
  * fix-2026-06-25-review-r1 C5 · 测试用 `UserPrefsStore` fake。
  *
- * 与 [FakeConsentStore] 同思路:`MutableStateFlow` 持状态,set 改 value。
- * 仅在 unit test 编译,不入 main。
+ * 与 [FakeConsentStore] 同思路:`MutableStateFlow` 持状态，set 改 value。
+ * 仅在 unit test 编译，不入 main。
  *
  * animation-system-and-consent-redesign §2.3:新增 `animationStyleFlow` + `setAnimationStyle` + `seedAnimationStyle`。
  */

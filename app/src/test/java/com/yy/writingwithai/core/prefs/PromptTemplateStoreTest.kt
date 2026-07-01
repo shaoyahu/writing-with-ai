@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 /**
- * custom-prompt-template · PromptTemplateStore 单测(用 Fake,真 DataStore 需 Robolectric 留 M5 polish)。
+ * custom-prompt-template · PromptTemplateStore 单测(用 Fake，真 DataStore 需 Robolectric 留 M5 polish)。
  */
 class PromptTemplateStoreTest {
     @Test

@@ -36,7 +36,7 @@ class BackfillWorker(
             }
             setProgress(workDataOf("processed" to processed, "total" to total))
         }
-        // fix-2026-06-25-review-r1 C3:success 才落盘,retry/failure 不写,
+        // fix-2026-06-25-review-r1 C3:success 才落盘，retry/failure 不写，
         // 避免失败重试时把"未完成"误标"已 done"导致后续 BackfillScheduler 不再调度。
         applicationContext
             .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

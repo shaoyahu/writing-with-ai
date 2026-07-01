@@ -2,7 +2,6 @@ package com.yy.writingwithai.feature.settings.alias
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,14 +12,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -38,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.core.note.entity.EntityType
+import com.yy.writingwithai.core.ui.dropdown.AppSelectionDropdown
 
 /** entity-extraction-association · 别名管理 screen(tasks §4.3)。 */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +44,6 @@ fun AliasManagementScreen(onBack: () -> Unit, viewModel: AliasManagementViewMode
     var entityType by remember { mutableStateOf(EntityType.PERSON) }
     var aliasKey by remember { mutableStateOf("") }
     var canonicalKey by remember { mutableStateOf("") }
-    var typeMenuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -108,22 +104,14 @@ fun AliasManagementScreen(onBack: () -> Unit, viewModel: AliasManagementViewMode
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { typeMenuOpen = true }) {
-                            Text(entityType.name)
-                        }
-                        DropdownMenu(expanded = typeMenuOpen, onDismissRequest = { typeMenuOpen = false }) {
-                            EntityType.entries.forEach { type ->
-                                DropdownMenuItem(
-                                    text = { Text(type.name) },
-                                    onClick = {
-                                        entityType = type
-                                        typeMenuOpen = false
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    AppSelectionDropdown(
+                        options = EntityType.entries,
+                        selected = entityType,
+                        onSelected = { entityType = it },
+                        label = { Text(stringResource(R.string.entity_alias_type_label)) },
+                        optionLabel = { it.name },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     OutlinedTextField(
                         value = aliasKey,
                         onValueChange = { aliasKey = it },

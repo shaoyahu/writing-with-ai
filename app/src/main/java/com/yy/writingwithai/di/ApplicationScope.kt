@@ -22,7 +22,7 @@ import kotlinx.coroutines.SupervisorJob
  * - Application 退出时由进程死亡隐式 cancel(Android 进程级 CoroutineScope 标准模式)
  *
  * KDoc 警告:只用于进程级 fire-and-forget 任务(后端轮询 / 缓存预热 / 重组计算等),
- * **不**用于用户可见的 UI 任务(用 viewModelScope),也**不**用于 IO 密集短任务(用 withContext(Dispatchers.IO))。
+ * **不**用于用户可见的 UI 任务(用 viewModelScope)，也**不**用于 IO 密集短任务(用 withContext(Dispatchers.IO))。
  */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)

@@ -30,10 +30,10 @@ import kotlin.math.roundToInt
  * animation-system · token-aware `Switch` 封装(spec §REQ 5)。
  *
  * 与 Material3 `Switch` 的差异:
- * - thumbX 位置动画 spec 走 [LocalAnimationTokens.current.switchSpec],而不是 Material3 内部
+ * - thumbX 位置动画 spec 走 [LocalAnimationTokens.current.switchSpec]，而不是 Material3 内部
  *   默认 spring(stiffness=1600)。NONE 风格时 spec = `snap()`,thumb 即时跳到目标位置(满足
  *   spec §REQ 5 Scenario "AnimatedSwitch under NONE style 时 thumb SHALL snap")。
- * - 视觉跟 Material3 Switch 一致:52×32dp 轨道 + 16dp 圆形 thumb,沿 x 轴 ±10dp 滑动;
+ * - 视觉跟 Material3 Switch 一致:52×32dp 轨道 + 16dp 圆形 thumb，沿 x 轴 ±10dp 滑动;
  *   颜色通过传入 [colors](默认 [SwitchDefaults.colors])拿 checked / unchecked 主题色。
  *
  * a11y:继承 `Modifier.toggleable(role = Switch)`,TalkBack 念"Switch, on/off"。
@@ -45,7 +45,7 @@ fun AnimatedSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     // ux-2026-06-28 #5:默认值针对 surfaceVariant 背景加强对比 — M3 SwitchDefaults 的
-    // uncheckedTrackColor 在浅色 surfaceVariant 上几乎不可见,这里用 outline 颜色兜底。
+    // uncheckedTrackColor 在浅色 surfaceVariant 上几乎不可见，这里用 outline 颜色兜底。
     colors: SwitchColors = SwitchDefaults.colors(
         uncheckedTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
         uncheckedThumbColor = MaterialTheme.colorScheme.surface
@@ -63,7 +63,7 @@ fun AnimatedSwitch(
         if (enabled) colors.uncheckedThumbColor else colors.disabledUncheckedThumbColor
     }
 
-    // thumbX:0 (unchecked) ↔ 1 (checked),动画 spec 来自 token。
+    // thumbX:0 (unchecked) ↔ 1 (checked)，动画 spec 来自 token。
     val progress by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
         animationSpec = tokens.switchSpec,

@@ -15,7 +15,7 @@ import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
  * animation-system-and-consent-redesign §8.2:滚动进度条。
  *
  * - 显示条款 LazyColumn 的滚动比例 0→1
- * - 用 [animateFloatAsState] 接 [LocalAnimationTokens.current.listItemSpec],平滑过渡进度
+ * - 用 [animateFloatAsState] 接 [LocalAnimationTokens.current.listItemSpec]，平滑过渡进度
  * - 颜色跟随 MaterialTheme.primary(品牌色)
  */
 @Composable

@@ -13,7 +13,7 @@ import kotlinx.coroutines.Dispatchers
  * 应用级 coroutine dispatcher 注入。
  *
  * 业务侧 ViewModel / Repository 不要直接 import `kotlinx.coroutines.Dispatchers`,
- * 一律通过 [@IoDispatcher] 注入,test 环境可以传 `UnconfinedTestDispatcher`。
+ * 一律通过 [@IoDispatcher] 注入，test 环境可以传 `UnconfinedTestDispatcher`。
  *
  * 见 [openspec.changes.data-export-import.specs.data-export-import.spec]
  * §"SettingsDataViewModel 用 viewModelScope.launch + Dispatchers.IO" 场景。

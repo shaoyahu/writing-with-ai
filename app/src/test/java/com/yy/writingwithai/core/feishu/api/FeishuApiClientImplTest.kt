@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test
  * spec: openspec/changes/feishu-oauth-flow/specs/feishu-api-client/spec.md
  * "Error classification" / "Tenant token re-fetch on 401"
  *
- * 用 mockwebserver 模拟飞书响应,验证 HTTP 状态码 + body code 映射 FeishuError。
+ * 用 mockwebserver 模拟飞书响应，验证 HTTP 状态码 + body code 映射 FeishuError。
  */
 class FeishuApiClientImplTest {
 
@@ -148,12 +148,12 @@ class FeishuApiClientImplTest {
     }
 
     /**
-     * fix-2026-06-26-review-r3 HIGH H9:1 MiB cap 必须流式截断,不能先把整段 body 缓存到 heap。
+     * fix-2026-06-26-review-r3 HIGH H9:1 MiB cap 必须流式截断，不能先把整段 body 缓存到 heap。
      * 之前 `source.request(Long.MAX_VALUE)` 把整段 body 拉进 buffer 再判断截断 — 已经 OOM 了。
      * 修后用 `readByteArray(MAX_BODY)` — okio 在达到上限后停止从 socket 读。
      *
-     * 截断后 body 很可能不再是有效 JSON,所以应抛 NetworkError("JSON parse failed")—
-     * 这正是保护性截断的语义:超大响应直接拒收,而不是把残缺数据返回给 caller。
+     * 截断后 body 很可能不再是有效 JSON，所以应抛 NetworkError("JSON parse failed")—
+     * 这正是保护性截断的语义:超大响应直接拒收，而不是把残缺数据返回给 caller。
      */
     @Test
     fun `H9 large body is stream-truncated to 1 MiB cap`() = runTest {
@@ -176,7 +176,7 @@ class FeishuApiClientImplTest {
 
     /**
      * fix-2026-06-26-review-r3 HIGH(re-scan):200 响应的 `data` 字段不是 JsonObject 时
-     * 的强转异常也应包装为 NetworkError,而不是让 IllegalArgumentException 逃逸
+     * 的强转异常也应包装为 NetworkError，而不是让 IllegalArgumentException 逃逸
      * 破坏调用方异常处理。
      */
     @Test

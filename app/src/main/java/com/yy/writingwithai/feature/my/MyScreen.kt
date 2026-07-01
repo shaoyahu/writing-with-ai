@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -62,31 +63,31 @@ import com.yy.writingwithai.app.ui.theme.WritingAppTheme
  * - AI 模型管理 → `SettingsModelManagement`
  * - Prompt 模板 → `SettingsPromptTemplate`
  * - 实体别名 → `SettingsAliasManagement`
- * - 飞书同步 → `Settings`(已有 FeishuSyncLogSection,见 app-tab-bar spec)
- * - 关于(版本号)→ 纯展示,不 navigate
+ * - 飞书同步 → `Settings`(已有 FeishuSyncLogSection，见 app-tab-bar spec)
+ * - 关于(版本号)→ 纯展示，不 navigate
  *
  * ux-2026-06-28 #7:关于页新增「检查更新」可点击入口 → `CheckUpdateViewModel` 拉远端 manifest,
  * 已是最新 / 失败 → Snackbar;有新版本 → AlertDialog(下载流程后续 PR 接入 ApkDownloader)。
  *
  * TopAppBar 无 `navigationIcon` ——【我的】是 `AppShell` 内嵌子 NavHost 的顶级 tab 根屏
  * (spec 2.4:所有**非主页** destination TopAppBar 才含 `navigationIcon = ArrowBack`),
- * 顶级 tab 不应有返回箭头,tab 切换由底部 `AppTabBar` 走 navigate 而非 pop。
+ * 顶级 tab 不应有返回箭头，tab 切换由底部 `AppTabBar` 走 navigate 而非 pop。
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MyScreen(
     onNavigate: (MeTabTarget) -> Unit,
     modifier: Modifier = Modifier,
-    // ux-2026-06-28 #7:关于页「检查更新」VM。Hilt 默认注入,无外部依赖。
+    // ux-2026-06-28 #7:关于页「检查更新」VM。Hilt 默认注入，无外部依赖。
     viewModel: CheckUpdateViewModel = hiltViewModel()
 ) {
     val cornerRadius = LocalCornerRadius.current
     val updateState by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    // ux-2026-06-28 #7:resolve 文案在 Composable 作用域,LaunchedEffect 内只消费已就绪字符串。
+    // ux-2026-06-28 #7:resolve 文案在 Composable 作用域，LaunchedEffect 内只消费已就绪字符串。
     val upToDateTemplate = stringResource(R.string.me_check_update_up_to_date_fmt)
     val failedText = stringResource(R.string.me_check_update_failed)
-    // ux-2026-06-28 #7:UpToDate / Failed → Snackbar 提示 + consume 回 Idle,避免重组再触发。
+    // ux-2026-06-28 #7:UpToDate / Failed → Snackbar 提示 + consume 回 Idle，避免重组再触发。
     LaunchedEffect(updateState) {
         when (val s = updateState) {
             is CheckUpdateState.UpToDate -> {
@@ -105,8 +106,8 @@ fun MyScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         // ux-2026-07-01 #tab-gap:AppShell 外层 Scaffold 已用 innerPadding 扣掉 bottomBar(tab 栏)
-        // 占位,内层 Scaffold 不应再吃 bottom inset(默认 contentWindowInsets = systemBars 包含
-        // bottom),否则 LazyColumn 滚到底会跟 tab 栏之间留一段空隙。
+        // 占位，内层 Scaffold 不应再吃 bottom inset(默认 contentWindowInsets = systemBars 包含
+        // bottom)，否则 LazyColumn 滚到底会跟 tab 栏之间留一段空隙。
         // 改成只吃 statusBars 让 TopAppBar 正常避让状态栏(horizontal + bottom 全交给外层)。
         contentWindowInsets = WindowInsets.statusBars,
         topBar = {
@@ -141,7 +142,7 @@ fun MyScreen(
                     )
                 }
             }
-            // Section 2 · 显示(ux-2026-06-28 P5:动画风格移出 AI 配置)
+            // Section 2 · 显示(ux-2026-06-28 P5:动画风格移出 AI 配置;language-switcher:加语言)
             item {
                 SectionHeader(stringResource(R.string.me_section_display))
             }
@@ -151,6 +152,12 @@ fun MyScreen(
                         title = stringResource(R.string.anim_style_title),
                         icon = Icons.Filled.Animation,
                         onClick = { onNavigate(MeTabTarget.SettingsAnimationStyle) }
+                    )
+                    HorizontalDivider()
+                    MyListItem(
+                        title = stringResource(R.string.settings_language_title),
+                        icon = Icons.Filled.Translate,
+                        onClick = { onNavigate(MeTabTarget.SettingsLanguage) }
                     )
                 }
             }
@@ -188,7 +195,7 @@ fun MyScreen(
             item {
                 SectionCard(cornerRadius = cornerRadius.md) {
                     // ux-2026-06-28 #7:检查更新入口。Checking 时显示 progress + 灰显;
-                    // 点击直接调 VM.check(),不让 Navigate 接 Nav,Snackbar/Dialog 在本屏处理。
+                    // 点击直接调 VM.check()，不让 Navigate 接 Nav,Snackbar/Dialog 在本屏处理。
                     MyListItem(
                         title = if (updateState is CheckUpdateState.Checking) {
                             stringResource(R.string.me_check_update_checking)
@@ -200,7 +207,7 @@ fun MyScreen(
                         onClick = { viewModel.check() }
                     )
                     HorizontalDivider()
-                    // 关于(版本号)纯展示,spec 明确不 navigate
+                    // 关于(版本号)纯展示，spec 明确不 navigate
                     MyAboutItem(
                         title = stringResource(R.string.me_about_title)
                     )
@@ -210,7 +217,7 @@ fun MyScreen(
     }
 
     // ux-2026-06-28 #7:发现新版本 → AlertDialog(versionName + releaseNotes);
-    // 「下载」按钮后续 PR 接入 ApkDownloader,目前仅关闭 dialog 回到 Idle。
+    // 「下载」按钮后续 PR 接入 ApkDownloader，目前仅关闭 dialog 回到 Idle。
     val manifest = (updateState as? CheckUpdateState.UpdateAvailable)?.manifest
     if (manifest != null) {
         val remoteVersionText = stringResource(
@@ -316,7 +323,7 @@ private fun MyListItem(
     )
 }
 
-/** 关于条目:纯展示版本号 + supportingContent,无 clickable,无 chevron。 */
+/** 关于条目:纯展示版本号 + supportingContent，无 clickable，无 chevron。 */
 @Composable
 private fun MyAboutItem(title: String) {
     ListItem(

@@ -39,8 +39,6 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -85,6 +83,8 @@ import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.prefs.SecureApiKeyStore
+import com.yy.writingwithai.core.ui.dropdown.AppActionDropdown
+import com.yy.writingwithai.core.ui.dropdown.AppActionItem
 import com.yy.writingwithai.feature.aiwriting.AiActionUiState
 import com.yy.writingwithai.feature.aiwriting.AiActionViewModel
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
@@ -113,7 +113,7 @@ internal interface DetailScreenEntryPoint {
     fun noteAssociationSettings(): com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore
     fun llmExtractor(): com.yy.writingwithai.core.note.impl.SemanticNoteLinker?
 
-    // real-provider-integration §4:UI 早返回 apikey-missing Snackbar,需实时监听已配 provider
+    // real-provider-integration §4:UI 早返回 apikey-missing Snackbar，需实时监听已配 provider
     fun secureApiKeyStore(): SecureApiKeyStore
 }
 
@@ -130,10 +130,10 @@ fun QuickNoteDetailScreen(
     onRequestConsent: () -> Unit,
     viewModel: QuickNoteDetailViewModel = hiltViewModel()
 ) {
-    // feishu clip labels 提升到 Composable 顶部 scope,供 onClick lambda 使用
+    // feishu clip labels 提升到 Composable 顶部 scope，供 onClick lambda 使用
     val feishuClipUrlLabel = stringResource(R.string.feishu_clip_label_url)
     val feishuClipErrorLabel = stringResource(R.string.feishu_clip_label_error)
-    // M4-4:详情屏 consent 闸门(UI 层二次防御,与 ViewModel.start() 一致)
+    // M4-4:详情屏 consent 闸门(UI 层二次防御，与 ViewModel.start() 一致)
     val context = androidx.compose.ui.platform.LocalContext.current
     val consentStore =
         androidx.compose.runtime.remember(context) {
@@ -159,7 +159,7 @@ fun QuickNoteDetailScreen(
     val snackbarScope = rememberCoroutineScope()
     val apikeyMissingMessage = stringResource(R.string.ai_error_provider_not_configured)
     val apikeyMissingAction = stringResource(R.string.ai_error_action_go_settings)
-    // M2 fix:uiState 是驱动整个详情屏的主 Flow,必须 lifecycle-aware。
+    // M2 fix:uiState 是驱动整个详情屏的主 Flow，必须 lifecycle-aware。
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var menuExpanded by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -178,15 +178,15 @@ fun QuickNoteDetailScreen(
 
     val current = state as? NoteDetailUiState.Content
     val noteId = current?.note?.note?.id
-    // H2 修:noteId 真存在时才挂 AiActionViewModel,避免 NotFound / saved-state 缺失时残留 FAB/Sheet。
+    // H2 修:noteId 真存在时才挂 AiActionViewModel，避免 NotFound / saved-state 缺失时残留 FAB/Sheet。
     val aiVm: AiActionViewModel? =
         if (noteId != null) {
             AiwritingEntry.rememberAiActionViewModel(noteId)
         } else {
             null
         }
-    // H1 修:`by` 委托订阅 StateFlow,而不是 `.value` 快照读(后者不触发重组,Sheet 永不显示)。
-    // aiVm null 时 fallback 到 remember 住的 Idle 流,StreamingPanel 走 return 不渲染。
+    // H1 修:`by` 委托订阅 StateFlow，而不是 `.value` 快照读(后者不触发重组，Sheet 永不显示)。
+    // aiVm null 时 fallback 到 remember 住的 Idle 流，StreamingPanel 走 return 不渲染。
     val aiStateFlow: StateFlow<AiActionUiState> =
         aiVm?.state ?: remember { MutableStateFlow(Idle) }
     val aiState: AiActionUiState by aiStateFlow.collectAsStateWithLifecycle()
@@ -239,7 +239,7 @@ fun QuickNoteDetailScreen(
             Toast.makeText(context, context.getString(R.string.quicknote_export_error), Toast.LENGTH_SHORT).show()
         }
     }
-    // H3 修:TextFieldValue 仅在 noteId 变化时重建,避免 content / wordCount / tags 任一变化重置选区。
+    // H3 修:TextFieldValue 仅在 noteId 变化时重建，避免 content / wordCount / tags 任一变化重置选区。
     // selection 不从 ViewModel 反向同步回 BasicTextField(单向 BasicTextField → ViewModel)。
     // AI replace 刷新:LaunchedEffect 同步 content 变化到 textFieldValue(keep selection)。
     var textFieldValue by remember(noteId) {
@@ -281,124 +281,135 @@ fun QuickNoteDetailScreen(
                                 contentDescription = stringResource(R.string.common_more_cd)
                             )
                         }
-                        DropdownMenu(
+                        AppActionDropdown(
                             expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (current.note.note.isPinned) {
+                            onDismissRequest = { menuExpanded = false },
+                            items = buildList {
+                                add(
+                                    AppActionItem(
+                                        text = if (current.note.note.isPinned) {
                                             stringResource(R.string.quicknote_detail_unpin)
                                         } else {
                                             stringResource(R.string.quicknote_detail_pin)
-                                        }
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        if (current.note.note.isPinned) {
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.togglePinned()
+                                        },
+                                        leadingIcon = if (current.note.note.isPinned) {
                                             Icons.Filled.PushPin
                                         } else {
                                             Icons.Outlined.PushPin
-                                        },
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.togglePinned()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.quicknote_detail_share)) },
-                                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
-                                onClick = {
-                                    menuExpanded = false
-                                    context.shareNoteMarkdown(current.note.note)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.quicknote_detail_export_md)) },
-                                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
-                                onClick = {
-                                    menuExpanded = false
-                                    val note = current.note.note
-                                    val name = note.title.ifBlank { note.id } + ".md"
-                                    exportMdLauncher.launch(name)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.quicknote_detail_export_txt)) },
-                                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
-                                onClick = {
-                                    menuExpanded = false
-                                    val note = current.note.note
-                                    val name = note.title.ifBlank { note.id } + ".txt"
-                                    exportTxtLauncher.launch(name)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.quicknote_detail_delete)) },
-                                leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
-                                onClick = {
-                                    menuExpanded = false
-                                    confirmDelete = true
-                                }
-                            )
-                            // feishu-bidir-sync:同步菜单
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.quicknote_detail_sync_to_feishu)) },
-                                leadingIcon = { Icon(Icons.Filled.Cloud, contentDescription = null) },
-                                enabled = !syncLoading,
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.pushToFeishu()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.quicknote_detail_pull_from_feishu)) },
-                                leadingIcon = { Icon(Icons.Filled.CloudDownload, contentDescription = null) },
-                                onClick = {
-                                    menuExpanded = false
-                                    pullUrlInput = feishuRef?.docUrl.orEmpty()
-                                    showPullDialog = true
-                                }
-                            )
-                            if (feishuRef?.docUrl?.isNotEmpty() == true) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.quicknote_detail_open_in_feishu)) },
-                                    leadingIcon = { Icon(Icons.Filled.OpenInBrowser, contentDescription = null) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        feishuRef?.docUrl?.let { url ->
-                                            val intent = android.content.Intent(
-                                                android.content.Intent.ACTION_VIEW,
-                                                android.net.Uri.parse(url)
-                                            )
-                                            context.startActivity(intent)
                                         }
-                                    }
+                                    )
                                 )
-                            }
-                            // feishu-bidir-sync:远程已删恢复入口
-                            if (feishuRef?.status == FeishuRefStatus.REMOTE_DELETED) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.quicknote_detail_resync_as_new)) },
-                                    leadingIcon = { Icon(Icons.Filled.Cloud, contentDescription = null) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        viewModel.recreateFeishuDoc()
-                                    }
+                                add(
+                                    AppActionItem(
+                                        text = stringResource(R.string.quicknote_detail_share),
+                                        onClick = {
+                                            menuExpanded = false
+                                            context.shareNoteMarkdown(current.note.note)
+                                        },
+                                        leadingIcon = Icons.Filled.Share
+                                    )
                                 )
+                                add(
+                                    AppActionItem(
+                                        text = stringResource(R.string.quicknote_detail_export_md),
+                                        onClick = {
+                                            menuExpanded = false
+                                            val note = current.note.note
+                                            val name = note.title.ifBlank { note.id } + ".md"
+                                            exportMdLauncher.launch(name)
+                                        },
+                                        leadingIcon = Icons.Filled.Share
+                                    )
+                                )
+                                add(
+                                    AppActionItem(
+                                        text = stringResource(R.string.quicknote_detail_export_txt),
+                                        onClick = {
+                                            menuExpanded = false
+                                            val note = current.note.note
+                                            val name = note.title.ifBlank { note.id } + ".txt"
+                                            exportTxtLauncher.launch(name)
+                                        },
+                                        leadingIcon = Icons.Filled.Share
+                                    )
+                                )
+                                add(
+                                    AppActionItem(
+                                        text = stringResource(R.string.quicknote_detail_delete),
+                                        onClick = {
+                                            menuExpanded = false
+                                            confirmDelete = true
+                                        },
+                                        leadingIcon = Icons.Filled.Delete,
+                                        isDestructive = true
+                                    )
+                                )
+                                // feishu-bidir-sync:同步菜单
+                                add(
+                                    AppActionItem(
+                                        text = stringResource(R.string.quicknote_detail_sync_to_feishu),
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.pushToFeishu()
+                                        },
+                                        leadingIcon = Icons.Filled.Cloud,
+                                        enabled = !syncLoading
+                                    )
+                                )
+                                add(
+                                    AppActionItem(
+                                        text = stringResource(R.string.quicknote_detail_pull_from_feishu),
+                                        onClick = {
+                                            menuExpanded = false
+                                            pullUrlInput = feishuRef?.docUrl.orEmpty()
+                                            showPullDialog = true
+                                        },
+                                        leadingIcon = Icons.Filled.CloudDownload
+                                    )
+                                )
+                                if (feishuRef?.docUrl?.isNotEmpty() == true) {
+                                    add(
+                                        AppActionItem(
+                                            text = stringResource(R.string.quicknote_detail_open_in_feishu),
+                                            onClick = {
+                                                menuExpanded = false
+                                                feishuRef?.docUrl?.let { url ->
+                                                    val intent = android.content.Intent(
+                                                        android.content.Intent.ACTION_VIEW,
+                                                        android.net.Uri.parse(url)
+                                                    )
+                                                    context.startActivity(intent)
+                                                }
+                                            },
+                                            leadingIcon = Icons.Filled.OpenInBrowser
+                                        )
+                                    )
+                                }
+                                // feishu-bidir-sync:远程已删恢复入口
+                                if (feishuRef?.status == FeishuRefStatus.REMOTE_DELETED) {
+                                    add(
+                                        AppActionItem(
+                                            text = stringResource(R.string.quicknote_detail_resync_as_new),
+                                            onClick = {
+                                                menuExpanded = false
+                                                viewModel.recreateFeishuDoc()
+                                            },
+                                            leadingIcon = Icons.Filled.Cloud
+                                        )
+                                    )
+                                }
                             }
-                        }
+                        )
                     }
                 }
             )
         },
         floatingActionButton = {
-            // ui-redesign-v2: FAB 已移除,操作走底部栏
+            // ui-redesign-v2: FAB 已移除，操作走底部栏
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
@@ -562,7 +573,7 @@ fun QuickNoteDetailScreen(
                             .fillMaxWidth()
                             .padding(vertical = LocalSpacing.current.sm)
                     )
-                    // 字数 / 阅读时间 — 放在关联笔记上方,作为正文元数据贴近主体
+                    // 字数 / 阅读时间 — 放在关联笔记上方，作为正文元数据贴近主体
                     Text(
                         text =
                         "${context.getString(R.string.quicknote_detail_word_count_fmt, s.wordCount)}" +
@@ -580,7 +591,7 @@ fun QuickNoteDetailScreen(
                     Spacer(Modifier.height(LocalSpacing.current.md))
                     // media-attachment-infrastructure · 附件图片 LazyRow
                     // ux-2026-06-28 #8:之前用 ColorPainter 当 placeholder 显示空白方块;
-                    // 改为 produceState 在 IO 线程 decodeFile → ImageBitmap,失败回退占位色。
+                    // 改为 produceState 在 IO 线程 decodeFile → ImageBitmap，失败回退占位色。
                     if (attachments.isNotEmpty()) {
                         Spacer(Modifier.height(LocalSpacing.current.md))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(LocalSpacing.current.sm)) {
@@ -591,7 +602,7 @@ fun QuickNoteDetailScreen(
                                 ) {
                                     value = withContext(Dispatchers.IO) {
                                         runCatching {
-                                            // 80dp 缩略:目标 160px(inSampleSize 取 2^n),省内存
+                                            // 80dp 缩略:目标 160px(inSampleSize 取 2^n)，省内存
                                             BitmapFactory.Options().apply {
                                                 inJustDecodeBounds = true
                                             }.let { bounds ->
@@ -745,7 +756,7 @@ fun QuickNoteDetailScreen(
     }
 
     // feishu-bidir-sync:sync result message
-    // CR-FIX-M6:消费 SyncMessage sealed 事件,不再 startsWith("同步完成:") 解析。
+    // CR-FIX-M6:消费 SyncMessage sealed 事件，不再 startsWith("同步完成:") 解析。
     if (syncMessage != null && !showSyncMessageDialog) {
         LaunchedEffect(syncMessage) { showSyncMessageDialog = true }
     }
@@ -808,7 +819,7 @@ fun QuickNoteDetailScreen(
 
 /**
  * ux-2026-06-28 #8:缩略图 inSampleSize 计算。80dp ≈ 160px(2x density),
- * `reqPx` 上下浮动,长边 ≤ reqPx 时 sampleSize=1。
+ * `reqPx` 上下浮动，长边 ≤ reqPx 时 sampleSize=1。
  */
 private fun calculateThumbSample(srcWidth: Int, srcHeight: Int, reqPx: Int): Int {
     if (srcWidth <= 0 || srcHeight <= 0) return 1

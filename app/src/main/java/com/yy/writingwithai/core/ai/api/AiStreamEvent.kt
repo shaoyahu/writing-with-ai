@@ -1,6 +1,6 @@
 package com.yy.writingwithai.core.ai.api
 
-/** 所有 AI 调用的流式事件(M2 定义,M3 UI 消费)。 */
+/** 所有 AI 调用的流式事件(M2 定义，M3 UI 消费)。 */
 sealed interface AiStreamEvent {
     data object Started : AiStreamEvent
 

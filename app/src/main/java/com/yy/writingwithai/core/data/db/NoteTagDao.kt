@@ -34,7 +34,7 @@ interface NoteTagDao {
     fun observeAllTags(): Flow<List<String>>
 
     /**
-     * 全表交叉引用(笔记量 < 1k,直接 SELECT * 没问题)。
+     * 全表交叉引用(笔记量 < 1k，直接 SELECT * 没问题)。
      * Repository 在内存里 groupBy(noteId) → Map<noteId, List<tag>>,
      * 给列表屏批量渲染 tag chip 用。
      */

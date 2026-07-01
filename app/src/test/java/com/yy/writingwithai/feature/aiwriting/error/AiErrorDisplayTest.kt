@@ -8,9 +8,9 @@ import org.junit.jupiter.api.Test
 /**
  * 纯 JVM 单测:断言 `toDisplayMessageRes()` 把每种 [AiError] 映射到正确的 string 资源 ID。
  *
- * 不再走 Robolectric + `Context.getString()`,因为 `testOptions.unitTests.isReturnDefaultValues = true`
- * 会让 `Resources.getString(R.string.X)` 返回 `null`,无法解析真实文案。改成断言资源 ID 之后
- * 测试既能跑通,又不需要任何 Android shadow / RuntimeEnvironment。
+ * 不再走 Robolectric + `Context.getString()`，因为 `testOptions.unitTests.isReturnDefaultValues = true`
+ * 会让 `Resources.getString(R.string.X)` 返回 `null`，无法解析真实文案。改成断言资源 ID 之后
+ * 测试既能跑通，又不需要任何 Android shadow / RuntimeEnvironment。
  */
 class AiErrorDisplayTest {
     @Test
@@ -23,8 +23,8 @@ class AiErrorDisplayTest {
 
     @Test
     fun network_401_maps_to_network_string_res() {
-        // 401 通常归 `Auth`,但若 provider 错误地把它当网络层失败 → 至少 Network 路径
-        // 走的是 `aiwriting_error_network`,验证"网络层失败"兜底文案。
+        // 401 通常归 `Auth`，但若 provider 错误地把它当网络层失败 → 至少 Network 路径
+        // 走的是 `aiwriting_error_network`，验证"网络层失败"兜底文案。
         assertEquals(
             R.string.aiwriting_error_network,
             AiError.Network(code = 401, detail = "").toDisplayMessageRes()

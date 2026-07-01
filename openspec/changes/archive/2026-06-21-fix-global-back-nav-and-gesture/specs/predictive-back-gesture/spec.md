@@ -4,14 +4,14 @@
 
 ### Requirement: Predictive back animation MUST falls back gracefully (delta · 措辞放宽)
 
-**原 Requirement 措辞**:`MainActivity` MUST **不**写自定义 `BackHandler { enabled = ... }`,**不**拦截系统 back 事件;让 `NavHost` + `OnBackPressedDispatcher` 自管(roadmap §7.2 明确"不自定义手势拦截,避免和系统手势打架")。
+**原 Requirement 措辞**:`MainActivity` MUST **不**写自定义 `BackHandler { enabled = ... }`,**不**拦截系统 back 事件;让 `NavHost` + `OnBackPressedDispatcher` 自管(roadmap §7.2 明确"不自定义手势拦截，避免和系统手势打架")。
 
-**改写后**:`MainActivity` MUST **不**在 Compose 层挂自定义 `BackHandler { enabled = ... }`(避免和系统手势打架);但 **MUST 允许** Activity 层挂 `OnBackPressedCallback`(Android 12+ 官方 idiom,行为是"back 结果处理"而非"手势拦截")实现防误触 UX(如主页"再按一次退出")。
+**改写后**:`MainActivity` MUST **不**在 Compose 层挂自定义 `BackHandler { enabled = ... }`(避免和系统手势打架);但 **MUST 允许** Activity 层挂 `OnBackPressedCallback`(Android 12+ 官方 idiom，行为是"back 结果处理"而非"手势拦截")实现防误触 UX(如主页"再按一次退出")。
 
 #### Scenario: Activity 不挂自定义 BackHandler Composable
 
 - **WHEN** `grep -rE "BackHandler" app/src/main/java/com/yy/writingwithai/`
-- **THEN** 0 匹配(Compose `BackHandler` 禁用;`OnBackPressedCallback` 是 androidx.activity API,不受此约束)
+- **THEN** 0 匹配(Compose `BackHandler` 禁用;`OnBackPressedCallback` 是 androidx.activity API，不受此约束)
 
 #### Scenario: 主页 back 走 OnBackPressedCallback + Toast 二次确认
 
@@ -29,12 +29,12 @@
 #### Scenario: 主页首次 back 触发 Toast + App 保持前台
 
 - **WHEN** 用户在主页首次 back;`lastBackPressAt` 初始 0
-- **THEN** `now - lastBackPressAt > 2000L` → `lastBackPressAt = now` + Toast "再按一次退出应用" 显示;`backCallback.isEnabled` 保持 true;App 不 finish,留在主页
+- **THEN** `now - lastBackPressAt > 2000L` → `lastBackPressAt = now` + Toast "再按一次退出应用" 显示;`backCallback.isEnabled` 保持 true;App 不 finish，留在主页
 
 #### Scenario: 主页 2s 内再次 back 触发 finish
 
 - **WHEN** 用户在主页 2s 内再次 back;`lastBackPressAt` 已记录
-- **THEN** `now - lastBackPressAt <= 2000L` → `backCallback.isEnabled = false` + `onBackPressedDispatcher.onBackPressed()`(递归调用,callback 已 disabled → dispatcher 走默认 → Activity.finish())→ App 退 launcher
+- **THEN** `now - lastBackPressAt <= 2000L` → `backCallback.isEnabled = false` + `onBackPressedDispatcher.onBackPressed()`(递归调用，callback 已 disabled → dispatcher 走默认 → Activity.finish())→ App 退 launcher
 
 #### Scenario: 主页 2s 后 back 重新触发 Toast(窗口重置)
 

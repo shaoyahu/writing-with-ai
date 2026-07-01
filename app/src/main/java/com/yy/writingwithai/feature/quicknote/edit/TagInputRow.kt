@@ -24,7 +24,7 @@ import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 
 /**
- * Tag 输入行:已挂 tag 用 [InputChip] 渲染(可删除),末尾 [OutlinedTextField] 接收新 tag。
+ * Tag 输入行:已挂 tag 用 [InputChip] 渲染(可删除)，末尾 [OutlinedTextField] 接收新 tag。
  *
  * - 逗号或回车触发 [onAddTag]
  * - chip 删除图标触发 [onRemoveTag]

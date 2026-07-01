@@ -68,7 +68,7 @@ class MediumR3FixesTest {
     }
 
     /**
-     * fix-M2(feishu MEDIUM):UnknownHostException detail 必须以 "host=" 开头,
+     * fix-M2(feishu MEDIUM):UnknownHostException detail 必须以 "host=" 开头，
      * SSLException 必须以 "ssl=" 开头。便于上层做 retry scope 决策。
      */
     @Test
@@ -115,9 +115,9 @@ class MediumR3FixesTest {
 
     /**
      * fix-M1(feishu MEDIUM):body read 阶段(readByteArray) 抛 CancellationException
-     * 必须 rethrow,不能被包成 NetworkError。
+     * 必须 rethrow，不能被包成 NetworkError。
      *
-     * 简单做:用 connect timeout 0 让 OkHttp 立刻中断,然后在协程内取消,
+     * 简单做:用 connect timeout 0 让 OkHttp 立刻中断，然后在协程内取消，
      * 验证抛 CancellationException 而不是 NetworkError。
      */
     @Test
@@ -191,8 +191,8 @@ class MediumR3FixesTest {
 }
 
 /**
- * 临时 in-memory store,与 PendingExchangeContractTest.InMemoryFeishuAuthStore 等价
- * 但接受 createdAt 参数,便于测试 TTL 边界。
+ * 临时 in-memory store，与 PendingExchangeContractTest.InMemoryFeishuAuthStore 等价
+ * 但接受 createdAt 参数，便于测试 TTL 边界。
  */
 private class InMemoryFeishuAuthStoreTTL {
     private var pendingCode: String? = null

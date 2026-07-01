@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M4-3 · ZipHelper 单元测试(JUnit5,无 MockK,纯字节 round-trip)。
+ * M4-3 · ZipHelper 单元测试(JUnit5，无 MockK，纯字节 round-trip)。
  *
  * 覆盖 spec §"测试覆盖导出 / 导入 / 去重" 场景:
  * - writeZip → readZip 一致

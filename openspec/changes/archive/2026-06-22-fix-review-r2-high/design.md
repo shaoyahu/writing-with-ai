@@ -164,7 +164,7 @@ interface AiGateway {
 - 删 L114-117 runBlocking
 - 删 L167-178 resolveProviderFlow 整个函数
 - `streamWritingOp` 用 caller 传入的 `request.apiFormatOverride`(`request` 已经有 `apiFormatOverride` 字段)
-- `ping` 已在 suspend 上下文,可 await `providerPrefsStore.getApiFormat(providerId)`
+- `ping` 已在 suspend 上下文，可 await `providerPrefsStore.getApiFormat(providerId)`
 
 ### 改 `feature/aiwriting/streaming/AiActionViewModel.kt:109-126`
 
@@ -198,7 +198,7 @@ fun pingFromForm(
         _pingState.value = PingState.Pinging
         val apikey = secureApiKeyStore.get(providerId)?.takeIf { it.isNotBlank() }
         if (apikey == null) {
-            _pingState.value = PingState.Failed("apikey 未配置,请先在 apikey 区域填写")
+            _pingState.value = PingState.Failed("apikey 未配置，请先在 apikey 区域填写")
             return@launch
         }
         val reason = coreAiGateway.ping(providerId, apikey, model, apiFormat)
@@ -252,11 +252,11 @@ suspend fun record(...) {
 ```kotlin
 val idx = originalContent.indexOf(sourceText)
 if (idx < 0) {
-    _state.value = AiActionUiState.Failed(op = op, error = AiError.Unknown(null, "原文已被修改,请重新生成"))
+    _state.value = AiActionUiState.Failed(op = op, error = AiError.Unknown(null, "原文已被修改，请重新生成"))
     return@withContext
 }
 if (originalContent.indexOf(sourceText, idx + sourceText.length) >= 0) {
-    _state.value = AiActionUiState.Failed(op = op, error = AiError.Unknown(null, "原文有多处匹配,请手动选择"))
+    _state.value = AiActionUiState.Failed(op = op, error = AiError.Unknown(null, "原文有多处匹配，请手动选择"))
     return@withContext
 }
 val updatedContent = originalContent.replaceRange(idx, idx + sourceText.length, aiText)
@@ -272,7 +272,7 @@ val updatedContent = originalContent.replaceRange(idx, idx + sourceText.length, 
 
 ### 改 `feature/quicknote/detail/QuickNoteDetailViewModel.kt:46-84`
 
-合并双 launch,删 `noteUpdateEvents` listener 路径,删 Log.d。
+合并双 launch，删 `noteUpdateEvents` listener 路径，删 Log.d。
 
 ## 验收
 

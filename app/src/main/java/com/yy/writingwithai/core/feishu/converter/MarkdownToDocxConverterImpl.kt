@@ -21,7 +21,7 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
         var i = 0
         while (i < lines.size) {
             val raw = lines[i]
-            // r2 修:统一 trimStart 一次,后续分支只看 trimmed line
+            // r2 修:统一 trimStart 一次，后续分支只看 trimmed line
             val line = raw.trimStart()
 
             // 空行跳过
@@ -31,8 +31,8 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
             }
 
             // 代码块:连续 ``` 包围
-            // fix-2026-06-26-review-r3 HIGH H10:open fence 也用 isFenceOpen 校验,要求行首
-            // 无缩进,避免误把 4+ 空格缩进的 ``` 当作代码块开始。
+            // fix-2026-06-26-review-r3 HIGH H10:open fence 也用 isFenceOpen 校验，要求行首
+            // 无缩进，避免误把 4+ 空格缩进的 ``` 当作代码块开始。
             if (isFenceOpen(raw)) {
                 val (codeBlock, next) = parseCodeBlock(lines, i)
                 blocks += codeBlock
@@ -153,7 +153,7 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
     }
 
     /**
-     * 段落边界判定:对齐主 when 分支的判定逻辑,允许首字符缩进。
+     * 段落边界判定:对齐主 when 分支的判定逻辑，允许首字符缩进。
      * 规则:非空 + 不匹配 heading/quote/divider/bullet/ordered/code 起始。
      */
     private fun isParagraphContinuation(line: String): Boolean {
@@ -172,7 +172,7 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
     /**
      * fix-2026-06-26-review-r3 HIGH H10:code-fence 判定。
      * CommonMark 规范:open/close fence 行首最多 3 空格缩进;4+ 空格是普通文本。
-     * 此处要求行首无空白,与 spec "严格 fence" 一致 — 避免误把缩进段落当作 fence。
+     * 此处要求行首无空白，与 spec "严格 fence" 一致 — 避免误把缩进段落当作 fence。
      */
     private fun isFenceOpen(line: String): Boolean =
         !line.isBlank() && line.startsWith("```") && !line.startsWith("    ```")
@@ -190,7 +190,7 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
      * 行内解析:`**bold**` / `*italic*` / `` `code` `` / `[text](url)`。
      *
      * 优先级:链接 > code(`) > bold(**) > italic(*)。
-     * 实现:按 token 顺序扫,识别后切片,剩余字符串继续。
+     * 实现:按 token 顺序扫，识别后切片，剩余字符串继续。
      */
     internal fun parseRuns(text: String): List<Run> {
         if (text.isEmpty()) return listOf(Run(text = ""))

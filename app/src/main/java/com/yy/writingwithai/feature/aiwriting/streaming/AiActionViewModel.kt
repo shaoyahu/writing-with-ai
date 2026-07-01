@@ -45,8 +45,8 @@ import kotlinx.coroutines.withContext
  *
  * 公开 API:
  * - `start(op, sourceText, noteId)` — 启动流(consent gate 在内)
- * - `acceptReplace()` — Done 态接受,落库 + 写 lastAiOp
- * - `reject()` — Done 态拒绝,不替换
+ * - `acceptReplace()` — Done 态接受，落库 + 写 lastAiOp
+ * - `reject()` — Done 态拒绝，不替换
  * - `cancel()` — Streaming 态取消
  * - `dismiss()` — 任何态关闭(等同 cancel + 状态重置)
  * - `regenerate()` — Done 态用上次 op / sourceText / noteId 重跑
@@ -74,8 +74,8 @@ constructor(
     }
 
     init {
-        // review-M1:初始化期 eager 拉一次 provider list,把 id → defaultModel 缓存进
-        // [defaultModelsByProvider]。start() 命中即用,避免每次 AI 调用穿透到
+        // review-M1:初始化期 eager 拉一次 provider list，把 id → defaultModel 缓存进
+        // [defaultModelsByProvider]。start() 命中即用，避免每次 AI 调用穿透到
         // CustomProviderStore.getAll()。失败保持空 map 走 start() fallback inline。
         viewModelScope.launch {
             try {
@@ -91,10 +91,10 @@ constructor(
 
     /**
      * review r2 修:删 `runBlocking` 同步读取 consent/ack — 在 ViewModel 构造函数中
-     * runBlocking 阻塞主线程等待 DataStore,冷启动或低端设备上可能 ANR;且构造时快照
+     * runBlocking 阻塞主线程等待 DataStore，冷启动或低端设备上可能 ANR;且构造时快照
      * 在用户同一会话内完成 onboarding 后仍为 false,AI 调用被错误阻断。
-     * 改为在 start() 内异步读取最新 consent 状态,同时解决 ANR + 快照过期两个问题。
-     * 首次 `consentFlow.first()` 在 DataStore 冷启动时约 50ms,但在 suspend 上下文
+     * 改为在 start() 内异步读取最新 consent 状态，同时解决 ANR + 快照过期两个问题。
+     * 首次 `consentFlow.first()` 在 DataStore 冷启动时约 50ms，但在 suspend 上下文
      * 内不阻塞主线程。
      */
 
@@ -103,16 +103,16 @@ constructor(
 
     private var streamJob: Job? = null
 
-    // review-M1:start() 每次调 aiGateway.listProviders() 拿 defaultModel,频繁触发
+    // review-M1:start() 每次调 aiGateway.listProviders() 拿 defaultModel，频繁触发
     // CustomProviderStore.getAll()(潜在 Room query)。在 VM 构造时 eager 拉一次缓
     // 存到 MutableStateFlow,start() 命中缓存即用;缓存 miss(冷启动 init 块未完成
-    // 极窄窗口、或用户 mid-session 加 custom provider)走 fallback inline,行为不
+    // 极窄窗口、或用户 mid-session 加 custom provider)走 fallback inline，行为不
     // 退化但摊销单次 Remote/Local query。
     private val defaultModelsByProvider = MutableStateFlow<Map<String, String>>(emptyMap())
 
     // fix-2026-06-26-review-r3 M6:`streamJob?.cancel()` 之后旧协程可能还在 `_state.update`
-    // 调用栈上(cancel 是异步),新协程已置 Streaming → 旧协程在取消检查点前最后 emit
-    // 一条 Delta / Failed 覆盖新状态。加一个 generation 计数器,emit 前比对,不一致就丢。
+    // 调用栈上(cancel 是异步)，新协程已置 Streaming → 旧协程在取消检查点前最后 emit
+    // 一条 Delta / Failed 覆盖新状态。加一个 generation 计数器，emit 前比对，不一致就丢。
     @Volatile
     private var streamGeneration: Int = 0
     private var lastOp: WritingOp? = null
@@ -123,7 +123,7 @@ constructor(
 
     fun start(op: WritingOp, sourceText: String, noteId: String) {
         streamJob?.cancel()
-        // M6 fix:bump generation,旧协程(若仍在跑)将被 generation 比对拒绝写状态。
+        // M6 fix:bump generation，旧协程(若仍在跑)将被 generation 比对拒绝写状态。
         val currentGeneration = streamGeneration + 1
         streamGeneration = currentGeneration
         lastOp = op
@@ -132,7 +132,7 @@ constructor(
         lastUsage = null
         lastOriginalContent = null
         // review r2 修:consent/ack gate 改为异步读取最新值(删 runBlocking 同步快照),
-        // 用户在同一详情页会话内完成 onboarding 后,下次 start() 能拿到最新 consent。
+        // 用户在同一详情页会话内完成 onboarding 后，下次 start() 能拿到最新 consent。
         streamJob =
             viewModelScope.launch {
                 val consented = consentStore.isConsented(com.yy.writingwithai.BuildConfig.CONSENT_VERSION)
@@ -167,10 +167,10 @@ constructor(
                     return@launch
                 }
                 // fix-2026-06-28-ai-model-selection-actually-used:start() 内显式算
-                // actualModel(走 resolveActualModel),与 `ModelManagementScreen` 卡片
-                // 算法一致;透传 modelName 给 gateway,UI Streaming state 同步携带,
+                // actualModel(走 resolveActualModel)，与 `ModelManagementScreen` 卡片
+                // 算法一致;透传 modelName 给 gateway,UI Streaming state 同步携带，
                 // 让用户在 AI 跑的时候看到"正在用 X"。
-                // review-M1:defaultModel 优先走 [defaultModelsByProvider] 缓存,cache miss
+                // review-M1:defaultModel 优先走 [defaultModelsByProvider] 缓存，cache miss
                 // 时 (冷启动 init 块未完成、或 mid-session 加 custom provider) fallback
                 // inline 再拉一次 listProviders。摊销单次 Remote/Local query。
                 val selectedModel = providerPrefsStore.getSelectedModel(providerId)
@@ -207,8 +207,8 @@ constructor(
                         when (event) {
                             is AiStreamEvent.Started -> Unit
                             is AiStreamEvent.Delta -> {
-                                // H21 fix:不再 `builder.toString()` 整段 emit,改为单次
-                                // delta chunk + 累加长度;UI 自行拼接,O(n) 内存。
+                                // H21 fix:不再 `builder.toString()` 整段 emit，改为单次
+                                // delta chunk + 累加长度;UI 自行拼接，O(n) 内存。
                                 builder.append(event.text)
                                 _state.update {
                                     AiActionUiState.Streaming(
@@ -242,8 +242,8 @@ constructor(
 
     /**
      * M5 polish · provider-real-integration:从 [ProviderPrefsStore] 拿用户选定
-     * M13 修:删 `resolveProviderId()` 死代码(r1 已建议,本轮清)— `start()` 直接 inline 逻辑,
-     * 没 caller,留函数只会跟着演化走偏。
+     * M13 修:删 `resolveProviderId()` 死代码(r1 已建议，本轮清)— `start()` 直接 inline 逻辑，
+     * 没 caller，留函数只会跟着演化走偏。
      */
 
     fun acceptReplace() {
@@ -263,7 +263,7 @@ constructor(
         viewModelScope.launch {
             // fix-2026-06-26-review-r3 H18:原实现 return@withContext 只跳出 NonCancellable,
             // 外层仍执行 `_state.value = Replaced` 覆盖内层已写入的 Failed。
-            // 改为整个状态机决策放在 NonCancellable 内部,内层统一返回 success/failure 标志。
+            // 改为整个状态机决策放在 NonCancellable 内部，内层统一返回 success/failure 标志。
             val outcome: Boolean
             try {
                 outcome = withContext(NonCancellable) {
@@ -271,20 +271,20 @@ constructor(
                     val existing = existingFlow.first() ?: return@withContext false
                     val now = System.currentTimeMillis()
                     val originalContent = existing.note.content
-                    // H6 修:`String.replace(sourceText, aiText)` 在原文不含 / 多次匹配时静默,
-                    // 改用 indexOf 严格校验,缺失/多匹配 emit Failed,避免"接受了但内容没动"。
+                    // H6 修:`String.replace(sourceText, aiText)` 在原文不含 / 多次匹配时静默，
+                    // 改用 indexOf 严格校验，缺失/多匹配 emit Failed，避免"接受了但内容没动"。
                     val idx = originalContent.indexOf(sourceText)
                     if (idx < 0) {
                         _state.value = AiActionUiState.Failed(
                             op = op,
-                            error = AiError.Unknown(null, "原文已被修改,请重新生成")
+                            error = AiError.Unknown(null, "原文已被修改，请重新生成")
                         )
                         return@withContext false
                     }
                     if (originalContent.indexOf(sourceText, idx + sourceText.length) >= 0) {
                         _state.value = AiActionUiState.Failed(
                             op = op,
-                            error = AiError.Unknown(null, "原文有多处匹配,请手动选择")
+                            error = AiError.Unknown(null, "原文有多处匹配，请手动选择")
                         )
                         return@withContext false
                     }
@@ -308,15 +308,15 @@ constructor(
             }
             // H7 修:删 `delay(150)` + `tryEmit` 强刷 + 误导 Log.d。
             // Room Flow 是 single source of truth,`NonCancellable { upsert }` 退栈时
-            // invalidation 已传播,detail VM 主路径 Flow 自然收到更新,无需 push 强刷。
-            // H18 fix:仅当 NonCancellable 块返回 true 才置 Replaced,避免覆盖 Failed。
+            // invalidation 已传播，detail VM 主路径 Flow 自然收到更新，无需 push 强刷。
+            // H18 fix:仅当 NonCancellable 块返回 true 才置 Replaced，避免覆盖 Failed。
             if (outcome) {
                 _state.value = AiActionUiState.Replaced(op = op)
             }
         }
     }
 
-    /** 撤回 AI 替换,恢复原始内容。 */
+    /** 撤回 AI 替换，恢复原始内容。 */
     fun undo() {
         val noteId = lastNoteId ?: return
         val original = lastOriginalContent ?: return
@@ -333,7 +333,7 @@ constructor(
                 lastOriginalContent = null
                 _state.value = AiActionUiState.Idle
             } catch (e: Exception) {
-                // M14 修:跟 acceptReplace 一致,DB 写异常 → Failed 而不是 stuck Replaced 态无法撤回。
+                // M14 修:跟 acceptReplace 一致，DB 写异常 → Failed 而不是 stuck Replaced 态无法撤回。
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 val currentOp = (_state.value as? AiActionUiState.Replaced)?.op ?: WritingOp.POLISH
                 if (BuildConfig.DEBUG) android.util.Log.e("AiVM", "undo failed", e)
@@ -352,15 +352,15 @@ constructor(
 
     fun cancel() {
         if (_state.value !is AiActionUiState.Streaming) return
-        // fix-2026-06-30-full-review-r1 HIGH H2:bump generation,旧协程在 cancel window
-        // 期间残余的 Delta/Failed/Done 事件被 generation 检查过滤掉,不再覆盖 Idle。
+        // fix-2026-06-30-full-review-r1 HIGH H2:bump generation，旧协程在 cancel window
+        // 期间残余的 Delta/Failed/Done 事件被 generation 检查过滤掉，不再覆盖 Idle。
         streamGeneration++
         streamJob?.cancel()
         _state.value = AiActionUiState.Idle
     }
 
     fun dismiss() {
-        // fix-2026-06-30-full-review-r1 HIGH H2:同 cancel,旧协程残余事件不能覆盖 Idle。
+        // fix-2026-06-30-full-review-r1 HIGH H2:同 cancel，旧协程残余事件不能覆盖 Idle。
         streamGeneration++
         streamJob?.cancel()
         lastOriginalContent = null

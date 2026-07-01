@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * spec: openspec/changes/onboarding-apikey-prompt/tasks.md §7.1
  *
  * animation-system 扩展:同步 + `animationStyleFlow` / `setAnimationStyle`,`seedAnimationStyle`
- * 测试 hook 支持注入初值(包括未知 String 走解析失败路径,与 [UserPrefsStoreImpl.parseAnimationStyleOrNull] 行为一致)。
+ * 测试 hook 支持注入初值(包括未知 String 走解析失败路径，与 [UserPrefsStoreImpl.parseAnimationStyleOrNull] 行为一致)。
  */
 @Singleton
 class FakeUserPrefsStore

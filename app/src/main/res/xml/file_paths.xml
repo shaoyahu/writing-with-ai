@@ -3,7 +3,7 @@
   app-self-hosted-update · FileProvider path mapping.
   对应 ApkDownloader 用 setDestinationInExternalFilesDir(DOWNLOADS, "app-update/"),
   落点 = getExternalFilesDir(DIRECTORY_DOWNLOADS)/app-update/{filename}.apk
-  FileProvider 通过 external-files-path 暴露,FileProvider.getUriForFile 拿 content URI。
+  FileProvider 通过 external-files-path 暴露，FileProvider.getUriForFile 拿 content URI。
 -->
 <paths>
     <external-files-path

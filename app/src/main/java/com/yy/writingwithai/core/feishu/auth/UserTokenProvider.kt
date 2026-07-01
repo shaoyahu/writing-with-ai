@@ -25,9 +25,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 /**
  * feishu-user-oauth · 飞书用户 OAuth token 管理(最新 v2 协议)。
  *
- * ux-2026-06-29:按官方三篇文档重写,抛弃 cac0003 用的 OIDC v1 废弃协议。
+ * ux-2026-06-29:按官方三篇文档重写，抛弃 cac0003 用的 OIDC v1 废弃协议。
  *
- * **完整协议 + 字段表 + 错误码见 `docs/usage/api-feishu.md`**。任何字段疑问先查那篇,
+ * **完整协议 + 字段表 + 错误码见 `docs/usage/api-feishu.md`**。任何字段疑问先查那篇，
  * **不要瞎猜**(历史踩坑:漏 `redirect_uri` → 飞书返回 20063 "请求体缺少必要字段" 且 msg 空)。
  *
  * 官方文档:
@@ -70,9 +70,9 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
     /**
      * fix-2026-06-30-full-review-r1 HIGH H7:invalidate 写入 userState 之前抢 mutex,
      * 避免与 getToken() 内部 mutex 内的读 / mutex 外的 return 形成 race。
-     * 之前在 mutex 外写,getToken() 在 mutex 内读到 token,mutex 外 return 前 invalidate
-     * 抢先设 null,导致返回 null 抛 NotAuthorized。invalidate 改成 suspend + mutex
-     * 锁内执行,保证写与读在统一临界区。
+     * 之前在 mutex 外写，getToken() 在 mutex 内读到 token,mutex 外 return 前 invalidate
+     * 抢先设 null，导致返回 null 抛 NotAuthorized。invalidate 改成 suspend + mutex
+     * 锁内执行，保证写与读在统一临界区。
      */
     suspend fun invalidate() {
         refreshMutex.withLock {
@@ -89,7 +89,7 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
     suspend fun exchangeCode(appId: String, appSecret: String, code: String, redirectUri: String) =
         withContext(Dispatchers.IO) {
             refreshMutex.withLock {
-                // 持久化 secret — 成功后**保留**(refresh 流程要用),失败才清
+                // 持久化 secret — 成功后**保留**(refresh 流程要用)，失败才清
                 store.persistAppSecret(REQUEST_ID_OAUTH, appSecret)
                 try {
                     val body = buildJsonObject {
@@ -97,19 +97,19 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
                         put("client_id", appId)
                         put("client_secret", appSecret)
                         put("code", code)
-                        // 关键:redirect_uri 必需,漏了飞书返回 20063 "请求体缺少必要字段"
+                        // 关键:redirect_uri 必需，漏了飞书返回 20063 "请求体缺少必要字段"
                         put("redirect_uri", redirectUri)
                     }.toString()
                     val data = postJson(TOKEN_URL, body)
                     persistUserTokenLocked(data, appId)
                 } catch (e: kotlin.coroutines.cancellation.CancellationException) {
-                    // fix-MEDIUM(feishu M4):进程被杀导致取消,保留 appSecret 让下次冷启动
+                    // fix-MEDIUM(feishu M4):进程被杀导致取消，保留 appSecret 让下次冷启动
                     // resume pending exchange 时仍能完成 token 交换(与 OAuthCodeReceiver.persistPendingExchange 配合)。
                     throw e
                 } catch (e: Throwable) {
                     // fix-MEDIUM(feishu M4):exchange 失败时清掉 stale appSecret —
                     // 否则下次启动 store.getAppSecretSnapshot("oauth") 仍能拿到旧 secret,
-                    // 但对应 code/refreshToken 已失效,造成"看上去授权完成但实际用旧 secret"的语义错乱。
+                    // 但对应 code/refreshToken 已失效，造成"看上去授权完成但实际用旧 secret"的语义错乱。
                     store.clearAppSecret(REQUEST_ID_OAUTH)
                     throw e
                 }
@@ -146,7 +146,7 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
     /** 把 access_token + refresh_token 落 store + 缓存 — caller holds mutex */
     private suspend fun persistUserTokenLocked(data: JsonObject, appId: String) {
         val now = System.currentTimeMillis()
-        // fix H7:expires_in parse fail fallback 60s (保守),原 7000s 静默接受 2h token 危险
+        // fix H7:expires_in parse fail fallback 60s (保守)，原 7000s 静默接受 2h token 危险
         val ttlSec = data.str("expires_in").toLongOrNull()
             ?: run {
                 Log.w(TAG, "expires_in parse failed, fallback to ${FALLBACK_PARSE_TTL_S}s")
@@ -167,15 +167,15 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
     }
 
     /**
-     * POST JSON → 返回根 JsonObject(响应字段顶层,无 data 包装)。
+     * POST JSON → 返回根 JsonObject(响应字段顶层，无 data 包装)。
      * v2 协议不需要 Authorization header。
      */
     private suspend fun postJson(url: String, jsonBody: String): JsonObject {
         return withContext(Dispatchers.IO) {
             val req = Request.Builder().url(url).post(jsonBody.toRequestBody(JSON)).build()
-            // 诊断日志:飞书 20063 等业务错误 msg 字段常为空,需要看完整 body
+            // 诊断日志:飞书 20063 等业务错误 msg 字段常为空，需要看完整 body
             // 定位是缺字段 / redirect_uri 不匹配 / client_secret 错 / code 过期 等。
-            // body 不能直接 log(可能含 client_secret),改 log 脱敏后 body。
+            // body 不能直接 log(可能含 client_secret)，改 log 脱敏后 body。
             Log.i(TAG, "postJson: url=$url body=${sanitizeBodyForLog(jsonBody)}")
             val resp = try {
                 httpClient.newCall(req).execute()
@@ -206,7 +206,7 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
         }
     }
 
-    /** 脱敏 body:client_secret / code / refresh_token 替换成 ****,避免 logcat 泄露。 */
+    /** 脱敏 body:client_secret / code / refresh_token 替换成 ****，避免 logcat 泄露。 */
     private fun sanitizeBodyForLog(body: String): String {
         return body
             .replace(Regex("\"client_secret\"\\s*:\\s*\"[^\"]+\""), "\"client_secret\":\"****\"")
@@ -219,7 +219,7 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
     companion object {
         private const val TAG = "UserTokenProvider"
 
-        // v2 token endpoint(官方推荐,OIDC v1 已废弃)
+        // v2 token endpoint(官方推荐，OIDC v1 已废弃)
         private const val TOKEN_URL = "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
         private const val REFRESH_LEAD_MS = 5 * 60 * 1000L
 

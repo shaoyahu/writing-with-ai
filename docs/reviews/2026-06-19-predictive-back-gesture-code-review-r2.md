@@ -9,7 +9,7 @@
 
 ## 总结
 
-**r1 全部 12 项修复通过,无新引入 bug。** 0 个非 PascalCase 违规(ktlintCheck 仅 17 个已知 Compose PascalCase,同 M0 follow-up)。
+**r1 全部 12 项修复通过，无新引入 bug。** 0 个非 PascalCase 违规(ktlintCheck 仅 17 个已知 Compose PascalCase，同 M0 follow-up)。
 
 | 评判 | 数量 |
 | --- | --- |
@@ -42,17 +42,17 @@ internal fun Context.launchWithTaskStack(route: String) {
 }
 ```
 
-不再 soft 降级。`TaskStackBuilder.startActivities()` 显式构造 launcher→MainActivity 回退栈,跨 AOSP / 国产 ROM 行为一致。
+不再 soft 降级。`TaskStackBuilder.startActivities()` 显式构造 launcher→MainActivity 回退栈，跨 AOSP / 国产 ROM 行为一致。
 
 `QuickNoteWidget.kt createNoteIntent(context)` + `OpenNoteAction.onAction` 改走 `context.launchWithTaskStack(route)`。
 
-注:`createNoteIntent` 仍返回 `Intent`(占位),call site `actionStartActivity(createNoteIntent(context))` 编译过 — Glance 1.1.x `actionStartActivity(Intent)` 接 `Intent`,但实际 Activity 启动已由 `launchWithTaskStack` 的 `startActivities()` 触发,返回 Intent 仅占位(M4-2 r2 kdoc 已说明)。
+注:`createNoteIntent` 仍返回 `Intent`(占位),call site `actionStartActivity(createNoteIntent(context))` 编译过 — Glance 1.1.x `actionStartActivity(Intent)` 接 `Intent`，但实际 Activity 启动已由 `launchWithTaskStack` 的 `startActivities()` 触发，返回 Intent 仅占位(M4-2 r2 kdoc 已说明)。
 
 ### H2 · requestCode const dead code 已删 ✅ PASS
 
 `WidgetIntentHelpers.kt` 删 `REQUEST_CODE_CREATE / REQUEST_CODE_OPEN` 两个 `@Suppress("unused") const`。`startActivities()` 不需要 requestCode(那是 `getPendingIntent` API 的参数)。
 
-spec §"JUnit5 Robolectric tests cover TaskStackBuilder flag" 不再适用(M4-2 实现走 `startActivities()` 不创建 PendingIntent,无 flag 可测)— L4 测试项作 N/A(spec 实现与测试期望不一致,留 M5 polish 改 spec 重写测试为"startActivities 被调"覆盖)。
+spec §"JUnit5 Robolectric tests cover TaskStackBuilder flag" 不再适用(M4-2 实现走 `startActivities()` 不创建 PendingIntent，无 flag 可测)— L4 测试项作 N/A(spec 实现与测试期望不一致，留 M5 polish 改 spec 重写测试为"startActivities 被调"覆盖)。
 
 ### H3 · OpenNoteAction 改走 launchWithTaskStack ✅ PASS
 
@@ -65,11 +65,11 @@ override suspend fun onAction(context, glanceId, parameters) {
 }
 ```
 
-不再裸 `context.startActivity(Intent)`,与 H1 同根因 — widget 笔记项 click → 详情页 → 系统 back → launcher 桌面(跨 ROM 一致)。
+不再裸 `context.startActivity(Intent)`，与 H1 同根因 — widget 笔记项 click → 详情页 → 系统 back → launcher 桌面(跨 ROM 一致)。
 
 ### M1 · 任务栈描述 ✅ PASS
 
-同 H1。`TaskStackBuilder.create().addNextIntentWithParentStack().startActivities()` 真正等价 spec §"M4-2 spec 注"的描述,不再 soft 降级。
+同 H1。`TaskStackBuilder.create().addNextIntentWithParentStack().startActivities()` 真正等价 spec §"M4-2 spec 注"的描述，不再 soft 降级。
 
 ### M2 · `QuickNoteWidget.kt:253` FQCN → import ✅ PASS
 
@@ -84,7 +84,7 @@ internal fun createNoteIntent(context: Context): Intent {
 
 `android.content.Intent` FQCN 改 import 顶部;`import com.yy.writingwithai.app.MainActivity` 加回(被 M4-2 apply 误删后本轮补回);签名 `: Intent`(无 FQCN)。
 
-### M3 · `<activity>` 没声明 launchMode ✅ PASS(N/A,加注释建议)
+### M3 · `<activity>` 没声明 launchMode ✅ PASS(N/A，加注释建议)
 
 `AndroidManifest.xml` 加注释:
 
@@ -96,9 +96,9 @@ launchMode 仍保持 M0 默认 `standard`(实测 widget Intent `FLAG_ACTIVITY_CL
 
 ### M4 · AppNav.kt if-else-wrapping ✅ PASS
 
-M4-2 apply 已修:`AppNav.kt:75` `if (id.isNotBlank()) { navController.navigate(QuicknoteDetail(id)) { popUpTo(QuicknoteList) { inclusive = true } } }`,加 `{}` body。
+M4-2 apply 已修:`AppNav.kt:75` `if (id.isNotBlank()) { navController.navigate(QuicknoteDetail(id)) { popUpTo(QuicknoteList) { inclusive = true } } }`，加 `{}` body。
 
-spec §"AppNav LaunchedEffect initialRoute MUST 不动" 验证项:**N/A 失败**(M4-2 apply 改了 detail 路径语法)— r2 报告 spec 写法"不动"过于绝对,本轮证明 detail 路径也有 M4-1 r2 漏修的 if-else-wrapping。
+spec §"AppNav LaunchedEffect initialRoute MUST 不动" 验证项:**N/A 失败**(M4-2 apply 改了 detail 路径语法)— r2 报告 spec 写法"不动"过于绝对，本轮证明 detail 路径也有 M4-1 r2 漏修的 if-else-wrapping。
 
 ---
 
@@ -122,7 +122,7 @@ kdoc 简化 1 行("M4-2 r2 修:走 launchWithTaskStack...")。
 
 ### L5 · OpenNoteAction.kt kdoc 过期 ✅ PASS
 
-kdoc 简化("M4-2 r2 修:走 launchWithTaskStack 真正用 TaskStackBuilder.startActivities,跨 AOSP / 国产 ROM back 行为一致(回 launcher 桌面)")。
+kdoc 简化("M4-2 r2 修:走 launchWithTaskStack 真正用 TaskStackBuilder.startActivities，跨 AOSP / 国产 ROM back 行为一致(回 launcher 桌面)")。
 
 ---
 
@@ -131,7 +131,7 @@ kdoc 简化("M4-2 r2 修:走 launchWithTaskStack 真正用 TaskStackBuilder.star
 | 项 | 说明 |
 | --- | --- |
 | `AndroidManifest.xml:4` 注释 | 改"M0 不申请任何权限;后续 M2 网络按需加。M4-1 widget / M4-2 predictive back 已落地。"(L3) |
-| `QuickNoteWidget.kt:260` `Intent(context, MainActivity::class.java)` | 加 import `com.yy.writingwithai.app.MainActivity`(被 linter 误删,本轮补回) |
+| `QuickNoteWidget.kt:260` `Intent(context, MainActivity::class.java)` | 加 import `com.yy.writingwithai.app.MainActivity`(被 linter 误删，本轮补回) |
 | `WidgetIntentHelpers.kt final-newline` | 加 newline(ktlint 要求) |
 
 ---
@@ -140,4 +140,4 @@ kdoc 简化("M4-2 r2 修:走 launchWithTaskStack 真正用 TaskStackBuilder.star
 
 r2 全过 → 可以 `openspec archive predictive-back-gesture -y` → 更新 `docs/progress.md` + `docs/plans/writing-with-ai-mobile-roadmap.md` §13 / §15.2 标 done。
 
-**注意**:r1 §"M4 · AppNav LaunchedEffect initialRoute MUST 不动" 验证项 N/A 失败(M4-2 apply 改了 detail 路径语法)— spec 写法"不动"过于绝对,应在 r2 archive 之前同步 spec 描述为"M4-1 r2 修过的 edit 路径保留,M4-2 apply 顺手修 detail 路径 if-else-wrapping"。本 r2 verify 已记录该 spec 偏差,M5 polish 改 spec 描述。
+**注意**:r1 §"M4 · AppNav LaunchedEffect initialRoute MUST 不动" 验证项 N/A 失败(M4-2 apply 改了 detail 路径语法)— spec 写法"不动"过于绝对，应在 r2 archive 之前同步 spec 描述为"M4-1 r2 修过的 edit 路径保留，M4-2 apply 顺手修 detail 路径 if-else-wrapping"。本 r2 verify 已记录该 spec 偏差，M5 polish 改 spec 描述。

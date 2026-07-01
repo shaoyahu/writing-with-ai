@@ -144,13 +144,13 @@ class NoteExporterTest {
                 e = zin.nextEntry
             }
         }
-        assertEquals(4, entries.size, "无 notes 时 MUST 只有 4 个 JSON,无 notes/*.md")
+        assertEquals(4, entries.size, "无 notes 时 MUST 只有 4 个 JSON，无 notes/*.md")
         assertTrue(entries.keys.none { it.startsWith("notes/") })
     }
 
     /**
-     * R3 fix M5 回归:tags 必须从 `observeNotesWithTags` 的 `NoteWithTags.tags` 派生,
-     * 不再单独读 `noteTagDao.observeAllCrossRefs()` —— 验证后者没被调,且 tag 内容正确。
+     * R3 fix M5 回归:tags 必须从 `observeNotesWithTags` 的 `NoteWithTags.tags` 派生，
+     * 不再单独读 `noteTagDao.observeAllCrossRefs()` —— 验证后者没被调，且 tag 内容正确。
      */
     @Test
     fun exportToJsonZip_tags_come_from_NoteWithTags_not_separate_dao_read() = runTest {

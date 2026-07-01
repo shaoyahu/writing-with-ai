@@ -56,9 +56,9 @@ interface NoteLinkDao {
         WHERE nl.srcNoteId = :noteId
         -- R3 fix M3:GROUP BY 只需聚合键(JOIN 唯一键 n.id = nl.dstNoteId)。
         -- 之前 GROUP BY nl.dstNoteId, n.title, n.content 把可能很长的 content 也塞进 GROUP BY,
-        -- SQLite 临时 B-tree 体积暴涨,大笔记库性能塌方。noteId 唯一 → 行天然唯一,无需附加列。
+        -- SQLite 临时 B-tree 体积暴涨，大笔记库性能塌方。noteId 唯一 → 行天然唯一，无需附加列。
         GROUP BY nl.dstNoteId
-        -- entity-extraction-polish §2.1:阈值由 caller 从 NoteAssociationSettingsStore 传入,SQL 不再硬编码。
+        -- entity-extraction-polish §2.1:阈值由 caller 从 NoteAssociationSettingsStore 传入，SQL 不再硬编码。
         HAVING score > :threshold
         ORDER BY score DESC
         LIMIT :limit
@@ -99,7 +99,7 @@ interface NoteLinkDao {
 /**
  * `getRelated` / `getBacklinks` 的行结果。
  *
- * - `signals` 是逗号分隔的 LinkType 名称(例:`WIKILINK,TAG_OVERLAP`),由调用方解析为 Set<LinkType>
+ * - `signals` 是逗号分隔的 LinkType 名称(例:`WIKILINK,TAG_OVERLAP`)，由调用方解析为 Set<LinkType>
  *   (避免 Room enum 类型转换的 TypeConverter 麻烦)
  */
 data class RelatedRow(

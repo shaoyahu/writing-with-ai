@@ -1,7 +1,7 @@
 ## 1. 数据层 — Room 实体与 DAO
 
-- [x] 1.1 新增 `FeishuRefEntity`(`feishu_ref` 表,PK `noteId`,FK CASCADE)
-- [x] 1.2 新增 `FeishuSyncEventEntity`(`feishu_sync_event` 表,索引 `createdAt`)
+- [x] 1.1 新增 `FeishuRefEntity`(`feishu_ref` 表，PK `noteId`,FK CASCADE)
+- [x] 1.2 新增 `FeishuSyncEventEntity`(`feishu_sync_event` 表，索引 `createdAt`)
 - [x] 1.3 新增 `FeishuRefDao`:upsert / getByNoteId / getByDocId / deleteByNoteId / listAllWithRef()
 - [x] 1.4 新增 `FeishuSyncEventDao`:insert / listLast20 / deleteOldestExceeding(100)
 - [x] 1.5 Room version `4 → 5` + AutoMigration
@@ -25,12 +25,12 @@
 - [x] 4.1 `feature/quicknote/detail/QuickNoteDetailScreen.kt` 增「...」菜单:
   - 同步到飞书
   - 从飞书链接拉取(弹 dialog 输入 docUrl)
-  - 在飞书中打开(有 ref 时才显示,跳 Custom Tabs 到 docUrl)
+  - 在飞书中打开(有 ref 时才显示，跳 Custom Tabs 到 docUrl)
 - [x] 4.2 `QuickNoteDetailViewModel` 加 push / pull / openFeishu actions
 
 ## 5. 冲突解决 UI
 
-- [x] 5.1 新建 `feature/quicknote/detail/ConflictResolutionDialog.kt`:三选一(保留本地 / 保留飞书 / 取消),默认焦点「保留飞书」
+- [x] 5.1 新建 `feature/quicknote/detail/ConflictResolutionDialog.kt`:三选一(保留本地 / 保留飞书 / 取消)，默认焦点「保留飞书」
 - [x] 5.2 `QuickNoteDetailViewModel` 监听 `feishu_ref.status = CONFLICT` → 自动弹 dialog
 - [x] 5.3 用户选择后调 `FeishuConflictResolver.resolve(...)` 写 ref + 触发 sync event
 
@@ -43,7 +43,7 @@
 ## 7. 同步日志
 
 - [x] 7.1 设置页「同步日志」section:`FeishuSyncEventDao.listLast20()` → list desc by createdAt
-- [x] 7.2 顶部 disclaimer:「同步不消耗 AI token,只调飞书 API」
+- [x] 7.2 顶部 disclaimer:「同步不消耗 AI token，只调飞书 API」
 - [x] 7.3 每条显示:时间 / 方向 / 状态 / 错误信息(若有)
 
 ## 8. Hilt 注入

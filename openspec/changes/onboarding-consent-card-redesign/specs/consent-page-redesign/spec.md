@@ -2,7 +2,7 @@
 
 ### Requirement: OnboardingScreen composes ConsentSectionCard list
 
-`OnboardingScreen` MUST 使用 `parseGroupedMarkdown` 把 privacy policy 按 H2 切片,并对每段渲染一个 `ConsentSectionCard`(不是裸 `MarkdownBlockView` 平铺);卡片首张默认 expanded,其余 collapsed;支持用户点击切换任一卡片 expanded 状态(多张可同时展开)。
+`OnboardingScreen` MUST 使用 `parseGroupedMarkdown` 把 privacy policy 按 H2 切片，并对每段渲染一个 `ConsentSectionCard`(不是裸 `MarkdownBlockView` 平铺);卡片首张默认 expanded，其余 collapsed;支持用户点击切换任一卡片 expanded 状态(多张可同时展开)。
 
 #### Scenario: 5 H2 sections render 5 ConsentSectionCard items
 - **WHEN** `parseGroupedMarkdown` 产出 5 个 `ConsentSection`
@@ -10,7 +10,7 @@
 
 #### Scenario: First card default expanded
 - **WHEN** `OnboardingScreen` 首次 compose
-- **THEN** `expandedSet = setOf(0)`,第 0 张 `ConsentSectionCard(expanded=true)`,第 1~4 张 `expanded=false`
+- **THEN** `expandedSet = setOf(0)`，第 0 张 `ConsentSectionCard(expanded=true)`，第 1~4 张 `expanded=false`
 
 #### Scenario: Card tap toggles expand
 - **WHEN** 用户点击第 2 张 collapsed 卡片头部
@@ -18,7 +18,7 @@
 
 ### Requirement: OnboardingScreen mounts ConsentProgressBar + ConsentBottomBar
 
-`OnboardingScreen` MUST 在卡片列表上方挂 `ConsentProgressBar(progress: Float)`,在卡片列表下方挂 `ConsentBottomBar(scrolledToBottom: Boolean, onAccept, onDecline)`;不再使用裸 `Button` + `OutlinedButton` + `Text` 拼装的旧底部栏。
+`OnboardingScreen` MUST 在卡片列表上方挂 `ConsentProgressBar(progress: Float)`，在卡片列表下方挂 `ConsentBottomBar(scrolledToBottom: Boolean, onAccept, onDecline)`;不再使用裸 `Button` + `OutlinedButton` + `Text` 拼装的旧底部栏。
 
 #### Scenario: ConsentProgressBar mount point
 - **WHEN** `OnboardingScreen` compose

@@ -31,11 +31,11 @@ constructor(
         val selfRows = entityDao.getByNoteId(srcNoteId)
         if (selfRows.isEmpty()) return emptyList()
 
-        // §4.2:用 alias 把全部 key 展开成 canonical,再 JOIN 查命中
+        // §4.2:用 alias 把全部 key 展开成 canonical，再 JOIN 查命中
         val rawKeys = selfRows.map { it.entityKey }
         val aliasRows = aliasDao.findByAliasKeys(rawKeys)
         val canonicalKeys = aliasRows.map { it.canonicalEntityKey }
-        // 保留 raw + canonical 全集(alias 把 xiaom 指向 xiaoming,搜 xiaom 和 xiaoming 都该命中)
+        // 保留 raw + canonical 全集(alias 把 xiaom 指向 xiaoming，搜 xiaom 和 xiaoming 都该命中)
         val expandedKeys = (rawKeys + canonicalKeys).distinct()
 
         // 用 srcNoteId 拿 shared hits(由 NoteEntityDao 内部 JOIN)

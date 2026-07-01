@@ -33,7 +33,7 @@ class SemanticNoteLinker @Inject constructor(
     }
 
     // TODO polish-review-r2 M6:SharedPreferences → DataStore 与项目其他 store 一致;
-    // 当前保留 SharedPreferences(binary 兼容老用户,功能 OK)。
+    // 当前保留 SharedPreferences(binary 兼容老用户，功能 OK)。
     private val ratePrefs = context.getSharedPreferences(PREFS_RATE, Context.MODE_PRIVATE)
 
     /** @return number of links persisted, or 0 if skipped / no candidates / error. */
@@ -49,7 +49,7 @@ class SemanticNoteLinker @Inject constructor(
 
         val query = sanitize(src.content).take(50)
             // H2 修:转义 `%` `_` `\` 与 Repository.observeNotesWithTags 行为对齐(DAO 用 `LIKE :q ESCAPE '\'`),
-            // 否则 `100\off` 这种含 `\` 的内容会让 SQLite `\o` 当转义,误匹配 `100*off`。
+            // 否则 `100\off` 这种含 `\` 的内容会让 SQLite `\o` 当转义，误匹配 `100*off`。
             .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         val q = "%$query%"
         val candidates = noteDao.search(q).first().filter { it.id != noteId }
@@ -102,7 +102,7 @@ class SemanticNoteLinker @Inject constructor(
                     weight = l.confidence.coerceIn(0f, 1f),
                     createdAt = now,
                     updatedAt = now,
-                    // M5 修:用 @Serializable 替代手动 JSON 拼接,
+                    // M5 修:用 @Serializable 替代手动 JSON 拼接，
                     // 避免 reason 含 `\n` / `\` / 控制字符破坏 JSON。
                     evidence = Json.encodeToString(
                         EvidenceDto.serializer(),
@@ -113,9 +113,9 @@ class SemanticNoteLinker @Inject constructor(
             linkCount = links.size
             if (links.isNotEmpty()) noteLinkDao.upsertAll(links)
             ratePrefs.edit().putLong("last_$noteId", now).apply()
-            // M7 修:删 recordHistory(...),由 CoreAiGateway.onCompletion 统一 record,避免双重 entry。
+            // M7 修:删 recordHistory(...)，由 CoreAiGateway.onCompletion 统一 record，避免双重 entry。
         } catch (e: TokenLimitExceeded) {
-            // fix r1:超 cap 不 record 计费(throw 在 collect 内,history 路径不到)
+            // fix r1:超 cap 不 record 计费(throw 在 collect 内，history 路径不到)
             android.util.Log.w(TAG, "LLM output exceeded $MAX_CHARS chars; cap triggered")
             return 0
         } catch (e: Exception) {
@@ -149,7 +149,7 @@ class SemanticNoteLinker @Inject constructor(
                 }
             )
         } catch (_: Exception) {
-            // 模型返回非 JSON / 截断,当作空链接处理(返回 0 link,不算错)。
+            // 模型返回非 JSON / 截断，当作空链接处理(返回 0 link，不算错)。
             NoteAssociationPrompt.LlmResponse(links = emptyList())
         }
     }
@@ -158,7 +158,7 @@ class SemanticNoteLinker @Inject constructor(
         .replace(Regex("\\s+"), " ").trim().take(200)
 
     // fix-2026-06-25-review-r1 H4:英文约 1 tok / 4 char,CJK 约 1.5 tok / 1 char;
-    // 之前 (length / 3.5) 把 1000 字中文估成 285,实际 1500,系统低估 5x 影响费用感知。
+    // 之前 (length / 3.5) 把 1000 字中文估成 285，实际 1500，系统低估 5x 影响费用感知。
     private fun estimateTokens(text: String): Int {
         val cjk = text.count { it in '一'..'鿿' }
         val other = text.length - cjk

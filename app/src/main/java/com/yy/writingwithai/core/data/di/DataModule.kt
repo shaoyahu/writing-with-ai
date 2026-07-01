@@ -35,8 +35,8 @@ object DataModule {
         val builder = Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
         // review r3 修 H7:DEBUG 模式不再调用 Room 的"版本不匹配时静默删库重建"方法。
         // 该调用在 debug 装旧版时静默抹掉用户全部数据(local notes / attachments / ai_history),
-        // 与用户预期(debug 仅是 dev 便利)严重不符。统一走 addMigrations 路径,
-        // 若缺 migration → Room 直接抛 IllegalStateException,逼开发者加迁移脚本。
+        // 与用户预期(debug 仅是 dev 便利)严重不符。统一走 addMigrations 路径，
+        // 若缺 migration → Room 直接抛 IllegalStateException，逼开发者加迁移脚本。
         builder.addMigrations(AppDatabase.MIGRATION_1_2)
         return builder.build()
     }

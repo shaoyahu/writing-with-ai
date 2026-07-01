@@ -62,12 +62,12 @@ import com.yy.writingwithai.core.feishu.auth.OAuthLauncher
  * UI 三态:
  * - DISCONNECTED / FAILED / CONFIGURED / TOKEN_FETCHING:appId + appSecret 输入 +
  *   回调地址展示 + 飞书开放后台配置步骤 + "登录飞书"按钮
- * - CONNECTED:已授权,显示断开按钮 + 同步日志
- * - KEYSTORE_UNAVAILABLE:加密 prefs 初始化失败,显示降级提示
+ * - CONNECTED:已授权，显示断开按钮 + 同步日志
+ * - KEYSTORE_UNAVAILABLE:加密 prefs 初始化失败，显示降级提示
  *
  * 流程(spec tasks 5.x):
  * 1. 用户输入 appId + appSecret(从飞书开放后台「应用凭证」页拿到)
- * 2. 点"登录飞书" → [OAuthLauncher.launch] 先持久化 appId + appSecret,再拉 Custom Tabs
+ * 2. 点"登录飞书" → [OAuthLauncher.launch] 先持久化 appId + appSecret，再拉 Custom Tabs
  * 3. 飞书回调 → [OAuthCodeReceiver] 校验 state + 读 appId/appSecret + 调 [UserTokenProvider.exchangeCode]
  * 4. 成功后 [FeishuAuthStore.authState] 切到 CONNECTED
  *
@@ -252,7 +252,7 @@ fun FeishuAuthScreen(onBack: () -> Unit, viewModel: FeishuAuthViewModel = hiltVi
  */
 @Composable
 private fun SetupStepsSection() {
-    // M4 fix:Composable 不应接收 Context 参数,内部用 LocalContext.current。
+    // M4 fix:Composable 不应接收 Context 参数，内部用 LocalContext.current。
     val ctx = LocalContext.current
     val redirectUri = OAuthLauncher.REDIRECT_URI
     val steps = listOf(
@@ -314,7 +314,7 @@ private fun SetupStepsSection() {
     }
 }
 
-/** ux-2026-06-28:回调 URL 复制到系统剪贴板,方便用户粘到飞书开放后台。 */
+/** ux-2026-06-28:回调 URL 复制到系统剪贴板，方便用户粘到飞书开放后台。 */
 private fun copyToClipboard(ctx: Context, text: String) {
     val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     cm.setPrimaryClip(ClipData.newPlainText("feishu_redirect_uri", text))

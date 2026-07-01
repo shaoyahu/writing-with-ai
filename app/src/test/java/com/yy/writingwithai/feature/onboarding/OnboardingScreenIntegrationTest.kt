@@ -16,7 +16,7 @@ import org.junit.Test
  * onboarding-consent-card-redesign · OnboardingScreen 集成单测。
  *
  * spec: openspec/changes/onboarding-consent-card-redesign/tasks.md §3
- * 不挂 Compose,纯函数测 3 个可测面:
+ * 不挂 Compose，纯函数测 3 个可测面:
  * 1. [parseGroupedMarkdown] 5 H2 → 5 sections
  * 2. summaryResolver 命中 5 stringRes
  * 3. [computeScrollProgress] 0 / 1 / 边界用例
@@ -41,8 +41,8 @@ class OnboardingScreenIntegrationTest {
         最后更新:2026-06-19
 
         ## 一、数据存储
-        本应用所有数据(**笔记、标签、AI 调用历史**)均存储在**您本机设备**上,不向任何服务器上传您的笔记内容。
-        我们**不**运营云端后端,**不**收集用户账户信息。卸载 App 即清除全部本地数据。
+        本应用所有数据(**笔记、标签、AI 调用历史**)均存储在**您本机设备**上，不向任何服务器上传您的笔记内容。
+        我们**不**运营云端后端，**不**收集用户账户信息。卸载 App 即清除全部本地数据。
 
         ## 二、AI 功能与数据流
         启用 AI 操作(扩写 / 润色 / 整理)时:

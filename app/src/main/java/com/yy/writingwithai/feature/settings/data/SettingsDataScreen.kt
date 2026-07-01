@@ -41,9 +41,9 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * fix-2026-06-26-review-r3 M2:SimpleDateFormat 提到顶层共享单例,避免每次重组 / 按钮 click
- * 重新构造。原实现内嵌在 `onClick` lambda 内,虽然 lambda 只在 click 触发时执行,但两个按钮
- * 各自 new 一份独立对象,格式化样式共享本应一份。
+ * fix-2026-06-26-review-r3 M2:SimpleDateFormat 提到顶层共享单例，避免每次重组 / 按钮 click
+ * 重新构造。原实现内嵌在 `onClick` lambda 内，虽然 lambda 只在 click 触发时执行，但两个按钮
+ * 各自 new 一份独立对象，格式化样式共享本应一份。
  */
 private val FILE_TS_FORMAT = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT)
 
@@ -77,7 +77,7 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
         when (val r = saveResult) {
             SaveReportResult.Idle -> Unit
             SaveReportResult.Success -> {
-                // review r1 H3 修:snackbar 文案改走 strings.xml(已存在的 key),不再硬编码中文。
+                // review r1 H3 修:snackbar 文案改走 strings.xml(已存在的 key)，不再硬编码中文。
                 snackbarHostState.showSnackbar(message = ctx.getString(R.string.settings_data_report_saved))
                 viewModel.resetSaveReportResult()
             }
@@ -135,7 +135,7 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
                         )
                     }
                     Spacer(Modifier.height(12.dp))
-                    // M4 修:r1 review。Idle 之外状态按钮置灰,避免用户重复触发。
+                    // M4 修:r1 review。Idle 之外状态按钮置灰，避免用户重复触发。
                     Button(
                         enabled = true,
                         onClick = { importLauncher.launch(arrayOf("application/zip")) },

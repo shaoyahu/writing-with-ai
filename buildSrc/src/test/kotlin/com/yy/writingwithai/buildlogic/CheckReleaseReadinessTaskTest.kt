@@ -1,6 +1,6 @@
-// release-preflight-automation:JVM 单测,覆盖 parseGrepOutput。
+// release-preflight-automation:JVM 单测，覆盖 parseGrepOutput。
 // 4 项 preflight 检查的 Gradle Task 自身(doLast)不便单测(依赖 Gradle runtime),
-// 关键逻辑 grep 解析抽出后,4 个 case 足以锁住行为。
+// 关键逻辑 grep 解析抽出后，4 个 case 足以锁住行为。
 package com.yy.writingwithai.buildlogic
 
 import org.junit.jupiter.api.Assertions.assertEquals

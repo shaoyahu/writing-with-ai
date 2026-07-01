@@ -41,8 +41,6 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -78,6 +76,8 @@ import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.prefs.SearchHistoryStore
 import com.yy.writingwithai.core.ui.NoteListSkeleton
+import com.yy.writingwithai.core.ui.dropdown.AppActionDropdown
+import com.yy.writingwithai.core.ui.dropdown.AppActionItem
 import com.yy.writingwithai.feature.quicknote.model.NoteListUiState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -370,57 +370,41 @@ fun QuickNoteListScreen(
                                         onLongClick = { menuExpandedFor = item.note.id }
                                     )
                                     // note-list-card-actions · 长按菜单锚在卡片右下角
-                                    DropdownMenu(
+                                    AppActionDropdown(
                                         expanded = menuExpandedFor == item.note.id,
-                                        onDismissRequest = { menuExpandedFor = null }
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    if (item.note.isPinned) {
-                                                        stringResource(
-                                                            R.string.quicknote_list_action_unpin
-                                                        )
-                                                    } else {
-                                                        stringResource(
-                                                            R.string.quicknote_list_action_pin
-                                                        )
-                                                    }
-                                                )
-                                            },
-                                            leadingIcon = {
-                                                Icon(Icons.Filled.PushPin, contentDescription = null)
-                                            },
-                                            onClick = {
-                                                menuExpandedFor = null
-                                                viewModel.togglePinned(item.note.id, item.note.isPinned)
-                                            }
+                                        onDismissRequest = { menuExpandedFor = null },
+                                        items = listOf(
+                                            AppActionItem(
+                                                text = if (item.note.isPinned) {
+                                                    stringResource(R.string.quicknote_list_action_unpin)
+                                                } else {
+                                                    stringResource(R.string.quicknote_list_action_pin)
+                                                },
+                                                onClick = {
+                                                    menuExpandedFor = null
+                                                    viewModel.togglePinned(item.note.id, item.note.isPinned)
+                                                },
+                                                leadingIcon = Icons.Filled.PushPin
+                                            ),
+                                            AppActionItem(
+                                                text = stringResource(R.string.quicknote_list_action_add_tag),
+                                                onClick = {
+                                                    menuExpandedFor = null
+                                                    showAddTagFor = item.note.id
+                                                },
+                                                leadingIcon = Icons.Filled.LocalOffer
+                                            ),
+                                            AppActionItem(
+                                                text = stringResource(R.string.quicknote_list_action_delete),
+                                                onClick = {
+                                                    menuExpandedFor = null
+                                                    confirmDeleteFor = item.note.id
+                                                },
+                                                leadingIcon = Icons.Filled.Delete,
+                                                isDestructive = true
+                                            )
                                         )
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(stringResource(R.string.quicknote_list_action_add_tag))
-                                            },
-                                            leadingIcon = {
-                                                Icon(Icons.Filled.LocalOffer, contentDescription = null)
-                                            },
-                                            onClick = {
-                                                menuExpandedFor = null
-                                                showAddTagFor = item.note.id
-                                            }
-                                        )
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(stringResource(R.string.quicknote_list_action_delete))
-                                            },
-                                            leadingIcon = {
-                                                Icon(Icons.Filled.Delete, contentDescription = null)
-                                            },
-                                            onClick = {
-                                                menuExpandedFor = null
-                                                confirmDeleteFor = item.note.id
-                                            }
-                                        )
-                                    }
+                                    )
                                 }
                             }
                         }

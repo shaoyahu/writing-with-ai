@@ -14,12 +14,12 @@ import com.yy.writingwithai.feature.aiwriting.streaming.StreamingPanel
  * `feature/aiwriting` 跨 feature 入口 + 顶层 typealias 暴露 sealed UiState / VM 类型。
  *
  * fix-review-r2-high H4:其他 feature(quicknote 等)**仅** import 此文件 + `AiwritingEntry` object,
- * 不直接 import 内部 streaming/action package,避免 layer 泄漏。
+ * 不直接 import 内部 streaming/action package，避免 layer 泄漏。
  *
  * hardening-sse-and-widget-init H-2:不再 import `feature.onboarding.OnboardingEntry`。
- * `requestConsent(navController, requestConsent: (NavController) -> Unit)` 接受 lambda 参数,
+ * `requestConsent(navController, requestConsent: (NavController) -> Unit)` 接受 lambda 参数，
  * 由 `app/AppNav.kt` 在编排时注入 `OnboardingEntry.requestConsent` 作为实现 —— `aiwriting`
- * feature 真正自包含(只暴露 contract,不依赖其他 feature 内部)。
+ * feature 真正自包含(只暴露 contract，不依赖其他 feature 内部)。
  */
 typealias AiActionUiState = com.yy.writingwithai.feature.aiwriting.streaming.AiActionUiState
 typealias AiActionViewModel = com.yy.writingwithai.feature.aiwriting.streaming.AiActionViewModel
@@ -33,13 +33,13 @@ object AiwritingEntry {
      */
     @Composable
     fun rememberAiActionViewModel(noteId: String): AiActionViewModel =
-        // L4 修:`hiltViewModel` 默认就是 `LocalViewModelStoreOwner.current`,无需显式传。
+        // L4 修:`hiltViewModel` 默认就是 `LocalViewModelStoreOwner.current`，无需显式传。
         hiltViewModel<AiActionViewModel>()
 
     /**
      * M4-4:未同意时把详情屏 FAB 唤起改跳同意页(替代原弹 ActionSheet)。
      *
-     * hardening H-2:接受 `requestConsent: (NavController) -> Unit` lambda 参数,
+     * hardening H-2:接受 `requestConsent: (NavController) -> Unit` lambda 参数，
      * 由 `app/AppNav.kt` 编排时注入具体实现(caller 持有 `OnboardingEntry` 引用),
      * `aiwriting` feature 不再 import `feature.onboarding`。
      */
@@ -49,7 +49,7 @@ object AiwritingEntry {
 
     /**
      * H4 新增:选区操作菜单 wrapper(扩写/润色/整理/复制)。
-     * 内部转调 `feature.aiwriting.action.ActionSheet`,其他 feature 仅引用本入口。
+     * 内部转调 `feature.aiwriting.action.ActionSheet`，其他 feature 仅引用本入口。
      */
     @Composable
     fun ActionSheetRoute(
@@ -92,7 +92,7 @@ object AiwritingEntry {
 
     /**
      * H4 新增:系统剪贴板 wrapper(走 ClipboardManager)。
-     * 不走 AiGateway(非 AI 操作,系统 API)。
+     * 不走 AiGateway(非 AI 操作，系统 API)。
      */
     fun copyToClipboard(context: Context, text: String) {
         val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
@@ -100,4 +100,4 @@ object AiwritingEntry {
     }
 }
 
-// M9 修:[AiActionFabState] 挪到 `core/ui/`,这里不再定义(由 caller 直接 import `core.ui.AiActionFabState`)。
+// M9 修:[AiActionFabState] 挪到 `core/ui/`，这里不再定义(由 caller 直接 import `core.ui.AiActionFabState`)。

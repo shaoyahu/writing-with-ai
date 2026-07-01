@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test
  * hardening-sse-and-widget-init H-1:验证 [QuickNoteWidgetWorker.runWithErrorGrading]
  * 错误分级契约 —— 瞬时错误 retry / 致命错误 failure / CancellationException rethrow。
  *
- * 不依赖 WorkManager runtime,只测静态函数 + 抛错 lambda。
+ * 不依赖 WorkManager runtime，只测静态函数 + 抛错 lambda。
  */
 class QuickNoteWidgetWorkerTest {
 
@@ -57,13 +57,13 @@ class QuickNoteWidgetWorkerTest {
                 }
             }
         }
-        // CancellationException rethrow 路径不返回 Result,异常原样传出。
+        // CancellationException rethrow 路径不返回 Result，异常原样传出。
         assertEquals("simulated cancel", ex.message)
     }
 
     @Test
     fun `RuntimeException returns Result_failure not retry`() = runTest {
-        // H-1 边界:RuntimeException 落 Throwable 分支 → failure,不被吞掉。
+        // H-1 边界:RuntimeException 落 Throwable 分支 → failure，不被吞掉。
         val result = QuickNoteWidgetWorker.runWithErrorGrading {
             throw RuntimeException("not IO, not SQLite")
         }

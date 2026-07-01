@@ -20,8 +20,8 @@ import kotlinx.coroutines.launch
 /**
  * animation-system-and-consent-redesign §10.1:动画风格设置页 VM。
  *
- * - 当前风格:`UserPrefsStore.animationStyleFlow`(enum,unknown → MINIMAL fallback,见 UserPrefsStore)
- * - 系统 reduce-motion:`AccessibilityManager.isReduceMotionEnabled`,仅展示提示,**不**自动写入;
+ * - 当前风格:`UserPrefsStore.animationStyleFlow`(enum,unknown → MINIMAL fallback，见 UserPrefsStore)
+ * - 系统 reduce-motion:`AccessibilityManager.isReduceMotionEnabled`，仅展示提示，**不**自动写入;
  *   真实覆盖由 [com.yy.writingwithai.app.ui.theme.WritingAppTheme] 在根 Composable 处强切 NONE。
  * - 写盘:`onStyleSelected(style)` → `setAnimationStyle` 持久化;UI 通过 collect 重绘。
  *
@@ -45,14 +45,14 @@ constructor(
         .stateIn(
             viewModelScope,
             SharingStarted.Eagerly,
-            // 初值给 MINIMAL;真实值在 collect 后立刻 emit 覆盖,UI 不会出现抖动。
+            // 初值给 MINIMAL;真实值在 collect 后立刻 emit 覆盖，UI 不会出现抖动。
             AnimationStyle.MINIMAL
         )
 
     /**
      * 系统 reduce-motion 状态。读一次 [AccessibilityManager.isReduceMotionEnabled](API 33+) —
-     * 低于 33 时返回 `false`(API < 33 设备视为未启用)。reduce-motion 是用户在系统设置里切的,
-     * 在设置页停留期间基本不变,无 hot flow 订阅需求(spec §REQ 3)。
+     * 低于 33 时返回 `false`(API < 33 设备视为未启用)。reduce-motion 是用户在系统设置里切的，
+     * 在设置页停留期间基本不变，无 hot flow 订阅需求(spec §REQ 3)。
      */
     private val _reduceMotionEnabled = MutableStateFlow(isReduceMotionEnabled())
     val reduceMotionEnabled: StateFlow<Boolean> = _reduceMotionEnabled.asStateFlow()
@@ -71,7 +71,7 @@ constructor(
     }
 
     /**
-     * 写盘;若 reduce-motion 已启用,调用此方法仍会写入(用户明确选择),但实际生效由
+     * 写盘;若 reduce-motion 已启用，调用此方法仍会写入(用户明确选择)，但实际生效由
      * [com.yy.writingwithai.app.ui.theme.WritingAppTheme] 强切 NONE(spec §REQ 3)。
      */
     fun onStyleSelected(style: AnimationStyle) {

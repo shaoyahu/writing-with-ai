@@ -20,14 +20,14 @@ import kotlinx.coroutines.flow.map
 /**
  * onboarding-apikey-prompt · 用户偏好(非敏感)。
  *
- * 与 [ConsentStore] 区别:这里存「轻量 UI 偏好」,不存法律 / 安全敏感数据。
- * 走普通 DataStore Preferences,不进 EncryptedSharedPreferences。
+ * 与 [ConsentStore] 区别:这里存「轻量 UI 偏好」，不存法律 / 安全敏感数据。
+ * 走普通 DataStore Preferences，不进 EncryptedSharedPreferences。
  *
  * spec: openspec/changes/onboarding-apikey-prompt/specs/onboarding-consent/spec.md
  * "Apikey prompt screen shown after consent" + "AI capability guard on first use"
  *
  * animation-system 扩展(spec §animation-system REQ 1):
- * - 增加 `animation_style_v1`(枚举名 String,未知值回退 MINIMAL + LOG warn)。
+ * - 增加 `animation_style_v1`(枚举名 String，未知值回退 MINIMAL + LOG warn)。
  */
 interface UserPrefsStore {
     /** 用户是否已阅读并确认 apikey 教育页(读侧)。 */
@@ -36,7 +36,7 @@ interface UserPrefsStore {
     /** 同步取当前值(测试 / 拦截用)。 */
     suspend fun isApikeyPromptAcked(): Boolean
 
-    /** 设置 ack 状态。`true` = 已确认,`false` = 需重弹。 */
+    /** 设置 ack 状态。`true` = 已确认，`false` = 需重弹。 */
     suspend fun setAckApikeyPrompt(ack: Boolean)
 
     /**
@@ -87,7 +87,7 @@ constructor(
 
         /**
          * 把 DataStore 存的 String 还原为 [AnimationStyle];未知 / null / 解析失败返回 null
-         * (由 caller 决定回退值,默认 [AnimationStyle.MINIMAL],同时 LOG warn 一次性)。
+         * (由 caller 决定回退值，默认 [AnimationStyle.MINIMAL]，同时 LOG warn 一次性)。
          */
         internal fun parseAnimationStyleOrNull(raw: String?): AnimationStyle? {
             if (raw == null) return null

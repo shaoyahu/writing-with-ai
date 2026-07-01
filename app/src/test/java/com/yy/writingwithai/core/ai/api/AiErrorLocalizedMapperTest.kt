@@ -14,16 +14,16 @@ import org.junit.jupiter.api.Test
  *    / RateLimited / ServerError / Timeout / UserConsentRequired / ProviderNotConfigured / Cancellation)。
  * 2. 3 个低层细节错误(ContentModeration / Deserialization / ApikeyPromptNotAcked)
  *    + 兜底 Unknown → 统一归到 `ai_error_unknown`(终端用户不应看到 provider 上游细节)。
- * 3. 携带参数的变体(RateLimited / ServerError)不影响 stringRes 选择 —— mapper 只看类型,
- *    参数细节走 `AiError.summary()` 落 `ai_history` 表,不在 UI 文案里出现。
+ * 3. 携带参数的变体(RateLimited / ServerError)不影响 stringRes 选择 —— mapper 只看类型，
+ *    参数细节走 `AiError.summary()` 落 `ai_history` 表，不在 UI 文案里出现。
  * 4. 映射是纯函数:同一 input 多次调用返同一 result。
- * 5. 所有 13 个 variant 都覆盖到(没有 `else` 漏分支),防止新增 variant 时编译器不报错。
+ * 5. 所有 13 个 variant 都覆盖到(没有 `else` 漏分支)，防止新增 variant 时编译器不报错。
  */
 class AiErrorLocalizedMapperTest {
 
     @Test
     fun `9 dedicated variants map to their specific stringRes`() {
-        // 每个专属 variant 必须映射到唯一 stringRes,且互不相同
+        // 每个专属 variant 必须映射到唯一 stringRes，且互不相同
         val expected =
             mapOf<AiError, Int>(
                 AiError.Network(-1, "x") to R.string.ai_error_network,
@@ -71,7 +71,7 @@ class AiErrorLocalizedMapperTest {
 
     @Test
     fun `RateLimited and ServerError variants localize regardless of param values`() {
-        // mapper 只看类型,参数值不影响 stringRes(参数细节走 summary() 落 ai_history)
+        // mapper 只看类型，参数值不影响 stringRes(参数细节走 summary() 落 ai_history)
         val r1 = AiErrorLocalizedMapper.localize(AiError.RateLimited(1))
         val r2 = AiErrorLocalizedMapper.localize(AiError.RateLimited(3600))
         val r3 = AiErrorLocalizedMapper.localize(AiError.ServerError(500))
@@ -86,7 +86,7 @@ class AiErrorLocalizedMapperTest {
 
     @Test
     fun `localize is deterministic pure function`() {
-        // 同一 input 重复调用必须返同一 result,且不等价输入必须返不同 result
+        // 同一 input 重复调用必须返同一 result，且不等价输入必须返不同 result
         val network = AiError.Network(-1, "boom")
         val first = AiErrorLocalizedMapper.localize(network)
         val second = AiErrorLocalizedMapper.localize(network)
@@ -99,7 +99,7 @@ class AiErrorLocalizedMapperTest {
     @Test
     fun `all 13 AiError variants are covered by mapper`() {
         // 防护性回归:防止新增 AiError variant 时编译器未报错(if-else 没列全)
-        // 此用例显式列举 13 个 variant,要求 mapper 对每个都返非 0 resId(占位 0 = 未映射)。
+        // 此用例显式列举 13 个 variant，要求 mapper 对每个都返非 0 resId(占位 0 = 未映射)。
         val allErrors: List<AiError> =
             listOf(
                 AiError.Network(0, "x"),
@@ -116,7 +116,7 @@ class AiErrorLocalizedMapperTest {
                 AiError.Cancellation,
                 AiError.Unknown(null, "x")
             )
-        assertEquals(13, allErrors.size, "AiError 新增 variant 时此断言先失败,提醒补 mapper 分支")
+        assertEquals(13, allErrors.size, "AiError 新增 variant 时此断言先失败，提醒补 mapper 分支")
         for (err in allErrors) {
             val resId = AiErrorLocalizedMapper.localize(err)
             assertNotEquals(0, resId, "variant=${err::class.simpleName} returned 0(resId missing)")

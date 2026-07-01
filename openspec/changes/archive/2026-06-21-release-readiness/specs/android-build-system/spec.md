@@ -6,7 +6,7 @@
 
 The Gradle project MUST compile, assemble a debug APK, and run unit tests without errors using JDK 17.
 
-**release-readiness 增量**:release variant 在用户本地配置 `~/.gradle/gradle.properties` 4 个 release 凭据后,`./gradlew :app:assembleRelease` 同样能跑通(debug 与 release 是独立 buildType,本 requirement 主轴不变)。release 配置细节见 [release-readiness spec](../../release-readiness/spec.md)。
+**release-readiness 增量**:release variant 在用户本地配置 `~/.gradle/gradle.properties` 4 个 release 凭据后，`./gradlew :app:assembleRelease` 同样能跑通(debug 与 release 是独立 buildType，本 requirement 主轴不变)。release 配置细节见 [release-readiness spec](../../release-readiness/spec.md)。
 
 #### Scenario: Debug APK assembly succeeds
 - **WHEN** the user runs `./gradlew :app:assembleDebug` from the repo root on JDK 17

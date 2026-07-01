@@ -6,8 +6,8 @@ import javax.inject.Singleton
 /**
  * feishu-doc-v2 · 简单 Markdown → Feishu docx XML 转换(参考 larksuite/cli v2 API XML 格式)。
  *
- * v2 API 用 XML body 创建/编辑文档,格式:<document><title>...</title><p>...</p></document>。
- * 本 converter 取满篇 Markdown + title,产出符合 v2 create/update API 格式的 XML 字符串。
+ * v2 API 用 XML body 创建/编辑文档，格式:<document><title>...</title><p>...</p></document>。
+ * 本 converter 取满篇 Markdown + title，产出符合 v2 create/update API 格式的 XML 字符串。
  *
  * 支持:标题 / 段落 / 加粗 / 代码块 / 引用 / 行内 code / wikilink。
  *
@@ -18,8 +18,8 @@ import javax.inject.Singleton
  * 2. 多 pass 顺序 `replace` 在嵌套场景(`**`code`**` / `**`bold & `code`**`)
  *    可能让后面 regex 把前面生成的 tag 内容改坏。
  *
- * 单 pass 走 char by char + 状态机(`BOLD` / `ITALIC` / `CODE`),所有 handler
- * 共享一个 `StringBuilder` 输出,从根本上避免"前 pass 输出被后 pass 当输入"。
+ * 单 pass 走 char by char + 状态机(`BOLD` / `ITALIC` / `CODE`)，所有 handler
+ * 共享一个 `StringBuilder` 输出，从根本上避免"前 pass 输出被后 pass 当输入"。
  */
 @Singleton
 open class MarkdownToXmlConverter
@@ -35,7 +35,7 @@ constructor() {
         while (i < lines.size) {
             val line = lines[i]
             val trimmed = line.trim()
-            // 跳过纯空白行,避免产生 `<p>   </p>` 空段(L5)。
+            // 跳过纯空白行，避免产生 `<p>   </p>` 空段(L5)。
             if (trimmed.isEmpty()) {
                 i++
                 continue
@@ -75,15 +75,15 @@ constructor() {
         val codeLines = mutableListOf<String>()
         // fix-2026-06-26-review-r3 HIGH H11:fence close 也用 trim 后的 == ``` 判定 — 这条
         // 没问题(代码行 `   ```python` 是普通文本,trim 后 == "```python" 不会误判为 close)。
-        // 但 require strict 仍要:行首无空白才算 close,与 spec "严格 fence" 对齐。
+        // 但 require strict 仍要:行首无空白才算 close，与 spec "严格 fence" 对齐。
         while (i < lines.size && !isFenceCloseLine(lines[i])) {
             codeLines.add(lines[i])
             i++
         }
-        // fix-2026-06-26-review-r3 HIGH H11:code block 走 CDATA 包裹,避免
+        // fix-2026-06-26-review-r3 HIGH H11:code block 走 CDATA 包裹，避免
         // `&`/`<`/`>`/控制字符在 v2 API HTML 嵌入时产出 malformed XML。
-        // 原版用 escape() 也基本 OK,但 code 内容里出现 `]]>` 会破坏 CDATA —
-        // 用 split 拆开 + 多段 CDATA 安全包裹,严格兼容 XML 1.0。
+        // 原版用 escape() 也基本 OK，但 code 内容里出现 `]]>` 会破坏 CDATA —
+        // 用 split 拆开 + 多段 CDATA 安全包裹，严格兼容 XML 1.0。
         sb.append("<pre><code>").append(cdatify(codeLines.joinToString("\n"))).append("</code></pre>")
         if (i < lines.size) i++ // 跳过闭合 ```
         return i
@@ -101,7 +101,7 @@ constructor() {
      * - `**`(且非紧跟空白)→ BOLD start / end
      * - `_` → ITALIC start / end
      * - `` ` `` → CODE start / end
-     * - `[[...]]` → wikilink 文本(展开为纯文本,feishu 不支持 wikilink)
+     * - `[[...]]` → wikilink 文本(展开为纯文本，feishu 不支持 wikilink)
      * - 其他 → 累加到 buffer
      *
      * 关键不变量:**所有输出都通过同一个 [out] `StringBuilder` 追加**,
@@ -173,9 +173,9 @@ constructor() {
         .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
     /**
-     * fix-2026-06-26-review-r3 HIGH H11:code block 走 CDATA 包裹,避免 raw 代码
+     * fix-2026-06-26-review-r3 HIGH H11:code block 走 CDATA 包裹，避免 raw 代码
      * 里的 `<` / `>` / `&` 在 v2 API HTML 嵌入路径产出 malformed XML。
-     * XML 1.0 规范:CDATA section 内禁止出现 `]]>`,用 split 拆 + 多段 CDATA 兜底。
+     * XML 1.0 规范:CDATA section 内禁止出现 `]]>`，用 split 拆 + 多段 CDATA 兜底。
      */
     private fun cdatify(s: String): String {
         if (s.isEmpty()) return ""

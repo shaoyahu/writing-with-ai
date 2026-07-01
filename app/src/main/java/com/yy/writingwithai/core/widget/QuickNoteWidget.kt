@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.first
 class QuickNoteWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // hardening H-3 + H-6:解析 repository,失败时 log + 早返回,Glance 走默认空 widget。
+        // hardening H-3 + H-6:解析 repository，失败时 log + 早返回，Glance 走默认空 widget。
         // 不再静默 `?: emptyList()` —— 用户看不到"无 note"和"app 没起"的区别。
         val repository = QuickNoteWidgetHiltBridge.resolveRepository(context)
         if (repository == null) {
@@ -77,7 +77,7 @@ private fun AddButton(context: Context, colors: WidgetColors) {
     Box(
         GlanceModifier
             .background(colors.widgetPrimary)
-            // R3 C5 fix:走 launchWithTaskStack,与 OpenNoteAction 共用 TaskStackBuilder 回退栈,
+            // R3 C5 fix:走 launchWithTaskStack，与 OpenNoteAction 共用 TaskStackBuilder 回退栈，
             // 跨 AOSP / 国产 ROM widget 入口 back 行为一致。
             .clickable { context.launchWithTaskStack(WidgetLaunchRoute.NewNote) }
             .padding(horizontal = 14.dp),
@@ -114,7 +114,7 @@ private fun WidgetSmall(notes: List<Note>, noteIndex: Int, context: Context, col
         }
         // Content with padding
         // review r2 修:notes 为空时 `noteIndex % notes.size` 即 `0 % 0` 抛 ArithmeticException,
-        // 导致 widget 崩溃。先判空,为空时直接走 EmptyState。
+        // 导致 widget 崩溃。先判空，为空时直接走 EmptyState。
         val note = if (notes.isNotEmpty()) notes.getOrNull(noteIndex % notes.size) ?: notes.firstOrNull() else null
         if (note != null) {
             val params = actionParametersOf(OpenNoteAction.KEY_NOTE_ID to note.id)

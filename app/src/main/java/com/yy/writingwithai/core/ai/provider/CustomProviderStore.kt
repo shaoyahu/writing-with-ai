@@ -21,13 +21,13 @@ import kotlinx.serialization.json.Json
  * 用 DataStore 存 JSON 序列化的 [List<ProviderConfig>],
  * 与 [SecureApiKeyStore] 解耦 — 配置不含 apikey。
  *
- * spec: 用户创建的自定义模型与内置模型平等展示, 可选中 / 测试连通 / 编辑 / 删除。
+ * spec: 用户创建的自定义模型与内置模型平等展示， 可选中 / 测试连通 / 编辑 / 删除。
  *
- * 写操作(read-modify-write)全部在 `edit { }` lambda 内,DataStore 串行化写,
+ * 写操作(read-modify-write)全部在 `edit { }` lambda 内，DataStore 串行化写，
  * 避免两个并发 save/delete 互相覆盖。回调 [addInvalidateListener] 让
  * [com.yy.writingwithai.core.ai.CoreAiGateway] 在每次写入后清 adapter 缓存。
  *
- * review r1 M1:用 CopyOnWriteArraySet 维护多 listener,支持多 caller 订阅且线程安全,
+ * review r1 M1:用 CopyOnWriteArraySet 维护多 listener，支持多 caller 订阅且线程安全，
  * 替代原来单一 `var onInvalidate: ...` 在 Hilt 多次创建时互相覆盖。
  */
 interface CustomProviderStore {
@@ -43,7 +43,7 @@ interface CustomProviderStore {
     /** 按 id 删除。 */
     suspend fun delete(id: String)
 
-    /** Flow 实时刷新,UI 可订阅观察。 */
+    /** Flow 实时刷新，UI 可订阅观察。 */
     fun observeAll(): Flow<List<ProviderConfig>>
 
     /** 注册一个 invalidate 监听;同一 listener 多次添加只算一次。 */
@@ -58,8 +58,8 @@ private val Context.customProviderDataStore: DataStore<Preferences> by preferenc
 )
 
 class CustomProviderStoreImpl(
-    // fix-review-r4 L6:显式 @ApplicationContext,防御性标记 — 当前由 PrefsModule @Provides
-    // 注入(已保证),若未来改 @Inject constructor 则此注解生效。
+    // fix-review-r4 L6:显式 @ApplicationContext，防御性标记 — 当前由 PrefsModule @Provides
+    // 注入(已保证)，若未来改 @Inject constructor 则此注解生效。
     @ApplicationContext private val context: Context
 ) : CustomProviderStore {
     private val json = Json { ignoreUnknownKeys = true }
@@ -76,8 +76,8 @@ class CustomProviderStoreImpl(
 
     private fun fireInvalidate(providerId: String) {
         invalidateListeners.forEach { listener ->
-            // fix-review-r3-medium M5:`runCatching` 会吞 CancellationException,导致
-            // 协程取消传播到 listener 时被截断;改成显式 catch 普通异常,让 CancellationException
+            // fix-review-r3-medium M5:`runCatching` 会吞 CancellationException，导致
+            // 协程取消传播到 listener 时被截断;改成显式 catch 普通异常，让 CancellationException
             // 沿调用栈往外抛(由 save/delete 的 suspend caller 接收)。
             try {
                 listener(providerId)

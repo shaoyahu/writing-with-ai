@@ -38,4 +38,4 @@
 #### Scenario: 详情页无 tag 显示空状态文案
 
 - **WHEN** `note.tags.isEmpty()`
-- **THEN** `QuickNoteDetailScreen` 在 tag 区域渲染 `Text("无标签", style = labelSmall, color = onSurfaceVariant)`,替代原 `if (tags.isNotEmpty())` 的空白
+- **THEN** `QuickNoteDetailScreen` 在 tag 区域渲染 `Text("无标签", style = labelSmall, color = onSurfaceVariant)`，替代原 `if (tags.isNotEmpty())` 的空白

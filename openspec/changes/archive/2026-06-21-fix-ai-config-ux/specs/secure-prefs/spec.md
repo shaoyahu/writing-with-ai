@@ -25,4 +25,4 @@
 #### Scenario: Keystore 损坏时 Flow 仍 emit 当前 set(不抛)
 
 - **WHEN** `EncryptedSharedPreferences` 初始化抛 `GeneralSecurityException`
-- **THEN** `observeConfiguredProviders()` emit 空 set(且 Flow 不中断;后续 save 调用走 catch 分支,不更新 set)
+- **THEN** `observeConfiguredProviders()` emit 空 set(且 Flow 不中断;后续 save 调用走 catch 分支，不更新 set)

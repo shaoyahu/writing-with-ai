@@ -25,17 +25,17 @@ import org.junit.jupiter.api.Test
 /**
  * fix-review-r3-high · [CoreAiGateway] 契约 + 空配置回归测试。
  *
- * H2:`ping()` 的契约是 `@return null 表示成功`,之前对 fake provider 抛
+ * H2:`ping()` 的契约是 `@return null 表示成功`，之前对 fake provider 抛
  *    IllegalStateException 打断契约。修后返回 `ProviderNotConfigured` 摘要。
  * H4:之前 `modelName ?: provider.supportedModels.firstOrNull() ?: "unknown"`
- *    把 "unknown" 字符串静默发到 provider,混淆 provider 真错 vs 配置错。
+ *    把 "unknown" 字符串静默发到 provider，混淆 provider 真错 vs 配置错。
  *    修后两者都为空时 emit Failed(ProviderNotConfigured)。
  */
 class CoreAiGatewayR3RegressionTest {
 
     /**
      * fix H2 regression:ping() 对 fake provider 不再抛 IllegalStateException,
-     * 而是返回 ProviderNotConfigured 摘要,符合 `null == 成功` 契约。
+     * 而是返回 ProviderNotConfigured 摘要，符合 `null == 成功` 契约。
      */
     @Test
     fun ping_on_fake_provider_returns_provider_not_configured_summary_not_throw() = runTest {
@@ -53,14 +53,14 @@ class CoreAiGatewayR3RegressionTest {
     }
 
     /**
-     * fix H2 regression:ping() 在 fake 上不再抛 IllegalStateException,只是返回。
+     * fix H2 regression:ping() 在 fake 上不再抛 IllegalStateException，只是返回。
      * 此测试用 try-finally 显式断言"不抛"(通过直接调用 ping + 不 catch 即可)。
      */
     @Test
     fun ping_on_fake_provider_does_not_throw_exception() = runTest {
         val gateway = gatewayWithProviders(mapOf("fake" to FakeAiProvider()))
 
-        // 不加 try-catch,若 IllegalStateException 漏出,runTest 会标红。
+        // 不加 try-catch，若 IllegalStateException 漏出，runTest 会标红。
         val result = gateway.ping(
             providerId = "fake",
             apikey = "any",
@@ -88,7 +88,7 @@ class CoreAiGatewayR3RegressionTest {
     }
 
     /**
-     * fix H4 regression:modelName == null 且 supportedModels 为空时,
+     * fix H4 regression:modelName == null 且 supportedModels 为空时，
      * 不再把 "unknown" 字符串发给 provider;直接 emit Failed(ProviderNotConfigured)。
      */
     @Test
@@ -112,7 +112,7 @@ class CoreAiGatewayR3RegressionTest {
     }
 
     /**
-     * fix H4 regression:modelName 已显式提供时,即使 supportedModels 为空也应走 user-supplied。
+     * fix H4 regression:modelName 已显式提供时，即使 supportedModels 为空也应走 user-supplied。
      */
     @Test
     fun stream_with_explicit_model_name_uses_it_even_when_supported_empty() = runTest {
@@ -127,7 +127,7 @@ class CoreAiGatewayR3RegressionTest {
             modelName = "user-supplied-model"
         ).toList()
 
-        // 应走到 provider.stream(用 user-supplied model),不是 Failed。
+        // 应走到 provider.stream(用 user-supplied model)，不是 Failed。
         assertEquals(1, emptyProvider.streamCallCount)
         assertEquals(emptyProvider.lastModel, "user-supplied-model")
         assertTrue(events.any { it is AiStreamEvent.Failed || it is AiStreamEvent.Started })
@@ -135,9 +135,9 @@ class CoreAiGatewayR3RegressionTest {
 
     /**
      * fix-2026-06-28-ai-model-selection-actually-used 5.1:modelName=null + provider 显式
-     * 声明 `defaultModel="X"` → fallback 走 defaultModel,不走 `supportedModels[0]`。
+     * 声明 `defaultModel="X"` → fallback 走 defaultModel，不走 `supportedModels[0]`。
      * 这正是 change 标题"选 pro 实际用 flash"要修的语义。`supportedModels` 故意把
-     * "list-first" 放最前,如果 gateway 还在用 firstOrNull fallback 就会发 list-first,
+     * "list-first" 放最前，如果 gateway 还在用 firstOrNull fallback 就会发 list-first,
      * 测出来 fail。
      */
     @Test
@@ -157,7 +157,7 @@ class CoreAiGatewayR3RegressionTest {
             modelName = null
         ).toList()
 
-        // 走 defaultModel("deepseek-v4-pro"),不是 supportedModels[0]("deepseek-v4-flash")。
+        // 走 defaultModel("deepseek-v4-pro")，不是 supportedModels[0]("deepseek-v4-flash")。
         assertEquals(1, provider.streamCallCount)
         assertEquals("deepseek-v4-pro", provider.lastModel)
         assertTrue(events.any { it is AiStreamEvent.Started || it is AiStreamEvent.Done })
@@ -197,7 +197,7 @@ class CoreAiGatewayR3RegressionTest {
         val prefs = NoopProviderPrefsStore
         val customStore = EmptyCustomProviderStore
         // fix:测试中 provider.stream 成功时 CoreAiGateway.onCompletion 会调
-        // historyRepo.get().record(),用 MockK mock 代替抛错的 noop。
+        // historyRepo.get().record()，用 MockK mock 代替抛错的 noop。
         val noopHistoryRepo = mockk<com.yy.writingwithai.core.data.repo.AiHistoryRepository>(
             relaxed = true
         )
@@ -210,7 +210,7 @@ class CoreAiGatewayR3RegressionTest {
             okHttpClient = OkHttpClient(),
             historyRepo = historyLazy,
             providerPrefsStore = prefs,
-            // fix-2026-06-30-full-review-r1 H10:CoreAiGateway 加 ConsentStore 门控,
+            // fix-2026-06-30-full-review-r1 H10:CoreAiGateway 加 ConsentStore 门控，
             // 测试里 mock 为"已同意"放行。
             consentStore = mockk(relaxed = true) {
                 io.mockk.coEvery { isConsented(any()) } returns true
@@ -218,15 +218,15 @@ class CoreAiGatewayR3RegressionTest {
         )
     }
 
-    /** supportedModels == emptyList() 的 fake provider,用于 H4 测试。 */
+    /** supportedModels == emptyList() 的 fake provider，用于 H4 测试。 */
     private class EmptyModelsProvider : AiProvider {
         override val id = "empty"
         override val displayName = "Empty"
         override val supportedModels: List<String> = emptyList()
 
         // fix-2026-06-28-ai-model-selection-actually-used:H4 场景默认 defaultModel
-        // 也空(模拟"provider 啥都没声明"),走 gateway fallback → Failed(ProviderNotConfigured)。
-        // 想测 fallback 命中 defaultModel 的,新加 [DefaultModelProvider]。
+        // 也空(模拟"provider 啥都没声明")，走 gateway fallback → Failed(ProviderNotConfigured)。
+        // 想测 fallback 命中 defaultModel 的，新加 [DefaultModelProvider]。
         override val defaultModel: String = ""
         var streamCallCount = 0
         var lastModel: String? = null
@@ -243,7 +243,7 @@ class CoreAiGatewayR3RegressionTest {
 
     /**
      * fix-2026-06-28-ai-model-selection-actually-used:支持显式声明 defaultModel 的 fake
-     * provider。`id` / `supportedModels` / `defaultModel` 全部外部传入,方便 5.1/5.2
+     * provider。`id` / `supportedModels` / `defaultModel` 全部外部传入，方便 5.1/5.2
      * 不同组合验证 fallback 行为。
      */
     private class DefaultModelProvider(
@@ -274,7 +274,7 @@ internal object NoopProviderPrefsStore : ProviderPrefsStore {
     override suspend fun getSelectedModel(providerId: String): String? = null
     override suspend fun setSelectedModel(providerId: String, model: String) {}
 
-    // fix-2026-06-28-ai-model-selection-actually-used:补新接口方法,noop 默认 no-op。
+    // fix-2026-06-28-ai-model-selection-actually-used:补新接口方法，noop 默认 no-op。
     override suspend fun setSelectedModelIfMissing(providerId: String, defaultModel: String) {}
     override fun observeSelectedModel(providerId: String): Flow<String?> = flowOf(null)
     override suspend fun getApiFormat(providerId: String): ApiFormat? = null
@@ -282,7 +282,7 @@ internal object NoopProviderPrefsStore : ProviderPrefsStore {
     override fun observeApiFormat(providerId: String): Flow<ApiFormat?> = flowOf(null)
 }
 
-/** 测试用 CustomProviderStore:永远空,不依赖 prefs 也不 fire listener。 */
+/** 测试用 CustomProviderStore:永远空，不依赖 prefs 也不 fire listener。 */
 internal object EmptyCustomProviderStore : CustomProviderStore {
     override suspend fun getAll(): List<ProviderConfig> = emptyList()
     override suspend fun getById(id: String): ProviderConfig? = null

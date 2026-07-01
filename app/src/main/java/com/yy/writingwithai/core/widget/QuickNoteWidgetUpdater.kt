@@ -13,10 +13,10 @@ import javax.inject.Singleton
  * - `QuickNoteDetailViewModel.delete` 后
  * - AI `AiActionViewModel.acceptReplace` 在 `_state.value = Idle` **之前**调
  *
- * fix-2026-06-26-review-r3 H24:`updateAll` 是 Glance 1.x 内部的 `WorkManager` 风格异步任务,
+ * fix-2026-06-26-review-r3 H24:`updateAll` 是 Glance 1.x 内部的 `WorkManager` 风格异步任务，
  * 其内部已自带 IO 调度。前一层 `withContext(Dispatchers.IO)` 让 update 任务注册发生在
- * 协程上下文中,可能与 widget host process 里的并发 updateAll 产生 race。
- * 移除 `withContext(IO)`,直接调 `updateAll(context)`,由 Glance 自带 scheduler 串行化。
+ * 协程上下文中，可能与 widget host process 里的并发 updateAll 产生 race。
+ * 移除 `withContext(IO)`，直接调 `updateAll(context)`，由 Glance 自带 scheduler 串行化。
  */
 @Singleton
 class QuickNoteWidgetUpdater

@@ -6,10 +6,10 @@ package com.yy.writingwithai.core.prefs
  * spec: openspec/changes/onboarding-apikey-prompt/specs/onboarding-consent/spec.md
  * "Token cost reference displayed"
  *
- * 设计 D2:常量写死,UI 只渲染,不参与任何逻辑。
+ * 设计 D2:常量写死，UI 只渲染，不参与任何逻辑。
  * 风险:provider 调价 → 留 v2 接 provider 价格 API。
  *
- * 价格区间按 deepseek / MiniMax-M2.7 / mimo 当前公开价折算,**仅供参考**,
+ * 价格区间按 deepseek / MiniMax-M2.7 / mimo 当前公开价折算，**仅供参考**,
  * 实际费用以 provider 账单为准。
  */
 data class AiAbilityCost(
@@ -47,6 +47,6 @@ object AiCostReference {
     )
 
     /** 免责声明 — 每行末 / 整表末尾都会展示。 */
-    const val DISCLAIMER_ZH: String = "以上为参考值,实际以 provider 账单为准。本应用不经手费用。"
+    const val DISCLAIMER_ZH: String = "以上为参考值，实际以 provider 账单为准。本应用不经手费用。"
     const val DISCLAIMER_EN: String = "Values are reference only; actual cost depends on your provider's billing."
 }

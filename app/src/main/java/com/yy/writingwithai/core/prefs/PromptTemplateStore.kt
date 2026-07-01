@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.stateIn
  * spec: openspec/changes/custom-prompt-template/specs/custom-prompt-template/spec.md
  * "PromptTemplateStore persists templates via DataStore"
  *
- * 3 个 key 集合:`prompt_template_expand` / `polish` / `organize`,各 `String?`。
+ * 3 个 key 集合:`prompt_template_expand` / `polish` / `organize`，各 `String?`。
  * 空字符串 / null 视为"恢复默认"(调用方走 `DefaultPrompts.forOp(op)` fallback)。
  */
 private val Context.promptTemplateDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -90,7 +90,7 @@ constructor(
     }
 
     override suspend fun resetToDefault(op: WritingOp) {
-        // 写空字符串,触发 fallback
+        // 写空字符串，触发 fallback
         setForOp(op, "")
     }
 

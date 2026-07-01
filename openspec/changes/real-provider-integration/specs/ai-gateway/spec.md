@@ -43,4 +43,4 @@ UI 渲染 `AiError` 时 MUST 走 `AiErrorLocalizedMapper.localize(error: AiError
 
 #### Scenario: Custom Anthropic-compatible provider smoke
 - **WHEN** 用户在 `CustomProviderEditScreen` 填 baseUrl + apikey + 选 Anthropic 格式
-- **THEN** 真机跑通 SSE 流式调用 1 次,响应包含 ≥1 个 `Delta` 事件;`docs/usage/api-anthropic-compatible.md` 描述的字段映射与实际响应一致
+- **THEN** 真机跑通 SSE 流式调用 1 次，响应包含 ≥1 个 `Delta` 事件;`docs/usage/api-anthropic-compatible.md` 描述的字段映射与实际响应一致

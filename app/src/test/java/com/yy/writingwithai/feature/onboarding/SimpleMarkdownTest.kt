@@ -20,24 +20,24 @@ class SimpleMarkdownTest {
         # 使用条款
 
         ## 数据存储与同步
-        所有笔记保存在本机 SQLite,不上传任何服务器。
+        所有笔记保存在本机 SQLite，不上传任何服务器。
 
         ## AI 功能与数据流
-        启用 AI 后,选中文本会发送到您配置的 provider。
+        启用 AI 后，选中文本会发送到您配置的 provider。
 
         ## 第三方 AI Provider
-        本应用支持多家第三方 AI 服务,需要您自行配置 API Key。
+        本应用支持多家第三方 AI 服务，需要您自行配置 API Key。
 
         ## 如何撤回同意
-        您可在设置中随时撤回同意,清除本机 AI 配置。
+        您可在设置中随时撤回同意，清除本机 AI 配置。
 
         ## 联系方式
-        如有疑问,请通过设置页反馈入口联系我们。
+        如有疑问，请通过设置页反馈入口联系我们。
     """.trimIndent()
 
     @Test
     fun `parseSimpleMarkdown keeps original signature and emits blocks`() {
-        // 既有 parseSimpleMarkdown:1 H1 + 5 H2 + 多段,验证 type/level 分布
+        // 既有 parseSimpleMarkdown:1 H1 + 5 H2 + 多段，验证 type/level 分布
         val blocks = parseSimpleMarkdown(fiveH2Sample)
         assertTrue("应解析出多个 block", blocks.size >= 6)
         val headings = blocks.filterIsInstance<MarkdownBlock.Heading>()
@@ -75,7 +75,7 @@ class SimpleMarkdownTest {
     fun `parseGroupedMarkdown icon mapping covers all 5 keywords`() {
         val sections = parseGroupedMarkdown(fiveH2Sample) { _ -> 0 }
         assertEquals(5, sections.size)
-        // JVM 单测中 Compose Icons name 格式不确定,改为验证:
+        // JVM 单测中 Compose Icons name 格式不确定，改为验证:
         // 1) 每个 section icon 非 null
         // 2) 5 个 icon 互不相同(不同关键词映射不同图标)
         // 3) 兜底 section(unknown keyword)用 Storage
@@ -98,7 +98,7 @@ class SimpleMarkdownTest {
         val sections = parseGroupedMarkdown(raw) { _ -> 0 }
         assertEquals(1, sections.size)
         assertTrue(
-            "未匹配关键词 → Storage 兜底,name=${sections[0].icon.name}",
+            "未匹配关键词 → Storage 兜底，name=${sections[0].icon.name}",
             sections[0].icon.name.lowercase().contains("storage")
         )
     }
@@ -106,7 +106,7 @@ class SimpleMarkdownTest {
     @Test
     fun `parseGroupedMarkdown uses summaryResolver mapping`() {
         val sections = parseGroupedMarkdown(fiveH2Sample) { title ->
-            // 仅返回第 3 段的 summaryRes = 42,其他 null(会被跳过)
+            // 仅返回第 3 段的 summaryRes = 42，其他 null(会被跳过)
             if (title == "第三方 AI Provider") 42 else null
         }
         assertEquals(1, sections.size)

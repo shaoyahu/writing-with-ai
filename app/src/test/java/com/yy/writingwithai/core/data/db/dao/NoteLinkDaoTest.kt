@@ -98,7 +98,7 @@ class NoteLinkDaoTest {
     @Test
     fun getBacklinks_threshold_0_10_includes_both_rows() = runBlocking {
         val rows = noteLinkDao.getBacklinks("n2", limit = 10, threshold = 0.10)
-        // n1→n2 边,从 n2 反查 → 仅 n1
+        // n1→n2 边，从 n2 反查 → 仅 n1
         assertEquals(1, rows.size)
         assertEquals("n1", rows[0].noteId)
     }
@@ -106,7 +106,7 @@ class NoteLinkDaoTest {
     @Test
     fun threshold_0_70_filters_out_low_score_TAG_OVERLAP_row() = runBlocking {
         val rows = noteLinkDao.getRelated("n1", limit = 10, threshold = 0.70)
-        // n2 score=1.5 保留,n3 score=0.6 被过滤
+        // n2 score=1.5 保留，n3 score=0.6 被过滤
         assertEquals(1, rows.size)
         assertEquals("n2", rows[0].noteId)
     }

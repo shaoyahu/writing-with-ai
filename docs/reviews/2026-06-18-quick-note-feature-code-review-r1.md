@@ -27,7 +27,7 @@
 
 **文件:** `app/src/main/java/com/yy/writingwithai/feature/quicknote/edit/QuickNoteEditorViewModel.kt:46-51`
 
-**问题:** `repository.observeNoteWithTags(existing.id).collect { item -> ...; return@collect }` — `return@collect` 只从 lambda 返回,**不**取消 Flow 收集。Room 持续推送,后续 `note_tags` 变更会覆盖 `tagsFlow`,把用户当前编辑的 tag 列表抹回数据库值。违反上方注释"tag 从 observeNoteWithTags 取一次即可"。
+**问题:** `repository.observeNoteWithTags(existing.id).collect { item -> ...; return@collect }` — `return@collect` 只从 lambda 返回，**不**取消 Flow 收集。Room 持续推送，后续 `note_tags` 变更会覆盖 `tagsFlow`，把用户当前编辑的 tag 列表抹回数据库值。违反上方注释"tag 从 observeNoteWithTags 取一次即可"。
 
 **修复:** 改 `.first()` 一次性读:
 ```kotlin
@@ -41,10 +41,10 @@ loadedFlow.value = true
 
 **文件:** `app/src/main/java/com/yy/writingwithai/feature/quicknote/edit/QuickNoteEditorViewModel.kt:37-59`
 
-**问题:** `loadedFlow` 初始 `false` 让保存按钮 disabled,但 `titleFlow` / `contentFlow` 可编辑;用户在加载完成前输入 → init 触发 `titleFlow.value = existing.title` 静默覆盖。与 H1 同源。
+**问题:** `loadedFlow` 初始 `false` 让保存按钮 disabled，但 `titleFlow` / `contentFlow` 可编辑;用户在加载完成前输入 → init 触发 `titleFlow.value = existing.title` 静默覆盖。与 H1 同源。
 
 **修复方向(任一):**
-- (A) `init` 启动时记录 `hadUserInput = titleFlow.value.isNotEmpty() || contentFlow.value.isNotEmpty()`,只有未输入时才回填
+- (A) `init` 启动时记录 `hadUserInput = titleFlow.value.isNotEmpty() || contentFlow.value.isNotEmpty()`，只有未输入时才回填
 - (B) `take(1).first()` + 加载完才允许编辑(进度条 + 灰显输入框)
 
 推荐 (A),UX 更顺。
@@ -53,7 +53,7 @@ loadedFlow.value = true
 
 **文件:** `app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailViewModel.kt:25-26`
 
-**问题:** 类型安全路由正常情况总能注入 `id`,但 saved state 跨版本升级 / 深链 / 自定义 NavGraph 后置回调等场景可能缺失 → IAE 直接 crash 进程。
+**问题:** 类型安全路由正常情况总能注入 `id`，但 saved state 跨版本升级 / 深链 / 自定义 NavGraph 后置回调等场景可能缺失 → IAE 直接 crash 进程。
 
 **修复:**
 ```kotlin
@@ -70,7 +70,7 @@ val uiState: StateFlow<NoteDetailUiState> =
 
 **文件:** `app/src/main/java/com/yy/writingwithai/core/data/repo/NoteRepository.kt:51-52` + `app/src/main/java/com/yy/writingwithai/core/data/db/NoteDao.kt:54-61`
 
-**问题:** `val q = "%${query.trim()}%"` 后直接传 `LIKE :q`。用户搜 `100%` 命中所有包含 `100` 的行;搜 `a_b` 命中 `axxb`。**不是** SQL 注入(parameterized),但**行为错误**。
+**问题:** `val q = "%${query.trim()}%"` 后直接传 `LIKE :q`。用户搜 `100%` 命中所有包含 `100` 的行;搜 `a_b` 命中 `axxb`。**不是** SQL 注入(parameterized)，但**行为错误**。
 
 **修复:**
 ```kotlin
@@ -107,13 +107,13 @@ try {
     ).show()
 }
 ```
-(toast 文案走 R.string,新增 `quicknote_share_no_app`)
+(toast 文案走 R.string，新增 `quicknote_share_no_app`)
 
 ### H6. Spec §11 schema JSON 未 git 追踪
 
-**问题:** `app/schemas/com.yy.writingwithai.core.data.db.AppDatabase/1.json` 在磁盘上生成,但 `git status` 视其为 untracked。spec §11 Scenario 1 明确要求"存在并被 git 追踪"。
+**问题:** `app/schemas/com.yy.writingwithai.core.data.db.AppDatabase/1.json` 在磁盘上生成，但 `git status` 视其为 untracked。spec §11 Scenario 1 明确要求"存在并被 git 追踪"。
 
-**修复:** 用户 commit 前手动 `git add app/schemas/`。本 change 不自动 commit(CLAUDE.md),仅提醒。
+**修复:** 用户 commit 前手动 `git add app/schemas/`。本 change 不自动 commit(CLAUDE.md)，仅提醒。
 
 ---
 
@@ -125,14 +125,14 @@ try {
 
 **修复:**
 - `values/strings.xml`: `<string name="quicknote_detail_not_found">笔记不存在</string>`
-- `values-en/strings.xml`: 真实英文翻译(不是 TODO 占位,这是用户可能撞到的提示)
+- `values-en/strings.xml`: 真实英文翻译(不是 TODO 占位，这是用户可能撞到的提示)
 - Composable: `Text(text = stringResource(R.string.quicknote_detail_not_found))`
 
 ### M2. `fallbackToDestructiveMigration()` 装到 release
 
 **文件:** `app/src/main/java/com/yy/writingwithai/core/data/di/DataModule.kt:34`
 
-**问题:** 注释写"正式发版前必须移除并改走 Migration",但 release flavor 也走了这条路径。一旦 v1.0.0 发版后再加字段,用户笔记被静默 wipe。
+**问题:** 注释写"正式发版前必须移除并改走 Migration"，但 release flavor 也走了这条路径。一旦 v1.0.0 发版后再加字段，用户笔记被静默 wipe。
 
 **修复:** `BuildConfig.DEBUG` gate(需 `buildFeatures.buildConfig = true`):
 ```kotlin
@@ -145,9 +145,9 @@ builder.build()
 
 **文件:** `app/src/main/java/com/yy/writingwithai/feature/quicknote/list/QuickNoteListViewModel.kt:31-58`
 
-**问题:** `flatMapLatest` 内部把 `observeAllTags()` 和 `observeNotesWithTags()` 一起 `combine`,每次 query 或 selectedTag 变化 cancel 旧 inner Flow,Room 重新订阅 `observeAllTags()` 首次 emit `[]` → 列表瞬间空。
+**问题:** `flatMapLatest` 内部把 `observeAllTags()` 和 `observeNotesWithTags()` 一起 `combine`，每次 query 或 selectedTag 变化 cancel 旧 inner Flow,Room 重新订阅 `observeAllTags()` 首次 emit `[]` → 列表瞬间空。
 
-**修复:** 把 `observeAllTags()` 提升到外层,只订阅一次:
+**修复:** 把 `observeAllTags()` 提升到外层，只订阅一次:
 ```kotlin
 val uiState: StateFlow<NoteListUiState> =
     combine(
@@ -161,7 +161,7 @@ val uiState: StateFlow<NoteListUiState> =
 
 ### M4. `TITLE_FALLBACK_LEN` 重复
 
-**文件:** `feature/quicknote/list/NoteRow.kt:114` 定义 `private const val TITLE_FALLBACK_LEN = 30`,但 `feature/quicknote/detail/QuickNoteDetailScreen.kt:155` 用裸 `30` literal。
+**文件:** `feature/quicknote/list/NoteRow.kt:114` 定义 `private const val TITLE_FALLBACK_LEN = 30`，但 `feature/quicknote/detail/QuickNoteDetailScreen.kt:155` 用裸 `30` literal。
 
 **修复:** 提升到 `core/data/model/Note.kt` companion:
 ```kotlin
@@ -176,9 +176,9 @@ data class Note(...) {
 
 **文件:** `app/src/main/java/com/yy/writingwithai/core/data/repo/TagRepository.kt`
 
-**问题:** 4 行 facade,只 delegate `NoteRepository.observeAllTags()`。`QuickNoteListViewModel` 注入 `NoteRepository`,无消费者。
+**问题:** 4 行 facade，只 delegate `NoteRepository.observeAllTags()`。`QuickNoteListViewModel` 注入 `NoteRepository`，无消费者。
 
-**修复:** 删除文件,`observeAllTags()` 已在 `NoteRepository`。M2+ 标签加 metadata 时再独立建 `TagRepository`。
+**修复:** 删除文件，`observeAllTags()` 已在 `NoteRepository`。M2+ 标签加 metadata 时再独立建 `TagRepository`。
 
 ### M6. 删除时 back 退出 → 删除被取消
 
@@ -205,14 +205,14 @@ fun delete(onDeleted: () -> Unit) {
 | # | 项 | 文件 |
 | --- | --- | --- |
 | L1 | `"#$tag"` 前缀分散在 4 处;考虑抽 helper | NoteRow / QuickNoteListScreen / QuickNoteDetailScreen / TagInputRow |
-| L2 | `LAST_AI_OP` / `LAST_AI_AT` 字段在 M1 全 null(spec 预留给 M2,合规) | Note.kt / NoteEntity.kt |
-| L3 | `DateFormat.getDateTimeInstance` 用默认 locale,未走 `LocalConfiguration` | NoteRow.kt |
+| L2 | `LAST_AI_OP` / `LAST_AI_AT` 字段在 M1 全 null(spec 预留给 M2，合规) | Note.kt / NoteEntity.kt |
+| L3 | `DateFormat.getDateTimeInstance` 用默认 locale，未走 `LocalConfiguration` | NoteRow.kt |
 | L4 | `togglePinned` 双击无 guard | QuickNoteDetailViewModel.kt |
-| L5 | `NoteListUiState.Loading` 是 `data object` 但显式 override `query/selectedTag`,与 interface 默认值重复 | NoteListUiState.kt |
-| L6 | `RepositoryModule.kt` 空 placeholder 类,无 `@Binds`,纯注释 | core/data/di/RepositoryModule.kt |
+| L5 | `NoteListUiState.Loading` 是 `data object` 但显式 override `query/selectedTag`，与 interface 默认值重复 | NoteListUiState.kt |
+| L6 | `RepositoryModule.kt` 空 placeholder 类，无 `@Binds`，纯注释 | core/data/di/RepositoryModule.kt |
 | L7 | `5_000L`(SharingStarted.WhileSubscribed timeout)在 3 个 VM 重复;提升到 `core/common/SharingConstants.kt` | List/Detail/Editor VMs |
-| L8 | `androidx.appcompat` 引入但 M1 不直接用,留 M5 清理 | app/build.gradle.kts |
-| L9 | WordCount 用 `一-鿿`(基本平面),扩展 A/B 漏算;M1 笔记量预期小,可接受 | WordCount.kt |
+| L8 | `androidx.appcompat` 引入但 M1 不直接用，留 M5 清理 | app/build.gradle.kts |
+| L9 | WordCount 用 `一-鿿`(基本平面)，扩展 A/B 漏算;M1 笔记量预期小，可接受 | WordCount.kt |
 | L10 | Editor 允许保存 title/content 都空的"占位笔记";spec 未禁止 | QuickNoteEditorViewModel.kt |
 | L11 | `data object` Loading 与 `Empty(query="", selectedTag=null)` 行为重复 | NoteListUiState.kt |
 
@@ -224,10 +224,10 @@ fun delete(onDeleted: () -> Unit) {
 2. **Composable PascalCase** — 所有 `@Composable fun Foo(...)` PascalCase;`internal fun Context.shareNoteMarkdown` 正确用 camelCase(非 Composable)
 3. **硬编码中文扫描** — Composable 内 0 个用户可见中文字符串(除 M1 待修的 `"404"`)
 4. **R.string key parity** — 27 unique `quicknote_*` key 在代码、zh、en 三处 1:1:1
-5. **UI ↔ DB 边界** — `feature/` 下零 `core.data.db.entity` 直接 import,全部走 `core.data.model.NoteWithTags`
+5. **UI ↔ DB 边界** — `feature/` 下零 `core.data.db.entity` 直接 import，全部走 `core.data.model.NoteWithTags`
 6. **Hilt 模式** — `DataModule` 走 `@Provides @Singleton`,Repository 走 `@Inject constructor @Singleton`
 7. **Compose state hoisting** — `NoteRow` / `TagInputRow` 无状态;`*Screen` 持有 ViewModel
-8. **Coroutine scope** — 全 main 源集零 `GlobalScope`,只 `viewModelScope.launch`
+8. **Coroutine scope** — 全 main 源集零 `GlobalScope`，只 `viewModelScope.launch`
 9. **未使用 import** — 重构后无残留
 10. **`internal` 修饰合理性** — `NoteMapper`、`WordCount.cjkCount/englishWordCount`、`Context.shareNoteMarkdown` 全部合理 scope
 
@@ -237,17 +237,17 @@ fun delete(onDeleted: () -> Unit) {
 
 按"代码改动小 / 影响大"排序:
 
-1. **H1 + H2**:`return@collect` → `.first()` + 阻止用户输入被覆盖 — 一个文件,15 行
-2. **H3**:`requireNotNull` 改 `routeId?.let { ... } ?: NotFound` — 一个文件,5 行
-3. **H4**:`NoteRepository.search` 加 ESCAPE — 两个文件,各 3 行
-4. **H5**:try/catch `ActivityNotFoundException` — 一个文件,5 行
+1. **H1 + H2**:`return@collect` → `.first()` + 阻止用户输入被覆盖 — 一个文件，15 行
+2. **H3**:`requireNotNull` 改 `routeId?.let { ... } ?: NotFound` — 一个文件，5 行
+3. **H4**:`NoteRepository.search` 加 ESCAPE — 两个文件，各 3 行
+4. **H5**:try/catch `ActivityNotFoundException` — 一个文件，5 行
 5. **M1**:`"404"` 走 R.string — 一个文件 + 两个 strings.xml 条目
-6. **M3**:`observeAllTags` 提升外层 — 一个文件,重组 20 行
+6. **M3**:`observeAllTags` 提升外层 — 一个文件，重组 20 行
 
 ---
 
 ## 后续
 
 - 本 review 是 r1;HIGH 修完后再开 **r2**(重点验 H1-H5 是否清干净、M1/M3 是否落地)
-- M2 `ai-abstraction-layer` 起 change 前,确认 HIGH 全清、MEDIUM 至少 M1/M3 清
+- M2 `ai-abstraction-layer` 起 change 前，确认 HIGH 全清、MEDIUM 至少 M1/M3 清
 - 已识别的 spec 改动建议:任何 agent 提出但 spec 没改的(H3 涉及 spec §"Navigation routes" 可考虑补 `NotFound` 路由行为)

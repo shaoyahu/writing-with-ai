@@ -9,13 +9,13 @@
 #### Scenario: saveProvider 失败时 UI 显式 Failed 反馈 + 不切 selected
 
 - **WHEN** `secureApiKeyStore.save(providerId, apiKey)` 抛 `GeneralSecurityException`(模拟 keystore 损坏)
-- **THEN** `lastSaveResult = Failed("KeyStore 损坏")`;`selectedProviderId` 与 `hasApiKeyForSelected` **不变**(不切 selected,不冒进);UI 显示 Snackbar `"保存失败:KeyStore 损坏"` + 不触发 onBack
+- **THEN** `lastSaveResult = Failed("KeyStore 损坏")`;`selectedProviderId` 与 `hasApiKeyForSelected` **不变**(不切 selected，不冒进);UI 显示 Snackbar `"保存失败:KeyStore 损坏"` + 不触发 onBack
 
 ## ADDED Requirements (fix-ai-config-ux)
 
 ### Requirement: ModelManagementViewModel exposes configuredProviderIds
 
-`ModelManagementViewModel` MUST 暴露 `configuredProviderIds: StateFlow<Set<String>>`,数据源来自 `SecureApiKeyStore.observeConfiguredProviders()`(底层 `EncryptedSharedPreferences` 的 `OnSharedPreferenceChangeListener` 监听所有 `apikey_*` key)。
+`ModelManagementViewModel` MUST 暴露 `configuredProviderIds: StateFlow<Set<String>>`，数据源来自 `SecureApiKeyStore.observeConfiguredProviders()`(底层 `EncryptedSharedPreferences` 的 `OnSharedPreferenceChangeListener` 监听所有 `apikey_*` key)。
 
 `ModelManagementUiState` MUST 新增字段 `configuredProviderIds: Set<String> = emptySet()`;`init { }` MUST collect 该 Flow → `_state.update { it.copy(configuredProviderIds = ids) }`。
 
@@ -39,4 +39,4 @@
 #### Scenario: 切换 selected 不影响其他 provider 已配置状态
 
 - **WHEN** deepseek 已配 → 选 mimo 为 selected
-- **THEN** `_state.configuredProviderIds` 仍含 `"deepseek"`(selected 切换是 prefs 行为,不删除 apikey);deepseek 卡片 "已配置" 蓝 chip 仍显示
+- **THEN** `_state.configuredProviderIds` 仍含 `"deepseek"`(selected 切换是 prefs 行为，不删除 apikey);deepseek 卡片 "已配置" 蓝 chip 仍显示

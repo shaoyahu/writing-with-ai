@@ -35,9 +35,9 @@ import com.yy.writingwithai.R
 /**
  * AI 操作 ActionSheet(M3 fix - Popup + arrow)。
  *
- * 详情屏选中文本时,从底部栏 ✨ 按钮弹出的操作菜单。提供 6 项:
+ * 详情屏选中文本时，从底部栏 ✨ 按钮弹出的操作菜单。提供 6 项:
  * - 扩写 / 润色 / 整理 / 摘要 / 翻译(走 ViewModel 触发 AiGateway)
- * - 复制(走 ClipboardManager,不走 AiGateway)
+ * - 复制(走 ClipboardManager，不走 AiGateway)
  *
  * 见 ai-actions spec "ActionSheet shows available AI operations on selection"。
  */

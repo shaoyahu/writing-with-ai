@@ -4,15 +4,15 @@
 
 ## 目标
 
-- **下载页**:`https://xiaozha.nananxue.cn/app/download/` 静态页,展示最新版本 + changelog + APK 下载按钮 + 历史版本列表
-- **远程更新**:App「我的」tab → 「关于」 → 「检查更新」拉 manifest,有新版弹窗,用户决定下载安装
+- **下载页**:`https://xiaozha.nananxue.cn/app/download/` 静态页，展示最新版本 + changelog + APK 下载按钮 + 历史版本列表
+- **远程更新**:App「我的」tab → 「关于」 → 「检查更新」拉 manifest，有新版弹窗，用户决定下载安装
 
 ## 决策摘要(已与用户对齐)
 
 | 决策点 | 选择 |
 | --- | --- |
 | 服务器栈 | 静态 HTML + Nginx(简单) |
-| 更新 UX | 可选,用户决定,不阻塞 |
+| 更新 UX | 可选，用户决定，不阻塞 |
 | 路径 | `/app/download/` 静态页 + `/app/version.json` 版本接口 |
 
 ## 方案对比
@@ -30,12 +30,12 @@
 
 ### C · F-Droid 自托管 / Obtainium
 
-- Obtainium 拉 GitHub release。要 GitHub repo 公开 + 走 GitHub 流量,与「不上架但自托管」略冲突(且公开源码)。
+- Obtainium 拉 GitHub release。要 GitHub repo 公开 + 走 GitHub 流量，与「不上架但自托管」略冲突(且公开源码)。
 - 排除(架构不一致)。
 
 ### D · 自建后端(Express / FastAPI)+ DB
 
-- 支持灰度、统计、强制更新。复杂度高,内测阶段无 ROI。
+- 支持灰度、统计、强制更新。复杂度高，内测阶段无 ROI。
 - 排除(过设计)。
 
 **结论**:选 A。
@@ -60,7 +60,7 @@
 
 字段语义:
 - `versionCode` int — 大于本地则提示更新
-- `minSupportedVersionCode` int — 小于则强制升级(roadmap 可选,先实现不强制)
+- `minSupportedVersionCode` int — 小于则强制升级(roadmap 可选，先实现不强制)
 - `releaseNotes` string — 多行 markdown,UI 渲染
 - `apkUrl` string — 完整 https URL,App 用 DownloadManager 直接拉
 - `apkSize` long — 预填进度条 / 校验
@@ -106,7 +106,7 @@ feat: 我的 tab</pre>
 </html>
 ```
 
-手写 HTML + CSS 即可,不引前端框架。部署:`scp` 到 Nginx 站点根目录 `/var/www/xiaozha/app/download/`。
+手写 HTML + CSS 即可，不引前端框架。部署:`scp` 到 Nginx 站点根目录 `/var/www/xiaozha/app/download/`。
 
 ## App 侧架构
 
@@ -126,7 +126,7 @@ app/src/main/java/com/yy/writingwithai/feature/my/
 
 ### 网络层
 
-- 复用 `core/net/OkHttpClient`(若无,新建)
+- 复用 `core/net/OkHttpClient`(若无，新建)
 - HTTPS-only(`usesCleartextTraffic="false"` 已设)
 - 加 `network_security_config.xml` 允许 `xiaozha.nananxue.cn`(默认允许)
 - 5s connect / 10s read timeout(manifest 轻量)
@@ -136,7 +136,7 @@ app/src/main/java/com/yy/writingwithai/feature/my/
 ```
 AboutViewModel.checkUpdate()
   ├─ AppUpdateChecker.fetch() → Manifest?
-  ├─ 若 null:Toast "检查失败,稍后重试"
+  ├─ 若 null:Toast "检查失败，稍后重试"
   ├─ 若 remote.versionCode <= local:Toast "已是最新"
   └─ 若 remote.versionCode > local:
        └─ AboutScreen 显示 UpdateDialog
@@ -149,7 +149,7 @@ ApkDownloader.start()
   ├─ DownloadManager.enqueue(request with manifest.apkUrl + title)
   ├─ DownloadCompleteReceiver.onReceive
   │    ├─ 校验 SHA-256(用 manifest.apkSha256)
-  │    │    ├─ 不一致:Toast "下载文件损坏",删文件
+  │    │    ├─ 不一致:Toast "下载文件损坏"，删文件
   │    │    └─ 一致:intent = Intent(ACTION_VIEW).setDataAndType(Uri, "application/vnd.android.package-archive")
   │    │         .setFlags(FLAG_GRANT_READ_URI_PERMISSION | FLAG_ACTIVITY_NEW_TASK)
   │    └─ startActivity(intent) 触发系统安装器
@@ -158,7 +158,7 @@ ApkDownloader.start()
 
 ### 签名校验(防中间人)
 
-App 内置 release 证书 SHA-256(从 `signing.md` 流程读取,写 `BuildConfig.RELEASE_CERT_SHA256` 或 `local.properties`)。下载完成后:
+App 内置 release 证书 SHA-256(从 `signing.md` 流程读取，写 `BuildConfig.RELEASE_CERT_SHA256` 或 `local.properties`)。下载完成后:
 
 ```kotlin
 val pm = context.packageManager
@@ -167,23 +167,23 @@ val sig = pkgInfo.signatures[0].toByteArray()
 val md = MessageDigest.getInstance("SHA-256")
 val sha256 = md.digest(sig).joinToString("") { "%02x".format(it) }
 if (sha256 != BuildConfig.RELEASE_CERT_SHA256) {
-    // 删除 + 提示,不安装
+    // 删除 + 提示，不安装
 }
 ```
 
-> 简化:仅校验 APK SHA-256(`manifest.apkSha256`),不走 cert(因为 cert 受 keystore 改动影响)。
+> 简化:仅校验 APK SHA-256(`manifest.apkSha256`)，不走 cert(因为 cert 受 keystore 改动影响)。
 
 ### DownloadManager vs WorkManager
 
-- `DownloadManager`:系统级,后台下载,支持进度,无存储权限。**首选**。
-- `WorkManager`:可控性强,但下载大文件不如 `DownloadManager` 简单。
+- `DownloadManager`:系统级，后台下载，支持进度，无存储权限。**首选**。
+- `WorkManager`:可控性强，但下载大文件不如 `DownloadManager` 简单。
 
 ### 必填权限
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />     <!-- 已声明 -->
 <!-- DownloadManager 7.0+ 不需要 WRITE_EXTERNAL_STORAGE -->
-<!-- DownloadCompleteReceiver 不需要额外权限,DownloadManager 内部 broadcast -->
+<!-- DownloadCompleteReceiver 不需要额外权限，DownloadManager 内部 broadcast -->
 ```
 
 ## 服务器侧脚本
@@ -211,13 +211,13 @@ ssh "$SERVER" "cd $REMOTE_DIR && ln -sfn writing-with-ai-${VERSION_CODE}.apk lat
 ssh "$SERVER" "$REMOTE_DIR/build-version-json.py > $REMOTE_DIR/version.json"
 ```
 
-`build-version-json.py` 扫目录里所有 `writing-with-ai-{N}.apk` 拼 manifest,读同目录 `release-notes/{N}.md` 填 releaseNotes,算 SHA-256。
+`build-version-json.py` 扫目录里所有 `writing-with-ai-{N}.apk` 拼 manifest，读同目录 `release-notes/{N}.md` 填 releaseNotes，算 SHA-256。
 
 ## OpenSpec change 起草计划
 
 创建 `openspec/changes/app-self-hosted-update/`:
 
-- `proposal.md` — 概述:用户决定自托管分发,App 内置「检查更新」
+- `proposal.md` — 概述:用户决定自托管分发，App 内置「检查更新」
 - `design.md` — 协议 + manifest schema + 下载页 HTML 骨架 + App 流程 + 签名校验策略
 - `tasks.md` — 服务器:写 index.html + version.json 生成脚本 + publish-release.sh;App:写 AppUpdateChecker + ApkDownloader + AboutViewModel + 单测
 - `specs/app-update/spec.md` — 新 capability,Req/Invariant
@@ -233,17 +233,17 @@ ssh "$SERVER" "$REMOTE_DIR/build-version-json.py > $REMOTE_DIR/version.json"
 8. [app] 写 `AboutScreen.UpdateDialog` Composable
 9. [app] 单测 `AppUpdateCheckerTest`(mockwebserver)
 10. [app] 单测 `ApkDownloaderTest`(mock DownloadManager)
-11. [app] 更新 `network_security_config.xml`(如需要,默认允许)
-12. [app] e2e:发一版,真机点检查更新,走通
+11. [app] 更新 `network_security_config.xml`(如需要，默认允许)
+12. [app] e2e:发一版，真机点检查更新，走通
 
 ## 风险与决策点
 
 1. **iOS 暂不考虑**(本仓 Android-only,roadmap §0)
-2. **多架构 APK split**(`abiFilters`):现阶段只发 universal APK;后续如需按 arch 分发,在 manifest 加 `abiFilters` 字段
-3. **回滚**:老 APK 留 `release-notes/{N}.md` + apk 留目录,manifest `minSupportedVersionCode` 控制最低版本
+2. **多架构 APK split**(`abiFilters`):现阶段只发 universal APK;后续如需按 arch 分发，在 manifest 加 `abiFilters` 字段
+3. **回滚**:老 APK 留 `release-notes/{N}.md` + apk 留目录，manifest `minSupportedVersionCode` 控制最低版本
 4. **服务端监控**:Nginx access log 自带;无额外监控
-5. **CDN**:xiaozha.nananxue.cn 国内,直连够用;如遇慢,后续再上 CDN
+5. **CDN**:xiaozha.nananxue.cn 国内，直连够用;如遇慢，后续再上 CDN
 
 ## 下一步
 
-等用户确认本方案后,起 OpenSpec change `app-self-hosted-update`,走 `/opsx:propose`。
+等用户确认本方案后，起 OpenSpec change `app-self-hosted-update`，走 `/opsx:propose`。

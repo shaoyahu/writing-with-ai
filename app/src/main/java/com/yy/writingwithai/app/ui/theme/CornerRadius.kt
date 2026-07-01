@@ -5,7 +5,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * ui-redesign-v2 · 统一圆角 token(5 档)。Modifier.clip / cornerSize 走这里,业务代码不写裸 `.dp` 圆角。
+ * ui-redesign-v2 · 统一圆角 token(5 档)。Modifier.clip / cornerSize 走这里，业务代码不写裸 `.dp` 圆角。
  */
 data class CornerRadius(
     val xs: Dp = 4.dp,
@@ -16,6 +16,6 @@ data class CornerRadius(
 )
 
 /**
- * token 在 App 根提供一次,生命周期内不变 → 用 `staticCompositionLocalOf` 跳过读取追踪。
+ * token 在 App 根提供一次，生命周期内不变 → 用 `staticCompositionLocalOf` 跳过读取追踪。
  */
 val LocalCornerRadius = staticCompositionLocalOf { CornerRadius() }

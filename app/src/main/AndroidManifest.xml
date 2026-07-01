@@ -32,7 +32,8 @@
             android:enableOnBackInvokedCallback="true"
             android:exported="true"
             android:theme="@style/Theme.WritingApp"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="locale|layoutDirection|orientation|screenSize|smallestScreenSize|screenLayout">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -81,11 +82,11 @@
              OAuthLauncher.REDIRECT_URI 与此处的 scheme/host/path 必须一致。
              ux-2026-06-29 r2:不用 taskAffinity="" 隔离 task。原因:独立 task 时
              receiver finish 后系统回退到 intent source(浏览器 task),startMainActivity
-             创建的 MainActivity task 反而不是"front"task,用户被丢回浏览器。
+             创建的 MainActivity task 反而不是"front"task，用户被丢回浏览器。
              改用默认 affinity → receiver 跟 MainActivity 共享同一 task → receiver
-             finish 时 MainActivity 在同 task back stack 下方自动顶上,用户留在 app。
+             finish 时 MainActivity 在同 task back stack 下方自动顶上，用户留在 app。
              re-delivery(手动开 app 触发原始 intent 重投)由 OAuthCodeReceiver.onCreate
-             内的 hasPendingExchange 幂等检查兜底,不依赖 task 隔离。 -->
+             内的 hasPendingExchange 幂等检查兜底，不依赖 task 隔离。 -->
         <activity
             android:name=".core.feishu.auth.OAuthCodeReceiver"
             android:exported="true"
@@ -105,7 +106,7 @@
         <!-- app-self-hosted-update · APK 下载完成 broadcast 接收。
              DownloadManager enqueue 完一个下载任务后会发 ACTION_DOWNLOAD_COMPLETE,
              receiver 拿到对应 APK 文件 + SHA-256 校验 + 触发系统安装 intent。
-             exported=false:API 26+ 系统 broadcast 可送达,无外暴露面。 -->
+             exported=false:API 26+ 系统 broadcast 可送达，无外暴露面。 -->
         <receiver
             android:name=".core.update.UpdateDownloadReceiver"
             android:exported="false">
@@ -114,8 +115,8 @@
             </intent-filter>
         </receiver>
 
-        <!-- app-self-hosted-update · FileProvider,把 App-private external 下载目录
-             暴露成 content:// URI 给系统安装器,避开 API 24+ 的 FileUriExposedException。 -->
+        <!-- app-self-hosted-update · FileProvider，把 App-private external 下载目录
+             暴露成 content:// URI 给系统安装器，避开 API 24+ 的 FileUriExposedException。 -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -137,9 +138,9 @@
         <!-- 飞书 OAuth · targetSdk 30+ 包可见性:声明 ACTION_VIEW + http/https intent,
              否则 CustomTabsIntent.launchUrl 与 ACTION_VIEW fallback 解析不到任何浏览器 →
              ActivityNotFoundException → 误报「未找到可用的浏览器」(跟设备有没有自带浏览器
-             无关,Android 11+ 默认屏蔽未声明的 intent visibility)。
+             无关，Android 11+ 默认屏蔽未声明的 intent visibility)。
              Custom Tabs service 声明供 androidx.browser 在选默认 chrome custom tab provider
-             时用,不在 <queries> 时同样解析不到。 -->
+             时用，不在 <queries> 时同样解析不到。 -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />

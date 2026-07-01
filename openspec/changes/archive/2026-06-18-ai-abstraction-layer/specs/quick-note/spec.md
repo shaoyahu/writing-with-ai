@@ -2,7 +2,7 @@
 
 ### Requirement: Note entity schema
 
-系统 MUST 在 Room `notes` 表中持久化 `Note` 实体,M1 已有 `lastAiOp` / `lastAiAt` 字段但始终为 null。M2 修改行为:**当 AiGateway 完成一次 stream 后,系统 MUST 更新该 Note 的 `lastAiOp` 为操作类型字符串(`"expand"` / `"polish"` / `"organize"`) 和 `lastAiAt` 为当前 epoch millis**。
+系统 MUST 在 Room `notes` 表中持久化 `Note` 实体，M1 已有 `lastAiOp` / `lastAiAt` 字段但始终为 null。M2 修改行为:**当 AiGateway 完成一次 stream 后，系统 MUST 更新该 Note 的 `lastAiOp` 为操作类型字符串(`"expand"` / `"polish"` / `"organize"`) 和 `lastAiAt` 为当前 epoch millis**。
 
 #### Scenario: AI operation completes, metadata written
 - **WHEN** `AiGateway.streamWritingOp(op=EXPAND, sourceText="...", ...)` 完成(Done event)

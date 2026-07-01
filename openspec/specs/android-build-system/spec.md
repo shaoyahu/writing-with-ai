@@ -40,7 +40,7 @@ All library and plugin versions MUST be declared in `gradle/libs.versions.toml`;
 
 The project MUST run ktlint in CI-equivalent mode and produce no errors; the rule set lives in `config/ktlint/.editorconfig`(per-rule 写法)+ `app/build.gradle.kts` 的 `ktlint {}` 块(集中 disabled rules)。
 
-> **2026-06-20 全量扫描**(main 477 + test 109 = ~580 违规,top 5:`indent` 183, `trailing-comma-on-call-site` 142, `argument-list-wrapping` 34, `function-signature` 30, `trailing-comma-on-declaration-site` 23)。修复路径:
+> **2026-06-20 全量扫描**(main 477 + test 109 = ~580 违规，top 5:`indent` 183, `trailing-comma-on-call-site` 142, `argument-list-wrapping` 34, `function-signature` 30, `trailing-comma-on-declaration-site` 23)。修复路径:
 > 1. 跑 `./gradlew :app:ktlintFormat` 自动修大部分
 > 2. 手工修 `app/src/main/java/com/yy/writingwithai/app/ui/theme/Type.kt` 整文件 indent(12 → 8)
 > 3. 手工拆 `app/src/test/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionViewModelTest.kt:47,73,94,112,128,148,165` 多参数单行(8 参构造调 `AiActionViewModel(...)` 必须每参一行)
@@ -59,7 +59,7 @@ The project MUST run ktlint in CI-equivalent mode and produce no errors; the rul
 
 #### Scenario: Type.kt indent 正确
 - **WHEN** 读 `app/src/main/java/com/yy/writingwithai/app/ui/theme/Type.kt`
-- **THEN** 所有 property 缩进为 4 的倍数(2 / 4 / 8 / 12 等),无 `Unexpected indentation (12) (should be 8)` 类违规
+- **THEN** 所有 property 缩进为 4 的倍数(2 / 4 / 8 / 12 等)，无 `Unexpected indentation (12) (should be 8)` 类违规
 
 ### Requirement: Aggregate check task combines lint and tests
 

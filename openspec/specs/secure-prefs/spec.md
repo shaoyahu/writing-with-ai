@@ -20,9 +20,9 @@ TBD - created by archiving change `onboarding-consent`(2026-06-19)。定义 AI p
 - `suspend fun clear(providerId: String)`
 - `suspend fun clearAll()`
 - `fun reveal(providerId: String): StateFlow<RevealState>`
-- `fun observeConfiguredProviders(): Flow<Set<String>>` — 实时返回所有已配置 apikey 的 `providerId` 集合,初始 emit 当前 set,后续 key 增删时 emit 新 set,Flow cancel 时 unregister listener(防泄漏)
+- `fun observeConfiguredProviders(): Flow<Set<String>>` — 实时返回所有已配置 apikey 的 `providerId` 集合，初始 emit 当前 set，后续 key 增删时 emit 新 set,Flow cancel 时 unregister listener(防泄漏)
 
-实现 MUST 捕获 `GeneralSecurityException` / `KeyStoreException` 等 KeyStore 异常,fallback 行为:清空对应 provider 的 apikey + log 一行(不 log apikey 本身,只 log `providerId` + 异常类型)+ 返回 `null`(`get`) / `false`(`has`) / `KeystoreFailed`(`reveal`)。
+实现 MUST 捕获 `GeneralSecurityException` / `KeyStoreException` 等 KeyStore 异常，fallback 行为:清空对应 provider 的 apikey + log 一行(不 log apikey 本身，只 log `providerId` + 异常类型)+ 返回 `null`(`get`) / `false`(`has`) / `KeystoreFailed`(`reveal`)。
 
 `observeConfiguredProviders()` 底层实现 MUST 用 `android.content.SharedPreferences.OnSharedPreferenceChangeListener` 监听 `writingwithai_secure_prefs.xml` 文件中所有以 `apikey_` 为前缀的 key;初始 emit 当前 set → 后续 key 增删时 emit 新 set;Flow cancel 时 MUST unregister listener(防泄漏)。`FakeSecureApiKeyStore` MUST 实现等价行为:StateFlow<MutableSet<String>>,`save` 时 add,`clear` 时 remove,`clearAll` 时清空。
 
@@ -56,7 +56,7 @@ TBD - created by archiving change `onboarding-consent`(2026-06-19)。定义 AI p
 
 #### Scenario: Keystore 损坏时 observeConfiguredProviders 仍 emit 当前 set
 - **WHEN** `EncryptedSharedPreferences` 初始化抛 `GeneralSecurityException`
-- **THEN** `observeConfiguredProviders()` emit 空 set(且 Flow 不中断;后续 save 调用走 catch 分支,不更新 set)
+- **THEN** `observeConfiguredProviders()` emit 空 set(且 Flow 不中断;后续 save 调用走 catch 分支，不更新 set)
 
 ### Requirement: apikey 5-second auto-hide via Lifecycle pause
 
@@ -72,11 +72,11 @@ sealed interface RevealState {
 `reveal()` 内部跟踪 `lastPauseAt: Long`(走 `Application.ActivityLifecycleCallbacks.onActivityPaused`);StateFlow 发射规则:
 - 启动 / ON_RESUME 后调用 `reveal()` → 读 prefs → emit `Revealed(apikey, expiresAt=now+5_000ms)`
 - 距离 lastPauseAt 超过 5_000ms → emit `Hidden`
-- 起一次性 `delay(5_000)` coroutine,过期 emit `Hidden`
+- 起一次性 `delay(5_000)` coroutine，过期 emit `Hidden`
 - Keystore 损坏 → emit `KeystoreFailed`
 
 #### Scenario: 首次 reveal 返回明文 + 5s 过期
-- **WHEN** 用户进入设置页 apikey 显示,App 未进入后台过,`reveal("deepseek")` 调用
+- **WHEN** 用户进入设置页 apikey 显示，App 未进入后台过，`reveal("deepseek")` 调用
 - **THEN** emit `Revealed("sk-xxx", expiresAt=now+5_000)`;UI 显示明文
 
 #### Scenario: 5s 后自动隐藏
@@ -123,7 +123,7 @@ sealed interface RevealState {
 
 ### Requirement: SecurePrefsModule provides Hilt singleton
 
-`SecureApiKeyStore` MUST 通过 `@Module @InstallIn(SingletonComponent::class) object SecurePrefsModule { @Provides @Singleton fun provideSecureApiKeyStore(@ApplicationContext context: Context): SecureApiKeyStore = SecureApiKeyStoreImpl(context) }` 暴露;Hilt consumer 通过 `@Inject constructor(private val secureApiKeyStore: SecureApiKeyStore)` 注入,UI 层只看到 interface。
+`SecureApiKeyStore` MUST 通过 `@Module @InstallIn(SingletonComponent::class) object SecurePrefsModule { @Provides @Singleton fun provideSecureApiKeyStore(@ApplicationContext context: Context): SecureApiKeyStore = SecureApiKeyStoreImpl(context) }` 暴露;Hilt consumer 通过 `@Inject constructor(private val secureApiKeyStore: SecureApiKeyStore)` 注入，UI 层只看到 interface。
 
 #### Scenario: Hilt 注入成功
 - **WHEN** `SettingsViewModel(@Inject secureApiKeyStore: SecureApiKeyStore)` 编译 + 启动
@@ -131,7 +131,7 @@ sealed interface RevealState {
 
 #### Scenario: UI 层不直接 import 实现类
 - **WHEN** `grep -rE "SecureApiKeyStoreImpl" app/src/main/java/com/yy/writingwithai/feature/`
-- **THEN** 0 匹配(实现类只允许在 `core/prefs/` 内被引用,`feature/` 只见 interface)
+- **THEN** 0 匹配(实现类只允许在 `core/prefs/` 内被引用，`feature/` 只见 interface)
 
 #### Scenario: app 层也不直接 import 实现类(M5 polish)
 - **WHEN** `grep -rE "SecureApiKeyStoreImpl" app/src/main/java/com/yy/writingwithai/app/`

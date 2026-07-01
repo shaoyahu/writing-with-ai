@@ -1,7 +1,7 @@
 ## REMOVED Requirements
 
 ### Requirement: QuickNoteListScreen TopAppBar overflow menu 含 settings 入口(M4-3 新增)
-**Reason**: overflow menu 在主屏上发现性差,与 Android 主流 tab 模式不符。设置 / 数据 / AI 配置入口全部下沉到"我的" tab 的 `MyScreen`(`app-tab-bar` spec 接管)。
+**Reason**: overflow menu 在主屏上发现性差，与 Android 主流 tab 模式不符。设置 / 数据 / AI 配置入口全部下沉到"我的" tab 的 `MyScreen`(`app-tab-bar` spec 接管)。
 **Migration**: 用户从笔记 tab 切到底部"我的" tab → `MyScreen` → 选"数据导入导出" / "AI 模型管理" / "Prompt 模板" / "实体别名" / "飞书同步"。"导出全部为 ZIP" 操作迁入 `SettingsDataScreen` 的对应按钮。`onSettingsClick` / `onPromptSettingsClick` 两个 `QuickNoteListScreen` 入参删除。
 
 ## ADDED Requirements
@@ -29,7 +29,7 @@
 
 #### Scenario: 列表空状态"新建"按钮保留
 - **WHEN** 列表无数据
-- **THEN** `EmptyState` Composable 仍渲染 `Button(onClick = onCreateClick) { Text(R.string.quicknote_list_fab_new) }`;点击触发 `onCreateClick` —— 但生产路径由 `AppShell` 调用 `navigate(QuicknoteEdit())`,测试环境仍可单独 verify `EmptyState` onClick
+- **THEN** `EmptyState` Composable 仍渲染 `Button(onClick = onCreateClick) { Text(R.string.quicknote_list_fab_new) }`;点击触发 `onCreateClick` —— 但生产路径由 `AppShell` 调用 `navigate(QuicknoteEdit())`，测试环境仍可单独 verify `EmptyState` onClick
 
 ### Requirement: Export-all ZIP button moves from list to SettingsDataScreen
 
@@ -37,7 +37,7 @@
 
 #### Scenario: SettingsDataScreen 含导出按钮
 - **WHEN** 用户进入 `SettingsDataScreen`
-- **THEN** 渲染"导出全部为 ZIP" `Button`,点击触发 `exportAllLauncher.launch("notes_export.zip")`
+- **THEN** 渲染"导出全部为 ZIP" `Button`，点击触发 `exportAllLauncher.launch("notes_export.zip")`
 
 #### Scenario: 导出 zip 文件名与 M4-3 一致
 - **WHEN** 用户点导出按钮 + 选择保存位置

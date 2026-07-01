@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Test
  *   - 失败路径:consume 掉 pending state(避免 stale)
  *   - 取消路径(CancellationException):不 consume → 下次冷启动 resume
  *
- * 这个 test 在 interface 层面 mock store,验证调用契约。
- * 真实加密 prefs 走 instrumentation(androidTest),不在 unit test 范围。
+ * 这个 test 在 interface 层面 mock store，验证调用契约。
+ * 真实加密 prefs 走 instrumentation(androidTest)，不在 unit test 范围。
  */
 class PendingExchangeContractTest {
 
@@ -30,7 +30,7 @@ class PendingExchangeContractTest {
      */
     @Test
     fun `store contract - persistPendingExchange followed by consumePendingExchange yields stored data`() = runTest {
-        // 用一个简单实现来代替加密 prefs,验证接口契约
+        // 用一个简单实现来代替加密 prefs，验证接口契约
         val store = InMemoryFeishuAuthStore()
         assertFalse(store.hasPendingExchange())
 
@@ -78,7 +78,7 @@ class PendingExchangeContractTest {
 }
 
 /**
- * 简单的 in-memory 实现,只为了验证接口契约。
+ * 简单的 in-memory 实现，只为了验证接口契约。
  * 真实实现 FeishuAuthStoreImpl 走 EncryptedSharedPreferences。
  */
 private class InMemoryFeishuAuthStore : FeishuAuthStore {

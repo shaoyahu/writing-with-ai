@@ -3,8 +3,8 @@ package com.yy.writingwithai.core.media
 import java.io.InputStream
 
 /**
- * Robolectric-free 测试 helper:只跑 [AttachmentStore] 的输入校验逻辑,不实际写文件。
- * 镜像 [AttachmentStore] 的 public API,但只触发 [com.yy.writingwithai.core.security.PathSafety]
+ * Robolectric-free 测试 helper:只跑 [AttachmentStore] 的输入校验逻辑，不实际写文件。
+ * 镜像 [AttachmentStore] 的 public API，但只触发 [com.yy.writingwithai.core.security.PathSafety]
  * 校验(无 Android Context 依赖)。
  */
 object TestableAttachmentStore {

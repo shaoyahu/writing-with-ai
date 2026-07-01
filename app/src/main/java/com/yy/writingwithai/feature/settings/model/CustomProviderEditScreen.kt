@@ -32,10 +32,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,16 +65,17 @@ import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.app.ui.theme.Spacing
 import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.provider.AuthStyle
+import com.yy.writingwithai.core.ui.dropdown.AppSelectionDropdown
 
 /**
  * M6 custom-model · 自定义 Provider 编辑表单。
  *
  * 三区布局:
  * 1. 连接信息(始终展开):显示名称 / Base URL / API Key + 表单内 ping
- * ux-2026-06-28 #3 简化:扁平单段布局,无折叠。
+ * ux-2026-06-28 #3 简化:扁平单段布局，无折叠。
  * 1. 连接信息:显示名称 / 完整 URL / API Key + 表单内 ping
- * 2. 模型 & 认证(直接展示,不再折叠):认证方式 / 自定义 Header / 默认模型 / 支持模型列表
- * 协议只走 anthropic 兼容,Endpoint Path / API 格式从表单移除,完整 URL 由用户填入。
+ * 2. 模型 & 认证(直接展示，不再折叠):认证方式 / 自定义 Header / 默认模型 / 支持模型列表
+ * 协议只走 anthropic 兼容，Endpoint Path / API 格式从表单移除，完整 URL 由用户填入。
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -92,7 +90,7 @@ fun CustomProviderEditScreen(
     val context = LocalContext.current
 
     val isEdit = providerId != null
-    // ux-2026-06-28 P1:apikey 已存在时隐藏输入框,显示"修改 apikey"按钮;点按钮才露出。
+    // ux-2026-06-28 P1:apikey 已存在时隐藏输入框，显示"修改 apikey"按钮;点按钮才露出。
     var editingKey by remember { mutableStateOf(false) }
     val keyExists = isEdit && !editingKey && state.apiKey.isNotBlank()
 
@@ -102,15 +100,15 @@ fun CustomProviderEditScreen(
         }
     }
 
-    // 离开屏幕时清 isSaving,避免下次进入残留 disabled
+    // 离开屏幕时清 isSaving，避免下次进入残留 disabled
     DisposableEffect(Unit) {
         onDispose { viewModel.clearSaving() }
     }
 
     // R6-6 fix: 原 LifecycleResumeEffect(Unit) + onPauseOrDispose { job.cancel() } 在 onPause 期间
-    // (用户按 Home / 切后台) VM 发出的 Saved / SaveFailed 事件会被丢掉,Toast 弹不出来。
-    // 改 LaunchedEffect(viewModel) 绑定 Composable 生命周期,离开 Composition 才取消,
-    // 不依赖 RESUMED — onPause 期间 events 仍可正常 collect,用户回到前台可看到 Toast。
+    // (用户按 Home / 切后台) VM 发出的 Saved / SaveFailed 事件会被丢掉，Toast 弹不出来。
+    // 改 LaunchedEffect(viewModel) 绑定 Composable 生命周期，离开 Composition 才取消，
+    // 不依赖 RESUMED — onPause 期间 events 仍可正常 collect，用户回到前台可看到 Toast。
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -193,14 +191,21 @@ fun CustomProviderEditScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             // custom-provider-api-format:协议下拉(OpenAI 兼容 / Anthropic 兼容)。
-            ApiFormatDropdown(
+            val apiFormatLabels = mapOf(
+                ApiFormat.ANTHROPIC to stringResource(R.string.custom_provider_api_format_anthropic),
+                ApiFormat.OPENAI to stringResource(R.string.custom_provider_api_format_openai)
+            )
+            AppSelectionDropdown(
+                options = ApiFormat.entries,
                 selected = state.apiFormat,
                 onSelected = viewModel::onApiFormatChanged,
+                label = { Text(stringResource(R.string.custom_provider_api_format_label)) },
+                optionLabel = { apiFormatLabels[it] ?: it.name },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // custom-provider-api-format:helper 文案按 state.apiFormat 动态切换,只描述
-            // body / SSE 协议,不给具体 path 字面提示(各家 URL 形态不一)。
+            // custom-provider-api-format:helper 文案按 state.apiFormat 动态切换，只描述
+            // body / SSE 协议，不给具体 path 字面提示(各家 URL 形态不一)。
             Text(
                 text = stringResource(
                     when (state.apiFormat) {
@@ -255,12 +260,21 @@ fun CustomProviderEditScreen(
                 spacing = spacing
             )
 
-            // ===== 2. 模型 & 认证(扁平,不再折叠;ux-2026-06-28 #3 不藏高级设置) =====
+            // ===== 2. 模型 & 认证(扁平，不再折叠;ux-2026-06-28 #3 不藏高级设置) =====
             SectionHeader(stringResource(R.string.custom_provider_section_models_auth))
 
-            AuthStyleDropdown(
+            // ux-2026-06-28 P3:UI 只展示 AUTHORIZATION + X_API_KEY;CUSTOM_HEADER 保留 enum 兼容旧数据。
+            val authStyleLabels = mapOf(
+                AuthStyle.AUTHORIZATION to stringResource(R.string.custom_provider_auth_style_authorization),
+                AuthStyle.X_API_KEY to stringResource(R.string.custom_provider_auth_style_x_api_key),
+                AuthStyle.CUSTOM_HEADER to stringResource(R.string.custom_provider_auth_style_custom_header)
+            )
+            AppSelectionDropdown(
+                options = AuthStyle.entries.filter { it != AuthStyle.CUSTOM_HEADER },
                 selected = state.authStyle,
                 onSelected = viewModel::onAuthStyleChanged,
+                label = { Text(stringResource(R.string.custom_provider_auth_style_label)) },
+                optionLabel = { authStyleLabels[it] ?: it.name },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -386,81 +400,6 @@ private fun FormPingSection(pingResult: PingResult, canPing: Boolean, onPing: ()
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ApiFormatDropdown(selected: ApiFormat, onSelected: (ApiFormat) -> Unit, modifier: Modifier = Modifier) {
-    // custom-provider-api-format:协议下拉(OpenAI 兼容 / Anthropic 兼容)。
-    // 跟 AuthStyleDropdown 同源结构(ExposedDropdownMenuBox + readOnly OutlinedTextField),
-    // 切换后 viewModel state.apiFormat 更新 → helper 文案跟随切换。
-    var expanded by remember { mutableStateOf(false) }
-    val labels = mapOf(
-        ApiFormat.ANTHROPIC to R.string.custom_provider_api_format_anthropic,
-        ApiFormat.OPENAI to R.string.custom_provider_api_format_openai
-    )
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = modifier
-    ) {
-        OutlinedTextField(
-            value = stringResource(labels.getValue(selected)),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.custom_provider_api_format_label)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            ApiFormat.entries.forEach { format ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(labels.getValue(format))) },
-                    onClick = {
-                        onSelected(format)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AuthStyleDropdown(selected: AuthStyle, onSelected: (AuthStyle) -> Unit, modifier: Modifier = Modifier) {
-    var expanded by remember { mutableStateOf(false) }
-    val labels = mapOf(
-        AuthStyle.AUTHORIZATION to R.string.custom_provider_auth_style_authorization,
-        AuthStyle.X_API_KEY to R.string.custom_provider_auth_style_x_api_key,
-        AuthStyle.CUSTOM_HEADER to R.string.custom_provider_auth_style_custom_header
-    )
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = modifier
-    ) {
-        OutlinedTextField(
-            value = stringResource(labels.getValue(selected)),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.custom_provider_auth_style_label)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            // ux-2026-06-28 P3:UI 只展示 AUTHORIZATION + X_API_KEY;CUSTOM_HEADER 保留 enum 兼容旧数据。
-            AuthStyle.entries.filter { it != AuthStyle.CUSTOM_HEADER }.forEach { style ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(labels.getValue(style))) },
-                    onClick = {
-                        onSelected(style)
-                        expanded = false
-                    }
-                )
-            }
-        }
     }
 }
 

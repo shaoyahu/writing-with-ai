@@ -27,7 +27,7 @@ class OAuthStateTest {
     @Test
     fun `buildAuthorizeUrl includes state parameter`() {
         val url = launcher.buildAuthorizeUrl("app123", "abc-state-xyz")
-        // ux-2026-06-28:v2 — app_id → client_id,新增 response_type=code(必需),host 改 accounts.feishu.cn
+        // ux-2026-06-28:v2 — app_id → client_id，新增 response_type=code(必需),host 改 accounts.feishu.cn
         assertTrue(url.contains("state=abc-state-xyz"), "expected state=abc-state-xyz in: $url")
         assertTrue(url.contains("client_id=app123"), "expected client_id=app123 in: $url")
         assertTrue(url.contains("response_type=code"), "expected response_type=code in: $url")

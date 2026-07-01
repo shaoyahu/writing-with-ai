@@ -7,7 +7,7 @@
 ## 2. SettingsDataViewModel 加方法
 
 - [x] 2.1 `feature/settings/data/SettingsDataViewModel.kt`
-  - `var lastImportReportZipBytes: ByteArray? = null` 改 `val`(public getter,移除 `private set`)
+  - `var lastImportReportZipBytes: ByteArray? = null` 改 `val`(public getter，移除 `private set`)
   - 新 sealed `SaveReportResult { Idle | Success | Failed(reason) }`
   - 新 `private val _lastSaveReportResult = MutableStateFlow<SaveReportResult>(Idle)` + `val lastSaveReportResult: StateFlow<SaveReportResult>`
   - 新 `fun saveImportReport(uri: Uri)`:`bytes = lastImportReportZipBytes ?: return` → `viewModelScope.launch { try { withContext(ioDispatcher) { context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("openOutputStream returned null") }; _lastSaveReportResult.value = SaveReportResult.Success } catch (e: CancellationException) { throw e } catch (e: Exception) { _lastSaveReportResult.value = SaveReportResult.Failed(e.message ?: "unknown") } }`

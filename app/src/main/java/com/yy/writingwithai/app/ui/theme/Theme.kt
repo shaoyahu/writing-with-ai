@@ -28,7 +28,7 @@ import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
 import com.yy.writingwithai.core.ui.animation.toTokens
 
 /**
- * ui-redesign-v2 · 语义色 token 集合,业务侧通过 MaterialTheme.customColors.success / warning 引用。
+ * ui-redesign-v2 · 语义色 token 集合，业务侧通过 MaterialTheme.customColors.success / warning 引用。
  */
 data class CustomColors(
     val success: Color,
@@ -37,7 +37,7 @@ data class CustomColors(
     val warningDark: Color
 )
 
-// 默认 token 实例:顶层 val 保证 App 生命周期内单例,避免 Theme.kt 在重组里反复 new。
+// 默认 token 实例:顶层 val 保证 App 生命周期内单例，避免 Theme.kt 在重组里反复 new。
 private val DefaultSpacing = Spacing()
 private val DefaultCornerRadius = CornerRadius()
 private val DefaultLightCustomColors = CustomColors(
@@ -53,7 +53,7 @@ private val DefaultDarkCustomColors = CustomColors(
     warningDark = WarningAmberDarkDarkTheme
 )
 
-// M7 fix: 改为 staticCompositionLocalOf,值仅在主题切换时变化(全量重组),跳过读追踪
+// M7 fix: 改为 staticCompositionLocalOf，值仅在主题切换时变化(全量重组)，跳过读追踪
 private val LocalCustomColors = staticCompositionLocalOf { DefaultLightCustomColors }
 
 /** 业务 Composable 通过 MaterialTheme.customColors 读取语义色 token。 */
@@ -66,13 +66,13 @@ val MaterialTheme.customColors: CustomColors
  * writing-with-ai · Material 3 主题入口。
  *
  * - 默认跟随系统 dark/light(`isSystemInDarkTheme()`)。
- * - 提供 `LocalSpacing` / `LocalCornerRadius` 两个自定义 token,业务 Composable 通过它们读取。
+ * - 提供 `LocalSpacing` / `LocalCornerRadius` 两个自定义 token，业务 Composable 通过它们读取。
  * - ui-redesign-v2: 种子色从蓝 #3B82F6 改为墨绿 #1B6B4A。
  * - animation-system:提供 `LocalAnimationTokens`(spec D1 `compositionLocalOf`)。
  *   - 数据源优先级:`userPrefsStore.animationStyleFlow` > `animationStyle` 入参。
  *   - reduce-motion(`AccessibilityManager.isReduceMotionEnabled`)开启时强制覆盖为 NONE,
  *     用户的 `animation_style_v1` 持久化值不被破坏(spec REQ 3)。
- *   - reduce-motion 通过 `LifecycleEventObserver` 在 `ON_RESUME` 重新读取,运行时切系统设置有效。
+ *   - reduce-motion 通过 `LifecycleEventObserver` 在 `ON_RESUME` 重新读取，运行时切系统设置有效。
  */
 @Composable
 fun WritingAppTheme(
@@ -84,8 +84,8 @@ fun WritingAppTheme(
     animationStyle: AnimationStyle = AnimationStyle.MINIMAL,
     /**
      * 可选注入(避免 Theme 反向依赖 core/prefs 构造参数);
-     * - 运行时由 `MainActivity` 通过 Hilt EntryPoint 注入,本 Composable 内 collect flow。
-     * - Preview / 测试场景传 null 时,使用 [animationStyle] 兜底值。
+     * - 运行时由 `MainActivity` 通过 Hilt EntryPoint 注入，本 Composable 内 collect flow。
+     * - Preview / 测试场景传 null 时，使用 [animationStyle] 兜底值。
      */
     userPrefsStore: UserPrefsStore? = null,
     content: @Composable () -> Unit
@@ -93,7 +93,7 @@ fun WritingAppTheme(
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val customColors = if (darkTheme) DefaultDarkCustomColors else DefaultLightCustomColors
 
-    // animation-system · 风格源:有 store 走 store(持久化值),无 store 用兜底入参。
+    // animation-system · 风格源:有 store 走 store(持久化值)，无 store 用兜底入参。
     val persistedStyle: AnimationStyle = if (userPrefsStore != null) {
         val state by userPrefsStore.animationStyleFlow.collectAsStateWithLifecycle(initialValue = animationStyle)
         state
@@ -102,7 +102,7 @@ fun WritingAppTheme(
     }
 
     // animation-system · reduce-motion 检测(spec D3):Android 9+ API 28 `isReduceMotionEnabled`。
-    // 用 LifecycleEventObserver 在 ON_RESUME 重读,捕获运行时切换系统设置。
+    // 用 LifecycleEventObserver 在 ON_RESUME 重读，捕获运行时切换系统设置。
     val reduceMotion = rememberReduceMotion()
 
     val effectiveStyle: AnimationStyle = if (reduceMotion) AnimationStyle.NONE else persistedStyle
@@ -127,8 +127,8 @@ fun WritingAppTheme(
  * 返回当前系统是否启用 reduce-motion。
  *
  * 设计要点:
- * - 初始值在 [remember] 块里同步读,首次 Composition 立刻有正确值,无需等 ON_RESUME。
- * - 后续运行时切换通过 `LifecycleEventObserver` 在 `ON_RESUME` 重读,触发 state 变更重组 Theme。
+ * - 初始值在 [remember] 块里同步读，首次 Composition 立刻有正确值，无需等 ON_RESUME。
+ * - 后续运行时切换通过 `LifecycleEventObserver` 在 `ON_RESUME` 重读，触发 state 变更重组 Theme。
  */
 @Composable
 private fun rememberReduceMotion(): Boolean {
@@ -155,7 +155,7 @@ private fun rememberReduceMotion(): Boolean {
     return reduceMotion
 }
 
-/** AndroidX 26+ 兼容 getSystemService(Class),不强制 minSdk 27 才能编译。 */
+/** AndroidX 26+ 兼容 getSystemService(Class)，不强制 minSdk 27 才能编译。 */
 private inline fun <reified T> Context.getSystemServiceCompat(serviceClass: Class<T>): T? =
     getSystemService(serviceClass)
 

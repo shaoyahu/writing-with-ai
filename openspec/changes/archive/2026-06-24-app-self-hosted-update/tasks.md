@@ -2,16 +2,16 @@
 
 ## 1. 服务端脚本(入 git)
 
-- [x] 1.1 写 `scripts/release-server/build-version-json.py`(扫 APK 目录,生成 manifest JSON 到 stdout)
-- [x] 1.2 写 `scripts/release-server/build-index.py`(扫 APK + release-notes 目录,生成 `index.html`)
-- [x] 1.3 写 `scripts/release-server/index.html.template`(Jinja-like 占位符,build-index 填版本号/changelog/历史列表)
+- [x] 1.1 写 `scripts/release-server/build-version-json.py`(扫 APK 目录，生成 manifest JSON 到 stdout)
+- [x] 1.2 写 `scripts/release-server/build-index.py`(扫 APK + release-notes 目录，生成 `index.html`)
+- [x] 1.3 写 `scripts/release-server/index.html.template`(Jinja-like 占位符，build-index 填版本号/changelog/历史列表)
 - [x] 1.4 写 `scripts/release-server/publish-release.sh`(scp + ssh + 串 4 步;`set -euo pipefail`;幂等)
 - [x] 1.5 `chmod +x` 三个脚本(本机跑)
 
-## 2. 服务端部署(SSH 到 xiaozha.nananxue.cn,人工)
+## 2. 服务端部署(SSH 到 xiaozha.nananxue.cn，人工)
 
 - [ ] 2.1 `mkdir -p /var/www/xiaozha/app/download/release-notes`
-- [ ] 2.2 上传 `build-version-json.py` 到服务器,`chmod +x`
+- [ ] 2.2 上传 `build-version-json.py` 到服务器，`chmod +x`
 - [ ] 2.3 上传 `build-index.py` 与 `index.html.template` 同上
 - [ ] 2.4 写 Nginx `location /app/download/` 路由 + cache headers,reload
 - [ ] 2.5 验:`curl -I https://xiaozha.nananxue.cn/app/download/` 返回 200
@@ -20,7 +20,7 @@
 
 - [x] 3.1 写 `core/update/AppUpdateManifest.kt`(data class + `@Serializable`)
 - [x] 3.2 写 `core/update/UpdateError.kt`(sealed class: Network/Parse/Http)
-- [x] 3.3 写 `core/update/UpdateDeps.kt`(Hilt `@Module` 提供 OkHttp + JSON,或复用 `core/net`)
+- [x] 3.3 写 `core/update/UpdateDeps.kt`(Hilt `@Module` 提供 OkHttp + JSON，或复用 `core/net`)
 
 ## 4. App 端 — 检查 + 下载
 
@@ -39,7 +39,7 @@
 ## 6. App 端 — 测试
 
 - [x] 6.1 `app/src/test/.../AppUpdateCheckerTest.kt`(mockwebserver:200 + 新版 → manifest;远 versionCode 小 → 不弹;500 → Failed;JSON 损坏 → Failed)
-- [ ] 6.2 `app/src/test/.../ApkDownloaderTest.kt`(mock DownloadManager;verify enqueue 调用)— **deferred**:DownloadManager 是系统 service,需要 Robolectric;当前 AppUpdateChecker 测试覆盖核心数据路径,后续可补
+- [ ] 6.2 `app/src/test/.../ApkDownloaderTest.kt`(mock DownloadManager;verify enqueue 调用)— **deferred**:DownloadManager 是系统 service，需要 Robolectric;当前 AppUpdateChecker 测试覆盖核心数据路径，后续可补
 - [x] 6.3 `app/src/test/.../AboutViewModelTest.kt`(状态机:Idle → Checking → Available → Idle 关闭 dialog)
 
 ## 7. 文档

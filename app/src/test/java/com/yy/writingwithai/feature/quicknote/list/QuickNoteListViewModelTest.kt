@@ -31,7 +31,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class QuickNoteListViewModelTest {
 
-    // UnconfinedTestDispatcher 让 VM init 块的 viewModelScope.launch 立即执行,避免 runTest 等无限 Flow 卡死
+    // UnconfinedTestDispatcher 让 VM init 块的 viewModelScope.launch 立即执行，避免 runTest 等无限 Flow 卡死
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var repository: NoteRepository
     private lateinit var syncService: FeishuSyncService

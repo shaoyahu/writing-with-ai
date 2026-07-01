@@ -2,12 +2,12 @@
 
 飞书云文档 Docx v1 用 block 树存储;本地 note 是 Markdown 字符串。双向同步的核心是结构转换层。
 
-本 change 是 **纯函数库**,不依赖飞书 API token、不依赖 Android SDK、不依赖 Room;只接 Markdown 字符串 + 飞书 block 数据模型。可 JVM 单测,可独立 review。
+本 change 是 **纯函数库**，不依赖飞书 API token、不依赖 Android SDK、不依赖 Room;只接 Markdown 字符串 + 飞书 block 数据模型。可 JVM 单测，可独立 review。
 
 约束:
 - v1 roadmap §3.1:Markdown 源码 + 实时预览(无富文本所见即所得)
-- 输出 `FeishuBlock` 是 sealed class,序列化走 kotlinx.serialization
-- 转换是 pure function,无副作用
+- 输出 `FeishuBlock` 是 sealed class，序列化走 kotlinx.serialization
+- 转换是 pure function，无副作用
 
 ## Goals / Non-Goals
 
@@ -54,11 +54,11 @@ data class Run(val text: String, val bold: Boolean = false, val italic: Boolean 
 - 行级识别:`^(#{1,6})\s+(.+)$` → heading;`^[-*]\s+` → bullet;`^\d+\.\s+` → ordered;`^>\s+` → quote;`^---$` → divider
 - 块级识别:连续 ``` 包围 → code block;空行分隔段落
 - 行内识别:`**text**` / `*text*` / `` `text` `` / `[text](url)` → Run style
-- 优先级:块级先匹配,行级再扫,行内最后
+- 优先级:块级先匹配，行级再扫，行内最后
 
 ### D3 · 不支持元素降级
 
-按 proposal 列出的规则,在解析时直接产出对应的 `FeishuBlock`:
+按 proposal 列出的规则，在解析时直接产出对应的 `FeishuBlock`:
 
 ```kotlin
 private fun parseImage(line: String): FeishuBlock.Image {
@@ -108,7 +108,7 @@ class MarkdownRoundTripTester {
 
 ### D5 · 错误处理
 
-解析失败行(畸形 Markdown)→ 走 `FeishuBlock.Unsupported(raw = 原行)`;不抛异常,确保整个文档能完成转换。
+解析失败行(畸形 Markdown)→ 走 `FeishuBlock.Unsupported(raw = 原行)`;不抛异常，确保整个文档能完成转换。
 
 ```kotlin
 private fun parseLine(line: String): FeishuBlock = try {
@@ -127,19 +127,19 @@ private fun parseLine(line: String): FeishuBlock = try {
 
 | Risk | Mitigation |
 | --- | --- |
-| Markdown 解析 100% 自实现,边界 case 多 | 10 条 sample round-trip + 已知边界 case fixture;不引入 commonmark-java 减少依赖 |
-| 飞书 block 树结构后续变更 | `FeishuBlock` 是内部数据模型,不直接绑飞书 API;caller 负责映射到飞书私有格式 |
-| Round-trip 不接受度(降级元素丢失信息) | fixture 用 `assertEquals(normalize, normalize)`,允许合理格式转换;明确列出不可逆元素 |
+| Markdown 解析 100% 自实现，边界 case 多 | 10 条 sample round-trip + 已知边界 case fixture;不引入 commonmark-java 减少依赖 |
+| 飞书 block 树结构后续变更 | `FeishuBlock` 是内部数据模型，不直接绑飞书 API;caller 负责映射到飞书私有格式 |
+| Round-trip 不接受度(降级元素丢失信息) | fixture 用 `assertEquals(normalize, normalize)`，允许合理格式转换;明确列出不可逆元素 |
 | 代码块语言识别错误 | 优先取 ```lang 后缀;lang 不识别时存 `text` |
 
 ## Migration Plan
 
-1. `core/feishu/converter/` 新包,纯 Kotlin
+1. `core/feishu/converter/` 新包，纯 Kotlin
 2. 10 条 sample fixture 放在 `app/src/test/resources/markdown-docx/`
 3. round-trip 集成测试
-4. **回滚**:新 converter 是 additive;旧路径(直接走 `Markdown` 字符串)保留,无 breaking
+4. **回滚**:新 converter 是 additive;旧路径(直接走 `Markdown` 字符串)保留，无 breaking
 
 ## Open Questions
 
-- 是否支持 Markdown 扩展(GFM / 表格语法 / Task list)? — v1 不支持(表格走降级 bullet),留 v2
-- 飞书块格式是否直接用 Docx v1 API 真实字段? — v1 内部抽象,留给 `feishu-bidir-sync` 做映射
+- 是否支持 Markdown 扩展(GFM / 表格语法 / Task list)? — v1 不支持(表格走降级 bullet)，留 v2
+- 飞书块格式是否直接用 Docx v1 API 真实字段? — v1 内部抽象，留给 `feishu-bidir-sync` 做映射

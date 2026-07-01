@@ -3,8 +3,8 @@ package com.yy.writingwithai.feature.my
 /**
  * app-bottom-tab-bar · "我的" tab 入口的目标路由类型化清单。
  *
- * 由 `MyScreen.onNavigate` 用作参数,`AppShell` 内部翻译为对应 `@Serializable` route 实例。
- * 用 enum 而非裸 String key,编译期捕获拼写错误(review r1 M2 修)。
+ * 由 `MyScreen.onNavigate` 用作参数，`AppShell` 内部翻译为对应 `@Serializable` route 实例。
+ * 用 enum 而非裸 String key，编译期捕获拼写错误(review r1 M2 修)。
  *
  * 5 条入口(对应 spec 4 Decision 4):
  * - 数据导入/导出 → `SettingsData`
@@ -13,7 +13,7 @@ package com.yy.writingwithai.feature.my
  * - 实体别名 → `SettingsAliasManagement`
  * - 飞书同步 → `Settings`(已有 FeishuSyncLogSection)
  *
- * 关于条目为纯展示版本号,不 navigate,因此不在本 enum。
+ * 关于条目为纯展示版本号，不 navigate，因此不在本 enum。
  */
 enum class MeTabTarget {
     SettingsData,
@@ -31,5 +31,8 @@ enum class MeTabTarget {
     SettingsFeishu,
 
     /** ux-2026-06-28 P6:笔记关联设置专属路由(从数据管理区直达) */
-    SettingsNoteAssociation
+    SettingsNoteAssociation,
+
+    /** language-switcher:APP 内语言切换入口 */
+    SettingsLanguage
 }

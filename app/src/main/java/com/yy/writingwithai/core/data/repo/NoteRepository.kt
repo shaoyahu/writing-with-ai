@@ -34,7 +34,7 @@ import kotlinx.coroutines.withContext
 /**
  * Note 业务仓库。
  *
- * - 包装 [NoteDao] + [NoteTagDao],只暴露 [Note](领域模型),不暴露 Entity
+ * - 包装 [NoteDao] + [NoteTagDao]，只暴露 [Note](领域模型)，不暴露 Entity
  * - `observeNotesWithTags` 合并"笔记列表" + "全表交叉引用"成 `List<NoteWithTags>`,
  *   供列表屏直接渲染(spec §"List ordering" + "Tag many-to-many")
  * - 删除 / upsert 走事务:`notes` 行 + `note_tags` 行要么都改要么都不改
@@ -56,11 +56,11 @@ constructor(
     private val noteLinker: NoteLinker,
     private val attachmentStore: AttachmentStore
 ) {
-    // hardening H-5:scope 改为 Hilt 注入的 @ApplicationScope,不再自管 SupervisorJob。
-    // 进程退出时由进程死亡隐式 cancel,不再 leak。
+    // hardening H-5:scope 改为 Hilt 注入的 @ApplicationScope，不再自管 SupervisorJob。
+    // 进程退出时由进程死亡隐式 cancel，不再 leak。
     private val recomputeFlow = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
-    /** AI replace 触发通知:detail ViewModel 收集,收到 noteId 后强刷。 */
+    /** AI replace 触发通知:detail ViewModel 收集，收到 noteId 后强刷。 */
     val noteUpdateEvents = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 32)
 
     init {
@@ -128,7 +128,7 @@ constructor(
      * - 把传入的 tag 集合逐个写入(去重 + 去空)
      */
     suspend fun upsert(note: Note, tags: List<String>) {
-        // M6 修:仅记 tags.size,不打印 noteId / tags 内容(隐私)。
+        // M6 修:仅记 tags.size，不打印 noteId / tags 内容(隐私)。
         // C6 修:BuildConfig.DEBUG gate,release 包不打 noteId + tags 到 logcat(隐私)。
         if (BuildConfig.DEBUG) {
             android.util.Log.d("NoteRepo", "upsert noteId=${note.id} tags.size=${tags.size}")
@@ -147,22 +147,22 @@ constructor(
             }
             cleaned.forEach { tag -> noteTagDao.add(NoteTagCrossRef(noteId = note.id, tag = tag)) }
         }
-        // H3 修:widget 刷新包 NonCancellable,避免 viewModelScope 取消导致
+        // H3 修:widget 刷新包 NonCancellable，避免 viewModelScope 取消导致
         // 数据库已落库但 widget 没刷新(用户 back 时 race)。
         withContext(NonCancellable) { widgetUpdater.updateAll(context) }
         recomputeFlow.tryEmit(note.id)
     }
 
     suspend fun delete(id: String) {
-        // review r2 修:删除笔记时清理附件文件 + DB 行,避免磁盘泄漏。
-        // review r3 修 H5:文件清理必须**在 DB 事务之后**,否则 DB 行指向不存在的 localPath。
-        // 顺序:DB 事务先删行(attachment row + tag row + note row),再删文件。
-        // 若文件删除失败,DB 已删,下次 attach-less delete 是干净的;文件会成 orphan,
-        // 但 orphan attachment dir 没 DB 行引用,后续 cleanup 仍能回收。
+        // review r2 修:删除笔记时清理附件文件 + DB 行，避免磁盘泄漏。
+        // review r3 修 H5:文件清理必须**在 DB 事务之后**，否则 DB 行指向不存在的 localPath。
+        // 顺序:DB 事务先删行(attachment row + tag row + note row)，再删文件。
+        // 若文件删除失败，DB 已删，下次 attach-less delete 是干净的;文件会成 orphan,
+        // 但 orphan attachment dir 没 DB 行引用，后续 cleanup 仍能回收。
         //
-        // fix-2026-06-30-full-review-r1 HIGH H5:同步删 ai_history 行,避免 orphan。
-        // AiHistoryEntity.noteId 无 ForeignKey,必须手动清,否则 observeByNoteId
-        // 仍会发射孤儿行,observeTotalTokens 计入脏数据。
+        // fix-2026-06-30-full-review-r1 HIGH H5:同步删 ai_history 行，避免 orphan。
+        // AiHistoryEntity.noteId 无 ForeignKey，必须手动清，否则 observeByNoteId
+        // 仍会发射孤儿行，observeTotalTokens 计入脏数据。
         db.withTransaction {
             noteAttachmentDao.deleteForNote(id)
             noteTagDao.removeAllForNote(id)
@@ -174,10 +174,10 @@ constructor(
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            // 文件删除失败不阻塞业务(DB 已删),但要 log 出来便于 orphan 排查
+            // 文件删除失败不阻塞业务(DB 已删)，但要 log 出来便于 orphan 排查
             android.util.Log.w("NoteRepo", "delete: attachment cleanup failed for noteId=$id", e)
         }
-        // H3 修:同上,NonCancellable 包 widget 刷新。
+        // H3 修:同上，NonCancellable 包 widget 刷新。
         withContext(NonCancellable) { widgetUpdater.updateAll(context) }
     }
 
@@ -188,9 +188,9 @@ constructor(
     /**
      * note-list-card-actions · 给单条笔记挂已有 tag(幂等)。
      *
-     * - NoteTagDao.add 用 IGNORE 策略 → 重复挂同一 tag 自动 no-op,不需要先查再插
+     * - NoteTagDao.add 用 IGNORE 策略 → 重复挂同一 tag 自动 no-op，不需要先查再插
      * - 走事务外(单条 INSERT)+ NonCancellable 包 widget 刷新(同 upsert/delete 模式)
-     * - tag 自动 trim + 空过滤,与 upsert 的 cleaned 行为一致
+     * - tag 自动 trim + 空过滤，与 upsert 的 cleaned 行为一致
      */
     suspend fun addTagToNote(noteId: String, tag: String) {
         val cleaned = tag.trim()
@@ -211,7 +211,7 @@ constructor(
 
     /**
      * fix-2026-06-30-full-review-r1 MEDIUM M4:走 NoteDao.observeRecent(limit) SQL LIMIT,
-     * 不再加载全表在内存截断。Room 仍按 updatedAt desc 排序,固定优先在头部。
+     * 不再加载全表在内存截断。Room 仍按 updatedAt desc 排序，固定优先在头部。
      */
     fun observeRecent(limit: Int): Flow<List<Note>> =
         noteDao.observeRecent(limit).map { list -> list.map { it.toModel() } }

@@ -2,7 +2,7 @@
 
 ## Why
 
-2026-06-21 全项目 review r2(`docs/reviews/2026-06-21-full-project-review-r2.md`)发现 9 项 HIGH(commit-block)+ 16 项 MEDIUM + 12 项 LOW。本 change 落地 9 项 HIGH,其余 28 项在后续 `polish-review-r2` change 处理。
+2026-06-21 全项目 review r2(`docs/reviews/2026-06-21-full-project-review-r2.md`)发现 9 项 HIGH(commit-block)+ 16 项 MEDIUM + 12 项 LOW。本 change 落地 9 项 HIGH，其余 28 项在后续 `polish-review-r2` change 处理。
 
 9 项 HIGH:
 - **H1** `CoreAiGateway.streamWritingOp` 主线程 `runBlocking` → ANR
@@ -25,7 +25,7 @@
 4. **H9**:`CustomProviderEditViewModel.pingFromForm` 不再持有 `s.apiKey`;改走 `CoreAiGateway.ping()`(扩签名);apikey 临时取不入 state
 5. **H2**:`LlmNoteLinkExtractor` LIKE 查询转义 `\` `%` `_`
 6. **H3**:`AiHistoryRepository.record` 入口加脱敏 pass(apikey pattern + error 截断)
-7. **H6**:`AiActionViewModel.acceptReplace` 用 `indexOf` + `replaceRange`,缺失/多匹配 → emit `Failed`
+7. **H6**:`AiActionViewModel.acceptReplace` 用 `indexOf` + `replaceRange`，缺失/多匹配 → emit `Failed`
 8. **H7**:删 `AiActionViewModel.acceptReplace` 内 `delay(150)` + `tryEmit` + 误导 Log
 9. **H8**:`QuickNoteDetailViewModel` 合并双 `viewModelScope.launch`;删 `noteUpdateEvents` listener 路径
 
@@ -33,7 +33,7 @@
 
 ### Modified Capabilities
 
-- `ai-gateway`:apikey 透传 gateway,不再由 gateway 内部读 prefs(对应 H1 + H9 扩 ping)
+- `ai-gateway`:apikey 透传 gateway，不再由 gateway 内部读 prefs(对应 H1 + H9 扩 ping)
 - `quick-note`:cross-feature 引用走 Entry(对应 H4);详情 VM single-source-of-truth(对应 H8)
 - `note-association`:LIKE escape 与 Repository 主路径对齐(对应 H2)
 - `secure-prefs`:新增 `NoteAssociationSettingsStore` 落 `core/prefs/`(对应 H5)

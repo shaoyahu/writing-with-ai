@@ -33,6 +33,7 @@ import com.yy.writingwithai.feature.settings.animation.AnimationStylePreviewScre
 import com.yy.writingwithai.feature.settings.association.NoteAssociationSettingsScreen
 import com.yy.writingwithai.feature.settings.data.SettingsDataScreen
 import com.yy.writingwithai.feature.settings.feishu.FeishuAuthScreen
+import com.yy.writingwithai.feature.settings.i18n.SettingsLanguageScreen
 import com.yy.writingwithai.feature.settings.model.ModelManagementEntry
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -42,18 +43,18 @@ import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 
 /**
- * writing-with-ai · 应用 NavHost(M1 接入 quick-note-feature,M4-1 加 widget 启动参数,
+ * writing-with-ai · 应用 NavHost(M1 接入 quick-note-feature,M4-1 加 widget 启动参数，
  * M4-4 加 consent gate,app-bottom-tab-bar 改为底部 3 槽 tab shell)。
  *
  * 路由结构(review r1 L6 修后):
  * - [AppShell] 底部 tab 容器根路由(应用默认目的地;承载 Notes / Me 两个 tab 根屏)
  * - [QuicknoteDetail] 详情(`id` 为 Note.id)
  * - [QuicknoteEdit] 编辑(`id` 缺省或 "NEW" 视为新建;`prefillFocus` 用于 widget "新建"启动)
- * - [Notes] / [Me] tab 根屏(由 AppShell 内部子 NavHost 持有,不在根 NavHost 注册 composable)
+ * - [Notes] / [Me] tab 根屏(由 AppShell 内部子 NavHost 持有，不在根 NavHost 注册 composable)
  * - `onboarding/consent` 同意门(M4-4 新增)
  *
  * M4-4 改动(r1 H1 修):
- * - `widgetPendingRoute: MutableState<String?>` 由 `MainActivity` 写入,本函数在同意后
+ * - `widgetPendingRoute: MutableState<String?>` 由 `MainActivity` 写入，本函数在同意后
  *   navigate 该 route + 清栈(防 back 回 onboarding)+ 清 widgetPendingRoute
  * - 启动时 `LaunchedEffect(Unit) { consentStore.consentFlow.first() }` → 未同意或版本过期
  *   → `navController.navigate("onboarding/consent") { popUpTo(0) }` 强制走同意页
@@ -66,7 +67,7 @@ import kotlinx.serialization.Serializable
  * - widget pending route 回放的 popUpTo 锚点由 `QuicknoteList` 切到 `AppShell`
  * - `composable<AppShell>` block 渲染 `AppShell(...)`(同 package `com.yy.writingwithai.app`)
  *
- * @deprecated `QuicknoteList` route 仍保留作 archive sync 对齐,不推荐新代码引用。
+ * @deprecated `QuicknoteList` route 仍保留作 archive sync 对齐，不推荐新代码引用。
  */
 @EntryPoint
 @InstallIn(ActivityComponent::class)
@@ -81,7 +82,7 @@ fun AppNav(
     widgetPendingRoute: MutableState<WidgetLaunchRoute?> = remember { mutableStateOf<WidgetLaunchRoute?>(null) },
     onNavControllerReady: (androidx.navigation.NavController) -> Unit = {},
     // fix-2026-06-25-review-r1 C5:让测试能注入 fake(默认走 Hilt EntryPoint)。
-    // 不传时仍从 Activity EntryPoint 拿,MainActivity 走默认路径不变。
+    // 不传时仍从 Activity EntryPoint 拿，MainActivity 走默认路径不变。
     consentStore: ConsentStore? = null,
     userPrefsStore: UserPrefsStore? = null
 ) {
@@ -96,8 +97,8 @@ fun AppNav(
     val resolvedConsentStore: ConsentStore =
         consentStore
             ?: remember(context) {
-                // review r2 修:安全转换 context as? Activity,非 Activity context(如 Preview)
-                // 返回 null 时抛明确异常,而非 ClassCastException。
+                // review r2 修:安全转换 context as? Activity，非 Activity context(如 Preview)
+                // 返回 null 时抛明确异常，而非 ClassCastException。
                 val activity = context as? Activity
                     ?: error("AppNav requires Activity context, got ${context.javaClass.simpleName}")
                 EntryPointAccessors.fromActivity(
@@ -106,7 +107,7 @@ fun AppNav(
                 ).consentStore()
             }
 
-    // onboarding-apikey-prompt · 同上,UserPrefsStore 支持测试入参。
+    // onboarding-apikey-prompt · 同上，UserPrefsStore 支持测试入参。
     val resolvedUserPrefsStore: UserPrefsStore =
         userPrefsStore
             ?: remember(context) {
@@ -129,8 +130,8 @@ fun AppNav(
         }
     }
 
-    // M12 fix:widget pending route 解析提取 helper,避免 3 处重复 when 分支。
-    // hardening H-4:用 sealed [WidgetLaunchRoute] 替代 string prefix 拼装,when 穷尽由编译器保证。
+    // M12 fix:widget pending route 解析提取 helper，避免 3 处重复 when 分支。
+    // hardening H-4:用 sealed [WidgetLaunchRoute] 替代 string prefix 拼装，when 穷尽由编译器保证。
     // popUpToInclusive:consent 回放 / apikey-prompt 走 popUpTo(0)(清栈),
     // initialRoute 走 popUpTo(AppShell)(不清 consent 栈)。
     fun navigatePendingRoute(route: WidgetLaunchRoute?, popUpToInclusive: Boolean = true) {
@@ -171,7 +172,7 @@ fun AppNav(
             val pending = widgetPendingRoute.value
             val currentRoute = navController.currentDestination?.route
             if (currentRoute?.contains("onboarding") == true) {
-                // onboarding-apikey-prompt · 同意通过后,若 ack=false → 串到 apikey-prompt
+                // onboarding-apikey-prompt · 同意通过后，若 ack=false → 串到 apikey-prompt
                 if (!ackApikeyPrompt) {
                     navController.navigate(OnboardingEntry.ROUTE_APIKEY_PROMPT) {
                         popUpTo(0) { inclusive = true }
@@ -184,7 +185,7 @@ fun AppNav(
             }
         } else if (!consentState.accepted) {
             // review r2 修:DataStore 冷启动时 consentState 仍为初始值 EMPTY(accepted=false),
-            // 已同意用户会短暂进入此分支闪现 onboarding 页。跳过 EMPTY 状态,
+            // 已同意用户会短暂进入此分支闪现 onboarding 页。跳过 EMPTY 状态，
             // 等真实值到达后再决策(第一个 LaunchedEffect(Unit) 用 .first() 已正确等待)。
             if (consentState != ConsentState.EMPTY &&
                 navController.currentDestination?.route?.contains("onboarding") != true
@@ -197,7 +198,7 @@ fun AppNav(
     }
 
     // animation-system · 导航过渡接 token(spec §REQ 4)。
-    // NavHost transition lambda 不是 @Composable,需提前读 token 再 lambda 内引用。
+    // NavHost transition lambda 不是 @Composable，需提前读 token 再 lambda 内引用。
     val navTokens = LocalAnimationTokens.current
     NavHost(
         navController = navController,
@@ -241,6 +242,12 @@ fun AppNav(
         }
         composable<SettingsData> {
             SettingsDataScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        // language-switcher:「我的 → 设置 → 语言」3 选 1;选完 recreate() 整个 Activity。
+        composable<SettingsLanguage> {
+            SettingsLanguageScreen(
                 onBack = { navController.popBackStack() }
             )
         }
@@ -306,9 +313,9 @@ fun AppNav(
             ApikeyPromptRoute(
                 onFinished = {
                     // M12 fix:复用 navigatePendingRoute 替代重复 when 分支。
-                    // ack=true 后(VM 已写 DataStore),此处手动 navigate 到主路由。
+                    // ack=true 后(VM 已写 DataStore)，此处手动 navigate 到主路由。
                     // 上面 LaunchedEffect(ackApikeyPrompt) 在 collect 触发新值后
-                    // 也会再次 navigate,这里 popUpTo(0) 防止双跳。
+                    // 也会再次 navigate，这里 popUpTo(0) 防止双跳。
                     val pending = widgetPendingRoute.value
                     widgetPendingRoute.value = null
                     navigatePendingRoute(pending)
@@ -318,9 +325,9 @@ fun AppNav(
     }
 
     // M4-1 · widget 启动路由解析(已同意情况:走 initialRoute 路径;
-    // 未同意情况:由 MainActivity 暂存到 widgetPendingRoute,本 LaunchedEffect
+    // 未同意情况:由 MainActivity 暂存到 widgetPendingRoute，本 LaunchedEffect
     // 在 consent 变 true 后统一处理。见上方"同意后单向门"块)。
-    // M12 fix:复用 navigatePendingRoute 替代重复 when 分支,
+    // M12 fix:复用 navigatePendingRoute 替代重复 when 分支，
     // popUpToInclusive=false → popUpTo(AppShell)(不清 consent 栈)。
     LaunchedEffect(initialRoute) {
         if (initialRoute == null) return@LaunchedEffect
@@ -340,7 +347,7 @@ data object QuicknoteList
  * app-bottom-tab-bar · 底部 tab 容器根路由(类型安全)。
  * - `AppShell` 是根 NavHost 的 startDestination;`composable<AppShell>` 渲染 `AppShell(...)`。
  * - `Notes` / `Me` 是 AppShell 内部子 NavHost 的 tab 根路由(不由根 NavHost 注册 composable)。
- *   它们在这里声明,供 `AppShell.kt` 的 typed navigate / popUpTo 引用。
+ *   它们在这里声明，供 `AppShell.kt` 的 typed navigate / popUpTo 引用。
  */
 @Serializable
 data object AppShell
@@ -359,6 +366,9 @@ data class QuicknoteEdit(val id: String? = "NEW", val prefillFocus: Boolean = fa
 
 @Serializable
 data object SettingsData
+
+@Serializable
+data object SettingsLanguage
 
 @Serializable
 data object Settings
@@ -386,7 +396,7 @@ data class SettingsCustomProviderEdit(val providerId: String? = null)
 
 /**
  * animation-system-and-consent-redesign §11.2:动画风格设置 route(@Serializable data object)。
- * 由 MeTabTarget.SettingsAnimationStyle 经 `AppShell` 的 onNavigate 翻译,根 NavHost 注册
+ * 由 MeTabTarget.SettingsAnimationStyle 经 `AppShell` 的 onNavigate 翻译，根 NavHost 注册
  * `composable<SettingsAnimationStyle>` 渲染 `AnimationStylePreviewScreen`。
  */
 @Serializable

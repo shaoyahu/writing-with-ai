@@ -72,14 +72,14 @@ constructor(
 
     /**
      * last-import-report-save · 保存导入报告按钮反馈事件流。屏上 Snackbar
-     * LaunchedEffect 监听,Success/Failed 显示 + 调 [resetSaveReportResult] 回 Idle。
+     * LaunchedEffect 监听，Success/Failed 显示 + 调 [resetSaveReportResult] 回 Idle。
      */
     private val _lastSaveReportResult = MutableStateFlow<SaveReportResult>(SaveReportResult.Idle)
     val lastSaveReportResult: StateFlow<SaveReportResult> = _lastSaveReportResult.asStateFlow()
 
     /**
      * H2 修:r1 review 发现空数据仍允许导出 → Done(0) 困惑。
-     * 暴露当前 Room 笔记总数给 Screen,导出按钮在 count == 0 时置灰 + 显示 `settings_data_no_data` 文案。
+     * 暴露当前 Room 笔记总数给 Screen，导出按钮在 count == 0 时置灰 + 显示 `settings_data_no_data` 文案。
      */
     val notesCount: StateFlow<Int> =
         noteRepository
@@ -98,7 +98,7 @@ constructor(
         viewModelScope.launch {
             _uiState.value = DataUiState.Exporting
             // fix-2026-06-30-full-review-r1 HIGH H12:catch Exception 前先 rethrow
-            // CancellationException,不让协程取消被吞成"导出失败"。
+            // CancellationException，不让协程取消被吞成"导出失败"。
             try {
                 val exportedCount =
                     withContext(ioDispatcher) {
@@ -122,7 +122,7 @@ constructor(
     /**
      * SAF 触发回调:导入 zip 到 Room。
      *
-     * M4 修:同 exportToJsonZip,入口 guard。
+     * M4 修:同 exportToJsonZip，入口 guard。
      * 出口:Importing → Done(report, isImport = true) / Failed。
      * - 缓存 input bytes(SAF InputStream 不可 seek,importer 需要 in + out 双 stream)
      * - 调 [NoteImporter.importFromZip] 走完整闭循环(含 `import_report.md` 写回 zip 副本 + ai_history 同步)
@@ -132,7 +132,7 @@ constructor(
         if (_uiState.value !is DataUiState.Idle) return
         viewModelScope.launch {
             _uiState.value = DataUiState.Importing
-            // fix-2026-06-30-full-review-r1 HIGH H12:同 exportToJsonZip,先 rethrow 取消。
+            // fix-2026-06-30-full-review-r1 HIGH H12:同 exportToJsonZip，先 rethrow 取消。
             try {
                 val report =
                     withContext(ioDispatcher) {
@@ -164,7 +164,7 @@ constructor(
     /**
      * last-import-report-save · 把 [lastImportReportZipBytes] 写到用户选的 SAF URI。
      *
-     * 缓存为 null 时 no-op(不抛错,UI 端按钮已置灰,正常路径不会走到这里);
+     * 缓存为 null 时 no-op(不抛错，UI 端按钮已置灰，正常路径不会走到这里);
      * 写入走 `Dispatchers.IO`;失败 catch 后 emit [SaveReportResult.Failed],
      * **不**切 [DataUiState](避免覆盖 Done 态丢用户上下文)。
      */
@@ -186,7 +186,7 @@ constructor(
         }
     }
 
-    /** 把 [lastSaveReportResult] 回到 [SaveReportResult.Idle],屏 LaunchedEffect 在 Snackbar 显示后调。 */
+    /** 把 [lastSaveReportResult] 回到 [SaveReportResult.Idle]，屏 LaunchedEffect 在 Snackbar 显示后调。 */
     fun resetSaveReportResult() {
         _lastSaveReportResult.value = SaveReportResult.Idle
     }

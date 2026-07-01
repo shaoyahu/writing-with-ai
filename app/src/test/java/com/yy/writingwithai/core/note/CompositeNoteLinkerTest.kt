@@ -27,16 +27,16 @@ import org.junit.jupiter.api.Test
 /**
  * note-association · CompositeNoteLinker 单测。
  *
- * 纯 JVM mock test,不依赖 Room/ApplicationProvider。之前版本用 Room.inMemoryDatabaseBuilder +
- * ApplicationProvider,在 JUnit Platform 下没有 instrumentation,导致 testDebugUnitTest 失败。
+ * 纯 JVM mock test，不依赖 Room/ApplicationProvider。之前版本用 Room.inMemoryDatabaseBuilder +
+ * ApplicationProvider，在 JUnit Platform 下没有 instrumentation，导致 testDebugUnitTest 失败。
  *
  * fix-2026-06-30-full-review-r1 C1:delete+upsert 包 db.withTransaction { ... },
- * withTransaction 是 androidx.room 顶层 suspend INLINE 扩展函数,inline 后展开到调用方,
+ * withTransaction 是 androidx.room 顶层 suspend INLINE 扩展函数，inline 后展开到调用方，
  * 无法 mockkStatic 拦截;mock db 调 withTransaction 会 hang(等真实 SQLite 事务)。
- * 需要 Robolectric + 真实 in-memory Room 才能跑通,留待后续 unit test infra 跟进。
+ * 需要 Robolectric + 真实 in-memory Room 才能跑通，留待后续 unit test infra 跟进。
  * 临时 @Disabled 让 build 绿。
  */
-@Disabled("withTransaction 是 inline 扩展,mock db 上 hang;需 Robolectric + 真实 in-memory Room")
+@Disabled("withTransaction 是 inline 扩展，mock db 上 hang;需 Robolectric + 真实 in-memory Room")
 class CompositeNoteLinkerTest {
     private lateinit var noteLinkDao: NoteLinkDao
     private lateinit var noteDao: NoteDao
@@ -62,16 +62,16 @@ class CompositeNoteLinkerTest {
         // entity-extraction-polish §2.2:CompositeNoteLinker 现在调 settings.threshold() 传 DAO / NoteLinkCap。
         every { settings.threshold() } returns 0.10f
         coEvery { entity.compute(any()) } returns emptyList()
-        // 默认:每个 noteId 的 local/wiki/entity 都返空,这样 recomputeForNote 安全 noop。
+        // 默认:每个 noteId 的 local/wiki/entity 都返空，这样 recomputeForNote 安全 noop。
         coEvery { local.compute(any()) } returns emptyList()
         coEvery { wiki.index(any()) } returns emptyList()
         // fix-2026-06-30-full-review-r1 CRITICAL C1:delete + upsert 现在走 db.withTransaction。
         // withTransaction 是 androidx.room 顶层 suspend INLINE 扩展函数 — inline 后被展开到
-        // 调用方,无法用 mockkStatic 拦截。简化做法:本测试不验证事务原子性(由 Room 保证),
+        // 调用方，无法用 mockkStatic 拦截。简化做法:本测试不验证事务原子性(由 Room 保证),
         // 只 mock dao 行为。withTransaction 在测试里走真实路径会抛"No open transaction"等
-        // SQLite 异常,所以把 db 改用 in-memory Room(走 fake driver)。
-        // 注:依赖 androidx.sqlite-framework 提供 native sqlite,在 unit test classpath 已有。
-        // 当前 db 仍是 mock,Dao 直接 mock → 走 linkDao.deleteBySrc/upsertAll 单次调用,
+        // SQLite 异常，所以把 db 改用 in-memory Room(走 fake driver)。
+        // 注:依赖 androidx.sqlite-framework 提供 native sqlite，在 unit test classpath 已有。
+        // 当前 db 仍是 mock,Dao 直接 mock → 走 linkDao.deleteBySrc/upsertAll 单次调用，
         // 不依赖事务包装语义。
         linker = CompositeNoteLinker(db, noteLinkDao, noteDao, local, wiki, entity, llm, settings)
     }
@@ -174,13 +174,13 @@ class CompositeNoteLinkerTest {
 
     /**
      * R3 fix M8 回归:recomputeAll 不再是 `return 0` 的死 SPI。
-     * 期望:遍历 noteDao.getAllIds() 返回的每个 id,逐条调 recomputeForNote,
+     * 期望:遍历 noteDao.getAllIds() 返回的每个 id，逐条调 recomputeForNote,
      * 返回成功处理的 count。
      */
     @Test
     fun `recomputeAll iterates all ids and returns success count`() = runTest {
         coEvery { noteDao.getAllIds() } returns listOf("n1", "n2", "n3")
-        // setup() 已默认 local/wiki/entity 返回空行,recomputeForNote 安全 noop。
+        // setup() 已默认 local/wiki/entity 返回空行，recomputeForNote 安全 noop。
 
         val processed = linker.recomputeAll()
 
@@ -193,7 +193,7 @@ class CompositeNoteLinkerTest {
 
     /**
      * R3 fix M8 + H8 教训:单条 poisoned note 不应 abort 整批。
-     * 期望:n2 抛异常 → n1 成功 + n2 跳过 + n3 仍继续,返回 2。
+     * 期望:n2 抛异常 → n1 成功 + n2 跳过 + n3 仍继续，返回 2。
      */
     @Test
     fun `recomputeAll skips poisoned note and continues`() = runTest {
@@ -202,7 +202,7 @@ class CompositeNoteLinkerTest {
 
         val processed = linker.recomputeAll()
 
-        assertEquals(2, processed, "n2 失败应被跳过,n1/n3 仍计入")
+        assertEquals(2, processed, "n2 失败应被跳过，n1/n3 仍计入")
         coVerify(exactly = 1) { noteLinkDao.deleteBySrc("n1") }
         coVerify(exactly = 1) { noteLinkDao.deleteBySrc("n2") }
         coVerify(exactly = 1) { noteLinkDao.deleteBySrc("n3") }

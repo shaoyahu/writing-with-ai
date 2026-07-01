@@ -2,7 +2,7 @@
 
 ## Purpose
 
-把 M2 落地的 AI 抽象层(`AiGateway` / `FakeProvider` / `AnthropicCompatibleAdapter`)接进 UI 闭环:详情屏选中文本 → 弹 ActionSheet(扩写/润色/整理 + 复制)→ 流式面板(`ModalBottomSheet`)实时渲染 AI 返回 → 用户接受/拒绝/再生成/取消。错误降级保证不白屏,i18n 完整。`providerId` 写死 `"fake"`(真 provider 切换推迟 M5 onboarding-consent)。本 capability 是 v1 价值最核心的 feature,首次让用户感知"AI 助手"。
+把 M2 落地的 AI 抽象层(`AiGateway` / `FakeProvider` / `AnthropicCompatibleAdapter`)接进 UI 闭环:详情屏选中文本 → 弹 ActionSheet(扩写/润色/整理 + 复制)→ 流式面板(`ModalBottomSheet`)实时渲染 AI 返回 → 用户接受/拒绝/再生成/取消。错误降级保证不白屏，i18n 完整。`providerId` 写死 `"fake"`(真 provider 切换推迟 M5 onboarding-consent)。本 capability 是 v1 价值最核心的 feature，首次让用户感知"AI 助手"。
 
 TBD — synced from OpenSpec change `ai-writing-actions`(2026-06-19)。
 
@@ -10,14 +10,14 @@ TBD — synced from OpenSpec change `ai-writing-actions`(2026-06-19)。
 
 ### Requirement: ActionSheet shows available AI operations on selection
 
-详情屏 MUST 在用户**选中文本非空**时,通过详情页 FAB(`Icons.Filled.AutoAwesome`)唤起一个 `DropdownMenu`(锚定到 FAB),提供 4 个菜单项:
+详情屏 MUST 在用户**选中文本非空**时，通过详情页 FAB(`Icons.Filled.AutoAwesome`)唤起一个 `DropdownMenu`(锚定到 FAB)，提供 4 个菜单项:
 
 | 菜单项 | 文案 key | 触发行为 |
 | --- | --- | --- |
 | 扩写 | `aiwriting_action_expand` | `AiActionViewModel.start(op=EXPAND, sourceText, noteId)` |
 | 润色 | `aiwriting_action_polish` | `AiActionViewModel.start(op=POLISH, sourceText, noteId)` |
 | 整理 | `aiwriting_action_organize` | `AiActionViewModel.start(op=ORGANIZE, sourceText, noteId)` |
-| 复制 | `aiwriting_action_copy` | `ClipboardManager.setPrimaryClip(sourceText)`(非 AI 操作,不进 AiGateway) |
+| 复制 | `aiwriting_action_copy` | `ClipboardManager.setPrimaryClip(sourceText)`(非 AI 操作，不进 AiGateway) |
 
 #### Scenario: FAB 显示条件
 - **WHEN** 详情屏当前选区为空(无文本被选中)
@@ -37,7 +37,7 @@ TBD — synced from OpenSpec change `ai-writing-actions`(2026-06-19)。
 
 ### Requirement: AiActionViewModel owns the streaming state machine
 
-`AiActionViewModel : ViewModel` MUST 注入 `AiGateway` + `NoteRepository`,暴露 `StateFlow<AiActionUiState>` 给 UI 订阅;状态机用 sealed interface 表达:
+`AiActionViewModel : ViewModel` MUST 注入 `AiGateway` + `NoteRepository`，暴露 `StateFlow<AiActionUiState>` 给 UI 订阅;状态机用 sealed interface 表达:
 
 ```kotlin
 sealed interface AiActionUiState {
@@ -76,7 +76,7 @@ sealed interface AiActionUiState {
 
 ### Requirement: StreamingPanel renders state-aware UI inside ModalBottomSheet
 
-`StreamingPanel` MUST 是 `ModalBottomSheet` 内容,根据 `AiActionUiState` 渲染不同 UI:
+`StreamingPanel` MUST 是 `ModalBottomSheet` 内容，根据 `AiActionUiState` 渲染不同 UI:
 
 | 状态 | 顶部 | 中部 | 底部按钮 |
 | --- | --- | --- | --- |
@@ -97,7 +97,7 @@ sealed interface AiActionUiState {
 
 #### Scenario: Failed 态只显示关闭
 - **WHEN** state = `Failed(op=ORGANIZE, error=Network(500))`
-- **THEN** UI 显示顶部"出错"、中部"网络连接失败,请检查后重试"(取自 R.string.aiwriting_error_network)、底部仅"关闭"按钮
+- **THEN** UI 显示顶部"出错"、中部"网络连接失败，请检查后重试"(取自 R.string.aiwriting_error_network)、底部仅"关闭"按钮
 
 #### Scenario: 关闭 ModalBottomSheet 等同 cancel
 - **WHEN** 用户在 Streaming 态点击 sheet 外区域或按 back
@@ -115,26 +115,26 @@ sealed interface AiActionUiState {
 | `dismiss()` | 任何 | state 回 Idle;Flow 取消订阅 |
 | `regenerate()` | `Done` | 复用上次 `op` / `sourceText` / `noteId` 重新调 `start(...)` |
 
-`acceptReplace()` MUST 用 `withContext(NonCancellable)` 包裹"读 + upsert + updateAiMetadata"三步;若 ViewModel 在 acceptReplace 期间被 cleared(进程死 / 系统回收),事务仍能完成(写到 Room 即落盘)。
+`acceptReplace()` MUST 用 `withContext(NonCancellable)` 包裹"读 + upsert + updateAiMetadata"三步;若 ViewModel 在 acceptReplace 期间被 cleared(进程死 / 系统回收)，事务仍能完成(写到 Room 即落盘)。
 
 #### Scenario: 接受替换正文并写 lastAiOp
-- **WHEN** state = `Done(op=POLISH, finalText="优化后", usage=...)`,用户点"接受"
+- **WHEN** state = `Done(op=POLISH, finalText="优化后", usage=...)`，用户点"接受"
 - **THEN** 笔记 `content` 从原值变为 "优化后",`updatedAt=<now>`;`Note.lastAiOp="polish"`,`Note.lastAiAt=<now>`;AiHistory 已自动落库(M2);UI 详情页通过 Flow 自动刷新显示新正文
 
 #### Scenario: 拒绝不替换
-- **WHEN** state = `Done(op=EXPAND, finalText="扩写后", usage=...)`,用户点"拒绝"
+- **WHEN** state = `Done(op=EXPAND, finalText="扩写后", usage=...)`，用户点"拒绝"
 - **THEN** 笔记 `content` 保持原值;`lastAiOp` / `lastAiAt` 不变;AiHistory 仍自动落库(成功调用)
 
 #### Scenario: 取消中止流
-- **WHEN** state = `Streaming(op=ORGANIZE, partialText="<部分>")`,用户点"取消"
+- **WHEN** state = `Streaming(op=ORGANIZE, partialText="<部分>")`，用户点"取消"
 - **THEN** 笔记 `content` 保持原值;AiHistory 落库(error=<cancellation reason> 或 success 但 output 截断)
 
 #### Scenario: 再生成用同 op 重跑
-- **WHEN** state = `Done(op=EXPAND, finalText="第1次", usage=...)`,用户点"再生成"
+- **WHEN** state = `Done(op=EXPAND, finalText="第1次", usage=...)`，用户点"再生成"
 - **THEN** ViewModel 复用上次参数调 `start(EXPAND, sourceText=<上次 selectedText>, noteId=<上次 noteId>)`;AiActionUiState 重新进入 Streaming 态;原 `finalText` 被丢弃
 
 #### Scenario: acceptReplace 事务不被中断
-- **WHEN** `acceptReplace()` 正在 `withContext(NonCancellable)` 中执行,用户按 back 关闭 ModalBottomSheet,触发 ViewModel.clear()
+- **WHEN** `acceptReplace()` 正在 `withContext(NonCancellable)` 中执行，用户按 back 关闭 ModalBottomSheet，触发 ViewModel.clear()
 - **THEN** Room 写入与 `updateAiMetadata` 仍能完成(NonCancellable 保护);AiHistory 已自动落库(M2)
 
 ### Requirement: Error fallback never leaves a blank UI
@@ -153,11 +153,11 @@ fun AiError.toDisplayMessage(ctx: Context): String = when (this) {
 }
 ```
 
-`StreamingPanel` 在 `Failed` 态 MUST 显示该文案 + "关闭"按钮(点击关闭 sheet,回 Idle);**禁止**弹 Dialog / Snackbar / 任何额外模态(简化 UX)。
+`StreamingPanel` 在 `Failed` 态 MUST 显示该文案 + "关闭"按钮(点击关闭 sheet，回 Idle);**禁止**弹 Dialog / Snackbar / 任何额外模态(简化 UX)。
 
 #### Scenario: 网络错误显示 fallback 文案
-- **WHEN** FakeProvider 注入 `errorAfterTokens=1`(M2 已支持,模拟中断)
-- **THEN** UI 进入 `Failed(op, Network)`;中部显示 `R.string.aiwriting_error_network` 对应中文"网络连接失败,请检查后重试";底部"关闭"按钮可点
+- **WHEN** FakeProvider 注入 `errorAfterTokens=1`(M2 已支持，模拟中断)
+- **THEN** UI 进入 `Failed(op, Network)`;中部显示 `R.string.aiwriting_error_network` 对应中文"网络连接失败，请检查后重试";底部"关闭"按钮可点
 
 #### Scenario: 余额不足文案
 - **WHEN** AiGateway emit `Failed(InsufficientBalance(code=402, detail="..."))`
@@ -169,7 +169,7 @@ fun AiError.toDisplayMessage(ctx: Context): String = when (this) {
 
 ### Requirement: i18n for AI writing UI
 
-所有 `ai-actions` 相关 UI 文案 MUST 出现在 `values/strings.xml`(中文,权威)与 `values-en/strings.xml`(英文 TODO 占位),命名空间为 `aiwriting_*`,19 个 key 集合:
+所有 `ai-actions` 相关 UI 文案 MUST 出现在 `values/strings.xml`(中文，权威)与 `values-en/strings.xml`(英文 TODO 占位)，命名空间为 `aiwriting_*`,19 个 key 集合:
 
 | key | 中文 | 用途 |
 | --- | --- | --- |
@@ -187,25 +187,25 @@ fun AiError.toDisplayMessage(ctx: Context): String = when (this) {
 | `aiwriting_panel_regenerate` | 再生成 | Done 底部按钮 |
 | `aiwriting_panel_close` | 关闭 | Failed 底部按钮 |
 | `aiwriting_panel_usage_fmt` | 输入 %1$d · 输出 %2$d | token 用量 chip |
-| `aiwriting_error_network` | 网络连接失败,请检查后重试 | Network |
-| `aiwriting_error_auth` | 认证失败,请检查 API key | Auth |
+| `aiwriting_error_network` | 网络连接失败，请检查后重试 | Network |
+| `aiwriting_error_auth` | 认证失败，请检查 API key | Auth |
 | `aiwriting_error_balance` | 账户余额不足 | InsufficientBalance |
-| `aiwriting_error_timeout` | 请求超时,请稍后重试 | Timeout |
-| `aiwriting_error_unknown` | 出错了,请稍后重试 | 兜底 |
+| `aiwriting_error_timeout` | 请求超时，请稍后重试 | Timeout |
+| `aiwriting_error_unknown` | 出错了，请稍后重试 | 兜底 |
 
 Composable 内 MUST 通过 `stringResource(R.string.aiwriting_xxx)` 引用;**禁止**硬编码中文 / 英文。
 
 #### Scenario: 系统语言为英文时显示 TODO 占位
-- **WHEN** 系统语言为英文,`values-en/strings.xml` 中 `aiwriting_action_expand="TODO(en): aiwriting_action_expand"`
+- **WHEN** 系统语言为英文，`values-en/strings.xml` 中 `aiwriting_action_expand="TODO(en): aiwriting_action_expand"`
 - **THEN** ActionSheet 显示 `TODO(en): aiwriting_action_expand`(可读 + 不阻断构建);M5 polish 时替换为正式英文
 
 #### Scenario: 中文文案来自 R.string
-- **WHEN** 系统语言为中文,UI 渲染 ActionSheet 项"扩写"
-- **THEN** 该文本通过 `stringResource(R.string.aiwriting_action_expand)` 取值,源码 grep 不到中文字面量
+- **WHEN** 系统语言为中文，UI 渲染 ActionSheet 项"扩写"
+- **THEN** 该文本通过 `stringResource(R.string.aiwriting_action_expand)` 取值，源码 grep 不到中文字面量
 
 ### Requirement: ai-actions does not introduce direct network calls
 
-`feature/aiwriting/**` 包内 MUST **不** 直接 import `okhttp3.*` / `java.net.*` / `retrofit2.*` / `kotlinx.serialization.*`(JSON 走 AiGateway 内部);所有 AI 调用 MUST 经过 `AiGateway.streamWritingOp(...)`。`ClipboardManager` 例外(系统 API,非网络)。
+`feature/aiwriting/**` 包内 MUST **不** 直接 import `okhttp3.*` / `java.net.*` / `retrofit2.*` / `kotlinx.serialization.*`(JSON 走 AiGateway 内部);所有 AI 调用 MUST 经过 `AiGateway.streamWritingOp(...)`。`ClipboardManager` 例外(系统 API，非网络)。
 
 #### Scenario: ViewModel 不持有 OkHttp
 - **WHEN** grep `feature/aiwriting/**/*.kt`
@@ -217,7 +217,7 @@ Composable 内 MUST 通过 `stringResource(R.string.aiwriting_xxx)` 引用;**禁
 
 ### Requirement: package layout follows feature self-containment
 
-`feature/aiwriting/` MUST 自包含,跨 feature 引用(若有)走 `feature/aiwriting/AiwritingEntry.kt` object 暴露,不允许 `feature/quicknote/**` 直接 import `feature/aiwriting/**` 内部文件(除了 `Entry`)。`feature/aiwriting/` 内子目录:
+`feature/aiwriting/` MUST 自包含，跨 feature 引用(若有)走 `feature/aiwriting/AiwritingEntry.kt` object 暴露，不允许 `feature/quicknote/**` 直接 import `feature/aiwriting/**` 内部文件(除了 `Entry`)。`feature/aiwriting/` 内子目录:
 
 ```
 feature/aiwriting/

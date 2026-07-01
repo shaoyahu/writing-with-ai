@@ -36,7 +36,7 @@ class NoteImporterTest {
             zipHelper = zipHelper
         )
 
-    /** 构造测试用 zip(包含 notes.json + tags.json,无 ai_history.json)。 */
+    /** 构造测试用 zip(包含 notes.json + tags.json，无 ai_history.json)。 */
     private fun buildZipBytes(
         notes: List<ExportNote>,
         tags: Map<String, List<String>> = emptyMap(),

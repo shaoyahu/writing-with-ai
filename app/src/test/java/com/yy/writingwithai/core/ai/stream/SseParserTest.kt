@@ -63,7 +63,7 @@ class SseParserTest {
 
     @Test
     fun `keep-alive heartbeat line is ignored`() = runTest {
-        // RFC 8895:`:` 开头是 comment,典型用法是 `:keep-alive` 作为心跳续约。
+        // RFC 8895:`:` 开头是 comment，典型用法是 `:keep-alive` 作为心跳续约。
         val source = Buffer().writeUtf8(
             ":keep-alive\n" +
                 "data: {\"text\":\"hi\"}\n\n" +
@@ -104,7 +104,7 @@ class SseParserTest {
 
     @Test
     fun `UTF-8 BOM at stream start is stripped`() = runTest {
-        // L6 修:某些 provider(.NET / Windows default)首行带 BOM;若不剥,首条
+        // L6 修:某些 provider(.NET / Windows default)首行带 BOM;若不剥，首条
         // data 事件因前缀 ﻿ 失败 startsWith("data:")。
         val source = Buffer().writeUtf8("﻿data: {\"text\":\"first\"}\n\ndata: [DONE]\n\n")
         SseParser.parse(source).test {
@@ -119,7 +119,7 @@ class SseParserTest {
 
     @Test
     fun `comment lines starting with colon are ignored`() = runTest {
-        // 注释行(spec / event / id 之外任意自定义 `:xxx`)直接 skip,不影响 data 聚合。
+        // 注释行(spec / event / id 之外任意自定义 `:xxx`)直接 skip，不影响 data 聚合。
         val source = Buffer().writeUtf8(
             ": this is a comment\n" +
                 "data: part1\n" +
@@ -143,7 +143,7 @@ class SseParserTest {
 
     @Test
     fun `truncation without trailing newline emits Error not Done`() = runTest {
-        // data 行写完但没尾随 \n\n / [DONE],源 stream EOF。预期:Data + Error,无 Done。
+        // data 行写完但没尾随 \n\n / [DONE]，源 stream EOF。预期:Data + Error，无 Done。
         val source = Buffer().writeUtf8(
             "data: {\"text\":\"partial payload\"}"
             // 故意没有 \n 终止
@@ -165,7 +165,7 @@ class SseParserTest {
 
     @Test
     fun `truncation before any data emits Done only`() = runTest {
-        // 空源 stream(无任何行)。EOF 在无 data 时是 acceptable 终止,emit Done。
+        // 空源 stream(无任何行)。EOF 在无 data 时是 acceptable 终止，emit Done。
         val source = Buffer().writeUtf8("")
         SseParser.parse(source).test {
             val e1 = awaitItem()
@@ -176,7 +176,7 @@ class SseParserTest {
 
     @Test
     fun `normal DONE sentinel path is unchanged by truncation logic`() = runTest {
-        // 回归测试:已有 [DONE] 路径必须保持,不能被新的 cleanTermination 误标。
+        // 回归测试:已有 [DONE] 路径必须保持，不能被新的 cleanTermination 误标。
         val source = Buffer().writeUtf8(
             "data: {\"text\":\"a\"}\n\n" +
                 "data: {\"text\":\"b\"}\n\n" +

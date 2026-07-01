@@ -37,7 +37,7 @@ import com.yy.writingwithai.core.prefs.AiCostReference
  * spec: openspec/changes/onboarding-apikey-prompt/specs/onboarding-consent/spec.md
  * "Apikey prompt screen shown after consent" + "Token cost reference displayed"
  *
- * 设计 D1:第二页 Onboarding,跟隐私页串联。同意后 navigate 此页 → ack 后 navigate main。
+ * 设计 D1:第二页 Onboarding，跟隐私页串联。同意后 navigate 此页 → ack 后 navigate main。
  * 设计 1.4:`ApikeyPromptDialog` 复用本屏 body(拦截 AI 入口时弹)。
  */
 @Composable
@@ -86,7 +86,7 @@ fun ApikeyPromptScreen(onAck: () -> Unit, onSkip: () -> Unit, modifier: Modifier
 }
 
 /**
- * 拦截 dialog 版(已安装老用户从 AI 入口触发,不在 Onboarding 流程)。
+ * 拦截 dialog 版(已安装老用户从 AI 入口触发，不在 Onboarding 流程)。
  *
  * spec: openspec/changes/onboarding-apikey-prompt/specs/onboarding-consent/spec.md
  * "AI capability guard on first use" — 拦截后弹此 dialog。
@@ -118,7 +118,7 @@ fun ApikeyPromptDialog(onAck: () -> Unit, onDismiss: () -> Unit, confirmLabel: S
 
 /**
  * 共享 body:intro + 能力清单 + 成本表 + 免责声明。
- * Screen / Dialog 共用,UI 渲染口径一致。
+ * Screen / Dialog 共用，UI 渲染口径一致。
  */
 @Composable
 private fun ApikeyPromptBody(modifier: Modifier = Modifier) {

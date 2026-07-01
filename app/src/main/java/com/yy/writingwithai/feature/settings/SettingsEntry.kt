@@ -12,7 +12,7 @@ import com.yy.writingwithai.feature.settings.prompt.PromptTemplateViewModel
  * spec: openspec/changes/custom-prompt-template/specs/custom-prompt-template/spec.md
  * "feature/settings/ package is self-contained"
  *
- * AppNav 通过此 object 调 Composable,不允许直接 import `SettingsScreen` /
+ * AppNav 通过此 object 调 Composable，不允许直接 import `SettingsScreen` /
  * `PromptTemplateScreen` 等内部 file(自包含约束)。
  */
 object SettingsEntry {

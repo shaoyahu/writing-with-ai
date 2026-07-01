@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   M4-1 · Widget 添加瞬间占位布局。
-  Glance RemoteViews initialLayout 用 — 简单框架即可,Glance 接管后立即替换为 Glance 渲染。
-  颜色用字面量(因 Glance ColorProvider(Int) 是 RestrictedApi,改 glance-material3 时再统一 token)。
+  Glance RemoteViews initialLayout 用 — 简单框架即可，Glance 接管后立即替换为 Glance 渲染。
+  颜色用字面量(因 Glance ColorProvider(Int) 是 RestrictedApi，改 glance-material3 时再统一 token)。
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"

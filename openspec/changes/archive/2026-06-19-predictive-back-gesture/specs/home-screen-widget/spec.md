@@ -18,21 +18,21 @@ TBD — synced from OpenSpec change `home-screen-widget`(2026-06-19)。
 
 ### Requirement: Widget createNoteIntent uses TaskStackBuilder + CLEAR_TASK(M4-2 新增)
 
-`QuickNoteWidget.kt createNoteIntent(context)` MUST 改用 `TaskStackBuilder.create(context).addNextIntentWithParentStack(intent).getPendingIntent(...)` 构造 `PendingIntent`,从 M4-1 的 `Intent(context, MainActivity::class.java)` + `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TOP` 改为 `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK` + `TaskStackBuilder` 路径。
+`QuickNoteWidget.kt createNoteIntent(context)` MUST 改用 `TaskStackBuilder.create(context).addNextIntentWithParentStack(intent).getPendingIntent(...)` 构造 `PendingIntent`，从 M4-1 的 `Intent(context, MainActivity::class.java)` + `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TOP` 改为 `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK` + `TaskStackBuilder` 路径。
 
 Intent flags MUST 包括 `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK`;PendingIntent flags MUST 包括 `FLAG_IMMUTABLE | FLAG_UPDATE_CURRENT`。
 
 #### Scenario: widget tap "+" 启动到编辑页
 - **WHEN** 用户在桌面 widget 点 "+" 按钮
-- **THEN** `PendingIntent` 启动 MainActivity,navigate 到 `quicknote/edit?prefillFocus=true`,输入框自动 focus
+- **THEN** `PendingIntent` 启动 MainActivity,navigate 到 `quicknote/edit?prefillFocus=true`，输入框自动 focus
 
 #### Scenario: 系统 back 行为回到 launcher
 - **WHEN** 用户在 widget 启动的编辑页按系统 back(虚拟键或侧滑手势)
-- **THEN** 走 `TaskStackBuilder` 构造的任务栈,**回到 launcher 桌面**,不进 App 内列表页
+- **THEN** 走 `TaskStackBuilder` 构造的任务栈，**回到 launcher 桌面**，不进 App 内列表页
 
 #### Scenario: 多个 widget 共存
-- **WHEN** 用户加 2 个 widget,点其中一个 "+"
-- **THEN** `CLEAR_TASK` 清空 launcher task,启动新 task,另一个 widget 不受影响(独立 widget host 进程)
+- **WHEN** 用户加 2 个 widget，点其中一个 "+"
+- **THEN** `CLEAR_TASK` 清空 launcher task，启动新 task，另一个 widget 不受影响(独立 widget host 进程)
 
 #### Scenario: PendingIntent flag 验证
 - **WHEN** 通过 Robolectric `ApplicationProvider.getApplicationContext().createTaskStackPendingIntent(route, requestCode)`
@@ -40,26 +40,26 @@ Intent flags MUST 包括 `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK`;Pen
 
 ### Requirement: Widget OpenNoteAction uses TaskStackBuilder for note detail(M4-2 新增)
 
-`OpenNoteAction.kt onAction(context, glanceId, parameters)` MUST 改用 `TaskStackBuilder.startActivities()` 启动带 back stack 的任务栈(而非裸 `context.startActivity(intent)`),让 widget 笔记项点击 → MainActivity → 系统 back → launcher 桌面。
+`OpenNoteAction.kt onAction(context, glanceId, parameters)` MUST 改用 `TaskStackBuilder.startActivities()` 启动带 back stack 的任务栈(而非裸 `context.startActivity(intent)`)，让 widget 笔记项点击 → MainActivity → 系统 back → launcher 桌面。
 
 #### Scenario: widget 点笔记项启动到详情
 - **WHEN** 用户在 widget 点笔记项
-- **THEN** MainActivity 启动,navigate 到 `quicknote/detail/{noteId}`
+- **THEN** MainActivity 启动，navigate 到 `quicknote/detail/{noteId}`
 
 #### Scenario: 详情页 back 回 launcher
 - **WHEN** 用户在 widget 启动的详情页按系统 back
-- **THEN** 走 `TaskStackBuilder` 构造的任务栈,**回到 launcher 桌面**
+- **THEN** 走 `TaskStackBuilder` 构造的任务栈，**回到 launcher 桌面**
 
 ### Requirement: WidgetIntent helper unifies create + open intent construction(M4-2 新增)
 
-`core/widget/WidgetIntentHelpers.kt`(或 inline) MUST 提供 `internal fun Context.createTaskStackPendingIntent(route: String, requestCode: Int): PendingIntent`,被 `QuickNoteWidget.createNoteIntent(context)` 与 `OpenNoteAction.onAction` 共用,避免重复 PendingIntent 构造逻辑。
+`core/widget/WidgetIntentHelpers.kt`(或 inline) MUST 提供 `internal fun Context.createTaskStackPendingIntent(route: String, requestCode: Int): PendingIntent`，被 `QuickNoteWidget.createNoteIntent(context)` 与 `OpenNoteAction.onAction` 共用，避免重复 PendingIntent 构造逻辑。
 
 #### Scenario: 两个 widget intent 共享 helper
 - **WHEN** grep `core/widget/**/*.kt`
 - **THEN** 0 个 inline `TaskStackBuilder.create(this).addNextIntentWithParentStack(intent).getPendingIntent(...)`;全部走 `createTaskStackPendingIntent(route, requestCode)` helper
 
 #### Scenario: requestCode 区分
-- **WHEN** widget 加进桌面,创建 2 个 PendingIntent(create + open)
+- **WHEN** widget 加进桌面，创建 2 个 PendingIntent(create + open)
 - **THEN** `createTaskStackPendingIntent(route="quicknote/edit...", requestCode=1001)` 与 `createTaskStackPendingIntent(route="quicknote/detail/n1", requestCode=1002)` 共存不互相覆盖(FLAG_UPDATE_CURRENT 让 extras 更新)
 
 ### Requirement: M4-1 widget intent flag MUST 已移除(M4-2 替换)

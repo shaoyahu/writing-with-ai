@@ -6,7 +6,7 @@
 
 ## Summary
 
-32 files modified + ~20 new files(ui-redesign-m5-glass / provider-real-integration / widget-1x4-compact 三个 change 合并落地)。安全(apikey 加密 / 数据访问)与架构(Glance 约束 / feature self-containment)均合规,无 CRITICAL / HIGH。**2 MEDIUM**(重复 color token + 无用 import)建议顺手修。
+32 files modified + ~20 new files(ui-redesign-m5-glass / provider-real-integration / widget-1x4-compact 三个 change 合并落地)。安全(apikey 加密 / 数据访问)与架构(Glance 约束 / feature self-containment)均合规，无 CRITICAL / HIGH。**2 MEDIUM**(重复 color token + 无用 import)建议顺手修。
 
 ## Findings
 
@@ -23,7 +23,7 @@ None.
 #### M1 — Widget color tokens 重复定义
 
 - 位置:`QuickNoteWidget.kt:80-86` + `QuickNote1x4Widget.kt:61-65`
-- 问题:`cPrimary / cOnPrimary / cBg / cText / cTextMuted` 两个文件各定义一份,值相同。DRY 违反;若改主色需改两处。
+- 问题:`cPrimary / cOnPrimary / cBg / cText / cTextMuted` 两个文件各定义一份，值相同。DRY 违反;若改主色需改两处。
 - 修复:抽到同包 `WidgetTheme.kt`(或直接在这些文件中声明 `internal val`),1x4 widget 引用。
 
 #### M2 — 无用 import:`size` / `width`(`QuickNoteWidget.kt:30-31`)
@@ -40,11 +40,11 @@ None.
 
 #### L2 — 同包 `cSurface` 只在一方定义另一方未用
 
-- `QuickNoteWidget.kt:83` 有 `cSurface`,仅 2x2/4x2 用到;`QuickNote1x4Widget.kt` 无笔记卡片(整行占满)。不影响功能,可删。
+- `QuickNoteWidget.kt:83` 有 `cSurface`，仅 2x2/4x2 用到;`QuickNote1x4Widget.kt` 无笔记卡片(整行占满)。不影响功能，可删。
 
 #### L3 — Glance widget 仍有 hex 字面量
 
-- Glance 环境无 MaterialTheme,hex 字面量是必需的。但已从散落 `Color(0xFF...)` 改为 `private val c*` token,门槛已满足。不阻塞。
+- Glance 环境无 MaterialTheme,hex 字面量是必需的。但已从散落 `Color(0xFF...)` 改为 `private val c*` token，门槛已满足。不阻塞。
 
 ## Validation Results
 

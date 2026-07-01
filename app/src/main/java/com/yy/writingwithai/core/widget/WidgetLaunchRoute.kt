@@ -3,14 +3,14 @@ package com.yy.writingwithai.core.widget
 /**
  * hardening-sse-and-widget-init H-4:Widget 启动路由 sealed 化。
  *
- * 旧实现:WidgetIntentHelpers.launchWithTaskStack(context, route: String) 接收裸字符串,
+ * 旧实现:WidgetIntentHelpers.launchWithTaskStack(context, route: String) 接收裸字符串，
  * AppNav 内部 `route.startsWith("quicknote/edit")` / `route.contains("prefillFocus=true")`
- * 拼装,容易因 query param 边界(case / URL encoding / 误匹配)被构造攻击向量绕过。
+ * 拼装，容易因 query param 边界(case / URL encoding / 误匹配)被构造攻击向量绕过。
  *
- * 新实现:sealed 路由 + 内部 `toRouteString()` / `fromRouteString()` 序列化,
- * 业务代码只跟 sealed 打交道,不再有 string prefix 解析。`when` 穷尽由编译器保证。
+ * 新实现:sealed 路由 + 内部 `toRouteString()` / `fromRouteString()` 序列化，
+ * 业务代码只跟 sealed 打交道，不再有 string prefix 解析。`when` 穷尽由编译器保证。
  *
- * 序列化格式(internal,不在 public API 暴露):
+ * 序列化格式(internal，不在 public API 暴露):
  * - `new_note`  → NewNote
  * - `open_note:<id>` → OpenNote(id)         // Long,parse fail → null
  * - `edit_note:<id>:<prefill>` → EditNote(id, prefillFocus)  // prefill 字符串 "true" / "false"

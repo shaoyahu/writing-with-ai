@@ -21,8 +21,8 @@ import java.text.DateFormat
 import java.util.Date
 
 /**
- * ThreadLocal DateFormat:DateFormat / SimpleDateFormat 非线程安全,共享顶层实例在并行
- * 重组下会损坏 Calendar 状态。每个线程持一份,format() 互不干扰。
+ * ThreadLocal DateFormat:DateFormat / SimpleDateFormat 非线程安全，共享顶层实例在并行
+ * 重组下会损坏 Calendar 状态。每个线程持一份，format() 互不干扰。
  */
 private val SYNC_EVENT_TIME_FORMAT: ThreadLocal<DateFormat> =
     ThreadLocal.withInitial { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM) }
@@ -30,7 +30,7 @@ private val SYNC_EVENT_TIME_FORMAT: ThreadLocal<DateFormat> =
 /**
  * feishu-bidir-sync · 设置页「飞书同步日志」section(tasks §7)。
  *
- * feishu-sync-end-to-end 重构:本 section 纯渲染,数据由 caller 通过 [events] 传入
+ * feishu-sync-end-to-end 重构:本 section 纯渲染，数据由 caller 通过 [events] 传入
  * (caller 用 [FeishuSyncEventDao.observeLast] collectAsStateWithLifecycle 拿响应式 list)。
  *
  * 显示最近 20 条 sync event;每条:时间 / 方向 / 状态 / 错误。

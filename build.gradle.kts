@@ -1,5 +1,5 @@
 // writing-with-ai · root build.gradle.kts
-// 插件在子模块启用;这里只声明版本 + apply false,真正启用在 app/build.gradle.kts。
+// 插件在子模块启用;这里只声明版本 + apply false，真正启用在 app/build.gradle.kts。
 
 plugins {
     alias(libs.plugins.android.application) apply false

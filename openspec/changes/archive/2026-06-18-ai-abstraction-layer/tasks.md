@@ -19,7 +19,7 @@
 
 ## 3. AnthropicCompatibleAdapter
 
-- [x] 3.1 新建 `core/ai/provider/AnthropicCompatibleAdapter.kt` — `class @Inject constructor(config: ProviderConfig, client: OkHttpClient) : AiProvider`,实现 `stream()`:
+- [x] 3.1 新建 `core/ai/provider/AnthropicCompatibleAdapter.kt` — `class @Inject constructor(config: ProviderConfig, client: OkHttpClient) : AiProvider`，实现 `stream()`:
   - 构造 POST body:{`model`,`max_tokens:2048`,`stream:true`,`system`,`messages:[user(content=sourceText)]`}
   - 用 `OkHttpClient` 发请求 → 读 `response.body.source()` → 交给 `SseParser.parse()`
   - map `SseEvent` → `AiStreamEvent`(Data→parse JSON→Delta/Usage/Started/Done;Done→Done;Error→Failed)
@@ -29,12 +29,12 @@
 ## 4. SSE 解析器
 
 - [x] 4.1 新建 `core/ai/stream/SseEvent.kt` — `sealed interface SseEvent { data class Data(val content: String) : SseEvent; data object Done : SseEvent; data class Error(val t: Throwable) : SseEvent }`
-- [x] 4.2 新建 `core/ai/stream/SseParser.kt` — `internal object` + `fun parse(source: BufferedSource): Flow<SseEvent>`;逐行读,聚合 `data: ` 行,emit `Data`;检测 `[DONE]` → `Done`;IO 异常 → `Error`;30s 无新行 → `Error(SocketTimeoutException)`
+- [x] 4.2 新建 `core/ai/stream/SseParser.kt` — `internal object` + `fun parse(source: BufferedSource): Flow<SseEvent>`;逐行读，聚合 `data: ` 行，emit `Data`;检测 `[DONE]` → `Done`;IO 异常 → `Error`;30s 无新行 → `Error(SocketTimeoutException)`
 
 ## 5. FakeProvider
 
-- [x] 5.1 新建 `core/ai/fake/FakeConfig.kt` — `data class FakeConfig(val text: String, val delayMs: Long = 0L, val errorAfterTokens: Int? = null, val tokenCounts: AiUsage = AiUsage(0,0,0))`;`object FakeConfigHolder { var config: FakeConfig = ...; fun set(...); fun reset() }`(non-thread-safe,单测/UI 验收用)
-- [x] 5.2 新建 `core/ai/fake/FakeAiProvider.kt` — `class @Inject constructor() : AiProvider`,实现 `stream()`:emit `Started` → tokenize text(按 space/sentence split → emit Delta with delay) → emit `Usage` → `Done`;若 `errorAfterTokens` 触发 → emit `Failed`
+- [x] 5.1 新建 `core/ai/fake/FakeConfig.kt` — `data class FakeConfig(val text: String, val delayMs: Long = 0L, val errorAfterTokens: Int? = null, val tokenCounts: AiUsage = AiUsage(0,0,0))`;`object FakeConfigHolder { var config: FakeConfig = ...; fun set(...); fun reset() }`(non-thread-safe，单测/UI 验收用)
+- [x] 5.2 新建 `core/ai/fake/FakeAiProvider.kt` — `class @Inject constructor() : AiProvider`，实现 `stream()`:emit `Started` → tokenize text(按 space/sentence split → emit Delta with delay) → emit `Usage` → `Done`;若 `errorAfterTokens` 触发 → emit `Failed`
 - [x] 5.3 `FakeAiProvider.ping()` — 直接 return true
 
 ## 6. Prompt 模板
@@ -42,7 +42,7 @@
 - [x] 6.1 新建 `core/ai/prompt/ExpandPrompt.kt` — `internal object` + `const val SYSTEM = "..."`(扩写专用 system prompt)+ `fun userMessage(sourceText: String): String`
 - [x] 6.2 新建 `core/ai/prompt/PollishPrompt.kt` — 润色 system prompt
 - [x] 6.3 新建 `core/ai/prompt/OrganizePrompt.kt` — 整理 system prompt
-- [x] 6.4 系统 prompt 纯常量,不接收用户输入;由 `AnthropicCompatibleAdapter` 根据 `WritingOp` 选择对应模板的 SYSTEM 常量
+- [x] 6.4 系统 prompt 纯常量，不接收用户输入;由 `AnthropicCompatibleAdapter` 根据 `WritingOp` 选择对应模板的 SYSTEM 常量
 
 ## 7. CoreAiGateway 实现
 
@@ -54,17 +54,17 @@
 
 ## 8. AiHistory 持久化
 
-- [x] 8.1 新建 `core/data/db/entity/AiHistoryEntity.kt` — Room Entity,字段 id / noteId? / providerId / model / op / inputTokens / outputTokens / totalTokens / durationMs / createdAt / inputSnapshot / outputSnapshot / truncated / error?;indices = [Index("noteId"), Index("createdAt")]
-- [x] 8.2 新建 `core/data/db/AiHistoryDao.kt` — `@Dao` 接口,暴露 `insert / observeByNoteId / observeAll / deleteOlderThan(cutoffMs) / getTotalTokens`
-- [x] 8.3 新建 `core/data/model/AiHistory.kt` — UI 领域模型(data class,不带 Room 注解)
+- [x] 8.1 新建 `core/data/db/entity/AiHistoryEntity.kt` — Room Entity，字段 id / noteId? / providerId / model / op / inputTokens / outputTokens / totalTokens / durationMs / createdAt / inputSnapshot / outputSnapshot / truncated / error?;indices = [Index("noteId"), Index("createdAt")]
+- [x] 8.2 新建 `core/data/db/AiHistoryDao.kt` — `@Dao` 接口，暴露 `insert / observeByNoteId / observeAll / deleteOlderThan(cutoffMs) / getTotalTokens`
+- [x] 8.3 新建 `core/data/model/AiHistory.kt` — UI 领域模型(data class，不带 Room 注解)
 - [x] 8.4 新建 `core/data/mapper/AiHistoryMapper.kt` — `AiHistoryEntity ↔ AiHistory`
-- [x] 8.5 新建 `core/data/repo/AiHistoryRepository.kt` — `@Singleton` class,构造函数注入 `AiHistoryDao`:`fun record(entity)`(自动截断 input/output 到 10k) + `fun prune(olderThanMs)`(清理 90 天前)
-- [x] 8.6 更新 `core/data/db/AppDatabase.kt` — 加 `AiHistoryEntity` 到 entities,version→2,加 `Migration(1,2)`(CREATE TABLE ai_history + 索引)
+- [x] 8.5 新建 `core/data/repo/AiHistoryRepository.kt` — `@Singleton` class，构造函数注入 `AiHistoryDao`:`fun record(entity)`(自动截断 input/output 到 10k) + `fun prune(olderThanMs)`(清理 90 天前)
+- [x] 8.6 更新 `core/data/db/AppDatabase.kt` — 加 `AiHistoryEntity` 到 entities,version→2，加 `Migration(1,2)`(CREATE TABLE ai_history + 索引)
 - [x] 8.7 更新 `core/data/di/DataModule.kt` — `@Provides` `AiHistoryDao`
 
 ## 9. NoteRepository 扩展
 
-- [x] 9.1 在 `core/data/repo/NoteRepository.kt` 新增 `suspend fun updateAiMetadata(noteId: String, op: String, at: Long)`:调 `NoteDao.updateAiMetadata(...)`(用 `@Query("UPDATE notes SET lastAiOp=:op, lastAiAt=:at WHERE id=:noteId")`),配 `NoteDao` 加此方法
+- [x] 9.1 在 `core/data/repo/NoteRepository.kt` 新增 `suspend fun updateAiMetadata(noteId: String, op: String, at: Long)`:调 `NoteDao.updateAiMetadata(...)`(用 `@Query("UPDATE notes SET lastAiOp=:op, lastAiAt=:at WHERE id=:noteId")`)，配 `NoteDao` 加此方法
 
 ## 10. DI 模块(AiModule)
 
@@ -73,7 +73,7 @@
   - `@Provides fun provideFakeConfigHolder(): FakeConfigHolder`
   - `@Provides @Singleton fun provideFakeAiProvider(): FakeAiProvider`
   - `@Provides @Singleton fun provideAnthropicAdapter(@Named("ai") client, configs: List<ProviderConfig>): AnthropicCompatibleAdapter` — 取第一个非 fake config
-  - `@Provides @Singleton fun provideAiProviders(fake: FakeAiProvider, adapter: AnthropicCompatibleAdapter): Map<String, AiProvider>`;map 中额外加 1 个 `AnthropicCompatibleAdapter` instance 给三家(或三个 instance,每个配不同 ProviderConfig)
+  - `@Provides @Singleton fun provideAiProviders(fake: FakeAiProvider, adapter: AnthropicCompatibleAdapter): Map<String, AiProvider>`;map 中额外加 1 个 `AnthropicCompatibleAdapter` instance 给三家(或三个 instance，每个配不同 ProviderConfig)
   - `@Binds @Singleton fun bindAiGateway(impl: CoreAiGateway): AiGateway`
 
 ## 11. Build 配置
@@ -87,7 +87,7 @@
 - [x] 12.2 `core/ai/provider/AnthropicCompatibleAdapterTest.kt` — MockWebServer mock 200+SSE stream → 验 Delta/Usage/Done 映射;mock 401→验 Failed(Auth);mock 500→验 Failed(Network)
 - [x] 12.3 `core/ai/fake/FakeAiProviderTest.kt` — Turbine 验 `FakeConfigHolder` set text/delay/error → 流正确
 - [x] 12.4 `core/ai/CoreAiGatewayTest.kt` — MockK `AiProvider` → 验 `streamWritingOp` 落库 AiHistory + 写 Note.lastAiOp
-- [x] 12.5 `core/data/db/AiHistoryDaoTest.kt` — Room in-memory(需 Robolectric 或 instrumentation,因 migration 需要 Context;先用 `Room.databaseBuilder` + `allowMainThreadQueries` + `createFromAsset` 或直接 instrumentation)
+- [x] 12.5 `core/data/db/AiHistoryDaoTest.kt` — Room in-memory(需 Robolectric 或 instrumentation，因 migration 需要 Context;先用 `Room.databaseBuilder` + `allowMainThreadQueries` + `createFromAsset` 或直接 instrumentation)
 - [x] 12.6 跑 `./gradlew :app:testDebugUnitTest` 全部新增测试通过
 
 ## 13. 整体验收
@@ -100,6 +100,6 @@
 
 ## 14. OpenSpec 收尾
 
-- [x] 14.1 review 通过后,跑 `openspec archive ai-abstraction-layer -y`
+- [x] 14.1 review 通过后，跑 `openspec archive ai-abstraction-layer -y`
 - [x] 14.2 更新 `docs/progress.md`:M2 完成
 - [x] 14.3 在 `docs/plans/writing-with-ai-mobile-roadmap.md` §13 标注 M2 完成;§15.2 标 `ai-abstraction-layer` done

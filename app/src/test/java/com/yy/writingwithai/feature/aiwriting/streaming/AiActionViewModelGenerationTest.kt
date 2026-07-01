@@ -34,10 +34,10 @@ import org.junit.jupiter.api.Test
  * 新状态。
  *
  * 场景:
- * 1. 第一次 `start()` 触发流(从未完成,事件流仍在发射)
+ * 1. 第一次 `start()` 触发流(从未完成，事件流仍在发射)
  * 2. 立刻 `regenerate()` → 第二次 `start()`。旧协程在 cancel 检查点前可能还有 1-2 个事件
- *    在 channel buffer 里等待收集,这些事件在 collect{} block 内被 generation 比对拒绝。
- * 3. 最终态必须是 Done(op=POLISH) 来自第二次 start 的结果,不是第一次 start 的
+ *    在 channel buffer 里等待收集，这些事件在 collect{} block 内被 generation 比对拒绝。
+ * 3. 最终态必须是 Done(op=POLISH) 来自第二次 start 的结果，不是第一次 start 的
  *    任何剩余 Failed/Delta 覆盖。
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -59,7 +59,7 @@ class AiActionViewModelGenerationTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         // fix-2026-06-28-ai-model-selection-actually-used:VM.start 调 aiGateway.listProviders()
-        // 拿 defaultModel;默认返空,fake provider 路径继续。
+        // 拿 defaultModel;默认返空，fake provider 路径继续。
         coEvery { aiGateway.listProviders() } returns emptyList()
     }
 
@@ -70,9 +70,9 @@ class AiActionViewModelGenerationTest {
 
     @Test
     fun stale_emit_from_old_stream_is_dropped_after_regenerate() = runTest {
-        // 第一次 start() 流:发送一个 Delta,然后 channel 保持 open(模拟 slow network)
+        // 第一次 start() 流:发送一个 Delta，然后 channel 保持 open(模拟 slow network)
         val firstChannel = Channel<AiStreamEvent>(capacity = Channel.UNLIMITED)
-        // 第二次 start() 流:正常 Done,带标识字符串 "second"
+        // 第二次 start() 流:正常 Done，带标识字符串 "second"
         val secondChannel = Channel<AiStreamEvent>(capacity = Channel.UNLIMITED)
 
         var call = 0
@@ -96,7 +96,7 @@ class AiActionViewModelGenerationTest {
 
         vm.start(WritingOp.EXPAND, "src", "n1")
         advanceUntilIdle()
-        // 第一次流 emit 一个 Delta,确认进入 Streaming
+        // 第一次流 emit 一个 Delta，确认进入 Streaming
         firstChannel.send(AiStreamEvent.Delta("first-delta"))
         advanceUntilIdle()
         val streaming1 = vm.state.value
@@ -114,7 +114,7 @@ class AiActionViewModelGenerationTest {
             "expected Done after first stream completes, got $firstDone"
         )
 
-        // 立刻 regenerate → 第二次 start;旧流已 Done,新流开始
+        // 立刻 regenerate → 第二次 start;旧流已 Done，新流开始
         vm.regenerate()
         advanceUntilIdle()
         // 第二次流 emit 自己的 Delta + Done
@@ -122,7 +122,7 @@ class AiActionViewModelGenerationTest {
         secondChannel.send(AiStreamEvent.Done)
         advanceUntilIdle()
 
-        // 关键断言:最终态必须是 Done,包含第二次的 delta,
+        // 关键断言:最终态必须是 Done，包含第二次的 delta,
         // 旧 channel 残留的 "first-delta" 不能覆盖 Done。
         val done = vm.state.value
         assertTrue(

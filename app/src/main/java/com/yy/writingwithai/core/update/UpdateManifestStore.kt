@@ -21,7 +21,7 @@ class UpdateManifestStore @Inject constructor() {
         map[downloadId] = Entry(manifest)
     }
 
-    /** 取走(避免后续同 ID 再次命中),并清理超期条目。 */
+    /** 取走(避免后续同 ID 再次命中)，并清理超期条目。 */
     fun consume(downloadId: Long): AppUpdateManifest? {
         cleanup()
         return map.remove(downloadId)?.manifest

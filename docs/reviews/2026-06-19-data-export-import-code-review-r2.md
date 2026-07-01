@@ -13,10 +13,10 @@
 | --- | --- | --- | --- |
 | **H1** `catch Exception` 吞 `CancellationException` | 🔴 | `core/data/export/NoteImporter.kt` — 加 `catch (e: kotlinx.coroutines.CancellationException) { throw e }` 在 `catch (Exception)` 之前(note loop + ai_history loop 两处) | ✅ 新增 `importFromZip_cancellation_propagates_without_recording_failure` 测试 PASS |
 | **H2** 空 notes 仍允许导出 + `settings_data_no_data` 未引用 | 🔴 | `feature/settings/data/SettingsDataViewModel.kt` — 加 `notesCount: StateFlow<Int>`(`observeNotesWithTags.map { it.size }.stateIn`);`SettingsDataScreen.kt` Idle 态:count == 0 时导出按钮 `enabled = false` + 显示 `R.string.settings_data_no_data` | ✅ 新增 `notesCount_reflects_repository_value` 测试 PASS |
-| **H3** `NoteImporter` 跳过 `ai_history.json` 解析 | 🔴 | `core/data/export/NoteImporter.kt` — 读 `entries["ai_history.json"]`,遍历调 `aiHistoryRepository.record(...)`;orphan history(noteId 不存在)跳过;失败 swallowed(M5 polish 加 aiHistoryFailed 字段);删除 `@Suppress("unused")` 标记 | ✅ 现有 `importFromZip_*` 测试仍 PASS(ai_history 失败不影响 note 统计) |
+| **H3** `NoteImporter` 跳过 `ai_history.json` 解析 | 🔴 | `core/data/export/NoteImporter.kt` — 读 `entries["ai_history.json"]`，遍历调 `aiHistoryRepository.record(...)`;orphan history(noteId 不存在)跳过;失败 swallowed(M5 polish 加 aiHistoryFailed 字段);删除 `@Suppress("unused")` 标记 | ✅ 现有 `importFromZip_*` 测试仍 PASS(ai_history 失败不影响 note 统计) |
 | **M2** inline `ListSerializer(...)` 重复 new | 🟡 | `core/data/export/ExportModels.kt` — 加 top-level `val ExportNoteListSerializer` / `ExportAiHistoryListSerializer` / `ExportJsonFormat`;`NoteExporter.kt` 引用替换 | ✅ assembleDebug 通过 |
 | **M3** 测试 inline `Json { ... }` 4 处编译 warning | 🟡 | `NoteExporterTest.kt` + `NoteImporterTest.kt` — 全部改为 `ExportJsonFormat` 共享单例 | ✅ 4 处 `Redundant creation of Json format` warning 消除(0 warning) |
-| **M4** VM 入口无 guard,重复触发并发写 zip | 🟡 | `SettingsDataViewModel.kt` — `if (_uiState.value !is DataUiState.Idle) return`;`DataUiState.Done` 加 `val isImport: Boolean` 字段(VM 区分 export / import);Screen 按钮 `enabled = state is Idle` | ✅ 新增 `exportToJsonZip_when_state_not_idle_ignores_call` 测试 PASS(verifies exporter 只调 1 次) |
+| **M4** VM 入口无 guard，重复触发并发写 zip | 🟡 | `SettingsDataViewModel.kt` — `if (_uiState.value !is DataUiState.Idle) return`;`DataUiState.Done` 加 `val isImport: Boolean` 字段(VM 区分 export / import);Screen 按钮 `enabled = state is Idle` | ✅ 新增 `exportToJsonZip_when_state_not_idle_ignores_call` 测试 PASS(verifies exporter 只调 1 次) |
 | **L4** `import_report_summary` 未在 Done 态显示 | 🔵 | `SettingsDataScreen.kt` — Done 分支按 `s.isImport` 选文案:import 场景显示 `import_report_summary`(成功/跳过/失败 三项计数);export 场景显示 `settings_data_done`(仅成功条数) | ✅ 现有 4 个 export/import 测试 PASS(新增 `isImport` 断言) |
 
 ---
@@ -26,9 +26,9 @@
 | LOW 项 | 状态 | 说明 |
 | --- | --- | --- |
 | L1 `observeNotesWithTags` 冗余 groupBy | M5 polish | NoteExporter 改用 `observeRecent(Int.MAX_VALUE).first()` 或新建轻量 `observeAllNotes(): Flow<List<Note>>` |
-| L2 `SimpleDateFormat` 每次 new | M5 polish | 放 companion object 缓存(无 perf 问题,实际 import 频率低) |
-| L3 重复 import 同 zip 行为 | OK | 当前行为(spec §"Scenario: 导入已存在的笔记跳过")一致,无需改 |
-| L5 ZIP 4GB 上限无 guard | M5 polish | design.md §"Risks / Trade-offs" 已记 v1 接受,改 `Zip64` 推到 M5 |
+| L2 `SimpleDateFormat` 每次 new | M5 polish | 放 companion object 缓存(无 perf 问题，实际 import 频率低) |
+| L3 重复 import 同 zip 行为 | OK | 当前行为(spec §"Scenario: 导入已存在的笔记跳过")一致，无需改 |
+| L5 ZIP 4GB 上限无 guard | M5 polish | design.md §"Risks / Trade-offs" 已记 v1 接受，改 `Zip64` 推到 M5 |
 
 ---
 

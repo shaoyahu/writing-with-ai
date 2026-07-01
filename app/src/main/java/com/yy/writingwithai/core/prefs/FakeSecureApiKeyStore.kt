@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * M4-4 测试用 fake,跑 Robolectric 不需要真 EncryptedSharedPreferences / Tink / KeyStore。
+ * M4-4 测试用 fake，跑 Robolectric 不需要真 EncryptedSharedPreferences / Tink / KeyStore。
  * 内存 map 存 apikey;reveal() 总是 emit Hidden(测试用不到真 reveal 流程)。
  *
  * spec: openspec/changes/onboarding-consent/tasks.md §3.4

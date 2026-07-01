@@ -40,7 +40,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 /**
  * 通用的 Anthropic Messages API 兼容 adapter。
  *
- * 由 [ProviderConfig] 驱动认证 / URL / 字段,不 为每家写独立 adapter。
+ * 由 [ProviderConfig] 驱动认证 / URL / 字段，不 为每家写独立 adapter。
  * 支持三家预置 provider(deepseek / minimax / mimo)+ 自定义 Anthropic 兼容 provider。
  */
 @Singleton
@@ -57,32 +57,32 @@ constructor(
 
     private val json = Json {
         ignoreUnknownKeys = true
-        // L12 修:不写 encodeDefaults,避免显式 `max_tokens=2048` 被某些 OpenAI proxy 400。
+        // L12 修:不写 encodeDefaults，避免显式 `max_tokens=2048` 被某些 OpenAI proxy 400。
     }
 
     override fun stream(request: AiRequest, credentials: AiCredentials): Flow<AiStreamEvent> {
         // M4 修:用 AtomicBoolean 在 flow lambda 和 retry predicate 之间共享状态。
-        // 必须在 flow lambda 外声明,retry predicate 链在 flow lambda 外,看不到内部 var。
+        // 必须在 flow lambda 外声明，retry predicate 链在 flow lambda 外，看不到内部 var。
         val emittedDelta = AtomicBoolean(false)
         return flow {
             val baseUrl = credentials.baseUrlOverride ?: config.baseUrl
             // model-management-detail-dropdown X 方案:用户在详情页可切 OpenAI/Anthropic,endpoint path 跟着切
             val effectiveApiFormat = request.apiFormatOverride ?: config.apiFormat
             // ux-2026-06-28 #3:custom 表单走"完整 URL",endpointPath 留空 → 直用 baseUrl;
-// 内置 provider(deepseek/minimax/mimo)的 config.endpointPath 非空,继续走
-// "$baseUrl${endpointPath}" 拼接,行为不变。
+// 内置 provider(deepseek/minimax/mimo)的 config.endpointPath 非空，继续走
+// "$baseUrl${endpointPath}" 拼接，行为不变。
 //
 // custom-provider-api-format r2:删掉硬编码 path(原 line 77-80 按 effectiveApiFormat
-// 拼 /chat/completions 或 /anthropic/v1/messages),统一用 config.endpointPath:
+// 拼 /chat/completions 或 /anthropic/v1/messages)，统一用 config.endpointPath:
 // - custom 表单:buildConfig 按 state.apiFormat 设 endpointPath = /v1/messages
-//   (Anthropic SDK) 或 /chat/completions (OpenAI SDK),path 由 SDK 设计固定,
+//   (Anthropic SDK) 或 /chat/completions (OpenAI SDK),path 由 SDK 设计固定，
 //   厂家可能把 /anthropic 子路径塞进 baseUrl(DeepSeek 风格)。
 // - 内置 provider:endpointPath 显式配置(MinimaxConfig = /anthropic/v1/messages,
 //   适配 Minimax 自家 SDK 行为)。
 //
 // 之前硬编码 path = /anthropic/v1/messages 对 DeepSeek 用户造成 /anthropic 重复
 // (logcat 23:53:08 验证:POST https://api.deepseek.com/anthropic/anthropic/v1/messages
-// → 404,因为 DeepSeek baseUrl 已经含 /anthropic,adapter 不应再拼)。
+// → 404，因为 DeepSeek baseUrl 已经含 /anthropic,adapter 不应再拼)。
             val url = if (config.endpointPath.isBlank()) {
                 baseUrl
             } else {
@@ -143,13 +143,13 @@ constructor(
                     .build()
 
             // fix-review-r3-high H1:把 `response.close()` 集中到外层 try-finally,
-            // 之前 success / failure 两条路径各自 close,取消路径(catch 抛
+            // 之前 success / failure 两条路径各自 close，取消路径(catch 抛
             // CancellationException)下 body source 泄漏(socket 不释放)。
             // fix-review-r3-high H3:body read 的 `catch (Throwable)` 同样吞
-            // CancellationException,需要在通用 catch 前先 rethrow。
+            // CancellationException，需要在通用 catch 前先 rethrow。
             val response = client.newCall(httpRequest).execute()
             try {
-                // custom-provider-api-format r2 debug:成功也打 logcat,失败时上面的
+                // custom-provider-api-format r2 debug:成功也打 logcat，失败时上面的
                 // Log.d 在 !isSuccessful 分支打。两条 log 都带 "AnthropicAdapter" tag,
                 // 用户跑 `adb logcat -s AnthropicAdapter` 直接看真实 POST URL。
                 android.util.Log.i("AnthropicAdapter", "POST $url → ${response.code}")
@@ -157,7 +157,7 @@ constructor(
                     val code = response.code
                     // review r2 修:readUtf8(byteCount) 在 body 小于 byteCount 时抛 EOFException,
                     // 导致绝大多数非 1MiB+ 的错误响应详情全部丢失。参照 FeishuApiClientImpl 做
-                    // source.request(Long.MAX_VALUE) 拉完 body 到 buffer,再按 buffer.size 决定是否截断。
+                    // source.request(Long.MAX_VALUE) 拉完 body 到 buffer，再按 buffer.size 决定是否截断。
                     val rawDetail = try {
                         response.body?.source()?.use { src ->
                             src.request(Long.MAX_VALUE)
@@ -172,7 +172,7 @@ constructor(
                     } catch (e: Throwable) {
                         ""
                     }
-                    // M3 修:截断 raw body 长度(provider 5xx 经常返回 KB 级 HTML,可能含 Authorization header 回显),
+                    // M3 修:截断 raw body 长度(provider 5xx 经常返回 KB 级 HTML，可能含 Authorization header 回显),
                     // 脱敏 apikey / Bearer / x-api-key pattern(避免 provider 把请求 header 回显到错误页)。
                     val detail = sanitizeErrorDetail(rawDetail)
                     // custom-provider-api-format r2 debug:把 url + code 一并写到 logcat + error detail,
@@ -244,8 +244,8 @@ constructor(
             .flowOn(Dispatchers.IO)
             // fix H12 + M4:skip retry after Delta emitted (avoids duplicate UI text).
             // emittedDelta 用 AtomicBoolean 在 flow lambda 和 retry predicate 之间共享。
-            // fix-review-r3-medium M1:retry 范围太宽,把所有 IOException 都重试 — 但 SSL/UnknownHost /
-            // ConnectException 等"环境错"retry 也不会自愈,只会拖慢 1.5s+ 后把 Network 抛给 UI。
+            // fix-review-r3-medium M1:retry 范围太宽，把所有 IOException 都重试 — 但 SSL/UnknownHost /
+            // ConnectException 等"环境错"retry 也不会自愈，只会拖慢 1.5s+ 后把 Network 抛给 UI。
             // retry 仅限"瞬时"网络错(EOF / connection reset / read timeout 等),ssl/dns/connect 失败
             // 直接 fallthrough 给 .catch。
             .retry(1) { cause ->
@@ -271,7 +271,7 @@ constructor(
             AuthStyle.CUSTOM_HEADER -> {
                 val name = config.customAuthHeaderName ?: "x-api-key"
                 // L6 注:OkHttp `header()` 是后写后赢;用户自定义 `customHeaders` 含同名 key
-                // 会覆盖此默认,符合"用户自定义优先"预期,不额外处理顺序。
+                // 会覆盖此默认，符合"用户自定义优先"预期，不额外处理顺序。
                 request.header(name, credentials.apikey)
             }
         }
@@ -318,7 +318,7 @@ constructor(
                 obj.delta.text
             }
         } catch (_: kotlinx.serialization.SerializationException) {
-            // L5 修:只吞序列化异常,其他异常抛给外层 catch。
+            // L5 修:只吞序列化异常，其他异常抛给外层 catch。
             null
         }
     }
@@ -328,8 +328,8 @@ constructor(
             if (apiFormat == ApiFormat.OPENAI) {
                 @Serializable
                 data class OpenAiUsageObj(
-                    // fix-review-r3-medium M3:个别 provider(尤其代理)只填部分字段,其余 null。
-                    // 把字段改成 nullable,缺哪项就 fallback 算,避免 SerializationException 把整个
+                    // fix-review-r3-medium M3:个别 provider(尤其代理)只填部分字段，其余 null。
+                    // 把字段改成 nullable，缺哪项就 fallback 算，避免 SerializationException 把整个
                     // usage chunk 丢了。
                     val prompt_tokens: Int? = null,
                     val completion_tokens: Int? = null,
@@ -373,7 +373,7 @@ constructor(
     private fun systemPromptFor(op: WritingOp): String = DefaultPrompts.forOp(op)
 
     private companion object {
-        // fix-2026-06-26-review-r3 LOW:默认 max_tokens 常量,避免 data class 默认值里 magic number。
+        // fix-2026-06-26-review-r3 LOW:默认 max_tokens 常量，避免 data class 默认值里 magic number。
         const val DEFAULT_MAX_TOKENS = 2048
 
         const val MAX_ERROR_DETAIL_LEN = 200
@@ -407,9 +407,9 @@ constructor(
         )
     }
 
-    /** M3:provider 错误页可能 HTML 或含敏感 header 回显,统一截断 + 脱敏。 */
+    /** M3:provider 错误页可能 HTML 或含敏感 header 回显，统一截断 + 脱敏。 */
     private fun sanitizeErrorDetail(raw: String): String {
-        // 检测 HTML 错误页直接替换成"上游服务错误",避免 10KB HTML 灌进 UI / history
+        // 检测 HTML 错误页直接替换成"上游服务错误"，避免 10KB HTML 灌进 UI / history
         val trimmed = raw.take(MAX_ERROR_DETAIL_LEN)
         val noHtml = if (trimmed.contains("<html", ignoreCase = true) || trimmed.contains("<body", ignoreCase = true)) {
             "上游服务错误"
@@ -421,11 +421,11 @@ constructor(
 
     /**
      * fix-review-r3-medium M4:`Retry-After` 头按 RFC 7231 有两种格式:
-     *  - delta-seconds(纯整数,如 `120`)
+     *  - delta-seconds(纯整数，如 `120`)
      *  - HTTP-date(如 `Wed, 21 Oct 2015 07:28:00 GMT`)
      *
      * 之前只 `toIntOrNull()`,HTTP-date 形式 silently 退到默认 60s,provider 真要 1h 后重试时
-     * 我们 60s 就重发,加重 provider 负担 / 触发更长 ban。
+     * 我们 60s 就重发，加重 provider 负担 / 触发更长 ban。
      */
     internal fun parseRetryAfterSeconds(header: String?): Int? {
         if (header.isNullOrBlank()) return null
@@ -438,7 +438,7 @@ constructor(
     }
 
     private fun parseHttpDate(s: String): Date? {
-        // RFC 7231 三种 HTTP-date 格式(RFC 1123 / RFC 850 / asctime),只解析最常见的 RFC 1123
+        // RFC 7231 三种 HTTP-date 格式(RFC 1123 / RFC 850 / asctime)，只解析最常见的 RFC 1123
         // 形式(其他罕见形式浏览器 / okhttp 也多数忽略)。strict=false 容错(provider 时区偶尔省略 GMT)。
         return try {
             val fmt = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US)
@@ -453,9 +453,9 @@ constructor(
 
 /**
  * fix-review-r3-medium M1:只对"瞬时"网络错做 retry。SSL/TLS / DNS / 主动 connect refused
- * 是环境错,retry 不会自愈,直接交回上层 .catch emit Failed。
+ * 是环境错，retry 不会自愈，直接交回上层 .catch emit Failed。
  *
- * 顶层 internal extension,供单测直接调用(放 companion 里会被 private 收紧)。
+ * 顶层 internal extension，供单测直接调用(放 companion 里会被 private 收紧)。
  */
 internal fun IOException.isRetryable(): Boolean = when (this) {
     is SSLException -> false

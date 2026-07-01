@@ -41,7 +41,7 @@ constructor(
     private val imageCompressor: com.yy.writingwithai.core.media.ImageCompressor
 ) : ViewModel() {
     // H3 修:`requireNotNull` 在 process-death / 深链 / saved state 跨版本场景会 IAE crash。
-    // 改为可空,缺失时直接进入 NotFound,避免进程崩溃。
+    // 改为可空，缺失时直接进入 NotFound，避免进程崩溃。
     private val noteId: String? = savedStateHandle.get<String>("id")
 
     private val _uiState = MutableStateFlow<NoteDetailUiState>(NoteDetailUiState.Loading)
@@ -52,7 +52,7 @@ constructor(
             _uiState.value = NoteDetailUiState.NotFound
         } else {
             // H8 修:删 `noteUpdateEvents` push 强刷路径(原 `delay(100)` hack + 双 launch 写同一 _uiState race);
-            // Room Flow 是 single source of truth,`NonCancellable { upsert }` 退栈时 invalidation 已传播,
+            // Room Flow 是 single source of truth,`NonCancellable { upsert }` 退栈时 invalidation 已传播，
             // 主路径 Flow 自然收到新值(配合 AiActionViewModel.acceptReplace 删 `delay(150)` + `tryEmit`)。
             viewModelScope.launch {
                 repository.observeNoteWithTags(noteId)
@@ -108,8 +108,8 @@ constructor(
     fun delete(onDeleted: () -> Unit) {
         val id = noteId ?: return
         viewModelScope.launch {
-            // M6 修:用户点确认后立刻 back 退出 detail → viewModelScope 被取消,
-            // 删除协程中断,笔记没被删。包 NonCancellable 强制执行。
+            // M6 修:用户点确认后立刻 back 退出 detail → viewModelScope 被取消，
+            // 删除协程中断，笔记没被删。包 NonCancellable 强制执行。
             withContext(kotlinx.coroutines.NonCancellable) {
                 repository.delete(id)
             }
@@ -154,7 +154,7 @@ constructor(
                 _syncMessage.value = SyncMessage.Success(docUrl)
                 _feishuRef.value = feishuSyncService.getRef(id)
             } catch (e: FeishuError.Conflict) {
-                // fix-2026-06-30-full-review-r1 CRITICAL C2:冲突 → 弹对话框,不再静默覆盖
+                // fix-2026-06-30-full-review-r1 CRITICAL C2:冲突 → 弹对话框，不再静默覆盖
                 _feishuRef.value = feishuSyncService.getRef(id)
                 _showConflictDialog.value = true
                 _syncMessage.value = SyncMessage.Failure("同步冲突:请选择保留本地或远端")
@@ -242,7 +242,7 @@ constructor(
                 _showConflictDialog.value = false
                 _syncMessage.value = SyncMessage.Success(ref.docUrl)
             } catch (e: FeishuError) {
-                // fix-2026-06-26-review-r3 H20:catch 块也要关 dialog,避免解决失败时 dialog 仍开。
+                // fix-2026-06-26-review-r3 H20:catch 块也要关 dialog，避免解决失败时 dialog 仍开。
                 _showConflictDialog.value = false
                 _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -302,7 +302,7 @@ constructor(
         val id = noteId ?: return
         viewModelScope.launch {
             // fix-2026-06-27-review-r4 M14:文件 IO(copy/compress/length/delete)
-            // 从 Main dispatcher 移到 IO dispatcher,避免 ANR。
+            // 从 Main dispatcher 移到 IO dispatcher，避免 ANR。
             withContext(kotlinx.coroutines.Dispatchers.IO) {
                 var sourceFile: java.io.File? = null
                 try {
@@ -342,8 +342,8 @@ constructor(
 /** M3:详情屏顶部"上次 AI 操作"行投影 — `opKey` 是 aiwriting op 名("expand"/"polish"/"organize"),UI 层 `stringResource` 翻译。 */
 data class AiMetaDisplay(val opKey: String, val opAt: String)
 
-// H6 fix:SimpleDateFormat hoist 到 file-level lazy,避免每次 map { formatLocalDateTime(...) } 重建。
-// fix-2026-06-26-review-r3 LOW:Locale.getDefault() 在某些 locale(阿拉伯/泰语)下产出非 ASCII 数字,
+// H6 fix:SimpleDateFormat hoist 到 file-level lazy，避免每次 map { formatLocalDateTime(...) } 重建。
+// fix-2026-06-26-review-r3 LOW:Locale.getDefault() 在某些 locale(阿拉伯/泰语)下产出非 ASCII 数字，
 // 日期显示应 fallback 到 Locale.ROOT 保证可读性。
 private val dateTimeFormat: SimpleDateFormat by lazy {
     SimpleDateFormat("yyyy-MM-dd HH:mm", safeLocale())
@@ -354,8 +354,8 @@ private fun formatLocalDateTime(epochMillis: Long): String {
 }
 
 /**
- * fix-2026-06-26-review-r3 LOW:优先用用户 locale 格式化日期,但排除产出非 ASCII 数字的 locale
- * (阿拉伯/泰语/孟加拉等),这些 locale 下日期对中文用户不可读,fallback 到 Locale.ROOT。
+ * fix-2026-06-26-review-r3 LOW:优先用用户 locale 格式化日期，但排除产出非 ASCII 数字的 locale
+ * (阿拉伯/泰语/孟加拉等)，这些 locale 下日期对中文用户不可读，fallback 到 Locale.ROOT。
  */
 private fun safeLocale(): Locale {
     val default = Locale.getDefault()
@@ -371,9 +371,9 @@ private fun safeLocale(): Locale {
  * CR-FIX-M6 · 飞书 push/pull 同步结果的结构化 sealed 事件。
  *
  * - [Success] 携带可访问的 docUrl,UI 用于复制 / 跳转(替代原 `startsWith("同步完成:")` 解析)。
- * - [Failure] 携带错误信息,UI 用于展示 + 复制。
+ * - [Failure] 携带错误信息，UI 用于展示 + 复制。
  *
- * 替代原 `String?` 同步消息,UI 不再做字符串前缀嗅探。
+ * 替代原 `String?` 同步消息，UI 不再做字符串前缀嗅探。
  */
 sealed interface SyncMessage {
     data class Success(val docUrl: String) : SyncMessage

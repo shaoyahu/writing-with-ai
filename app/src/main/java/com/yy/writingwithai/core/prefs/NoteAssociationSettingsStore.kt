@@ -28,7 +28,7 @@ interface NoteAssociationSettingsStore {
     fun setEnabled(value: Boolean)
     fun observeEnabled(): Flow<Boolean>
 
-    /** entity-extraction-association · 关联阈值(0.0..1.0),默认 0.10。 */
+    /** entity-extraction-association · 关联阈值(0.0..1.0)，默认 0.10。 */
     fun threshold(): Float
     fun setThreshold(value: Float)
     fun observeThreshold(): Flow<Float>
@@ -37,7 +37,7 @@ interface NoteAssociationSettingsStore {
     fun pauseBackfill(): Boolean
     fun setPauseBackfill(value: Boolean)
 
-    // entity-extraction-polish §4.1:新增 observe 流,设置页 slider / switch 双向绑定。
+    // entity-extraction-polish §4.1:新增 observe 流，设置页 slider / switch 双向绑定。
     fun observePauseBackfill(): Flow<Boolean>
 }
 
@@ -99,14 +99,14 @@ class NoteAssociationSettingsStoreImpl @Inject constructor(
         private const val KEY_THRESHOLD = "association_threshold"
         private const val KEY_PAUSE = "backfill_paused"
 
-        // entity-extraction-polish §2.5:默认阈值从 0.25 收紧到 0.10,对齐 SQL 当前生产值。
+        // entity-extraction-polish §2.5:默认阈值从 0.25 收紧到 0.10，对齐 SQL 当前生产值。
         const val DEFAULT_THRESHOLD = 0.10f
     }
 }
 
 /**
  * H5 新增:NoteAssociationSettingsStore interface → Impl 绑定。
- * 放在 core/prefs/ 同文件内避免新增 module 文件(`core/` 下不应该有 di/ 子包,见 CLAUDE.md)。
+ * 放在 core/prefs/ 同文件内避免新增 module 文件(`core/` 下不应该有 di/ 子包，见 CLAUDE.md)。
  */
 @Module
 @InstallIn(SingletonComponent::class)

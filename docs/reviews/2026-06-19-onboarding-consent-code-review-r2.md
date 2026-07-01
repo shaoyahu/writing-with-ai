@@ -4,7 +4,7 @@
 **Schema:** spec-driven
 **Reviewer:** AI 自审(基于 r1 反馈 + 修复 + 二次验证)
 **r1 → r2 修复落点:** 3 HIGH / 3 MEDIUM / 1 LOW 全部修
-**r2 验证:** ✅ compileDebugKotlin / testDebugUnitTest(73 tests pass, 8 新增) / lintDebug 全绿;⚠️ ktlintCheck 25 个 `standard:function-naming` = 已知 Compose PascalCase baseline(M4-4 新增 4 个,符合 memory `ktlint-compose-pascalcase-1.0` 拍板"不磨 config")
+**r2 验证:** ✅ compileDebugKotlin / testDebugUnitTest(73 tests pass, 8 新增) / lintDebug 全绿;⚠️ ktlintCheck 25 个 `standard:function-naming` = 已知 Compose PascalCase baseline(M4-4 新增 4 个，符合 memory `ktlint-compose-pascalcase-1.0` 拍板"不磨 config")
 
 ---
 
@@ -14,7 +14,7 @@
 
 | ID | 修复 | 文件 | 验证 |
 |---|---|---|---|
-| H1 | `widgetPendingRoute: MutableState<String?>` 提到 `App()` 形参,`MainActivity` 写入,`AppNav.LaunchedEffect(consentState.accepted)` 在同意后 navigate 该 route + 清栈;widget 入口 spec Scenario `app-shell` "widget 入口未同意时改走 onboarding" 整条接通 | `app/App.kt` + `app/AppNav.kt` + `app/MainActivity.kt` | 新 `AppNavConsentGateTest.widgetPendingRouteStoredReadCleared` 覆盖 state 读写清 |
+| H1 | `widgetPendingRoute: MutableState<String?>` 提到 `App()` 形参，`MainActivity` 写入，`AppNav.LaunchedEffect(consentState.accepted)` 在同意后 navigate 该 route + 清栈;widget 入口 spec Scenario `app-shell` "widget 入口未同意时改走 onboarding" 整条接通 | `app/App.kt` + `app/AppNav.kt` + `app/MainActivity.kt` | 新 `AppNavConsentGateTest.widgetPendingRouteStoredReadCleared` 覆盖 state 读写清 |
 | H2 | `AiActionViewModel` 构造期 `runBlocking { consentStore.isConsented(BuildConfig.CONSENT_VERSION) }` 拿权威 consent,`start()` 入口用 `initialConsented` 决策(避开 `consentFlow.value` 在 `stateIn(Eagerly, EMPTY)` 冷启动 race) | `feature/aiwriting/streaming/AiActionViewModel.kt` | 既有 `AiActionViewModelConsentTest.start() with not-consented` 仍 PASS(走 `initialConsented == false` 路径) |
 | H3 | 删 `OnboardingViewModel.Action.ProceedWithoutConsent` 死路径;`WritingApp.onCreate` 在 `BuildConfig.CONSENT_GATE_ENABLED=false` 时同步 `runBlocking { consentStore.setAccepted(...) }` 写默认 consent,`AppNav.LaunchedEffect(Unit)` 看到 `accepted=true` 跳过 onboarding 路由(无死锁) | `feature/onboarding/OnboardingViewModel.kt` + `OnboardingRoute.kt` + `app/WritingApp.kt` | `OnboardingViewModelTest` 仍 PASS(死路径删除后行为更清晰) |
 
@@ -65,7 +65,7 @@
 3. `SecureApiKeyStoreImpl` 真 Reveal 行为测试(目前只测 Fake;真 EncryptedSharedPreferences + 5s timer + Lifecycle pause 需 Robolectric + AndroidKeyStore mock)
 4. spec 补 feature self-containment Scenario(r1 L2,archive 阶段)
 5. `OnboardingScreen` Compose UI test(scroll-to-bottom 解锁)— 当前 r1 M3 改 inline `derivedStateOf` 逻辑无 UI test
-6. `MainActivity` 真 widget 入口 gating test(目前 `AppNavConsentGateTest` 只覆盖 state 逻辑,`handleRawRoute` 走 `EntryPointAccessors` 需 Robolectric)
+6. `MainActivity` 真 widget 入口 gating test(目前 `AppNavConsentGateTest` 只覆盖 state 逻辑，`handleRawRoute` 走 `EntryPointAccessors` 需 Robolectric)
 
 ---
 

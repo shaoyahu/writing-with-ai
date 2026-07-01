@@ -9,13 +9,13 @@
 - [ ] 改 `feature/quicknote/detail/QuickNoteDetailScreen.kt:88` 类型
 - [ ] 改 `core/note/di/NoteLinkerModule.kt` Hilt bind(若需要)
 - [ ] 改 `core/note/CompositeNoteLinkerTest.kt` import + mockk 类型
-- [ ] 改 `FakeProviderPrefsStore.kt`(配合,若影响)
+- [ ] 改 `FakeProviderPrefsStore.kt`(配合，若影响)
 - [ ] 跑 `assembleDebug` 通过
 
 ## 2. H4 — AiwritingEntry 扩 public surface
 
 - [ ] `feature/aiwriting/AiwritingEntry.kt` 新增 `ActionSheetRoute` / `StreamingPanelRoute` / `copyToClipboard` 包装 + `AiActionUiState` typealias
-- [ ] `feature/quicknote/detail/QuickNoteDetailScreen.kt` 删 5 个 internal import,改用 AiwritingEntry
+- [ ] `feature/quicknote/detail/QuickNoteDetailScreen.kt` 删 5 个 internal import，改用 AiwritingEntry
 - [ ] 跑 `assembleDebug` 通过
 - [ ] grep 验证 QuickNoteDetailScreen.kt 不再 import feature/aiwriting 内部
 
@@ -29,7 +29,7 @@
 
 ## 4. H9 — pingFromForm 重构
 
-- [ ] `feature/settings/model/CustomProviderEditViewModel.kt:162-200` 改 pingFromForm 签名(去除 s,显式 form 字段),apikey 临时取不入 state
+- [ ] `feature/settings/model/CustomProviderEditViewModel.kt:162-200` 改 pingFromForm 签名(去除 s，显式 form 字段),apikey 临时取不入 state
 - [ ] 走 `coreAiGateway.ping()`(扩签名)
 - [ ] 跑 `assembleDebug` 通过
 
@@ -47,7 +47,7 @@
 
 ## 7. H6 — acceptReplace indexOf 校验
 
-- [ ] `feature/aiwriting/streaming/AiActionViewModel.kt:188` 用 `indexOf` + `replaceRange`,缺失/多匹配 → Failed
+- [ ] `feature/aiwriting/streaming/AiActionViewModel.kt:188` 用 `indexOf` + `replaceRange`，缺失/多匹配 → Failed
 - [ ] 加 test case `acceptReplace_missingSourceText_emitsFailed`
 - [ ] 跑 `testDebugUnitTest` 通过
 
@@ -74,4 +74,4 @@
 
 - **不开自动 commit / push**(CLAUDE.md 硬规则)
 - 顺序:H5 → H4 → H1 → H9 → H2 → H3 → H6 → H7 → H8(高风险 / 架构改动先行)
-- 中间任意一步 `assembleDebug` 不通过 → 停下报告,不继续
+- 中间任意一步 `assembleDebug` 不通过 → 停下报告，不继续

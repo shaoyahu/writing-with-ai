@@ -46,7 +46,7 @@ import java.util.Locale
  * 内部 UI 重写为卡片式:
  * - 头部:品牌头部(primaryContainer)
  * - 进度条:`ConsentProgressBar(progress)` 0→1 平滑
- * - 卡片列表:`parseGroupedMarkdown` 5 H2 → 5 `ConsentSectionCard`,首张默认 expanded
+ * - 卡片列表:`parseGroupedMarkdown` 5 H2 → 5 `ConsentSectionCard`，首张默认 expanded
  * - 底部栏:`ConsentBottomBar(scrolledToBottom)` tween(300) containerColor 过渡
  *
  * 对外签名 0 改动([scrolledToBottom] / [onScrolledToBottomChange] / [onAccept] / [onReject]),
@@ -151,7 +151,7 @@ private fun ColumnScope.ConsentPolicyCardBody(
     onAccept: () -> Unit,
     onDecline: () -> Unit
 ) {
-    // D2:summaryResolver 闭包内置,按 H2 关键词匹配 5 个 stringRes
+    // D2:summaryResolver 闭包内置，按 H2 关键词匹配 5 个 stringRes
     val summaryResolver: (String) -> Int? = { title ->
         when {
             "第三方" in title || "third" in title.lowercase() -> R.string.consent_section_third_party_summary
@@ -170,7 +170,7 @@ private fun ColumnScope.ConsentPolicyCardBody(
     val listState = rememberLazyListState()
 
     // D3:produceState + snapshotFlow 双层;avgItemSize 由 visibleItemsInfo 实时算
-    // lint:ProduceStateDoesNotAssignValue 误报 — value 在 .collect { ... } 嵌套 lambda 内赋值,
+    // lint:ProduceStateDoesNotAssignValue 误报 — value 在 .collect { ... } 嵌套 lambda 内赋值，
     // lint 不能跨 lambda 边界追踪 State delegate 写入。
     @Suppress("ProduceStateDoesNotAssignValue")
     val scrollProgress by produceState(0f, listState) {
@@ -187,8 +187,8 @@ private fun ColumnScope.ConsentPolicyCardBody(
     }
 
     // D5:双条件 OR — 防短文一键同意
-    // 真机 UX 修复:当所有卡片适合 viewport 时,LazyColumn 不可滚动,firstVisible 恒为 0,
-    // 旧条件 `firstVisible > 0 && lastVisible >= total - 1` 永远不成立,按钮卡死。
+    // 真机 UX 修复:当所有卡片适合 viewport 时，LazyColumn 不可滚动，firstVisible 恒为 0,
+    // 旧条件 `firstVisible > 0 && lastVisible >= total - 1` 永远不成立，按钮卡死。
     // 改为:只要 last item 可见即视为"到达底部"(内容已全部展示)。
     val canAccept =
         remember(listState, sections) {

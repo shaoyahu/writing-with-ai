@@ -36,7 +36,7 @@ debug 通道允许 ≥5 条 TODO(内测阶段由用户 + 内测人员反馈 + AI
 
 ### Requirement: Internal testing strings added in both locales
 
-`values/strings.xml` + `values-en/strings.xml` MUST 新增 5~10 条 `internal_testing_*` 文案 key,覆盖:
+`values/strings.xml` + `values-en/strings.xml` MUST 新增 5~10 条 `internal_testing_*` 文案 key，覆盖:
 - 内测参与方式(`internal_testing_howto`)
 - 反馈渠道提示(`internal_testing_feedback`)
 - 已知问题引导(`internal_testing_known_issues_hint`)

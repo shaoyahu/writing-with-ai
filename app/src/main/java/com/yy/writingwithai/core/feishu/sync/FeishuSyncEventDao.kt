@@ -17,8 +17,8 @@ interface FeishuSyncEventDao {
     /**
      * feishu-sync-end-to-end · 设置页同步日志 reactive 版本。
      *
-     * 与 [listLast] 同语义(最近 [limit] 条按 `createdAt DESC`),但返回 `Flow` —— Room
-     * 内部用 InvalidationTracker 自动响应 `feishu_sync_event` 表的写入/删除,无需
+     * 与 [listLast] 同语义(最近 [limit] 条按 `createdAt DESC`)，但返回 `Flow` —— Room
+     * 内部用 InvalidationTracker 自动响应 `feishu_sync_event` 表的写入/删除，无需
      * 手动重新查询。
      */
     @Query("SELECT * FROM feishu_sync_event ORDER BY createdAt DESC LIMIT :limit")

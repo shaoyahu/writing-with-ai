@@ -20,11 +20,11 @@ interface ProviderPrefsStore {
 }
 ```
 
-实现走 `androidx.datastore.preferences.core`,单 string key `selected_provider_id`,默认值 `"fake"`。
+实现走 `androidx.datastore.preferences.core`，单 string key `selected_provider_id`，默认值 `"fake"`。
 
 #### Scenario: 首次启动无 provider 选
 
-- **WHEN** 用户首次启动,DataStore Preferences 为空
+- **WHEN** 用户首次启动，DataStore Preferences 为空
 - **THEN** `getSelectedProviderId()` 返回 `"fake"`(平滑过渡老用户);`AiActionViewModel` 仍走 FakeProvider stub 直到用户在模型管理改
 
 #### Scenario: 用户在模型管理选 deepseek 后重启 App
@@ -38,12 +38,12 @@ interface ProviderPrefsStore {
 - 标题 + 当前选中 provider 名(deepseek / minimax / mimo)+ 当前 model 名
 - 3 个 provider 的 Card(icon + 名称 + baseURL + 默认 model + "选择"按钮)
 - 点 Card → 跳 `SettingsModelProviderDetail(id)` 填 apikey 屏
-- "测试连通"按钮(已选 + apikey 已填 → 调用 `AiGateway.ping(selectedProviderId)`,显示"可用 / 失败原因 / 延迟")
+- "测试连通"按钮(已选 + apikey 已填 → 调用 `AiGateway.ping(selectedProviderId)`，显示"可用 / 失败原因 / 延迟")
 
 #### Scenario: 用户点 deepseek Card
 
 - **WHEN** 用户在 `ModelManagementScreen` 点 "deepseek" Card
-- **THEN** navigate 到 `SettingsModelProviderDetail("deepseek")`,显示填 apikey 表单 + baseURL 提示
+- **THEN** navigate 到 `SettingsModelProviderDetail("deepseek")`，显示填 apikey 表单 + baseURL 提示
 
 #### Scenario: 点 "测试连通"
 
@@ -61,7 +61,7 @@ interface ProviderPrefsStore {
 #### Scenario: 用户填 apikey + 保存
 
 - **WHEN** 用户在 deepseek 详情页输入 apikey = "sk-abc..." + 点"保存"
-- **THEN** `SecureApiKeyStore.saveApiKey("deepseek", "sk-abc...")` 加密存 EncryptedSharedPreferences + `setSelectedProviderId("deepseek")`;back 回主屏,主屏显示当前 provider = deepseek
+- **THEN** `SecureApiKeyStore.saveApiKey("deepseek", "sk-abc...")` 加密存 EncryptedSharedPreferences + `setSelectedProviderId("deepseek")`;back 回主屏，主屏显示当前 provider = deepseek
 
 #### Scenario: apikey 显示 5s 自动隐藏
 
@@ -84,7 +84,7 @@ interface ProviderPrefsStore {
 
 ### Requirement: ProviderNotConfigured 错误通道
 
-`core/ai/api/AiError.kt` MUST 加 `data object ProviderNotConfigured : AiError`,表示 apikey 缺失 / providerId 未选。
+`core/ai/api/AiError.kt` MUST 加 `data object ProviderNotConfigured : AiError`，表示 apikey 缺失 / providerId 未选。
 
 `AiActionUiState.Failed` 渲染时 MUST 区分 `ProviderNotConfigured` vs `UserConsentRequired`:
 - `UserConsentRequired` → 跳同意页
@@ -92,12 +92,12 @@ interface ProviderPrefsStore {
 
 #### Scenario: 用户在 apikey 缺失时点 AI 操作
 
-- **WHEN** 用户选中文本 → 点 ✨ → 选"润色",但未配置 provider
+- **WHEN** 用户选中文本 → 点 ✨ → 选"润色"，但未配置 provider
 - **THEN** `AiActionViewModel.start()` 查 `hasApiKey(selectedProviderId) == false` → emit `AiError.ProviderNotConfigured` → UI toast"请先在设置 → 模型管理配置"
 
 ### Requirement: Settings 主屏加"模型管理"入口
 
-`feature/settings/SettingsScreen.kt` MUST 加 ListItem"AI 模型管理",在"AI 提示词模板"前;onClick navigate `SettingsModelManagement`。
+`feature/settings/SettingsScreen.kt` MUST 加 ListItem"AI 模型管理"，在"AI 提示词模板"前;onClick navigate `SettingsModelManagement`。
 
 #### Scenario: overflow menu → 设置 → 模型管理
 
@@ -111,7 +111,7 @@ interface ProviderPrefsStore {
 #### Scenario: 路由跳转
 
 - **WHEN** `navController.navigate(SettingsModelProviderDetail("deepseek"))`
-- **THEN** 进 `ModelProviderDetailRoute("deepseek")`,显示 deepseek 详情屏
+- **THEN** 进 `ModelProviderDetailRoute("deepseek")`，显示 deepseek 详情屏
 
 ### Requirement: feature/settings/model/ 自包含
 
@@ -123,7 +123,7 @@ interface ProviderPrefsStore {
 #### Scenario: model 包无跨 feature import
 
 - **WHEN** `grep -rE "feature.(quicknote|aiwriting.streaming|onboarding)" feature/settings/model/`
-- **THEN** 0 匹配;`ModelManagementViewModel` 通过 Hilt 注入 `SecureApiKeyStore` + `ProviderPrefsStore` + `AiGateway`,不直接 import 其他 feature
+- **THEN** 0 匹配;`ModelManagementViewModel` 通过 Hilt 注入 `SecureApiKeyStore` + `ProviderPrefsStore` + `AiGateway`，不直接 import 其他 feature
 
 ### Requirement: 测试覆盖 ProviderPrefsStore + ViewModel
 
@@ -154,9 +154,9 @@ PGU110 真机 MUST 验证:
 #### Scenario: 填 deepseek apikey 后润色
 
 - **WHEN** 用户在 deepseek 详情页填真实 apikey + 保存 → 详情页选文本 → 润色
-- **THEN** 真实 SSE 流式输出(非 "FakeAIresponsefortesting"),UI 显示 markdown 实时渲染,token 计数正确
+- **THEN** 真实 SSE 流式输出(非 "FakeAIresponsefortesting"),UI 显示 markdown 实时渲染，token 计数正确
 
 #### Scenario: 未填 apikey 点 AI 操作
 
-- **WHEN** 用户未配置 provider,选中文本 → 润色
-- **THEN** UI toast"请先在设置 → 模型管理配置",不报错弹窗,不静默走 FakeProvider
+- **WHEN** 用户未配置 provider，选中文本 → 润色
+- **THEN** UI toast"请先在设置 → 模型管理配置"，不报错弹窗，不静默走 FakeProvider

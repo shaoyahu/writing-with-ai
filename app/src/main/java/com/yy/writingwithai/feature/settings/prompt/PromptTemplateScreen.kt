@@ -108,7 +108,7 @@ fun PromptTemplateScreen(viewModel: PromptTemplateViewModel, onBack: () -> Unit)
             // animation-system · tab 切换接 token(spec §REQ 6):currentOp 变化时
             // AnimatedContent 用 tabContentSpec 平滑过渡新旧内容(spec MINIMAL=tween 200ms,
             // IMMERSIVE=tween 350ms, NONE=snap 即时切)。
-            // NOTE:transitionSpec lambda 不是 @Composable,需提前读 token 再引用。
+            // NOTE:transitionSpec lambda 不是 @Composable，需提前读 token 再引用。
             val tabSpec = LocalAnimationTokens.current.tabContentSpec
             AnimatedContent(
                 targetState = uiState.currentOp,

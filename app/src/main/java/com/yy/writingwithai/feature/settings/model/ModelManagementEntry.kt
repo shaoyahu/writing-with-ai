@@ -7,7 +7,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 /**
  * `feature/settings/model` 跨 feature 入口(provider-real-integration + ui-redesign + M6 custom-model)。
  *
- * AppNav 通过此 object 调 Composable,不直接 import `ModelManagementScreen` /
+ * AppNav 通过此 object 调 Composable，不直接 import `ModelManagementScreen` /
  * `ModelProviderDetailScreen` / `CustomProviderEditScreen` 等内部 file(自包含约束)。
  */
 object ModelManagementEntry {
@@ -47,7 +47,7 @@ object ModelManagementEntry {
         )
     }
 
-    /** 自定义 Provider 编辑屏入口(providerId == null → 新建,否则编辑)。 */
+    /** 自定义 Provider 编辑屏入口(providerId == null → 新建，否则编辑)。 */
     @Composable
     fun CustomProviderEditRoute(
         providerId: String?,

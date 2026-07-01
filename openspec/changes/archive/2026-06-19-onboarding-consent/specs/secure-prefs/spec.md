@@ -15,7 +15,7 @@
 - `suspend fun clear(providerId: String)`
 - `suspend fun clearAll()`
 
-实现 MUST 捕获 `GeneralSecurityException` / `KeyStoreException` 等 KeyStore 异常,fallback 行为:清空对应 provider 的 apikey + log 一行(不 log apikey 本身,只 log `providerId` + 异常类型)+ 返回 `null`(`get`) / `false`(`has`)。
+实现 MUST 捕获 `GeneralSecurityException` / `KeyStoreException` 等 KeyStore 异常，fallback 行为:清空对应 provider 的 apikey + log 一行(不 log apikey 本身，只 log `providerId` + 异常类型)+ 返回 `null`(`get`) / `false`(`has`)。
 
 #### Scenario: 保存 apikey
 - **WHEN** `save("deepseek", "sk-xxx")` 调用
@@ -51,11 +51,11 @@ sealed interface RevealState {
 `reveal()` 内部跟踪 `lastPauseAt: Long`(LifecycleObserver 监听 ON_PAUSE);StateFlow 发射规则:
 - 启动 / ON_RESUME 后调用 `reveal()` → 读 prefs → emit `Revealed(apikey, expiresAt=now+5_000ms)`
 - 距离 lastPauseAt 超过 5_000ms → emit `Hidden`
-- 订阅者(Composable)需用 `LaunchedEffect` 起 1s 轮询,`now >= expiresAt` → emit `Hidden`(或用 `delay()` 一次性 timer)
+- 订阅者(Composable)需用 `LaunchedEffect` 起 1s 轮询，`now >= expiresAt` → emit `Hidden`(或用 `delay()` 一次性 timer)
 - Keystore 损坏 → emit `KeystoreFailed`
 
 #### Scenario: 首次 reveal 返回明文 + 5s 过期
-- **WHEN** 用户进入设置页 apikey 显示,App 未进入后台过,`reveal("deepseek")` 调用
+- **WHEN** 用户进入设置页 apikey 显示，App 未进入后台过，`reveal("deepseek")` 调用
 - **THEN** emit `Revealed("sk-xxx", expiresAt=now+5_000)`;UI 显示明文
 
 #### Scenario: 5s 后自动隐藏
@@ -102,7 +102,7 @@ sealed interface RevealState {
 
 ### Requirement: SecurePrefsModule provides Hilt singleton
 
-`SecureApiKeyStore` MUST 通过 `@Module @InstallIn(SingletonComponent::class) object SecurePrefsModule { @Provides @Singleton fun provideSecureApiKeyStore(@ApplicationContext context: Context): SecureApiKeyStore = SecureApiKeyStoreImpl(context) }` 暴露;Hilt consumer 通过 `@Inject constructor(private val secureApiKeyStore: SecureApiKeyStore)` 注入,UI 层只看到 interface。
+`SecureApiKeyStore` MUST 通过 `@Module @InstallIn(SingletonComponent::class) object SecurePrefsModule { @Provides @Singleton fun provideSecureApiKeyStore(@ApplicationContext context: Context): SecureApiKeyStore = SecureApiKeyStoreImpl(context) }` 暴露;Hilt consumer 通过 `@Inject constructor(private val secureApiKeyStore: SecureApiKeyStore)` 注入，UI 层只看到 interface。
 
 #### Scenario: Hilt 注入成功
 - **WHEN** `SettingsViewModel(@Inject secureApiKeyStore: SecureApiKeyStore)` 编译 + 启动
@@ -110,4 +110,4 @@ sealed interface RevealState {
 
 #### Scenario: UI 层不直接 import 实现类
 - **WHEN** `grep -rE "SecureApiKeyStoreImpl" app/src/main/java/com/yy/writingwithai/feature/`
-- **THEN** 0 匹配(实现类只允许在 `core/prefs/` 内被引用,`feature/` 只见 interface)
+- **THEN** 0 匹配(实现类只允许在 `core/prefs/` 内被引用，`feature/` 只见 interface)

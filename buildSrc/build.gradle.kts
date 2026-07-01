@@ -1,4 +1,4 @@
-// buildSrc — precompiled build logic,自动加入所有 build.gradle.kts 的 classpath。
+// buildSrc — precompiled build logic，自动加入所有 build.gradle.kts 的 classpath。
 // 见 openspec/changes/release-preflight-automation/{proposal,design}.md。
 plugins {
     `kotlin-dsl`

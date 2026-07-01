@@ -20,7 +20,7 @@ class PathSafetyTest {
 
     @Test
     fun `safeName rejects names containing dot`() {
-        // fix-2026-06-25-review-r1 M7:dot 不再属于 SAFE_NAME 安全字符,
+        // fix-2026-06-25-review-r1 M7:dot 不再属于 SAFE_NAME 安全字符，
         // `update.apk` 这种应改走 stripExt 路径或 fallback。
         assertEquals("default", PathSafety.safeName("update.apk"))
         assertEquals("default", PathSafety.safeName("writing-with-ai-1.2.3.apk"))
@@ -36,7 +36,7 @@ class PathSafetyTest {
 
     @Test
     fun `safeName rejects consecutive dotdot`() {
-        // fix-2026-06-25-review-r1 M7:子串 `..` 一律拒,即便前后无 `/`。
+        // fix-2026-06-25-review-r1 M7:子串 `..` 一律拒，即便前后无 `/`。
         assertEquals("default", PathSafety.safeName("a..b"))
         assertEquals("default", PathSafety.safeName("name..tar"))
     }

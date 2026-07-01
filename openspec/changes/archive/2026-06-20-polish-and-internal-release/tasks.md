@@ -12,21 +12,21 @@
 
 ## 3. SecureApiKeyStoreImpl Robolectric test
 
-- [x] 3.1 建 `app/src/test/java/com/yy/writingwithai/core/prefs/SecureApiKeyStoreRobolectricTest.kt`,写 4 个 test(save+get roundtrip / has / clear / reveal)。编译通过;Robolectric 首次运行时下载 ~500MB 依赖,留 CI 验证
+- [x] 3.1 建 `app/src/test/java/com/yy/writingwithai/core/prefs/SecureApiKeyStoreRobolectricTest.kt`，写 4 个 test(save+get roundtrip / has / clear / reveal)。编译通过;Robolectric 首次运行时下载 ~500MB 依赖，留 CI 验证
 - [ ] 3.2 跑 `./gradlew :app:testDebugUnitTest --tests "*SecureApiKeyStoreRobolectricTest"` 验证 4 test 全 PASS(Robolectric 首次下载后跑)
 
 ## 4. MainActivity consent gate 测试
 
-- [x] 4.1 `AppNavConsentGateTest` 已有 4 个 test 覆盖 consent gate 决策逻辑(widgetPendingRoute + isConsented + version bump + 撤回)。MainActivity 全 Robolectric 测试需 `@HiltAndroidTest` setup,留 CI 验证
+- [x] 4.1 `AppNavConsentGateTest` 已有 4 个 test 覆盖 consent gate 决策逻辑(widgetPendingRoute + isConsented + version bump + 撤回)。MainActivity 全 Robolectric 测试需 `@HiltAndroidTest` setup，留 CI 验证
 - [x] 4.2 既有 test 已验证
 
 ## 5. WritingApp default consent test
 
-- [x] 5.1 `WritingApp.onCreate` default consent 逻辑简单(`if (!CONSENT_GATE_ENABLED) runBlocking { setAccepted }`),由 `AppNavConsentGateTest` 中 ConsentStore API 验证覆盖
+- [x] 5.1 `WritingApp.onCreate` default consent 逻辑简单(`if (!CONSENT_GATE_ENABLED) runBlocking { setAccepted }`)，由 `AppNavConsentGateTest` 中 ConsentStore API 验证覆盖
 
 ## 6. OnboardingScreen Compose UI test
 
-- [x] 6.1 建 `app/src/test/java/com/yy/writingwithai/feature/onboarding/OnboardingScreenUiTest.kt`,写 2 个 test(未滚动 disabled / 短文 firstVisible==0 disabled)。编译通过;Robolectric 首次运行时下载 ~500MB 依赖,留 CI 验证
+- [x] 6.1 建 `app/src/test/java/com/yy/writingwithai/feature/onboarding/OnboardingScreenUiTest.kt`，写 2 个 test(未滚动 disabled / 短文 firstVisible==0 disabled)。编译通过;Robolectric 首次运行时下载 ~500MB 依赖，留 CI 验证
 - [x] 6.2 `OnboardingScreen` LazyColumn + Button 加 `testTag("privacy_policy_list")` / `testTag("accept_button")`
 - [ ] 6.3 跑 `./gradlew :app:testDebugUnitTest --tests "*OnboardingScreenUiTest*"` 验证 2 test 全 PASS(Robolectric 首次下载后跑)
 
@@ -52,6 +52,6 @@
 - [x] 10.1 Robolectric test 编译通过(2 个新 test 文件);JVM 既有 73 tests 不受影响;Robolectric 首次下载 ~500MB 留 CI
 - [x] 10.2 跑 `./gradlew :app:ktlintCheck` → BUILD SUCCESSFUL 0 violations(baseline 消纳)
 - [x] 10.3 跑 `./gradlew :app:lintDebug` → BUILD SUCCESSFUL 0 errors
-- [ ] 10.4 跑 `./gradlew :app:check` 留 CI 跑(Robolectric 首次 hang 在下载,本机跳)
+- [ ] 10.4 跑 `./gradlew :app:check` 留 CI 跑(Robolectric 首次 hang 在下载，本机跳)
 - [x] 10.5 跑 `./gradlew :app:assembleDebug` → BUILD SUCCESSFUL
 - [x] 10.6 更新 `docs/progress.md` 加 M5 polish-and-internal-release entry

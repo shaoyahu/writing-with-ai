@@ -4,7 +4,7 @@
 
 ### Requirement: AiActionViewModel owns the streaming state machine
 
-`AiActionViewModel : ViewModel` MUST 注入 `AiGateway` + `NoteRepository` + `ConsentStore` + `SecureApiKeyStore` + `PromptTemplateStore` + `ProviderPrefsStore`,暴露 `StateFlow<AiActionUiState>` 给 UI 订阅;状态机用 sealed interface 表达:
+`AiActionViewModel : ViewModel` MUST 注入 `AiGateway` + `NoteRepository` + `ConsentStore` + `SecureApiKeyStore` + `PromptTemplateStore` + `ProviderPrefsStore`，暴露 `StateFlow<AiActionUiState>` 给 UI 订阅;状态机用 sealed interface 表达:
 
 ```kotlin
 sealed interface AiActionUiState {
@@ -42,7 +42,7 @@ sealed interface AiActionUiState {
 - **THEN** `AiGateway.streamWritingOp(POLISH, "晨跑", providerId=<resolveProviderId()>, apikey=<resolveProviderId() 取的真 apikey 或 fake 路径>, modelName=null, systemPrompt="你是一位正式文风润色助手")` 被订阅
 
 #### Scenario: 模板空走 fallback(custom-prompt-template)
-- **WHEN** `viewModel.start(EXPAND, sourceText, noteId)` 调用,`promptTemplateStore.getForOp(EXPAND) == null`
+- **WHEN** `viewModel.start(EXPAND, sourceText, noteId)` 调用，`promptTemplateStore.getForOp(EXPAND) == null`
 - **THEN** `systemPrompt = DefaultPrompts.forOp(EXPAND)`,AiGateway 收到 fallback 默认 prompt
 
 #### Scenario: Delta 累加 partialText
@@ -61,12 +61,12 @@ sealed interface AiActionUiState {
 
 ### Requirement: ModelManagementViewModel passes real apikey to gateway.ping
 
-`ModelManagementViewModel.ping(providerId)` MUST 同步从 `SecureApiKeyStore.get(providerId)` 拿 apikey,`null` → emit `PingResult.Failed("apikey 未配置")` 不调 gateway;非 null → 调 `aiGateway.ping(providerId, apikey=apikey, modelName="default")`。理由:`AiGateway.ping` 签名也升级到 `(providerId, apikey, modelName)`,与 `streamWritingOp` 一致。
+`ModelManagementViewModel.ping(providerId)` MUST 同步从 `SecureApiKeyStore.get(providerId)` 拿 apikey,`null` → emit `PingResult.Failed("apikey 未配置")` 不调 gateway;非 null → 调 `aiGateway.ping(providerId, apikey=apikey, modelName="default")`。理由:`AiGateway.ping` 签名也升级到 `(providerId, apikey, modelName)`，与 `streamWritingOp` 一致。
 
 #### Scenario: ping 不调 fake 路径
-- **WHEN** `ModelManagementViewModel.ping("deepseek")` 调用,`secureApiKeyStore.get("deepseek") == "sk-real-123"`
-- **THEN** `aiGateway.ping("deepseek", apikey="sk-real-123", modelName="default")` 被调 1 次,无 `"fake-apikey"` 占位字面量出现在调用链上
+- **WHEN** `ModelManagementViewModel.ping("deepseek")` 调用，`secureApiKeyStore.get("deepseek") == "sk-real-123"`
+- **THEN** `aiGateway.ping("deepseek", apikey="sk-real-123", modelName="default")` 被调 1 次，无 `"fake-apikey"` 占位字面量出现在调用链上
 
 #### Scenario: 缺 apikey 时 ping 立即失败
-- **WHEN** `ModelManagementViewModel.ping("deepseek")` 调用,`secureApiKeyStore.get("deepseek") == null`
-- **THEN** `aiGateway.ping(...)` 0 次调用,UI 立即显示 `PingResult.Failed("apikey 未配置")`,不等待网络超时
+- **WHEN** `ModelManagementViewModel.ping("deepseek")` 调用，`secureApiKeyStore.get("deepseek") == null`
+- **THEN** `aiGateway.ping(...)` 0 次调用，UI 立即显示 `PingResult.Failed("apikey 未配置")`，不等待网络超时

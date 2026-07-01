@@ -33,8 +33,8 @@ import kotlinx.coroutines.flow.first
 /**
  * M5 widget-1x4-compact · 4x1 horizontal Glance widget.
  *
- * widget-rome-compat · 颜色 token 化(从 Material 3 colorScheme 派生,跟随系统暗色 / 亮色 /
- * Material You),不再用 QuickNoteWidget.kt 已删的 cBlue / cWhite / cTitle / cMeta hex。
+ * widget-rome-compat · 颜色 token 化(从 Material 3 colorScheme 派生，跟随系统暗色 / 亮色 /
+ * Material You)，不再用 QuickNoteWidget.kt 已删的 cBlue / cWhite / cTitle / cMeta hex。
  */
 class QuickNote1x4Widget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single

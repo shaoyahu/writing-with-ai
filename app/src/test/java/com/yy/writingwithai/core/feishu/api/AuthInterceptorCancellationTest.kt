@@ -12,12 +12,12 @@ import org.junit.jupiter.api.Test
 
 /**
  * fix-2026-06-26-review-r3 HIGH(feishu agent re-scan):AuthInterceptor 内部
- * `isTokenInvalid` 的 `runCatching` 会捕获 CancellationException 并吞掉,
+ * `isTokenInvalid` 的 `runCatching` 会捕获 CancellationException 并吞掉，
  * 导致结构化并发取消时(OkHttp 取消)被误判为"token invalid" → 提前 refresh。
  * 修后先 rethrow CancellationException。
  *
  * 这个 test 验证 isTokenInvalid 的行为:在 parse body 抛 CancellationException
- * 时应 rethrow,而不是返回 false 吞掉。
+ * 时应 rethrow，而不是返回 false 吞掉。
  */
 class AuthInterceptorCancellationTest {
 

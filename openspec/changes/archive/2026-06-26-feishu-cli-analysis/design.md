@@ -1,15 +1,15 @@
 ## Context
 
-飞书 CLI 仓库(larksuite/cli)有 26 个 AI Agent skills,是飞书业务域的成熟拆分。我们 `feature/` 包结构部分对应、部分缺失。把这 26 skills 对照现有 feature 包,产出 v2 路线图候选,供后续 OpenSpec changes 决策。
+飞书 CLI 仓库(larksuite/cli)有 26 个 AI Agent skills，是飞书业务域的成熟拆分。我们 `feature/` 包结构部分对应、部分缺失。把这 26 skills 对照现有 feature 包，产出 v2 路线图候选，供后续 OpenSpec changes 决策。
 
 ## Goals / Non-Goals
 
 **Goals**
-- 写一份分析文档 `docs/usage/feishu-cli-analysis.md`,含:
+- 写一份分析文档 `docs/usage/feishu-cli-analysis.md`，含:
   - 26 skills 完整列表 + 每个 1-2 句功能概述
   - 与本项目 `feature/` 包的对应矩阵
-  - v2 路线图候选(每个缺失 skill 对应一个潜在 feature 包,标优先级)
-- 不引入新代码,纯文档产物
+  - v2 路线图候选(每个缺失 skill 对应一个潜在 feature 包，标优先级)
+- 不引入新代码，纯文档产物
 
 **Non-Goals**
 - 不实际开发任何新 feature
@@ -57,11 +57,11 @@
 
 ## Risks / Trade-offs
 
-[Risk] **文档脱节** — 飞书 CLI 后续新增/删除 skill,本分析过期
+[Risk] **文档脱节** — 飞书 CLI 后续新增/删除 skill，本分析过期
 → Mitigation:文档头部标注"参考自 larksuite/cli @ 2026-06-23",v2 时回看是否需要刷新
 
-[Risk] **路线图变成 wishlist** — v2 候选 ≠ 必做,需 OpenSpec change 单独评估
-→ Mitigation:文档明确"候选",不直接进 roadmap;roadmap 仍由用户决策
+[Risk] **路线图变成 wishlist** — v2 候选 ≠ 必做，需 OpenSpec change 单独评估
+→ Mitigation:文档明确"候选"，不直接进 roadmap;roadmap 仍由用户决策
 
 ## Migration Plan
 
@@ -71,10 +71,10 @@
 4. M4 — 标注 v2 路线图候选 + 优先级
 5. M5 — `openspec validate feishu-cli-analysis --strict` 通过
 
-**回退**:文档可整段删除,零代码影响。
+**回退**:文档可整段删除，零代码影响。
 
 ## Open Questions
 
-- Q1:26 个 skills 是否完整?仓库结构里 `skills/` 子目录可能只列 10-20 个,其他可能是 `shortcuts/` 或 `internal/`
+- Q1:26 个 skills 是否完整?仓库结构里 `skills/` 子目录可能只列 10-20 个，其他可能是 `shortcuts/` 或 `internal/`
 - Q2:每个 skill 的成熟度?有些可能只是 stub
 - Q3:是否需要在分析文档里给每个候选 feature 写"为什么值得做"与"复杂度估计"?

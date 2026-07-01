@@ -16,9 +16,9 @@
 - `suspend fun clearAll()`
 - `fun reveal(providerId: String): StateFlow<RevealState>`
 
-实现 MUST 捕获 `GeneralSecurityException` / `KeyStoreException` 等 KeyStore 异常,fallback 行为:清空对应 provider 的 apikey + log 一行(不 log apikey 本身,只 log `providerId` + 异常类型)+ 返回 `null`(`get`) / `false`(`has`) / `KeystoreFailed`(`reveal`)。
+实现 MUST 捕获 `GeneralSecurityException` / `KeyStoreException` 等 KeyStore 异常，fallback 行为:清空对应 provider 的 apikey + log 一行(不 log apikey 本身，只 log `providerId` + 异常类型)+ 返回 `null`(`get`) / `false`(`has`) / `KeystoreFailed`(`reveal`)。
 
-`SecureApiKeyStoreImpl` MUST 只允许在 `core/prefs/` 包内被 import;`feature/` / `app/` 层 MUST 通过 Hilt interface 注入,不 import 实现类。
+`SecureApiKeyStoreImpl` MUST 只允许在 `core/prefs/` 包内被 import;`feature/` / `app/` 层 MUST 通过 Hilt interface 注入，不 import 实现类。
 
 #### Scenario: 保存 apikey
 - **WHEN** `save("deepseek", "sk-xxx")` 调用

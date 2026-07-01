@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Test
 /**
  * fix-review-r3-medium · [AnthropicCompatibleAdapter] 中等 bug 回归。
  *
- * M1:retry 范围太宽(SSL/UnknownHost/ConnectException 都被 retry),会让环境错"看起来在
- *    retry"实际只是拖时间。修后这些异常不 retry,直接走 .catch emit Failed。
+ * M1:retry 范围太宽(SSL/UnknownHost/ConnectException 都被 retry)，会让环境错"看起来在
+ *    retry"实际只是拖时间。修后这些异常不 retry，直接走 .catch emit Failed。
  * M4:`Retry-After` HTTP-date 形式(原版只解析 delta-seconds)。修后两种都解析。
  */
 class AnthropicCompatibleAdapterR3MediumTest {
@@ -134,9 +134,9 @@ class AnthropicCompatibleAdapterR3MediumTest {
 
     @Test
     fun socket_timeout_exception_is_not_retryable_via_retry_predicate() {
-        // SocketTimeoutException 已在 retry predicate 显式排除(isRetryable 仍返 true,但
+        // SocketTimeoutException 已在 retry predicate 显式排除(isRetryable 仍返 true，但
         // retry(1) { cause -> cause !is SocketTimeoutException ... } 双重保险)。
-        // 本测试验证 isRetryable 本身返 true,跟 retry predicate 的 SocketTimeout 排除解耦。
+        // 本测试验证 isRetryable 本身返 true，跟 retry predicate 的 SocketTimeout 排除解耦。
         val ex: java.io.IOException = SocketTimeoutException("read timed out")
         assertEquals(true, ex.isRetryable())
     }

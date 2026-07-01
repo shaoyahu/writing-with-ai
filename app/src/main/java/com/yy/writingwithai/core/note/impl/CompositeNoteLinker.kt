@@ -31,11 +31,11 @@ constructor(
 
     /**
      * fix-2026-06-30-full-review-r1 CRITICAL C1:delete + upsert 包 `db.withTransaction`。
-     * 之前 delete 与 upsert 之间无事务边界,进程被杀(系统回收 / OOM killer / 用户强杀)
+     * 之前 delete 与 upsert 之间无事务边界，进程被杀(系统回收 / OOM killer / 用户强杀)
      * 落在中间窗口 → 该笔记所有出站链接永久丢失。注入 AppDatabase 走 Room 事务。
      */
     override suspend fun recomputeForNote(noteId: String) = coroutineScope {
-        // 三个子计算先并发跑(纯计算 + DAO read,无写入竞争),拿到结果后再进事务写入
+        // 三个子计算先并发跑(纯计算 + DAO read，无写入竞争)，拿到结果后再进事务写入
         val localDeferred = async { localLinker.compute(noteId) }
         val wikiDeferred = async { wikilinkIndexer.index(noteId) }
         val entityDeferred = async { entityBacklinker.compute(noteId) }
@@ -57,11 +57,11 @@ constructor(
             )
         }
         val allRows = (localRows + wikiRows + entityRows)
-        // entity-extraction-polish §2.4:阈值由 store 提供(同步 SharedPreferences 读取,无需挂起)。
+        // entity-extraction-polish §2.4:阈值由 store 提供(同步 SharedPreferences 读取，无需挂起)。
         val threshold = assocSettings.threshold().toDouble()
         val capped = NoteLinkCap.enforce(allRows, threshold = threshold)
 
-        // C1 修:delete + upsertAll 走单事务,process kill 不留 link 丢失窗口
+        // C1 修:delete + upsertAll 走单事务，process kill 不留 link 丢失窗口
         db.withTransaction {
             noteLinkDao.deleteBySrc(noteId)
             if (capped.isNotEmpty()) noteLinkDao.upsertAll(capped)
@@ -74,7 +74,7 @@ constructor(
                 semanticLinker.extractAndPersist(noteId)
             } catch (e: Exception) {
                 // R4-2-C fix:静默吞 LLM 异常不利于调试网络 / 配额 / 反序列化问题。
-                // CancellationException 必须重抛(协程取消机制),其它异常 Log.w 后吞掉(主流程已成功写入 local/wiki/entity 边)。
+                // CancellationException 必须重抛(协程取消机制)，其它异常 Log.w 后吞掉(主流程已成功写入 local/wiki/entity 边)。
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 android.util.Log.w(
                     "CompositeNoteLinker",
@@ -87,8 +87,8 @@ constructor(
 
     /**
      * R3 fix M8:之前是死 SPI(`return 0`)。现在真做:取全部 note id,
-     * 逐条串行 `recomputeForNote`(已经有 500ms debounce + scope 收口,并行反而撞 Room)。
-     * 返回成功处理的 note 数 —— 任何 per-note 失败不算数,caller 可重试。
+     * 逐条串行 `recomputeForNote`(已经有 500ms debounce + scope 收口，并行反而撞 Room)。
+     * 返回成功处理的 note 数 —— 任何 per-note 失败不算数，caller 可重试。
      */
     override suspend fun recomputeAll(): Int {
         val ids = noteDao.getAllIds()
@@ -101,7 +101,7 @@ constructor(
                 throw e
             } catch (e: Exception) {
                 // 单条 poisoned note 不能 abort 整个 backfill —— H8 教训。
-                // 跳过并 log,继续下一条。
+                // 跳过并 log，继续下一条。
                 android.util.Log.w("CompositeNoteLinker", "recomputeAll: failed for noteId=$id", e)
             }
         }

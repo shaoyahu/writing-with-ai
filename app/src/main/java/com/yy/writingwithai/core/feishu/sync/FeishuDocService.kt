@@ -16,15 +16,15 @@ import kotlinx.coroutines.withContext
  * feishu-doc-service-refactor · 飞书文档原子操作 facade(v2 docs_ai/v1)。
  *
  * 全部走 v2 `docs_ai/v1` XML 接口(参考 larksuite/cli):
- * - create: createDocumentV2(xml)        单次创建,自带初始内容
+ * - create: createDocumentV2(xml)        单次创建，自带初始内容
  * - read:   fetchDocumentV2 + getDocument 拿 markdown + title + revision
- * - update: updateDocumentV2(command=overwrite) 单次 PUT,原子替换
+ * - update: updateDocumentV2(command=overwrite) 单次 PUT，原子替换
  * - append: appendBlockV2(command=block_insert_after) 单块追加
  *
  * 设计要点:
- * - updateDoc 走 v2 overwrite 不再做"删 + 追加"两步,避免 C3(404)与 H6(非原子)。
- * - readDoc 直接返回 Markdown 字符串,FeishuSyncService.pull 不再需要 docxConverter
- *   中转,解决 C2(pull 写空 markdown)。
+ * - updateDoc 走 v2 overwrite 不再做"删 + 追加"两步，避免 C3(404)与 H6(非原子)。
+ * - readDoc 直接返回 Markdown 字符串，FeishuSyncService.pull 不再需要 docxConverter
+ *   中转，解决 C2(pull 写空 markdown)。
  * - recordEvent 失败不影响主流程(L4)。
  */
 @Singleton
@@ -76,7 +76,7 @@ constructor(
 
     /**
      * 原子替换整篇文档(v2 overwrite)。
-     * 不再调 batch_delete + append,避免 delete 成功 / append 失败导致空文档。
+     * 不再调 batch_delete + append，避免 delete 成功 / append 失败导致空文档。
      */
     suspend fun updateDoc(note: Note, ref: FeishuRefEntity): FeishuRefEntity = withContext(Dispatchers.IO) {
         val xml = xmlConverter.convert(note.content, note.title.ifBlank { "未命名笔记" })
@@ -158,7 +158,7 @@ data class FeishuDocContent(
 
 private fun extractDocIdFromUrl(url: String): String? {
     val trimmed = url.trim().trimEnd('/')
-    // fix-2026-06-26-review-r3 HIGH H14:split `?` 之前先去掉 query/fragment,避免
+    // fix-2026-06-26-review-r3 HIGH H14:split `?` 之前先去掉 query/fragment，避免
     // 形如 `https://f.cn/docx/d1?from=copy` 被误判为 last segment 含 `?` → null。
     val withoutQuery = trimmed.substringBefore('?').substringBefore('#')
     val last = withoutQuery.substringAfterLast('/')

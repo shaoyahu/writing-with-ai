@@ -4,7 +4,7 @@
 
 ### Requirement: PromptTemplateScreen provides 3-tab edit UI (delta · 大改)
 
-继承原 Requirement 拓扑;**修改编辑 UI 行为**:`onPromptChange` 改为**只改 drafts + 标 pendingSave**,**不立即写 store**;**新增显式 "保存" 按钮**(`Button(enabled = pendingSave.contains(currentOp)) { vm.save(currentOp) }`)+ 标 dirty 红点 indicator(每个 Tab 标题右侧,`pendingSave.contains(op)` 时显示)。
+继承原 Requirement 拓扑;**修改编辑 UI 行为**:`onPromptChange` 改为**只改 drafts + 标 pendingSave**,**不立即写 store**;**新增显式 "保存" 按钮**(`Button(enabled = pendingSave.contains(currentOp)) { vm.save(currentOp) }`)+ 标 dirty 红点 indicator(每个 Tab 标题右侧，`pendingSave.contains(op)` 时显示)。
 
 `UiState` MUST 新增 `pendingSave: Set<WritingOp> = emptySet()`。
 
@@ -12,7 +12,7 @@
 
 新增 `save(op)` 方法 MUST 调 `promptTemplateStore.setForOp(op, drafts[op]!!)` + `_uiState.update { it.copy(pendingSave = it.pendingSave - op) }`。
 
-`resetToDefault(op)` MUST 调 `promptTemplateStore.resetToDefault(op)`(store 写空字符串)+ `_uiState.update { it.copy(drafts = it.drafts + (op to ""), pendingSave = it.pendingSave - op) }`(drafts 清空,下次 init 重新填默认)。
+`resetToDefault(op)` MUST 调 `promptTemplateStore.resetToDefault(op)`(store 写空字符串)+ `_uiState.update { it.copy(drafts = it.drafts + (op to ""), pendingSave = it.pendingSave - op) }`(drafts 清空，下次 init 重新填默认)。
 
 底部 MUST 替换原单 OutlinedButton 为 `Row { Button("保存") + OutlinedButton("恢复默认") }`。
 
@@ -55,4 +55,4 @@
 #### Scenario: getForOp 返回 null 时由 VM 层补默认(非 store 职责)
 
 - **WHEN** DataStore `prompt_template_expand` key 为 null
-- **THEN** `PromptTemplateStore.getForOp(EXPAND) == null`(store 行为不变,空 = fallback);`PromptTemplateViewModel.init` 检测 null → 调 `DefaultPrompts.forOp(EXPAND)` → `drafts[EXPAND] = <默认 prompt 文本>`(VM 行为,store 不感知)
+- **THEN** `PromptTemplateStore.getForOp(EXPAND) == null`(store 行为不变，空 = fallback);`PromptTemplateViewModel.init` 检测 null → 调 `DefaultPrompts.forOp(EXPAND)` → `drafts[EXPAND] = <默认 prompt 文本>`(VM 行为，store 不感知)

@@ -4,7 +4,7 @@
 
 ## 1. 飞书 CLI 27 skills 列表
 
-按仓库 `skills/` 目录字母排序,本项目评估时共 **27** 个 AI Agent skills(早期估算为 26,后增 `lark-event` / `lark-vc-agent` 等,总数更新为 27)。
+按仓库 `skills/` 目录字母排序，本项目评估时共 **27** 个 AI Agent skills(早期估算为 26，后增 `lark-event` / `lark-vc-agent` 等，总数更新为 27)。
 
 | # | skill | 1-2 句功能概述 |
 | --- | --- | --- |
@@ -28,7 +28,7 @@
 | 18 | `lark-sheets` | 电子表格:单元格读写 / 公式 / 筛选 / 导出 |
 | 19 | `lark-skill-maker` | 创建自定义 skill 的元工具 |
 | 20 | `lark-slides` | 演示文稿(PPT) |
-| 21 | `lark-task` | 任务管理(原 TODO,跨项目) |
+| 21 | `lark-task` | 任务管理(原 TODO，跨项目) |
 | 22 | `lark-vc-agent` | 视频会议 AI 助手 |
 | 23 | `lark-vc` | 视频会议:会议室 / 预约 / 录制 |
 | 24 | `lark-whiteboard` | 画板:协作绘图 |
@@ -41,8 +41,8 @@
 | skill | 功能 | 我们 `feature/` | 状态 | 备注 |
 | --- | --- | --- | --- | --- |
 | `lark-doc` | 云文档CRUD | `feature/quicknote` (Feishu 同步层) | **已有** | `core/feishu/` 全套实现;`feishu-doc-service-refactor` 刚落地 |
-| `lark-contact` | 通讯录 / 实体别名 | `feature/settings` (实体别名管理) | **部分有** | 仅实体别名,缺通讯录 API(用户/部门) |
-| `lark-mail` | 邮件 | 无 | **不需要** | 我们 App 不发邮件,纯笔记场景 |
+| `lark-contact` | 通讯录 / 实体别名 | `feature/settings` (实体别名管理) | **部分有** | 仅实体别名，缺通讯录 API(用户/部门) |
+| `lark-mail` | 邮件 | 无 | **不需要** | 我们 App 不发邮件，纯笔记场景 |
 | `lark-im` | 即时消息 | 无 | **不需要** | 我们 App 不发消息 |
 | `lark-event` | 事件订阅 WS | `core/feishu/sync/SyncWorker` 是 WorkManager 轮询 | **架构不同** | WS 长连接不适合移动端 background |
 | `lark-base` | 多维表格 | 无 | **缺失** | P1 候选:AI 写作结果自动进表格 |
@@ -63,7 +63,7 @@
 | `lark-vc` | 视频会议 | 无 | **可不需要** | v1 边界外 |
 | `lark-whiteboard` | 画板 | 无 | **可不需要** | v1 边界外 |
 | `lark-approval` | 审批流 | 无 | **缺失** | P3 候选:笔记 → 审批(企业场景) |
-| `lark-apps` | 应用管理 | 无 | **可不需要** | 我们已是企业内部应用,不管理 app |
+| `lark-apps` | 应用管理 | 无 | **可不需要** | 我们已是企业内部应用，不管理 app |
 | `lark-attendance` | 考勤 | 无 | **可不需要** | v1 边界外 |
 | `lark-workflow-meeting-summary` | 会议纪要工作流 | 无 | **P3 候选** | v1 边界外 |
 | `lark-workflow-standup-report` | 站会日报工作流 | 无 | **P3 候选** | v1 边界外 |
@@ -76,17 +76,17 @@
 
 - **`feishu-wiki-sync`**:知识库双向同步
   - 触发:用户曾明确说"想同步到知识库"
-  - 工程量:2-3 周(reuse `FeishuDocService` 模式,加 `FeishuWikiService`)
-  - 价值:知识库是企业笔记的"上级"容器,集成后用户能直接把随手记归档到正式 wiki
+  - 工程量:2-3 周(reuse `FeishuDocService` 模式，加 `FeishuWikiService`)
+  - 价值:知识库是企业笔记的"上级"容器，集成后用户能直接把随手记归档到正式 wiki
 
 ### P1(应做 · 与现有 feature 强协同)
 
 - **`feishu-base-export`**:AI 写作结果自动进多维表格
   - 触发:用户多次要求"AI 整理后的笔记导出结构化数据"
-  - 工程量:1-2 周(reuse FeishuDocService,加多维表格 SDK)
-  - 价值:把"随手记"和"项目管理"打通,商业用户场景
-- **`feishu-sheets-export`**:同上,电子表格
-  - 触发:同 lark-base,适合"日报 / 周报"场景
+  - 工程量:1-2 周(reuse FeishuDocService，加多维表格 SDK)
+  - 价值:把"随手记"和"项目管理"打通，商业用户场景
+- **`feishu-sheets-export`**:同上，电子表格
+  - 触发:同 lark-base，适合"日报 / 周报"场景
   - 工程量:1 周
   - 价值:轻量 BI 输出
 
@@ -114,13 +114,13 @@
 
 ## 4. 注意事项
 
-- 本文档基于 `larksuite/cli` 仓库 @ 2026-06-23 snapshot,后续 CLI 新增 / 删除 skill 时需刷新
-- 评估标准偏保守(本项目 v1 是"个人 / 轻量企业笔记",不是完整办公套件),部分 skill 在我们场景下"不需要"
-- "对应矩阵"中的状态是基于本项目 v1 现状,后续 archive 一个 P0/P1 change 后状态会更新
-- `lark-openapi-explorer` 对应我们 `feishu-openapi-kotlin-client` 评估 change,已单独文档化(`docs/usage/feishu-openapi-generator-eval.md`)
+- 本文档基于 `larksuite/cli` 仓库 @ 2026-06-23 snapshot，后续 CLI 新增 / 删除 skill 时需刷新
+- 评估标准偏保守(本项目 v1 是"个人 / 轻量企业笔记"，不是完整办公套件)，部分 skill 在我们场景下"不需要"
+- "对应矩阵"中的状态是基于本项目 v1 现状，后续 archive 一个 P0/P1 change 后状态会更新
+- `lark-openapi-explorer` 对应我们 `feishu-openapi-kotlin-client` 评估 change，已单独文档化(`docs/usage/feishu-openapi-generator-eval.md`)
 
 ## 5. 后续刷新时机
 
 - 飞书 CLI 发布 major 版本(skill 数量或 API 重大变化)
-- 本项目 archive 一个 P0/P1 后,更新矩阵的"状态"列
+- 本项目 archive 一个 P0/P1 后，更新矩阵的"状态"列
 - 半年一次例行 review(防止文档与现实脱节)

@@ -35,12 +35,12 @@ import okhttp3.OkHttpClient
  * - providerId != null → 编辑:预填已有配置 + 保存后覆盖
  *
  * 表单内 ping 用表单字段临时构造 [AnthropicCompatibleAdapter] 调 stream,
- * 不经过持久化, 让用户填完立即验证连通性。
+ * 不经过持久化， 让用户填完立即验证连通性。
  *
  * 校验:
  * - providerId 不得与内置 id(deepseek/minimax/mimo)冲突
  * - CUSTOM_HEADER 认证必须填 customAuthHeaderName
- * - loadExisting 找不到记录时视为"该 provider 已不存在",触发 SaveFailed + 退出
+ * - loadExisting 找不到记录时视为"该 provider 已不存在"，触发 SaveFailed + 退出
  */
 @HiltViewModel
 class CustomProviderEditViewModel
@@ -80,8 +80,8 @@ constructor(
                 return@launch
             }
             val savedKey = secureApiKeyStore.get(providerId).orEmpty()
-            // custom-provider-api-format:回填 apiFormat(协议下拉),旧 JSON 缺此字段
-            // → ProviderConfig.apiFormat 默认 ANTHROPIC,行为等价旧版硬绑。
+            // custom-provider-api-format:回填 apiFormat(协议下拉)，旧 JSON 缺此字段
+            // → ProviderConfig.apiFormat 默认 ANTHROPIC，行为等价旧版硬绑。
             _state.update {
                 it.copy(
                     isEditMode = true,
@@ -102,12 +102,12 @@ constructor(
 
     /**
      * 显示名称变化时自动生成 providerId(kebab-case)。
-     * - 新建模式:实时跟随,生成一次就锁定避免用户编辑 id 时被覆盖
+     * - 新建模式:实时跟随，生成一次就锁定避免用户编辑 id 时被覆盖
      * - 编辑模式:不动(保留原 id)
      *
-     * fix-2026-06-26-review-r3 H16:regex `[^a-z0-9\\s-]` 在中英混合输入时把中文段全部删掉,
+     * fix-2026-06-26-review-r3 H16:regex `[^a-z0-9\\s-]` 在中英混合输入时把中文段全部删掉，
      * 极端情况下(`我的笔记`)name 完全是中文 → 派生 id 是空字符串 → 落库后 provider.id 冲突。
-     * 改为"派生 id 为空时,基于 name 的 hash + 短随机后缀兜底",保证 id 始终非空且不可预测。
+     * 改为"派生 id 为空时，基于 name 的 hash + 短随机后缀兜底"，保证 id 始终非空且不可预测。
      */
     fun onDisplayNameChanged(name: String) {
         val current = _state.value
@@ -118,7 +118,7 @@ constructor(
                 .trim('-')
             if (derived.isBlank()) {
                 // H16 fix:派生 id 为空(全中文 / 全符号)→ 用 name 的稳定 hash + 短随机
-                // 后缀兜底,避免空 id 写入 store。
+                // 后缀兜底，避免空 id 写入 store。
                 val salt = (0..3)
                     .map { kotlin.random.Random.nextInt(0, RANDOM_SALT_MASK).toString(16).padStart(4, '0') }
                     .joinToString("")
@@ -173,7 +173,7 @@ constructor(
         _state.update { it.copy(supportedModels = it.supportedModels - model) }
     }
 
-    /** 表单内 ping:临时构造 adapter,不依赖 store.save + gateway cache,直接走 HTTP。 */
+    /** 表单内 ping:临时构造 adapter，不依赖 store.save + gateway cache，直接走 HTTP。 */
     fun pingFromForm() {
         val s = _state.value
         val config = buildConfig(s)
@@ -193,9 +193,9 @@ constructor(
             _state.update { it.copy(pingResult = PingResult.InProgress) }
             val start = System.currentTimeMillis()
             // custom-provider-api-format r2:pingFromForm 不再走 coreAiGateway(避免
-            // "provider xxx not registered" — 用户填好表单但还没保存,adapter 缓存里没),
+            // "provider xxx not registered" — 用户填好表单但还没保存，adapter 缓存里没),
             // 改为临时构造 AnthropicCompatibleAdapter 直接调 stream。表单内 ping 不写
-            // ai_history(真实 streamWritingOp 才写),只验证连通性 + 给出可读错误。
+            // ai_history(真实 streamWritingOp 才写)，只验证连通性 + 给出可读错误。
             val reason = try {
                 pingViaTempAdapter(config, s.apiKey)
             } catch (e: CancellationException) {
@@ -213,9 +213,9 @@ constructor(
     }
 
     /**
-     * 临时 adapter 直接 ping,绕过 gateway.resolveProvider 缓存。
+     * 临时 adapter 直接 ping，绕过 gateway.resolveProvider 缓存。
      *
-     * 返回 `null` 表示成功(adapter 收到至少一个 chunk),非 null 是 [com.yy.writingwithai.core.ai.api.AiError]
+     * 返回 `null` 表示成功(adapter 收到至少一个 chunk)，非 null 是 [com.yy.writingwithai.core.ai.api.AiError]
      * 的 summary 字符串(给 UI 直接展示)。
      *
      * debug:失败时 Log.d 输出实际 POST URL / body 前 200 chars / response code,
@@ -234,9 +234,9 @@ constructor(
                 ),
                 com.yy.writingwithai.core.ai.api.AiCredentials(apiKey)
             ).collect { event ->
-                // custom-provider-api-format r3:跟 list(aiGateway.ping)对齐判据,
-                // 只看 Failed 事件,不要求收到 Delta。原因:ping 极短 source text,
-                // DeepSeek 流式响应可能 0 字符(空 content),严格判据永远失败。
+                // custom-provider-api-format r3:跟 list(aiGateway.ping)对齐判据，
+                // 只看 Failed 事件，不要求收到 Delta。原因:ping 极短 source text,
+                // DeepSeek 流式响应可能 0 字符(空 content)，严格判据永远失败。
                 if (event is com.yy.writingwithai.core.ai.api.AiStreamEvent.Failed) {
                     failureReason = event.error.summary()
                 }
@@ -288,12 +288,12 @@ constructor(
                 return@launch
             }
             // fix-2026-06-26-review-r3 H17:原顺序 `save(config) → save(key) → setSelected` —
-            // 第二步失败 → config 已落库 + key 缺失,UI 假成功。
+            // 第二步失败 → config 已落库 + key 缺失，UI 假成功。
             // 改为:key 先 → config 后 → selectedProviderId 最后;失败时回滚已成功步骤。
             var keySaved = false
             var configSaved = false
             try {
-                // ux-2026-06-28 P1:编辑模式已有密钥 → 跳过 key 写入,保留原值。
+                // ux-2026-06-28 P1:编辑模式已有密钥 → 跳过 key 写入，保留原值。
                 if (!skipKeyWrite) {
                     secureApiKeyStore.save(config.id, apiKey)
                     keySaved = true
@@ -304,7 +304,7 @@ constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // 回滚:已落盘的 key / config 撤回,避免用户界面假成功但 store 半挂。
+                // 回滚:已落盘的 key / config 撤回，避免用户界面假成功但 store 半挂。
                 if (configSaved) {
                     runCatching { customProviderStore.delete(config.id) }
                 }
@@ -339,7 +339,7 @@ constructor(
         // custom-provider-api-format:apiFormat 来自 state(协议下拉);旧 config 默认 ANTHROPIC,
         // 行为与硬绑旧版完全一致。
         // endpointPath 由协议决定 — Anthropic 协议固定 `/v1/messages`,OpenAI 协议固定
-        // `/chat/completions`(Anthropic / OpenAI SDK 设计),用户填 baseUrl 由 adapter 拼 path。
+        // `/chat/completions`(Anthropic / OpenAI SDK 设计)，用户填 baseUrl 由 adapter 拼 path。
         val endpointPath = when (s.apiFormat) {
             ApiFormat.ANTHROPIC -> "/v1/messages"
             ApiFormat.OPENAI -> "/chat/completions"
@@ -363,7 +363,7 @@ constructor(
     companion object {
         val BUILTIN_IDS = setOf("deepseek", "minimax", "mimo")
 
-        // fix-2026-06-26-review-r3 LOW:随机盐掩码常量,避免 magic number 0xFFFF。
+        // fix-2026-06-26-review-r3 LOW:随机盐掩码常量，避免 magic number 0xFFFF。
         private const val RANDOM_SALT_MASK = 0xFFFF
     }
 }
@@ -373,7 +373,7 @@ data class CustomProviderEditUiState(
     val providerId: String = "",
     val idLocked: Boolean = false,
     // ux-2026-06-28 #3:baseUrl 改成"完整 URL" — 用户输入 https://api.example.com/v1/messages,
-    // adapter 不再追加 path(endpointPath 留空,见 buildConfig)。
+    // adapter 不再追加 path(endpointPath 留空，见 buildConfig)。
     val baseUrl: String = "",
     // custom-provider-api-format:协议下拉(OpenAI 兼容 / Anthropic 兼容),
     // 决定 ProviderConfig.apiFormat → adapter body / SSE 协议。
@@ -385,8 +385,8 @@ data class CustomProviderEditUiState(
     val supportedModels: List<String> = emptyList(),
     val newModelInput: String = "",
     val customHeaders: Map<String, String> = emptyMap(),
-    // ux-2026-06-28 #3:协议只走 anthropic 兼容,不再需要模型&认证段折叠;保留字段避免破坏
-    // 旧 state 结构,默认收起对用户无感(屏幕上不再用)。
+    // ux-2026-06-28 #3:协议只走 anthropic 兼容，不再需要模型&认证段折叠;保留字段避免破坏
+    // 旧 state 结构，默认收起对用户无感(屏幕上不再用)。
     val isModelsAuthExpanded: Boolean = false,
     val pingResult: PingResult = PingResult.Idle,
     val isSaving: Boolean = false,

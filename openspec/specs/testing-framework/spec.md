@@ -4,7 +4,7 @@
 
 TBD — synced from OpenSpec change `init-android-project`(2026-06-18)。原 change 在 `openspec/changes/archive/2026-06-18-init-android-project/`。
 
-JUnit5 + MockK + Turbine + Compose Test 依赖配置,示例测试(纯 JVM)跑通;`./gradlew :app:testDebugUnitTest` 全绿。
+JUnit5 + MockK + Turbine + Compose Test 依赖配置，示例测试(纯 JVM)跑通;`./gradlew :app:testDebugUnitTest` 全绿。
 
 ## Requirements
 

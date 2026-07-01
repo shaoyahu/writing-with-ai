@@ -20,9 +20,9 @@ import kotlinx.coroutines.launch
  * 行为:
  * - `onResetConfirm()` 清 `ack_apikey_prompt_v1 = false`
  * - 发 `Action.ResetDone` → SettingsScreen 显示一次性 toast/提示
- * - 不重置 `consent_accepted`(隐私条款是法律层,不能重置)
+ * - 不重置 `consent_accepted`(隐私条款是法律层，不能重置)
  * fix-2026-06-30-full-review-r1 LOW L3:一次性 action 改 SharedFlow,
- * replay=0 + buffer=1 + DROP_OLDEST,避免 StateFlow 状态合并/重组重发问题。
+ * replay=0 + buffer=1 + DROP_OLDEST，避免 StateFlow 状态合并/重组重发问题。
  */
 @HiltViewModel
 class ResetApikeyPromptViewModel
@@ -44,7 +44,7 @@ constructor(
         }
     }
 
-    /** no-op:SharedFlow 无状态可消费,保留为旧 caller 兼容。 */
+    /** no-op:SharedFlow 无状态可消费，保留为旧 caller 兼容。 */
     fun consumeAction() {
         // no-op
     }

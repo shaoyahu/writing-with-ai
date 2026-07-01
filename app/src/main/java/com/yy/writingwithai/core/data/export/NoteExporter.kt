@@ -27,13 +27,13 @@ constructor(
      * 导出全部数据为 JSON zip(含 notes.json / ai_history.json / tags.json / meta.json + notes/Markdown files)。
      *
      * @param outputStream SAF `contentResolver.openOutputStream(uri)` 传进的 OutputStream。
-     * @return 实际导出的 note 条数(供 SettingsDataViewModel 显示 Done 文案,X = notes.size)。
+     * @return 实际导出的 note 条数(供 SettingsDataViewModel 显示 Done 文案，X = notes.size)。
      */
     suspend fun exportToJsonZip(outputStream: java.io.OutputStream): Int {
         // R3 fix M5:之前 `noteRepository.observeNotesWithTags(null, null).first()` 内部
-        // 已经 `combine(notesFlow, noteTagDao.observeAllCrossRefs())`,然后又单独
+        // 已经 `combine(notesFlow, noteTagDao.observeAllCrossRefs())`，然后又单独
         // 调 `noteTagDao.observeAllCrossRefs().first()` 再 groupBy —— 两次全表 crossRef
-        // 读。现在直接复用 `NoteWithTags.tags`,组 tags map 在内存里(已经是按 note 摊开的)。
+        // 读。现在直接复用 `NoteWithTags.tags`，组 tags map 在内存里(已经是按 note 摊开的)。
         val withTags = noteRepository.observeNotesWithTags(null, null).first()
         val notes = withTags.map { it.note }
         val aiHistories = aiHistoryRepository.observeAll(Int.MAX_VALUE).first()
@@ -58,7 +58,7 @@ constructor(
         entries["meta.json"] = json.encodeToString(ExportMeta.serializer(), meta).toByteArray(Charsets.UTF_8)
         // Markdown 可读副本
         notes.forEach { note ->
-            // L8 修:note.id 必须经 PathSafety 校验,避免 zip slip / 路径遍历。
+            // L8 修:note.id 必须经 PathSafety 校验，避免 zip slip / 路径遍历。
             com.yy.writingwithai.core.security.PathSafety.requireSafeId(note.id, "note.id")
             val md = "# ${note.title.ifBlank { "Untitled" }}\n\n${note.content}"
             entries["notes/${note.id}.md"] = md.toByteArray(Charsets.UTF_8)
@@ -77,7 +77,7 @@ private fun com.yy.writingwithai.core.data.model.Note.toExport() = ExportNote(
     isPinned = isPinned,
     lastAiOp = lastAiOp,
     lastAiAt = lastAiAt,
-    // fix-2026-06-30-full-review-r1 H4:补同步字段,导出-导入 round-trip 不丢状态
+    // fix-2026-06-30-full-review-r1 H4:补同步字段，导出-导入 round-trip 不丢状态
     syncRevision = syncRevision,
     syncStatus = syncStatus,
     lastSyncedAt = lastSyncedAt

@@ -32,7 +32,7 @@
   internal fun createNoteIntent(context: Context): PendingIntent =
       context.createTaskStackPendingIntent("quicknote/edit?prefillFocus=true", REQUEST_CODE_CREATE)
   ```
-- [ ] 3.2 改 `Widget2x2` + `Widget4x2` 内的 `actionStartActivity(createNoteIntent(context))` → `actionStartActivity(createNoteIntent(context))`(签名不变,只是用 helper)
+- [ ] 3.2 改 `Widget2x2` + `Widget4x2` 内的 `actionStartActivity(createNoteIntent(context))` → `actionStartActivity(createNoteIntent(context))`(签名不变，只是用 helper)
 - [ ] 3.3 删 `Intent.FLAG_ACTIVITY_CLEAR_TOP`(M4-1 旧 flag)— 用 `CLEAR_TASK` 替换
 
 ## 4. OpenNoteAction 改 TaskStackBuilder
@@ -53,7 +53,7 @@
 
 ## 5. AppNav LaunchedEffect 不动
 
-- [ ] 5.1 `AppNav.kt` `LaunchedEffect(initialRoute)` 已 M4-1 r2 修过 `popUpTo(QuicknoteList) { inclusive = true }`,**M4-2 不动**;widget Intent 走 TaskStackBuilder 是新增路径,AppNav popUpTo 是兜底
+- [ ] 5.1 `AppNav.kt` `LaunchedEffect(initialRoute)` 已 M4-1 r2 修过 `popUpTo(QuicknoteList) { inclusive = true }`,**M4-2 不动**;widget Intent 走 TaskStackBuilder 是新增路径，AppNav popUpTo 是兜底
 
 ## 6. 测试
 
@@ -70,7 +70,7 @@
 
 ## 8. ktlint + Compose PascalCase
 
-- [ ] 8.1 跑 `./gradlew :app:ktlintCheck` → 已知 PascalCase follow-up 之外,0 新增;新 helper 走 camelCase(`createTaskStackPendingIntent`)
+- [ ] 8.1 跑 `./gradlew :app:ktlintCheck` → 已知 PascalCase follow-up 之外，0 新增;新 helper 走 camelCase(`createTaskStackPendingIntent`)
 
 ## 9. 整体验收
 
@@ -86,6 +86,6 @@
 
 ## 10. OpenSpec 收尾(apply 通过 review 后做)
 
-- [ ] 10.1 review 通过后,跑 `openspec archive predictive-back-gesture -y`
+- [ ] 10.1 review 通过后，跑 `openspec archive predictive-back-gesture -y`
 - [ ] 10.2 更新 `docs/progress.md`:M4-2 完成
 - [ ] 10.3 在 `docs/plans/writing-with-ai-mobile-roadmap.md` §13 标注 M4-2 完成;§15.2 标 `predictive-back-gesture` done

@@ -13,7 +13,7 @@ import okhttp3.OkHttpClient
 /**
  * app-self-hosted-update · Hilt module for update check infrastructure.
  *
- * 独立的 OkHttpClient(短超时,manifest 轻量),不复用 feishu 那个(30s timeout + AuthInterceptor)。
+ * 独立的 OkHttpClient(短超时，manifest 轻量)，不复用 feishu 那个(30s timeout + AuthInterceptor)。
  */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -35,7 +35,7 @@ object UpdateDeps {
     @Provides
     @Singleton
     fun provideJson(): Json = Json {
-        ignoreUnknownKeys = true // 服务端字段未来加,客户端不崩
+        ignoreUnknownKeys = true // 服务端字段未来加，客户端不崩
         explicitNulls = false
     }
 }

@@ -13,8 +13,8 @@ import androidx.compose.ui.unit.IntSize
  * 风格(MINIMAL/FLUID/IMMERSIVE/NONE)的差异通过 [toTokens] 扩展函数呈现。
  * 业务 Composable 通过 [LocalAnimationTokens] 读取。
  *
- * 设计取舍(spec D1):用 `compositionLocalOf` 而非 `staticCompositionLocalOf`,因为用户切换
- * 风格时值会变,需要细粒度重组读取者。
+ * 设计取舍(spec D1):用 `compositionLocalOf` 而非 `staticCompositionLocalOf`，因为用户切换
+ * 风格时值会变，需要细粒度重组读取者。
  *
  * 类型说明:
  * - [switchSpec]/[listItemSpec]: `FiniteAnimationSpec<Float>` — AnimatedSwitch thumb 位移等 Float 动画
@@ -62,7 +62,7 @@ data class AnimationTokens(
  *
  * - 由 `app/ui/theme/WritingAppTheme` 在根 Composable 注入(`CompositionLocalProvider`)。
  * - reduce-motion 启用时 `WritingAppTheme` 强制覆盖为 `AnimationStyle.NONE.toTokens()`。
- * - 业务 Composable 仅读 **current**,绝不写。
+ * - 业务 Composable 仅读 **current**，绝不写。
  */
 val LocalAnimationTokens = compositionLocalOf<AnimationTokens> {
     error(

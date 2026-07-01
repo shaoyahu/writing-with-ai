@@ -6,7 +6,7 @@
 
     <!-- ===== 随手记 quick-note-feature(M1)=====
          中文为权威源;英文翻译见 values-en/strings.xml。
-         Composable 内禁止硬编码中文,所有用户可见字符串走 R.string.* 引用。 -->
+         Composable 内禁止硬编码中文，所有用户可见字符串走 R.string.* 引用。 -->
 
     <!-- 列表 -->
     <string name="quicknote_list_title">随手记</string>
@@ -71,7 +71,7 @@
     <string name="quicknote_feishu_copy_error">复制错误</string>
     <string name="quicknote_feishu_close">关闭</string>
     <string name="quicknote_feishu_pull_url_label">https://bytedance.feishu.cn/docx/...</string>
-    <string name="quicknote_feishu_conflict_remote_placeholder">(飞书端内容,需 pull 拉取)</string>
+    <string name="quicknote_feishu_conflict_remote_placeholder">(飞书端内容，需 pull 拉取)</string>
     <string name="feishu_clip_label_url">feishu_url</string>
     <string name="feishu_clip_label_error">feishu_error</string>
     <string name="note_association_signal_entity">实体</string>
@@ -110,7 +110,7 @@
 
     <!-- ===== AI 写作 ai-writing-actions(M3)=====
          中文为权威源;英文翻译见 values-en/strings.xml。
-         Composable 内禁止硬编码中文,所有用户可见字符串走 R.string.* 引用。 -->
+         Composable 内禁止硬编码中文，所有用户可见字符串走 R.string.* 引用。 -->
 
     <!-- ActionSheet 菜单 -->
     <string name="aiwriting_action_menu">AI 操作</string>
@@ -140,38 +140,38 @@
     <string name="aiwriting_panel_balance_hint">可尝试切换其他模型</string>
     <string name="aiwriting_panel_failed_title">出错</string>
     <!-- model-management-detail-dropdown X 方案:Done 但 finalText 空的友好提示 -->
-    <string name="aiwriting_panel_empty_result">AI 未返回内容。请检查模型与协议的兼容性,或重新生成。</string>
+    <string name="aiwriting_panel_empty_result">AI 未返回内容。请检查模型与协议的兼容性，或重新生成。</string>
 
     <!-- AI 替换 / 撤回 -->
     <string name="aiwriting_panel_replaced">已替换</string>
-    <string name="aiwriting_panel_replaced_hint">原文已修改。可点「撤回」恢复,或关闭继续。</string>
+    <string name="aiwriting_panel_replaced_hint">原文已修改。可点「撤回」恢复，或关闭继续。</string>
     <string name="aiwriting_panel_undo">撤回</string>
 
     <!-- token 用量 chip -->
     <string name="aiwriting_panel_usage_fmt">输入 %1$d · 输出 %2$d</string>
 
     <!-- 错误降级文案(AiError → R.string) -->
-    <string name="aiwriting_error_network">网络连接失败,请检查后重试</string>
-    <string name="aiwriting_error_auth">认证失败,请检查 API key</string>
+    <string name="aiwriting_error_network">网络连接失败，请检查后重试</string>
+    <string name="aiwriting_error_auth">认证失败，请检查 API key</string>
     <string name="aiwriting_error_balance">账户余额不足</string>
-    <string name="aiwriting_error_timeout">请求超时,请稍后重试</string>
-    <string name="aiwriting_error_unknown">出错了,请稍后重试</string>
+    <string name="aiwriting_error_timeout">请求超时，请稍后重试</string>
+    <string name="aiwriting_error_unknown">出错了，请稍后重试</string>
     <!-- L5 修:R5 review 新增 RateLimited / ServerError / Cancellation 专属文案 -->
-    <string name="aiwriting_error_rate_limited">请求过于频繁,请稍后再试</string>
-    <string name="aiwriting_error_server">AI 服务暂时不可用,请稍后重试</string>
+    <string name="aiwriting_error_rate_limited">请求过于频繁，请稍后再试</string>
+    <string name="aiwriting_error_server">AI 服务暂时不可用，请稍后重试</string>
     <string name="aiwriting_error_cancelled">已取消</string>
 
     <!-- real-provider-integration · AiError → R.string 映射(10 个 key) -->
-    <string name="ai_error_network">网络连接失败,请检查后重试</string>
-    <string name="ai_error_auth">认证失败,请检查 API key</string>
+    <string name="ai_error_network">网络连接失败，请检查后重试</string>
+    <string name="ai_error_auth">认证失败，请检查 API key</string>
     <string name="ai_error_insufficient_balance">账户余额不足</string>
-    <string name="ai_error_rate_limited">请求过于频繁,请稍后再试</string>
-    <string name="ai_error_server_error">AI 服务暂时不可用,请稍后重试</string>
-    <string name="ai_error_timeout">请求超时,请稍后重试</string>
+    <string name="ai_error_rate_limited">请求过于频繁，请稍后再试</string>
+    <string name="ai_error_server_error">AI 服务暂时不可用，请稍后重试</string>
+    <string name="ai_error_timeout">请求超时，请稍后重试</string>
     <string name="ai_error_user_consent_required">请先同意隐私条款</string>
     <string name="ai_error_provider_not_configured">请先在「我的 → AI 模型」配置 API key</string>
     <string name="ai_error_cancellation">已取消</string>
-    <string name="ai_error_unknown">出错了,请稍后重试</string>
+    <string name="ai_error_unknown">出错了，请稍后重试</string>
     <!-- real-provider-integration §4:Snackbar action 跳模型管理 -->
     <string name="ai_error_action_go_settings">去设置</string>
 
@@ -200,7 +200,7 @@
     <string name="settings_data_import">导入数据</string>
     <string name="settings_data_exporting">导出中...</string>
     <string name="settings_data_importing">导入中...</string>
-    <string name="settings_data_done">完成,共 %1$d 条笔记</string>
+    <string name="settings_data_done">完成，共 %1$d 条笔记</string>
     <string name="settings_data_failed">导出/导入失败:%1$s</string>
     <string name="settings_data_no_data">暂无笔记可导出</string>
     <!-- last-import-report-save · 导入完成 Done 分支保存报告 zip 入口 -->
@@ -208,7 +208,7 @@
     <string name="settings_data_report_saved">报告已保存到所选位置</string>
     <string name="settings_data_no_report">暂无可保存的报告</string>
     <string name="settings_data_save_failed">保存失败:%1$s</string>
-    <string name="import_report_summary">导入完成:%1$d 成功 / %2$d 跳过 / %3$d 失败,详情见 import_report.md</string>
+    <string name="import_report_summary">导入完成:%1$d 成功 / %2$d 跳过 / %3$d 失败，详情见 import_report.md</string>
 
     <!-- ===== M4-4 onboarding-consent ===== -->
     <!-- OnboardingScreen 顶部 / 滚动提示 / 主次按钮 -->
@@ -224,11 +224,11 @@
     <!-- ===== onboarding-apikey-prompt · Apikey 教育页 ===== -->
     <string name="apikey_prompt_title">关于 API Key</string>
     <string name="apikey_prompt_subtitle">填写 API Key 即可启用 AI 写作能力</string>
-    <string name="apikey_prompt_intro">本应用调用第三方 AI 服务完成笔记扩写、润色、整理、关联等能力。你需要自备 API Key(DeepSeek / Minimax / MiMo 等),所有费用由 provider 直接向你收取,本应用不经手。</string>
+    <string name="apikey_prompt_intro">本应用调用第三方 AI 服务完成笔记扩写、润色、整理、关联等能力。你需要自备 API Key(DeepSeek / Minimax / MiMo 等)，所有费用由 provider 直接向你收取，本应用不经手。</string>
     <string name="apikey_prompt_section_capabilities">AI 能力与参考成本</string>
     <string name="apikey_prompt_token_range_fmt">单次约 %1$s input / %2$s output tokens</string>
     <string name="apikey_prompt_cost_disclaimer_inline">以 provider 实际账单为准</string>
-    <string name="apikey_prompt_disclaimer">以上为参考值,实际以 provider 账单为准。本应用不经手费用。</string>
+    <string name="apikey_prompt_disclaimer">以上为参考值，实际以 provider 账单为准。本应用不经手费用。</string>
     <string name="apikey_prompt_btn_ack">我知道了</string>
     <string name="apikey_prompt_btn_skip">稍后设置</string>
     <string name="apikey_prompt_btn_dismiss">取消</string>
@@ -236,7 +236,7 @@
     <string name="reset_apikey_prompt_dialog_title">重置提示</string>
     <string name="reset_apikey_prompt_dialog_message">下次使用 AI 功能时会再次显示 API Key 说明。是否继续?</string>
     <string name="reset_apikey_prompt_dialog_confirm">确认重置</string>
-    <string name="reset_apikey_prompt_toast">已重置,下次 AI 调用时会再次显示说明</string>
+    <string name="reset_apikey_prompt_toast">已重置，下次 AI 调用时会再次显示说明</string>
 
     <!-- SecureApiKeyStore 设置页(M5 polish 落地 UI,M4-4 仅暴露 API) -->
     <string name="secure_prefs_hidden_label">••••••••</string>
@@ -249,7 +249,7 @@
 
     <!-- ===== provider-real-integration 模型管理 model-management ===== -->
     <string name="model_management_title">AI 模型管理</string>
-    <string name="model_management_subtitle">选择一个 AI provider 并填入 apikey,启用真实 AI 流式输出</string>
+    <string name="model_management_subtitle">选择一个 AI provider 并填入 apikey，启用真实 AI 流式输出</string>
     <string name="model_provider_deepseek">DeepSeek</string>
     <string name="model_provider_minimax">Minimax</string>
     <string name="model_provider_mimo">小米 MiMo</string>
@@ -285,7 +285,7 @@
     <string name="model_provider_detail_placeholder_override">输入新 key 覆盖旧的</string>
     <string name="model_provider_detail_btn_update_key">修改 apikey</string>
 
-    <!-- C4 修:VM 不再硬编码中文,改为 messageRes + rawDetail,UI 层 stringResource 渲染 -->
+    <!-- C4 修:VM 不再硬编码中文，改为 messageRes + rawDetail,UI 层 stringResource 渲染 -->
     <string name="model_provider_detail_api_key_label">API Key</string>
     <string name="model_provider_detail_save_failed_fmt">保存失败:%1$s</string>
     <string name="model_management_error_unknown">未知错误</string>
@@ -305,7 +305,7 @@
     <string name="note_association_ai_error_unknown">AI 分析失败，请重试</string>
     <string name="note_association_ai_retry">重试</string>
     <string name="note_association_ai_setting_title">保存时使用 AI 找关联</string>
-    <string name="note_association_ai_setting_desc">开启后,编辑保存时自动用 AI 抽取笔记间关联;每次调用可能产生少量费用</string>
+    <string name="note_association_ai_setting_desc">开启后，编辑保存时自动用 AI 抽取笔记间关联;每次调用可能产生少量费用</string>
     <string name="note_association_signal_wikilink">[[链接]]</string>
     <string name="note_association_signal_tag">标签</string>
     <string name="note_association_signal_content">内容相似</string>
@@ -325,13 +325,13 @@
     <!-- 连接字段 -->
     <string name="custom_provider_display_name_label">显示名称</string>
     <string name="custom_provider_display_name_hint">如:我的 Claude</string>
-    <!-- ux-2026-06-28 #3:完整 URL — 用户填入含 path 的完整接口地址,不再拆 Base URL + Endpoint。 -->
+    <!-- ux-2026-06-28 #3:完整 URL — 用户填入含 path 的完整接口地址，不再拆 Base URL + Endpoint。 -->
     <string name="custom_provider_base_url_label">完整 URL</string>
     <string name="custom_provider_base_url_hint">如:https://api.example.com/v1/messages</string>
-    <string name="custom_provider_base_url_helper">Anthropic 兼容协议,需填入含 /v1/messages 路径的完整接口地址</string>
+    <string name="custom_provider_base_url_helper">Anthropic 兼容协议，需填入含 /v1/messages 路径的完整接口地址</string>
 
-    <!-- custom-provider-api-format:helper 文案按协议下拉动态切换,只描述 body / SSE 格式,
-         不给具体 path 字面提示(各家 URL 形态不一,字面提示会误导)。
+    <!-- custom-provider-api-format:helper 文案按协议下拉动态切换，只描述 body / SSE 格式，
+         不给具体 path 字面提示(各家 URL 形态不一，字面提示会误导)。
          协议下拉本身复用下方「高级字段」段的 custom_provider_api_format_* 资源。 -->
     <string name="custom_provider_helper_anthropic">Anthropic Messages API 协议:body 含 system 顶层字段 + messages 数组;SSE 事件 content_block_delta。baseUrl 填厂家文档的 base URL(不含 path),path `/v1/messages` 由协议自动拼。示例:DeepSeek = https://api.deepseek.com/anthropic,Minimax = https://api.minimaxi.com/anthropic。</string>
     <string name="custom_provider_helper_openai">OpenAI Chat Completions 协议:body 含 messages 数组(无 system 顶层);SSE 事件 data: {choices: [...]}。baseUrl 填厂家文档的 base URL(不含 path),path `/chat/completions` 由协议自动拼。示例:DeepSeek = https://api.deepseek.com,Moonshot = https://api.moonshot.cn/v1。</string>
@@ -362,7 +362,7 @@
     <!-- 错误提示(VM 抛回 UI) -->
     <string name="custom_provider_error_missing_fields">请填写必填字段</string>
     <string name="custom_provider_error_missing_apikey">请填写 API Key</string>
-    <string name="custom_provider_error_id_builtin_collision">id 与内置模型冲突,请换一个</string>
+    <string name="custom_provider_error_id_builtin_collision">id 与内置模型冲突，请换一个</string>
     <string name="custom_provider_error_not_found">该自定义模型已不存在</string>
     <string name="custom_provider_error_fmt">%1$s:%2$s</string>
 
@@ -381,9 +381,9 @@
     <!-- fix-2026-06-28-ai-model-selection-actually-used:卡片显示「实际调用 model」(消除「选 pro 实际调 flash」歧义) -->
     <string name="model_management_actual_call_fmt">实际调用: %1$s</string>
     <string name="model_management_actual_call_using">实际将使用: %1$s</string>
-    <string name="model_management_dropdown_save_failed">模型切换失败,请重试</string>
+    <string name="model_management_dropdown_save_failed">模型切换失败，请重试</string>
 
-    <!-- ux-2026-06-28 #4:卡片右上角角标 — 区分内置 / 自定义,替代之前内嵌在标题旁的「自定义」tag -->
+    <!-- ux-2026-06-28 #4:卡片右上角角标 — 区分内置 / 自定义，替代之前内嵌在标题旁的「自定义」tag -->
     <string name="model_management_badge_builtin">系统内置</string>
     <string name="model_management_badge_custom">自定义</string>
 
@@ -396,14 +396,15 @@
     <string name="model_provider_detail_api_format_openai">OpenAI 兼容</string>
     <string name="model_provider_detail_model_label">选择模型</string>
     <string name="model_provider_detail_model_default_suffix">(默认)</string>
-    <string name="model_provider_detail_base_url_locked_hint">端点由 provider 预置,不可修改</string>
+    <string name="model_provider_detail_base_url_locked_hint">端点由 provider 预置，不可修改</string>
 
     <!-- entity-extraction-association · 别名管理 + 关联阈值 + 回填进度 -->
     <string name="entity_alias_management_title">实体别名管理</string>
+    <string name="entity_alias_type_label">实体类型</string>
     <string name="entity_alias_explanation_title">什么是实体别名?</string>
-    <string name="entity_alias_explanation_body">实体别名 = 把同一个实体的不同写法合并成"标准实体"。例如:笔记里同时出现「小明」「小名」「XiaoMing」其实是同一个人,可以合并到标准实体「小明」,AI 找关联时就只看「小明」,不会漏也不会重复。</string>
+    <string name="entity_alias_explanation_body">实体别名 = 把同一个实体的不同写法合并成"标准实体"。例如:笔记里同时出现「小明」「小名」「XiaoMing」其实是同一个人，可以合并到标准实体「小明」，AI 找关联时就只看「小明」，不会漏也不会重复。</string>
     <string name="entity_alias_example_title">示例</string>
-    <string name="entity_alias_example_body">实体类型:人物,别名:小名,标准实体:小明。之后所有含「小名」的笔记,实体抽取都会归到「小明」,反向链接 / 关联推荐都基于「小明」聚合。</string>
+    <string name="entity_alias_example_body">实体类型:人物，别名:小名，标准实体:小明。之后所有含「小名」的笔记，实体抽取都会归到「小明」，反向链接 / 关联推荐都基于「小明」聚合。</string>
     <string name="model_management_menu_add">添加</string>
     <string name="entity_alias_management_desc">合并小明 / 小名 / XiaoMing 等同一实体</string>
     <string name="entity_alias_input_alias">别名 (alias)</string>
@@ -457,7 +458,7 @@
     <string name="me_check_update_title">检查更新</string>
     <string name="me_check_update_checking">正在检查…</string>
     <string name="me_check_update_up_to_date_fmt">已是最新 v%1$s</string>
-    <string name="me_check_update_failed">检查失败,稍后重试</string>
+    <string name="me_check_update_failed">检查失败，稍后重试</string>
     <string name="me_check_update_dialog_title">发现新版本</string>
     <string name="me_check_update_dialog_remote_version_fmt">新版本 v%1$s</string>
     <string name="me_check_update_btn_download">下载</string>
@@ -466,7 +467,7 @@
     <!-- app-self-hosted-update · 关于屏 + 更新 dialog -->
     <!-- H8 · FeishuAuthScreen 权限说明 -->
     <!-- H8 · AliasManagementViewModel 提示消息 — 复用已有 entity_alias_*_toast keys(同语义) -->
-    <!-- (无新增,VM 改用 R.string.entity_alias_merged_toast / entity_alias_unmerged_toast) -->
+    <!-- (无新增，VM 改用 R.string.entity_alias_merged_toast / entity_alias_unmerged_toast) -->
     <string name="common_back">返回</string>
     <string name="common_more_cd">更多选项</string>
     <string name="common_remove_cd">移除</string>
@@ -489,7 +490,7 @@
     <string name="note_association_backfill_status_cancelled">已取消</string>
     <string name="note_association_rerun_button">立即重跑回填</string>
     <string name="note_association_paused_hint">已暂停 — 恢复开关后会自动重排</string>
-    <string name="note_association_migration_banner">默认阈值已从 0.25 收紧到 0.10,如感觉过严可上调</string>
+    <string name="note_association_migration_banner">默认阈值已从 0.25 收紧到 0.10，如感觉过严可上调</string>
     <string name="note_association_settings_entry_desc">关联阈值 · 暂停 · 立即重跑 · 进度</string>
 
     <!-- H8 · FeishuAuthScreen (feishu-user-oauth) -->
@@ -498,21 +499,21 @@
     <string name="feishu_oauth_login_button">登录飞书</string>
     <string name="feishu_oauth_disconnect_button">断开连接</string>
     <string name="feishu_oauth_connected">已连接飞书账号</string>
-    <string name="feishu_oauth_keystore_unavailable">加密存储不可用,请检查系统密钥库</string>
+    <string name="feishu_oauth_keystore_unavailable">加密存储不可用，请检查系统密钥库</string>
 
     <!-- H8 · FeishuAuthScreen (feishu-user-oauth) — 复用 -->
-    <string name="feishu_oauth_authorization_intro">用飞书账号授权,创建的文档会出现在你的「我的文档」中。</string>
+    <string name="feishu_oauth_authorization_intro">用飞书账号授权，创建的文档会出现在你的「我的文档」中。</string>
     <string name="feishu_oauth_required_permissions">需要开通的权限: docx:document、drive:drive。在飞书开放后台 → 权限管理 中开通后约 1 分钟生效。</string>
     <string name="feishu_oauth_error_appid_empty">App ID 不能为空</string>
     <string name="feishu_oauth_error_secret_empty">App Secret 不能为空</string>
     <string name="feishu_oauth_error_launch_failed">启动飞书授权失败</string>
-    <!-- ux-2026-06-28:系统密钥库不可用(ColorOS rkpd_client 通信失败等),引导用户检查系统密钥库 -->
-    <string name="feishu_oauth_error_keystore_unavailable">系统密钥库不可用,请到「设置 → 安全 → 凭据存储」检查密钥库状态后重试</string>
-    <!-- ux-2026-06-28:浏览器/CustomTabs 启动失败,提示安装或启用浏览器 -->
-    <string name="feishu_oauth_error_browser_unavailable">未找到可用的浏览器,请安装 Chrome 或其他浏览器后重试</string>
+    <!-- ux-2026-06-28:系统密钥库不可用(ColorOS rkpd_client 通信失败等)，引导用户检查系统密钥库 -->
+    <string name="feishu_oauth_error_keystore_unavailable">系统密钥库不可用，请到「设置 → 安全 → 凭据存储」检查密钥库状态后重试</string>
+    <!-- ux-2026-06-28:浏览器/CustomTabs 启动失败，提示安装或启用浏览器 -->
+    <string name="feishu_oauth_error_browser_unavailable">未找到可用的浏览器，请安装 Chrome 或其他浏览器后重试</string>
     <!-- ux-2026-06-28:补 secret 输入 + 回调地址展示 + 飞书开放后台配置步骤 -->
     <!-- H4 fix:OAuthCodeReceiver Toast 文案(之前硬编码中文) -->
-    <string name="feishu_oauth_state_expired">授权失败: state 已过期或不存在,请重试</string>
+    <string name="feishu_oauth_state_expired">授权失败: state 已过期或不存在，请重试</string>
     <string name="feishu_oauth_state_mismatch">授权失败: state 校验失败</string>
     <string name="feishu_oauth_success">飞书授权成功</string>
     <string name="feishu_oauth_failed">授权失败</string>
@@ -521,25 +522,25 @@
     <string name="feishu_oauth_exchange_unknown">授权失败: 未知错误</string>
 
     <string name="feishu_oauth_app_secret_label">App Secret</string>
-    <string name="feishu_oauth_secret_helper">仅本机加密存储,不入 URL,不离开设备</string>
+    <string name="feishu_oauth_secret_helper">仅本机加密存储，不入 URL，不离开设备</string>
     <string name="feishu_oauth_setup_steps_title">飞书开放后台配置步骤</string>
     <string name="feishu_oauth_setup_step1">1. 打开 https://open.feishu.cn/app → 选中你的应用</string>
     <string name="feishu_oauth_setup_step2">2. 「安全设置 → 重定向 URL」中新增以下地址(必须完全一致):</string>
     <string name="feishu_oauth_setup_step3">3. 「权限管理」中开通 docx:document 与 drive:drive</string>
-    <string name="feishu_oauth_setup_step4">4. 「应用发布 → 版本管理与发布」创建并发布一个版本(仅自建应用需要,商店应用免)</string>
+    <string name="feishu_oauth_setup_step4">4. 「应用发布 → 版本管理与发布」创建并发布一个版本(仅自建应用需要，商店应用免)</string>
     <string name="feishu_oauth_setup_step5">5. 「应用凭证」页拿到 App ID 与 App Secret 填入上方表单</string>
     <string name="feishu_oauth_redirect_uri_label">回调 URL</string>
-    <string name="feishu_oauth_redirect_uri_helper">点击复制,在飞书开放后台填入此项</string>
+    <string name="feishu_oauth_redirect_uri_helper">点击复制，在飞书开放后台填入此项</string>
 
     <!-- 文件夹 token:指定同步目标文件夹 -->
     <string name="feishu_folder_token_label">文件夹 Token</string>
     <string name="feishu_folder_token_placeholder">留空则使用默认空间</string>
-    <string name="feishu_folder_token_helper">在飞书文档 URL 中找到文件夹 token(如 fldcnXXXXXX),推送时文档将创建在此文件夹下</string>
+    <string name="feishu_folder_token_helper">在飞书文档 URL 中找到文件夹 token(如 fldcnXXXXXX)，推送时文档将创建在此文件夹下</string>
     <string name="feishu_folder_token_save">保存文件夹 Token</string>
 
     <!-- feishu-sync-end-to-end · 设置页同步日志 section + 冲突 dialog -->
     <string name="feishu_sync_log_title">飞书同步日志</string>
-    <string name="feishu_sync_log_disclaimer">同步不消耗 AI token,只调飞书 API</string>
+    <string name="feishu_sync_log_disclaimer">同步不消耗 AI token，只调飞书 API</string>
     <string name="feishu_sync_log_empty">暂无同步记录</string>
     <string name="feishu_sync_direction_push">推送</string>
     <string name="feishu_sync_direction_pull">拉取</string>
@@ -548,7 +549,7 @@
     <string name="feishu_sync_status_error">失败</string>
     <string name="feishu_sync_status_fallback_to_update">降级到 update</string>
     <string name="feishu_conflict_title">飞书同步冲突</string>
-    <string name="feishu_conflict_body">本地和飞书两端都被修改过,请选择保留哪一版:</string>
+    <string name="feishu_conflict_body">本地和飞书两端都被修改过，请选择保留哪一版:</string>
     <string name="feishu_conflict_local_label">本地版本:</string>
     <string name="feishu_conflict_remote_label">飞书版本:</string>
     <string name="feishu_conflict_keep_local">保留本地</string>
@@ -557,48 +558,48 @@
 
     <!-- ===== v1 内测 ===== -->
     <string name="internal_testing_title">v1 内测</string>
-    <string name="internal_testing_howto">本次为 5 人内测构建(自用 + 朋友),仅 debug 通道分发,有意参与请联系作者本人。</string>
+    <string name="internal_testing_howto">本次为 5 人内测构建(自用 + 朋友)，仅 debug 通道分发，有意参与请联系作者本人。</string>
     <string name="internal_testing_scope_title">测试范围</string>
-    <string name="internal_testing_scope_body">5 名内测人员覆盖 5 类设备角色:小米 MIUI / 华为 HarmonyOS / OPPO ColorOS / vivo OriginOS / 其它,每人覆盖自己设备的 widget、预测式返回、AI 操作等差异。</string>
+    <string name="internal_testing_scope_body">5 名内测人员覆盖 5 类设备角色:小米 MIUI / 华为 HarmonyOS / OPPO ColorOS / vivo OriginOS / 其它，每人覆盖自己设备的 widget、预测式返回、AI 操作等差异。</string>
     <string name="internal_testing_feedback_title">反馈渠道</string>
-    <string name="internal_testing_feedback_body">请通过配置好的渠道反馈 bug,详见 docs/usage/feedback-channel.md。</string>
-    <string name="internal_testing_known_issues_hint">反馈前请先查阅 docs/usage/known-issues.md,问题可能已被记录并附临时方案。</string>
+    <string name="internal_testing_feedback_body">请通过配置好的渠道反馈 bug，详见 docs/usage/feedback-channel.md。</string>
+    <string name="internal_testing_known_issues_hint">反馈前请先查阅 docs/usage/known-issues.md，问题可能已被记录并附临时方案。</string>
     <string name="internal_testing_apk_location">从 nananxue.cn/app/debug/ 下载 APK</string>
-    <string name="internal_testing_duration">内测期为首版 APK 发布起 4 周,期满且无阻塞 bug 则出 release candidate。</string>
-    <string name="internal_testing_release_gate">所有已知问题状态为 [resolved] / [won\'t fix] / [deferred-accepted] 且反馈流 0 阻塞 bug,才打开 release 通道。</string>
+    <string name="internal_testing_duration">内测期为首版 APK 发布起 4 周，期满且无阻塞 bug 则出 release candidate。</string>
+    <string name="internal_testing_release_gate">所有已知问题状态为 [resolved] / [won\'t fix] / [deferred-accepted] 且反馈流 0 阻塞 bug，才打开 release 通道。</string>
     <string name="internal_testing_provider_label">真 provider 验证(DeepSeek)</string>
-    <string name="internal_testing_provider_body">反馈 AI 操作 bug 前,请先按 docs/usage/real-provider-integration.md 的 DeepSeek 清单跑一遍。</string>
+    <string name="internal_testing_provider_body">反馈 AI 操作 bug 前，请先按 docs/usage/real-provider-integration.md 的 DeepSeek 清单跑一遍。</string>
 
     <!-- provider_step_* 镜像 real-provider-integration.md DeepSeek checklist -->
-    <string name="provider_step_1_install">步骤 1:安装 debug APK,启动器显示小札图标。</string>
-    <string name="provider_step_2_consent">步骤 2:首次启动,滑到条款页底部,点击「同意并继续」。</string>
-    <string name="provider_step_3_apikey_intro">步骤 3:API Key 说明页,阅读后点击「知道了」。</string>
-    <string name="provider_step_4_note_and_ai">步骤 4:进入随手记,写一条笔记,打开详情,选中文字,点击 AI 按钮,弹出操作面板。</string>
-    <string name="provider_step_5_open_model_mgmt">步骤 5:进入「我的」→「设置」→「AI 模型管理」,确认有 4 张卡:DeepSeek / Minimax / MiMo / 自定义。</string>
-    <string name="provider_step_6_configure_deepseek">步骤 6:点 DeepSeek 卡,API Key 栏为空,默认模型为 deepseek-v4-flash,粘贴 DeepSeek apikey 并保存,Toast 显示「已保存」。</string>
-    <string name="provider_step_7_trigger_expand">步骤 7:返回笔记详情,再次点 AI 按钮,选「扩写」,流式面板在秒级展示生成内容。</string>
-    <string name="provider_step_8_verify_history">步骤 8:可选 — 查看 ai_history 表或 logcat,确认 token 用量与耗时已落库。</string>
+    <string name="provider_step_1_install">步骤 1:安装 debug APK，启动器显示小札图标。</string>
+    <string name="provider_step_2_consent">步骤 2:首次启动，滑到条款页底部，点击「同意并继续」。</string>
+    <string name="provider_step_3_apikey_intro">步骤 3:API Key 说明页，阅读后点击「知道了」。</string>
+    <string name="provider_step_4_note_and_ai">步骤 4:进入随手记，写一条笔记，打开详情，选中文字，点击 AI 按钮，弹出操作面板。</string>
+    <string name="provider_step_5_open_model_mgmt">步骤 5:进入「我的」→「设置」→「AI 模型管理」，确认有 4 张卡:DeepSeek / Minimax / MiMo / 自定义。</string>
+    <string name="provider_step_6_configure_deepseek">步骤 6:点 DeepSeek 卡，API Key 栏为空，默认模型为 deepseek-v4-flash，粘贴 DeepSeek apikey 并保存，Toast 显示「已保存」。</string>
+    <string name="provider_step_7_trigger_expand">步骤 7:返回笔记详情，再次点 AI 按钮，选「扩写」，流式面板在秒级展示生成内容。</string>
+    <string name="provider_step_8_verify_history">步骤 8:可选 — 查看 ai_history 表或 logcat，确认 token 用量与耗时已落库。</string>
 
     <!-- ===== animation-system-and-consent-redesign · 动画风格设置(anim_*) ===== -->
     <string name="action_back">返回</string>
     <string name="anim_style_title">动画风格</string>
     <string name="anim_style_minimal">极简</string>
-    <string name="anim_style_minimal_desc">快速轻量,几乎感觉不到但顺畅</string>
+    <string name="anim_style_minimal_desc">快速轻量，几乎感觉不到但顺畅</string>
     <string name="anim_style_fluid">弹性</string>
-    <string name="anim_style_fluid_desc">Spring 物理动画,有机弹性,有过冲</string>
+    <string name="anim_style_fluid_desc">Spring 物理动画，有机弹性，有过冲</string>
     <string name="anim_style_immersive">沉浸</string>
-    <string name="anim_style_immersive_desc">大幅滑动,戏剧感,类 iOS push</string>
+    <string name="anim_style_immersive_desc">大幅滑动，戏剧感，类 iOS push</string>
     <string name="anim_style_none">无</string>
-    <string name="anim_style_none_desc">即时切换,无动画(尊重系统无障碍)</string>
-    <string name="anim_style_reduce_motion_banner">系统已开启「减少动画」,已自动切换到「无」</string>
+    <string name="anim_style_none_desc">即时切换，无动画(尊重系统无障碍)</string>
+    <string name="anim_style_reduce_motion_banner">系统已开启「减少动画」，已自动切换到「无」</string>
     <string name="anim_style_preview_nav">导航</string>
     <string name="anim_style_preview_tab">标签</string>
 
     <!-- ===== 同意页卡片摘要(consent_section_*) ===== -->
-    <string name="consent_section_data_summary">笔记以本地数据库存储,导出 / 导入走 ZIP,默认关闭云同步</string>
-    <string name="consent_section_ai_summary">AI 能力依赖第三方服务,需在设置中填入 API Key,费用由 provider 直接收取</string>
-    <string name="consent_section_third_party_summary">本应用不内置任何 AI provider,所有调用经用户填写的 endpoint 走标准协议</string>
-    <string name="consent_section_withdraw_summary">可在设置中清除应用数据或卸载应用,撤回同意 = 清空本地笔记 + 撤销同意状态</string>
+    <string name="consent_section_data_summary">笔记以本地数据库存储，导出 / 导入走 ZIP，默认关闭云同步</string>
+    <string name="consent_section_ai_summary">AI 能力依赖第三方服务，需在设置中填入 API Key，费用由 provider 直接收取</string>
+    <string name="consent_section_third_party_summary">本应用不内置任何 AI provider，所有调用经用户填写的 endpoint 走标准协议</string>
+    <string name="consent_section_withdraw_summary">可在设置中清除应用数据或卸载应用，撤回同意 = 清空本地笔记 + 撤销同意状态</string>
     <string name="consent_section_contact_summary">bug / 反馈:通过应用内「反馈渠道」提交;邮箱见「关于」页</string>
 
     <!-- ===== 同意页底部栏(consent_*) ===== -->
@@ -608,5 +609,14 @@
     <string name="consent_bottom_ready">已阅读全部条款</string>
 
     <!-- ===== 同意页政策加载失败回退 ===== -->
-    <string name="onboarding_policy_load_failed">无法加载隐私政策,请检查网络后重试</string>
+    <string name="onboarding_policy_load_failed">无法加载隐私政策，请检查网络后重试</string>
+
+    <!-- language-switcher: APP 内语言切换 3 选 1 -->
+    <string name="settings_language_title">语言</string>
+    <string name="settings_language_section_display">显示语言</string>
+    <string name="settings_language_option_system">跟随系统</string>
+    <string name="settings_language_option_zh">中文</string>
+    <string name="settings_language_option_en">English</string>
+    <string name="settings_language_hint">切换后会重启 APP，导航栈会重置</string>
+    <string name="settings_language_selected">已选</string>
 </resources>

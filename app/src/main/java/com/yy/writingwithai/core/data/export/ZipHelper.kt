@@ -10,14 +10,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * M4-3 · zip 读写 helper(JDK `java.util.zip` 内置,不引第三方库)。
+ * M4-3 · zip 读写 helper(JDK `java.util.zip` 内置，不引第三方库)。
  *
  * 支持 `OutputStream` / `InputStream`(适配 SAF `contentResolver.openOutputStream(uri)`)。
  *
  * fix-2026-06-24-review-r1-critical · `readZip` 防 Zip Slip:
- * - 每 entry resolve 到 `File(targetDir, entry.name)`,再 `.canonicalPath`
+ * - 每 entry resolve 到 `File(targetDir, entry.name)`，再 `.canonicalPath`
  * - 必须等于 `targetDir.canonicalPath` 或以 `${targetDir.canonicalPath}/` 开头
- * - 违反 → 抛 [ImportRejected],不写任何字节
+ * - 违反 → 抛 [ImportRejected]，不写任何字节
  */
 @Singleton
 class ZipHelper
@@ -37,7 +37,7 @@ constructor() {
     /**
      * 从 [inputStream] 读 zip;返回 文件名 → 内容。
      *
-     * 默认 `virtualRoot = File(".")`(当前工作目录,纯内存校验,不实际写盘)。
+     * 默认 `virtualRoot = File(".")`(当前工作目录，纯内存校验，不实际写盘)。
      *
      * @throws ImportRejected 任一 entry 路径穿越 / 绝对路径 / 含 `..` 段
      */
@@ -45,11 +45,11 @@ constructor() {
 
     /**
      * 从 [inputStream] 读 zip;逐 entry resolve 到 [virtualRoot] 之下做 canonical containment check。
-     * 不实际写盘 — 仅做内存校验,返回文件名 → 字节内容。
+     * 不实际写盘 — 仅做内存校验，返回文件名 → 字节内容。
      *
      * review r2 修:Android 上 `File.canonicalPath` 可能以 `//` 开头(如 `//data/...`),
-     * 导致 `startsWith("$rootPath/")` 比较失败,拒绝所有合法 entry。改用
-     * `resolved.relativeToOrNull(rootCanonical)` 判断是否在 root 之下 — 语义更清晰,
+     * 导致 `startsWith("$rootPath/")` 比较失败，拒绝所有合法 entry。改用
+     * `resolved.relativeToOrNull(rootCanonical)` 判断是否在 root 之下 — 语义更清晰，
      * 且不受路径前缀格式差异影响。
      */
     fun readZip(inputStream: InputStream, virtualRoot: File): Map<String, ByteArray> {
@@ -70,7 +70,7 @@ constructor() {
                 if (relative == null) {
                     throw ImportRejected("Zip entry resolves outside target: ${entry.name} -> ${resolved.path}")
                 }
-                // entry 是目录时跳过(不读内容),但仍然通过上面的 containment check。
+                // entry 是目录时跳过(不读内容)，但仍然通过上面的 containment check。
                 if (!entry.isDirectory) {
                     result[entry.name] = zip.readBytes()
                 }

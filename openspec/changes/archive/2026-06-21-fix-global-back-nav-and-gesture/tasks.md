@@ -36,7 +36,7 @@
 
 ## 5. 测试
 
-- [x] 5.1 跳过 — `AppNavConsentGateTest` 覆盖 consent gate,无既有 OnBackPressedCallback 测试框架
+- [x] 5.1 跳过 — `AppNavConsentGateTest` 覆盖 consent gate，无既有 OnBackPressedCallback 测试框架
 - [x] 5.2 跑 `./gradlew :app:testDebugUnitTest` 全 PASS(22 tests 0 fail)
 
 ## 6. 验证

@@ -103,7 +103,7 @@ class AiActionViewModelApikeyPromptTest {
     }
 }
 
-/** 任何 stream 调用都抛,用来验证"根本没被调"。 */
+/** 任何 stream 调用都抛，用来验证"根本没被调"。 */
 private class ThrowingAiGatewayForAckTest : AiGateway {
     var callCount: Int = 0
 

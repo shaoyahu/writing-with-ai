@@ -58,13 +58,13 @@ import com.yy.writingwithai.core.ui.animation.AnimationStyle
  * 布局(自顶向下):
  * - TopAppBar("动画风格") + 返回
  * - reduce-motion Banner(条件渲染)
- * - LazyColumn 4 张单选卡片,每张含:
+ * - LazyColumn 4 张单选卡片，每张含:
  *   - RadioButton + 风格名 + 描述
  *   - 迷你实时预览:nav dot + AnimatedSwitch + Tab dot
  *
  * 选中的卡片实时驱动 [com.yy.writingwithai.core.prefs.UserPrefsStore.setAnimationStyle],
  * Theme 通过 `animationStyleFlow` collect → `CompositionLocalProvider(LocalAnimationTokens = ...)`
- * 让本页以及其它页的动画自动跟着变(本页内的预览立即重绘,其它页要重启或重 compose)。
+ * 让本页以及其它页的动画自动跟着变(本页内的预览立即重绘，其它页要重启或重 compose)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,7 +148,7 @@ private fun AnimationStyleCard(style: AnimationStyle, selected: Boolean, enabled
     val containerColor: Color = if (selected) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        // ux-2026-06-28 P5:未选中卡片用 surface 而非 surfaceVariant.copy(alpha=0.4f),视觉一致
+        // ux-2026-06-28 P5:未选中卡片用 surface 而非 surfaceVariant.copy(alpha=0.4f)，视觉一致
         MaterialTheme.colorScheme.surface
     }
     Card(
@@ -222,7 +222,7 @@ private fun PreviewRow(style: AnimationStyle) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        // Switch 预览(ux-2026-06-28 P5):可交互切换,让用户感知不同风格的动画差异
+        // Switch 预览(ux-2026-06-28 P5):可交互切换，让用户感知不同风格的动画差异
         var previewChecked by remember(style) { mutableStateOf(style == AnimationStyle.FLUID) }
         AnimatedSwitch(
             checked = previewChecked,

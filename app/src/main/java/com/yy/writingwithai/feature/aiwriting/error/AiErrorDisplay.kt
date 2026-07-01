@@ -7,7 +7,7 @@ import com.yy.writingwithai.core.ai.api.AiError
 /**
  * 把 M2 的 [AiError] 映射到 `R.string.aiwriting_error_*` 用户可见文案的资源 ID。
  *
- * - 返回 `@StringRes Int`,由调用方在持有 `Context` 的位置(如 Composable)用
+ * - 返回 `@StringRes Int`，由调用方在持有 `Context` 的位置(如 Composable)用
  *   `context.getString(...)` 解析。这样映射逻辑可在纯 JVM 单测里直接断言资源 ID,
  *   不必走 Robolectric 模拟真 Context。
  * - 错误降级:UI 在 `Failed` 态必显示该文案 + "关闭" 按钮(ai-actions spec

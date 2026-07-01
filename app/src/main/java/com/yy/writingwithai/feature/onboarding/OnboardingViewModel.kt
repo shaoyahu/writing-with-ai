@@ -23,11 +23,11 @@ import kotlinx.coroutines.launch
  * - `reject()` — 调 Activity.finishAffinity() 退出 App
  *
  * r1 H3 修:删 `ProceedWithoutConsent` 死路径(原意是 `BuildConfig.CONSENT_GATE_ENABLED=false`
- * 回滚逃生口,但依赖 `feature/settings/` 的 consent UI 启用,死锁)。新方案:
- * `WritingApp.onCreate` 在 `CONSENT_GATE_ENABLED=false` 时同步写默认 consent,本 VM 行为不变。
+ * 回滚逃生口，但依赖 `feature/settings/` 的 consent UI 启用，死锁)。新方案:
+ * `WritingApp.onCreate` 在 `CONSENT_GATE_ENABLED=false` 时同步写默认 consent，本 VM 行为不变。
  *
- * fix-2026-06-30-full-review-r1 LOW L3:一次性 action 事件改 SharedFlow,避免 StateFlow
- * 状态合并 / 重组重发问题(replay=0 + buffer=1 + DROP_OLDEST,快速连发只丢旧的)。
+ * fix-2026-06-30-full-review-r1 LOW L3:一次性 action 事件改 SharedFlow，避免 StateFlow
+ * 状态合并 / 重组重发问题(replay=0 + buffer=1 + DROP_OLDEST，快速连发只丢旧的)。
  */
 @HiltViewModel
 class OnboardingViewModel
@@ -38,8 +38,8 @@ constructor(
     private val _scrolledToBottom = MutableStateFlow(false)
     val scrolledToBottom: StateFlow<Boolean> = _scrolledToBottom.asStateFlow()
 
-    // fix-2026-06-30-full-review-r1 test build:SharedFlow 没有 .value,测试读不到最近 emit;
-    // 改 StateFlow<Action?>(默认 null)既兼容 .value 读取,consumeAction 也能正确清回 null。
+    // fix-2026-06-30-full-review-r1 test build:SharedFlow 没有 .value，测试读不到最近 emit;
+    // 改 StateFlow<Action?>(默认 null)既兼容 .value 读取，consumeAction 也能正确清回 null。
     private val _action = MutableStateFlow<Action?>(null)
     val action: StateFlow<Action?> = _action.asStateFlow()
 
@@ -62,10 +62,10 @@ constructor(
 
     /**
      * 保留 consumeAction 供旧 caller 调空操作(no-op,SharedFlow 无状态可消费)。
-     * 不抛错,让已有 Composable 代码不需立即改。
+     * 不抛错，让已有 Composable 代码不需立即改。
      */
     fun consumeAction() {
-        // StateFlow 改 .value = null 清空,避免重复触发。
+        // StateFlow 改 .value = null 清空，避免重复触发。
         _action.value = null
     }
 

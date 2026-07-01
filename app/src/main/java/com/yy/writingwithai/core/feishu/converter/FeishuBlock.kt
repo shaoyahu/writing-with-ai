@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 /**
  * markdown-docx-converter · 飞书 Docx block 数据模型。
  *
- * sealed class + kotlinx.serialization 序列化,与飞书 [Docx v1] API 真实 block 字段对齐
+ * sealed class + kotlinx.serialization 序列化，与飞书 [Docx v1] API 真实 block 字段对齐
  * (`heading_1` / `text` / `bullet` 等)。
  *
  * spec: openspec/changes/markdown-docx-converter/spec.md
@@ -19,7 +19,7 @@ sealed class FeishuBlock {
     @Serializable
     @SerialName("heading")
     data class Heading(
-        // 1..6,飞书支持 1..9 但本地只暴露 1..6
+        // 1..6，飞书支持 1..9 但本地只暴露 1..6
         val level: Int,
         val runs: List<Run>
     ) : FeishuBlock()
@@ -63,7 +63,7 @@ sealed class FeishuBlock {
     @Serializable
     @SerialName("image")
     data class Image(
-        // Markdown 路径,如 "assets/img/foo.png"
+        // Markdown 路径，如 "assets/img/foo.png"
         val placeholder: String
     ) : FeishuBlock()
 

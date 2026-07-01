@@ -2,14 +2,14 @@
 
 ### Requirement: GlanceStateDefinition persists widget state via DataStore
 
-`QuickNoteWidget` 与 `QuickNote1x4Widget` MUST 在 `glanceAppWidget.stateDefinition` 注入自定义 `WidgetStateDefinition`,数据后端走 DataStore(`androidx.datastore.core.DataStore` + `kotlinx.serialization` Serializer);**不** 用 Glance 默认 `PreferencesGlanceStateDefinition`(SharedPreferences)。
+`QuickNoteWidget` 与 `QuickNote1x4Widget` MUST 在 `glanceAppWidget.stateDefinition` 注入自定义 `WidgetStateDefinition`，数据后端走 DataStore(`androidx.datastore.core.DataStore` + `kotlinx.serialization` Serializer);**不** 用 Glance 默认 `PreferencesGlanceStateDefinition`(SharedPreferences)。
 
 `WidgetState` MUST 是 `@Serializable data class`(kotlinx.serialization):
 - `cachedNoteIds: List<String>` — 最近 N 条笔记 id 缓存(widget 进程被杀后 stale 兜底显示)
 - `lastRefreshAt: Long` — 上次 refresh epoch millis(0 = 未 refresh 过)
 - `romVendor: RomVendor` — `enum RomVendor { MIUI / EMUI / COLOROS / ORIGINOS / AOSP }`
 
-DataStore 文件名 MUST 为 `widget_state`,目录与 `consent_store` / `prompt_template_store` 同级;Serializer MUST 是自定义 `WidgetStateSerializer : Serializer<WidgetState>`(非 default JSON,GlanceStateDefinition 内部用)。
+DataStore 文件名 MUST 为 `widget_state`，目录与 `consent_store` / `prompt_template_store` 同级;Serializer MUST 是自定义 `WidgetStateSerializer : Serializer<WidgetState>`(非 default JSON,GlanceStateDefinition 内部用)。
 
 Widget receiver 注入方式:`override val stateDefinition: GlanceStateDefinition<*> = WidgetStateDefinition(context.applicationContext)`(在 `QuickNoteWidgetReceiver` 与 `QuickNote1x4WidgetReceiver` 各一份)。
 
@@ -80,14 +80,14 @@ Widget receiver 注入方式:`override val stateDefinition: GlanceStateDefinitio
 
 ### Requirement: Domestic ROM optimization hints displayed on empty widget
 
-`QuickNoteWidget` 与 `QuickNote1x4Widget` 在 `notes.isEmpty()` 状态 MUST 走 `RomDetector.current()` 命中分支显示 hint 文案;`RomDetector` MUST 是 `object`,内部 `current(): RomVendor` 用 `Build.MANUFACTURER` + `Build.BRAND` 判 4 国产 ROM。
+`QuickNoteWidget` 与 `QuickNote1x4Widget` 在 `notes.isEmpty()` 状态 MUST 走 `RomDetector.current()` 命中分支显示 hint 文案;`RomDetector` MUST 是 `object`，内部 `current(): RomVendor` 用 `Build.MANUFACTURER` + `Build.BRAND` 判 4 国产 ROM。
 
 ROM 命中映射:
 - `MIUI`:`Build.MANUFACTURER == "Xiaomi"` || `Build.BRAND.contains("Redmi", ignoreCase=true)` → 显示 `R.string.widget_rom_miui_hint`
 - `EMUI`:`Build.MANUFACTURER == "HUAWEI"` || `Build.BRAND.contains("Honor", ignoreCase=true)` → 显示 `R.string.widget_rom_emui_hint`
 - `COLOROS`:`Build.MANUFACTURER == "OPPO"` || `Build.BRAND.contains("realme", ignoreCase=true)` → 显示 `R.string.widget_rom_coloros_hint`
 - `ORIGINOS`:`Build.MANUFACTURER == "vivo"` || `Build.BRAND.contains("iQOO", ignoreCase=true)` → 显示 `R.string.widget_rom_originos_hint`
-- `AOSP`(默认 / Pixel / 其他):**不** 显示 hint,只显示既有 `widget_empty` 文案
+- `AOSP`(默认 / Pixel / 其他):**不** 显示 hint，只显示既有 `widget_empty` 文案
 
 4 个 hint 文案 MUST 在 `values/strings.xml`(中文权威)+ `values-en/strings.xml`(TODO 占位)。
 
@@ -104,7 +104,7 @@ ROM 命中映射:
 #### Scenario: ROM 检测覆盖子品牌
 
 - **WHEN** `Build.BRAND = "Redmi"`(红米子品牌)+ `Build.MANUFACTURER = "Xiaomi"`
-- **THEN** `RomDetector.current()` 返回 `MIUI`,显示 `R.string.widget_rom_miui_hint`
+- **THEN** `RomDetector.current()` 返回 `MIUI`，显示 `R.string.widget_rom_miui_hint`
 
 #### Scenario: 已知 ROM 全部命中
 

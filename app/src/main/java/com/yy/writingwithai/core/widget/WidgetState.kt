@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
  *
  * @property cachedNoteIds 最近 N 条笔记 id 缓存;`provideGlance` 拿 Room 真实最新失败时兜底
  * @property lastRefreshAt 上次 refresh epoch millis;`0L` = 未 refresh 过
- * @property romVendor 启动期 ROM 命中,首次写入时由 [RomDetector.current] 填
+ * @property romVendor 启动期 ROM 命中，首次写入时由 [RomDetector.current] 填
  */
 @Serializable
 data class WidgetState(

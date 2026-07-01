@@ -1,11 +1,11 @@
 ## Context
 
-OAuth(`feishu-oauth-flow`)+ 转换(`markdown-docx-converter`)就绪后,需要把它们串成「点按钮 → 同步 → 处理冲突」的实际工作流。
+OAuth(`feishu-oauth-flow`)+ 转换(`markdown-docx-converter`)就绪后，需要把它们串成「点按钮 → 同步 → 处理冲突」的实际工作流。
 
 约束(roadmap §0):
-- 飞书 v1 roadmap 不在原始 v1 内,但用户拍板进 v1.x
-- **仅手动触发**(用户原话):每次点击按钮 → 完整工作流;**不消耗 AI token**,只调飞书 API
-- 关联数据用独立外键表,不改 NoteEntity
+- 飞书 v1 roadmap 不在原始 v1 内，但用户拍板进 v1.x
+- **仅手动触发**(用户原话):每次点击按钮 → 完整工作流;**不消耗 AI token**，只调飞书 API
+- 关联数据用独立外键表，不改 NoteEntity
 
 ## Goals / Non-Goals
 
@@ -13,15 +13,15 @@ OAuth(`feishu-oauth-flow`)+ 转换(`markdown-docx-converter`)就绪后,需要把
 - 详情页「...」菜单:同步到飞书 / 从飞书链接拉取 / 在飞书中打开
 - 列表页飞书状态 chip:已同步 / 待同步 / 冲突 / 远程已删
 - 设置页同步日志:last 20 events
-- 冲突解决:local-vs-remote 比较,UI 让用户选
+- 冲突解决:local-vs-remote 比较，UI 让用户选
 - 空内容保护 + 远程已删保护
-- 增量更新(block-level children API,不全文档重写)
+- 增量更新(block-level children API，不全文档重写)
 
 **Non-Goals:**
 - 实时同步(WebSocket / 飞书事件订阅)— v2
-- 多人协作(飞书本身支持,但 APP 只读 single-user)
+- 多人协作(飞书本身支持，但 APP 只读 single-user)
 - 评论 / @ 提及同步
-- Notion / 语雀等其他云文档(走同样的 converter + 私有 client,留 v2)
+- Notion / 语雀等其他云文档(走同样的 converter + 私有 client，留 v2)
 
 ## Decisions
 
@@ -73,8 +73,8 @@ enum class FeishuRefStatus { SYNCED, DIRTY, CONFLICT, REMOTE_DELETED }
 失败路径:
 - 401/403 → 由 FeishuApiClient 自动 refresh 重试;仍失败 → 标 DIRTY + UI 提示
 - 404 docId → 标 REMOTE_DELETED + UI 提示「远程已删除」
-- 飞书端为空内容(blocks = []) → 拒同步,UI 提示「飞书端为空,不覆盖本地」
-- 429 限流 → 退避重试 3 次,仍失败 → 标 DIRTY
+- 飞书端为空内容(blocks = []) → 拒同步，UI 提示「飞书端为空，不覆盖本地」
+- 429 限流 → 退避重试 3 次，仍失败 → 标 DIRTY
 
 ### D3 · pull 工作流
 
@@ -87,15 +87,15 @@ enum class FeishuRefStatus { SYNCED, DIRTY, CONFLICT, REMOTE_DELETED }
    - 存在 → 比对:
      - 本地未修改 → 覆盖
      - 本地已修改 + 远程也新 → 标 CONFLICT,UI 弹选择
-     - 本地已修改 + 远程未动 → 跳过,UI 提示「本地有新内容,不同步」
+     - 本地已修改 + 远程未动 → 跳过，UI 提示「本地有新内容，不同步」
 5. lastSyncedAt = now, status = SYNCED
 ```
 
 ### D4 · 冲突解决 UI
 
 弹 dialog 三选一:
-- 保留本地:本地内容保留,标 feishu_ref.status = DIRTY,下次 push 推上去
-- 保留飞书:飞书内容覆盖本地,标 SYNCED
+- 保留本地:本地内容保留，标 feishu_ref.status = DIRTY，下次 push 推上去
+- 保留飞书:飞书内容覆盖本地，标 SYNCED
 - 取消:不动
 
 默认焦点「保留飞书」(飞书为权威源)。
@@ -110,11 +110,11 @@ enum class FeishuRefStatus { SYNCED, DIRTY, CONFLICT, REMOTE_DELETED }
 3. POST .../children → 追加新 blocks
 ```
 
-v1 走完整 delete + append,后续 v2 评估飞书是否提供原位 update API。
+v1 走完整 delete + append，后续 v2 评估飞书是否提供原位 update API。
 
 ### D6 · 列表页状态 chip
 
-`NoteWithFeishuRef` 数据类(not Room view,运行时组装):
+`NoteWithFeishuRef` 数据类(not Room view，运行时组装):
 
 ```kotlin
 data class NoteWithFeishuRef(val note: Note, val feishuRef: FeishuRefEntity?)
@@ -148,18 +148,18 @@ data class FeishuSyncEventEntity(
 
 ### D8 · 不消耗 AI token
 
-文档化:同步按钮 tooltip / 设置页说明 / 同步日志页面顶部 disclaimer 三处强调「同步不消耗 AI token,只调飞书 API」。
+文档化:同步按钮 tooltip / 设置页说明 / 同步日志页面顶部 disclaimer 三处强调「同步不消耗 AI token，只调飞书 API」。
 
 ## Risks / Trade-offs
 
 | Risk | Mitigation |
 | --- | --- |
 | Docx v1 增量更新 API 限制(只能 append 不能 replace) | v1 走 delete + append;UI 提示「累积追加」 |
-| 飞书端 1 文档 5000 block 上限 | 个人随手记几乎碰不到;触达前弹「文档过大,考虑拆分」提示 |
-| 同步过程中网络中断 | push 走 idempotent(block-level children API 失败不污染飞书端);pull 走全块拉,失败回滚本地 |
+| 飞书端 1 文档 5000 block 上限 | 个人随手记几乎碰不到;触达前弹「文档过大，考虑拆分」提示 |
+| 同步过程中网络中断 | push 走 idempotent(block-level children API 失败不污染飞书端);pull 走全块拉，失败回滚本地 |
 | 飞书端多人编辑并发 | revision_id 比对防覆盖;冲突 UI 让用户选 |
-| 飞书私有 block type(mention / grid / quote_container 等) | converter 不支持 → 走 `Unsupported(raw)` 降级,UI 提示 |
-| 同步状态查询频次 | 仅手动触发,无需 WorkManager 监听 |
+| 飞书私有 block type(mention / grid / quote_container 等) | converter 不支持 → 走 `Unsupported(raw)` 降级，UI 提示 |
+| 同步状态查询频次 | 仅手动触发，无需 WorkManager 监听 |
 | 关联 ref 行 + Note 删除顺序 | FK CASCADE 删 note 时 ref 行自动清 |
 
 ## Migration Plan
@@ -171,5 +171,5 @@ data class FeishuSyncEventEntity(
 
 ## Open Questions
 
-- 同步成功后是否要清除 `lastSyncedAt` 之前的旧日志? — 默认保留 100 条,超出循环覆盖
+- 同步成功后是否要清除 `lastSyncedAt` 之前的旧日志? — 默认保留 100 条，超出循环覆盖
 - 飞书块 API 是否提供「整块替换」? — v1 用 delete + append,v2 评估

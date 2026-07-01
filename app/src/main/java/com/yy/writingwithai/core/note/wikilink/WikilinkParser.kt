@@ -1,9 +1,9 @@
 package com.yy.writingwithai.core.note.wikilink
 
 /**
- * fix-2026-06-25-review-r1 H2:`[[Alias|Target]]` 形态下,
- * 之前正则把整段当 title,带 `|` 的 title 永远 miss。
- * 现在拆出 [target] 与可选 [alias] 两段,alias 留作显示 label。
+ * fix-2026-06-25-review-r1 H2:`[[Alias|Target]]` 形态下，
+ * 之前正则把整段当 title，带 `|` 的 title 永远 miss。
+ * 现在拆出 [target] 与可选 [alias] 两段，alias 留作显示 label。
  */
 data class WikilinkMatch(
     val target: String,

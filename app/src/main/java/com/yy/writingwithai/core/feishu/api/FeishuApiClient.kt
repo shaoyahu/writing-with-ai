@@ -14,7 +14,7 @@ interface FeishuApiClient {
     suspend fun appendChildren(docId: String, parentBlockId: String, childrenJson: String): String
     suspend fun batchDeleteChildren(docId: String, parentBlockId: String, startIndex: Int, endIndex: Int)
 
-    // ---- v2 docs_ai/v1(XML format,参考 larksuite/cli) ----
+    // ---- v2 docs_ai/v1(XML format，参考 larksuite/cli) ----
     suspend fun createDocumentV2(xmlContent: String, folderToken: String? = null): DocCreateResultV2
     suspend fun updateDocumentV2(docToken: String, xmlContent: String): DocMetadata?
     suspend fun fetchDocumentV2(docToken: String): String

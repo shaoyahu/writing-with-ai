@@ -27,8 +27,8 @@ import dagger.hilt.components.SingletonComponent
  * 由 [MainActivity.onCreate] 通过 `setContent { App() }` 触发。
  * 整棵 Compose 树从这里进入:[WritingAppTheme] → [Surface] → [AppNav] → 各路由。
  *
- * M4-4 改动(r1 H1 修):新增 `widgetPendingRoute: MutableState<String?>` 参数,
- * `MainActivity` 写入,`AppNav.LaunchedEffect(consentState.accepted)` 在同意后
+ * M4-4 改动(r1 H1 修):新增 `widgetPendingRoute: MutableState<String?>` 参数，
+ * `MainActivity` 写入，`AppNav.LaunchedEffect(consentState.accepted)` 在同意后
  * 读 + navigate 该 route + 清栈(防 back 回 onboarding)。
  */
 @Composable

@@ -1,13 +1,13 @@
 ## 1. NoteRepository 扩展
 
-- [ ] 1.1 在 `core/data/repo/NoteRepository.kt` 新增 `fun observeRecent(limit: Int): Flow<List<Note>>`,内部走 `noteDao.observeAll().map { it.take(limit).map { e -> e.toModel() } }`
-- [ ] 1.2 加 JUnit5 + Turbine 测试 `core/data/repo/NoteRepositoryObserveRecentTest.kt`:mock `noteDao.observeAll()` emit 5 条 → 验 `observeRecent(3)` emit 头 3 条,按 updatedAt desc
+- [ ] 1.1 在 `core/data/repo/NoteRepository.kt` 新增 `fun observeRecent(limit: Int): Flow<List<Note>>`，内部走 `noteDao.observeAll().map { it.take(limit).map { e -> e.toModel() } }`
+- [ ] 1.2 加 JUnit5 + Turbine 测试 `core/data/repo/NoteRepositoryObserveRecentTest.kt`:mock `noteDao.observeAll()` emit 5 条 → 验 `observeRecent(3)` emit 头 3 条，按 updatedAt desc
 
 ## 2. Glance widget 主体
 
 - [ ] 2.1 新建 `core/widget/QuickNoteWidget.kt`:`class QuickNoteWidget : GlanceAppWidget()`,`sizeMode = SizeMode.Single`,`provideGlance(context, id)` 内 `currentSize = context.getGlanceState(...)` + 根据 width 切 2x2 / 4x2 渲染:
-  - 2x2:Column(title="随手记",中部 1 条 note(title + relativeTime),底部 "+" 按钮 → `actionRunCallback<OpenNoteAction>(...)`)
-  - 4x2:Column(title="随手记",中部 3 条 note(每条 `actionRunCallback<OpenNoteAction>(KEY_NOTE_ID=noteId)`),右上"+"按钮)
+  - 2x2:Column(title="随手记"，中部 1 条 note(title + relativeTime)，底部 "+" 按钮 → `actionRunCallback<OpenNoteAction>(...)`)
+  - 4x2:Column(title="随手记"，中部 3 条 note(每条 `actionRunCallback<OpenNoteAction>(KEY_NOTE_ID=noteId)`)，右上"+"按钮)
 - [ ] 2.2 颜色走 `ColorProvider(R.color.xxx)`,**不**直接 `androidx.compose.foundation.layout.*`
 - [ ] 2.3 empty 状态走 `R.string.widget_empty`;note 文案 `note.title.ifBlank { note.content.take(Note.TITLE_FALLBACK_LEN) }` + `formatRelativeTime(note.updatedAt)`
 
@@ -40,7 +40,7 @@
   val periodic = PeriodicWorkRequestBuilder<QuickNoteWidgetWorker>(15, TimeUnit.MINUTES).build()
   WorkManager.getInstance(this).enqueueUniquePeriodicWork("quicknote-widget-refresh", ExistingPeriodicWorkPolicy.KEEP, periodic)
   ```
-- [ ] 6.5 加 JUnit5 测试 `QuickNoteWidgetWorkerTest.kt`:`TestListenableWorkerBuilder<QuickNoteWidgetWorker>` 跑 doWork,验 success
+- [ ] 6.5 加 JUnit5 测试 `QuickNoteWidgetWorkerTest.kt`:`TestListenableWorkerBuilder<QuickNoteWidgetWorker>` 跑 doWork，验 success
 
 ## 7. widget 资源
 
@@ -74,7 +74,7 @@
           android:resource="@xml/widget_info" />
   </receiver>
   ```
-- [ ] 8.2 加权限 `<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />`(可选,boot 后让 widget WorkManager 自启;WorkManager 已自带,本 change 不强求)
+- [ ] 8.2 加权限 `<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />`(可选，boot 后让 widget WorkManager 自启;WorkManager 已自带，本 change 不强求)
 
 ## 9. MainActivity 解析 widget route
 
@@ -99,7 +99,7 @@
   ```kotlin
   @Serializable data class QuicknoteEdit(val id: String? = "NEW", val prefillFocus: Boolean = false)
   ```
-- [ ] 10.2 改 `composable<QuicknoteEdit>` block 解析 `prefillFocus`,透传给 `QuickNoteEditorScreen`
+- [ ] 10.2 改 `composable<QuicknoteEdit>` block 解析 `prefillFocus`，透传给 `QuickNoteEditorScreen`
 
 ## 11. 编辑器屏 prefillFocus
 
@@ -142,7 +142,7 @@
 
 ## 14. ktlint + Compose PascalCase
 
-- [ ] 14.1 跑 `./gradlew :app:ktlintCheck` → 已知 PascalCase follow-up 之外,0 新增;新 Composable 函数 PascalCase(`QuickNoteWidget` / `OpenNoteAction` 等)
+- [ ] 14.1 跑 `./gradlew :app:ktlintCheck` → 已知 PascalCase follow-up 之外，0 新增;新 Composable 函数 PascalCase(`QuickNoteWidget` / `OpenNoteAction` 等)
 
 ## 15. 整体验收
 
@@ -157,11 +157,11 @@
   - 编辑器再创建 3 条笔记 → resize 到 4x2 → 显示 3 条
   - 点 widget 笔记项 → 启动 MainActivity 到该笔记详情 → back → launcher
   - 点 widget "+" → 启动 MainActivity 到编辑器 → 输入框自动 focus → 键入文字 → 保存 → back → launcher + widget 更新
-- [ ] 15.6 手工冒烟(WorkManager):App kill → 桌面 widget 显示笔记 → 等待 15min(用 `./gradlew :app:installDebug` + `adb shell am broadcast` 模拟太繁琐,M5 polish 阶段验)→ widget 仍显示最新数据
-- [ ] 15.7 README 更新:在 README 顶部"国产 ROM 适配状态"标注"widget 已在 AOSP / Pixel Launcher 验证,小米 / 华为 / OPPO / vivo 待 M5 polish"
+- [ ] 15.6 手工冒烟(WorkManager):App kill → 桌面 widget 显示笔记 → 等待 15min(用 `./gradlew :app:installDebug` + `adb shell am broadcast` 模拟太繁琐，M5 polish 阶段验)→ widget 仍显示最新数据
+- [ ] 15.7 README 更新:在 README 顶部"国产 ROM 适配状态"标注"widget 已在 AOSP / Pixel Launcher 验证，小米 / 华为 / OPPO / vivo 待 M5 polish"
 
 ## 16. OpenSpec 收尾(apply 通过 review 后做)
 
-- [ ] 16.1 review 通过后,跑 `openspec archive home-screen-widget -y`
+- [ ] 16.1 review 通过后，跑 `openspec archive home-screen-widget -y`
 - [ ] 16.2 更新 `docs/progress.md`:M4-1 完成
 - [ ] 16.3 在 `docs/plans/writing-with-ai-mobile-roadmap.md` §13 标注 M4-1 完成;§15.2 标 `home-screen-widget` done

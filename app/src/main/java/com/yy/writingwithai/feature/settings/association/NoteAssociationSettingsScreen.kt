@@ -41,7 +41,7 @@ import com.yy.writingwithai.core.ui.AnimatedSwitch
  * entity-extraction-polish §4.2:笔记关联设置屏。
  *
  * - TopAppBar 返回
- * - 「关联阈值」Slider(0.05–0.80 step 14,默认 0.10)+ 当前值 Text
+ * - 「关联阈值」Slider(0.05–0.80 step 14，默认 0.10)+ 当前值 Text
  * - 「暂停实体回填」Switch(打开后 BackfillScheduler + EntityBackfillWorker 都不跑)
  * - 「立即重跑回填」OutlinedButton(force=true,Worker 自检仍生效)
  * - 「回填进度」LinearProgressIndicator + 状态 Text
@@ -69,7 +69,7 @@ fun NoteAssociationSettingsScreen(onBack: () -> Unit, viewModel: NoteAssociation
                 }
             )
         },
-        // ux-2026-06-28 #5:跟 Me tab 一致,surfaceVariant 底色让 ListItem / Card 自然浮起。
+        // ux-2026-06-28 #5:跟 Me tab 一致，surfaceVariant 底色让 ListItem / Card 自然浮起。
         containerColor = MaterialTheme.colorScheme.surfaceVariant
     ) { innerPadding ->
         Column(
@@ -144,7 +144,7 @@ private fun ThresholdSection(
         )
         // R4-1-3 fix:用 remember { mutableFloatStateOf(value) } 持有拖动中的实时值。
         // 原实现 `onValueChangeFinished = { onValueChangeFinished(value) }` 里的 `value`
-        // 是 outer 形参 snapshot,Slider 拖完 release 时外层 value 还未 recompose,写盘的是旧值。
+        // 是 outer 形参 snapshot,Slider 拖完 release 时外层 value 还未 recompose，写盘的是旧值。
         // 现在 onValueChange 实时更新 dragState,onValueChangeFinished 写 dragState(实时位置),
         // 然后重置 dragState 回 outer value(等下次 recompose 同步)。
         val dragState = remember { mutableFloatStateOf(value) }
@@ -190,7 +190,7 @@ private fun ReRunSection(workInfo: WorkInfo?, paused: Boolean, onReRunClick: () 
             style = MaterialTheme.typography.titleMedium
         )
 
-        // §4.4:进度 — RUNNING 时显示,无活跃 work 时隐藏
+        // §4.4:进度 — RUNNING 时显示，无活跃 work 时隐藏
         if (workInfo != null) {
             val processed = workInfo.progress.getInt("processed", 0)
             val total = workInfo.progress.getInt("total", 0)
@@ -227,8 +227,8 @@ private fun ReRunSection(workInfo: WorkInfo?, paused: Boolean, onReRunClick: () 
         // §4.2:立即重跑按钮 — RUNNING 时禁用
         val isRunning = workInfo?.state == WorkInfo.State.RUNNING ||
             workInfo?.state == WorkInfo.State.ENQUEUED
-        // R4-1-2 fix:paused 状态下按钮也禁用,避免 force=true enqueue 后 Worker 立刻因 pause 失败
-        // 显示 red FAILED "已暂停"。要让"立即重跑"生效,用户必须先关掉暂停开关。
+        // R4-1-2 fix:paused 状态下按钮也禁用，避免 force=true enqueue 后 Worker 立刻因 pause 失败
+        // 显示 red FAILED "已暂停"。要让"立即重跑"生效，用户必须先关掉暂停开关。
         Button(
             onClick = onReRunClick,
             enabled = !isRunning && !paused,

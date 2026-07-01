@@ -62,11 +62,11 @@
 ## 单一可信源
 
 服务端 manifest 不手工维护。`scripts/release-server/build-version-json.py` 每次跑都从
-`/var/www/xiaozha/app/download/writing-with-ai-*.apk` 扫目录,**取最大 versionCode**,
-重算 SHA-256,从 `release-notes/{N}.md` 读 changelog,生成新 JSON。
+`/var/www/xiaozha/app/download/writing-with-ai-*.apk` 扫目录，**取最大 versionCode**,
+重算 SHA-256，从 `release-notes/{N}.md` 读 changelog，生成新 JSON。
 
 漂移不可能:
-- 多余 APK → scanner 取最大,忽略
+- 多余 APK → scanner 取最大，忽略
 - 缺 symlink → scanner 不依赖 symlink
 - 上传一半 → scanner 跑时已上传的 APK 已被扫到
 
@@ -107,14 +107,14 @@ AboutUiState:
 | 权限 | 用途 | 状态 |
 | --- | --- | --- |
 | `INTERNET` | OkHttp GET version.json | 已声明 |
-| `DownloadManager` | 系统服务,无需权限 | 自动 |
+| `DownloadManager` | 系统服务，无需权限 | 自动 |
 | `RECEIVE_COMPLETED` (隐式) | ACTION_DOWNLOAD_COMPLETE broadcast | 系统授予 |
 | `WRITE_EXTERNAL_STORAGE` | API 29+ DownloadManager 不用写外部存储 | 不需要 |
 
 ## 不在本 change 范围
 
-- 强制更新(`mandatory` 字段已留,UI/逻辑下次实现)
+- 强制更新(`mandatory` 字段已留，UI/逻辑下次实现)
 - 灰度发布 / 多渠道分发
 - iOS 端(本仓 Android-only)
 - 自动备份 APK(后续 cron 任务)
-- QR 码自动生成(占位图,人工补或后续 Python 脚本生成)
+- QR 码自动生成(占位图，人工补或后续 Python 脚本生成)

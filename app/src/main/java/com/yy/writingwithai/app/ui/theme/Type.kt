@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.sp
  * M5 polish · ui-redesign-m5-glass · 中文字号优化版 Typography。
  *
  * Material 3 默认 Typography 用英文 sans-serif 字号;中文显示偏小。
- * 这里只调大 lineHeight / fontSize,保持 M3 token 命名(displayLarge / headlineSmall 等)
+ * 这里只调大 lineHeight / fontSize，保持 M3 token 命名(displayLarge / headlineSmall 等)
  * 让业务 Composable 直接用 `MaterialTheme.typography.headlineSmall` 不改。
  */
 internal val Typography =

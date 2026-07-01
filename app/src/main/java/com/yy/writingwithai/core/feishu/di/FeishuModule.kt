@@ -23,14 +23,14 @@ import okhttp3.OkHttpClient
  *
  * spec: openspec/changes/feishu-oauth-flow/tasks.md §5
  *
- * 注:CLAUDE.md 说 `core/<x>/` 下不放 `di/`,但 `feishu` 已是聚合入口(对外暴露
- * 整个飞书集成),这里破例放 di/ 包,与 prefs 同级。
+ * 注:CLAUDE.md 说 `core/<x>/` 下不放 `di/`，但 `feishu` 已是聚合入口(对外暴露
+ * 整个飞书集成)，这里破例放 di/ 包，与 prefs 同级。
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object FeishuModule {
 
-    // H10 修:显式 @Named("feishu") 限定,避免与 AiModule 的 @Named("ai") 串包。
+    // H10 修:显式 @Named("feishu") 限定，避免与 AiModule 的 @Named("ai") 串包。
     @Provides
     @Singleton
     @Named("feishu")
@@ -65,5 +65,5 @@ abstract class FeishuModuleBinds {
     abstract fun bindFeishuApiClient(impl: FeishuApiClientImpl): FeishuApiClient
 
     // feishu-bidir-sync providers:FeishuSyncService + FeishuConflictResolver 自身有 @Inject ctor,
-    // Hilt 可直接发现,但显式通过 Module 提供以保持一致性(claude.md 约束)
+    // Hilt 可直接发现，但显式通过 Module 提供以保持一致性(claude.md 约束)
 }

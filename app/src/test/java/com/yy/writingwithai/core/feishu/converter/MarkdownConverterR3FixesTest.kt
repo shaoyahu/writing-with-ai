@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 /**
  * fix-2026-06-26-review-r3 回归测试:
  *  - H10:code-fence close 必须行首无空白(CommonMark 规范)
- *  - H11:code block 内容走 CDATA 包裹,避免 v2 API HTML 嵌入产出 malformed XML
+ *  - H11:code block 内容走 CDATA 包裹，避免 v2 API HTML 嵌入产出 malformed XML
  */
 class MarkdownConverterR3FixesTest {
 
@@ -26,7 +26,7 @@ class MarkdownConverterR3FixesTest {
         val blocks = docx.convert(md)
         assertEquals(1, blocks.size)
         val code = blocks[0] as FeishuBlock.CodeBlock
-        // 内层行应被吞进 code 块,而不是被错误切出
+        // 内层行应被吞进 code 块，而不是被错误切出
         assertTrue(code.text.contains("real_code()"))
         assertTrue(code.text.contains("    ```rust"))
         assertTrue(code.text.contains("still_inside"))
@@ -37,7 +37,7 @@ class MarkdownConverterR3FixesTest {
         // 4+ 空格缩进的 ``` 不应触发代码块分支
         val md = "    ```\nthis is not a code block, it's an indented literal\n    ```"
         val blocks = docx.convert(md)
-        // 不应产生 CodeBlock,应走段落/Unsupported
+        // 不应产生 CodeBlock，应走段落/Unsupported
         assertTrue(blocks.none { it is FeishuBlock.CodeBlock }, "should not produce CodeBlock: $blocks")
     }
 

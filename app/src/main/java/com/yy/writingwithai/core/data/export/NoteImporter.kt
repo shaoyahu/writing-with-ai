@@ -15,13 +15,13 @@ import kotlinx.serialization.builtins.ListSerializer
 /**
  * M4-3 · 笔记导入器(Hilt 单例)。
  *
- * 读 zip → JSON 反序列化 → 逐条 note 去重(按 id)— 已存在跳过,不覆盖。
+ * 读 zip → JSON 反序列化 → 逐条 note 去重(按 id)— 已存在跳过，不覆盖。
  * 失败条目收集到 [ImportReport.failedNotes](UI 渲染 + `import_report.md` 文件)。
  *
  * 写入循环(必须按此顺序):
- * 1. 从 [input] 读 zip entries(`notes.json` / `tags.json` 必读,其它原样保留)
+ * 1. 从 [input] 读 zip entries(`notes.json` / `tags.json` 必读，其它原样保留)
  * 2. 逐条导入:已存在跳过 / 失败收集 / 成功写入 Room
- * 3. 把 `ImportReport` 序列化成 Markdown 文本,作为新 entry `import_report.md` 加进 zip
+ * 3. 把 `ImportReport` 序列化成 Markdown 文本，作为新 entry `import_report.md` 加进 zip
  * 4. 用 [ZipHelper.writeZip] 把更新后的 entries 写回 [output]
  *
  * spec §"失败条目收集到 import_report.md" 要求报告**写回压缩包根目录**(不是只返回数据),
@@ -93,8 +93,8 @@ constructor(
         }
 
         // H3:r1 review 发现 spec §"ai_history 同步导入" 场景未实现。读 ai_history.json 后遍历:
-        // - noteId == null 或 noteRepository.getNote(noteId) == null → orphan,跳过(M5 polish)
-        // - 调 aiHistoryRepository.record(...) 复用 M2 既有 API,失败 swallowed(ImportReport 不破坏 schema,
+        // - noteId == null 或 noteRepository.getNote(noteId) == null → orphan，跳过(M5 polish)
+        // - 调 aiHistoryRepository.record(...) 复用 M2 既有 API，失败 swallowed(ImportReport 不破坏 schema,
         //   ai_history 失败细节 M5 polish 再加 aiHistoryFailed 字段)
         val exportAiHistories: List<ExportAiHistory> =
             entries["ai_history.json"]?.let {
@@ -125,7 +125,7 @@ constructor(
                 throw e
             } catch (e: Exception) {
                 // R3 fix M6:之前完全无声 — 调试 / 审计 / 历史完整性都查不到为什么少了一条 history。
-                // 不计入 note failedNotes(语义不同),但要 log 出 id + 原因便于事后排查。
+                // 不计入 note failedNotes(语义不同)，但要 log 出 id + 原因便于事后排查。
                 // M5 polish 加 aiHistoryFailed 字段到 ImportReport 时再升级为结构化报告。
                 android.util.Log.w(
                     "NoteImporter",
@@ -143,7 +143,7 @@ constructor(
                 failedNotes = failed
             )
 
-        // 把 ImportReport 序列化成 Markdown,加进 zip 根目录,再写回 output
+        // 把 ImportReport 序列化成 Markdown，加进 zip 根目录，再写回 output
         val updatedEntries = entries.toMutableMap()
         updatedEntries["import_report.md"] = formatReport(report).toByteArray(Charsets.UTF_8)
         zipHelper.writeZip(updatedEntries, output)

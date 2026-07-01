@@ -16,8 +16,8 @@ import org.junit.jupiter.api.Test
 /**
  * fix-m5-blockers · 端到端验 [AnthropicCompatibleAdapter] 把真 apikey 落到 HTTP header。
  *
- * 之前 [com.yy.writingwithai.core.ai.CoreAiGateway] 写死 `apikey = "fake-apikey"`,所有真 provider 调用都发假 key。本测试
- * 用 MockWebServer 拦截请求,断言 Authorization / x-api-key / 自定义 header 的值 == caller 传入的 apikey。
+ * 之前 [com.yy.writingwithai.core.ai.CoreAiGateway] 写死 `apikey = "fake-apikey"`，所有真 provider 调用都发假 key。本测试
+ * 用 MockWebServer 拦截请求，断言 Authorization / x-api-key / 自定义 header 的值 == caller 传入的 apikey。
  *
  * 不依赖 [com.yy.writingwithai.core.ai.CoreAiGateway] / [com.yy.writingwithai.core.prefs.SecureApiKeyStore] —— 单元测 `AnthropicCompatibleAdapter` 本身
  * 已经断在根因处。

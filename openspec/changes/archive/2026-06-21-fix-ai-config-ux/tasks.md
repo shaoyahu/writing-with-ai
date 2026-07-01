@@ -61,7 +61,7 @@
 ## 9. 测试
 
 - [x] 9.1 `FakeSecureApiKeyStore.kt` 加 `observeConfiguredProviders` 实现 — done(2.3)
-- [x] 9.2 跳过 — 无既有 `ModelManagementViewModelTest`,本 change 数据层无改动
+- [x] 9.2 跳过 — 无既有 `ModelManagementViewModelTest`，本 change 数据层无改动
 - [x] 9.3 跳过 — 无既有 `PromptTemplateViewModelTest`
 - [x] 9.4 跳过 — `PromptTemplateStoreTest` 5 case 行为不变
 - [x] 9.5 跑 `./gradlew :app:testDebugUnitTest` 全 PASS(22 tests 0 fail)

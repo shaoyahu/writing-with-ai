@@ -19,7 +19,7 @@
   - `[text](url)` → `text.run` + link
   - `---` → `divider`
 - [ ] 2.3 不支持元素降级:`![image](path)` → `text` block content = `[图片：path]`;`<html>` 标签 → `text` block content = raw HTML 字符串;`mermaid` code block → `text` block content = `[不支持类型:mermaid]`
-- [ ] 2.4 表格:`|` 表格 → `table` block + `table_property` + text-grid layout(不支持合并单元格,合并单元格文档里写明不支持)
+- [ ] 2.4 表格:`|` 表格 → `table` block + `table_property` + text-grid layout(不支持合并单元格，合并单元格文档里写明不支持)
 
 ## 3. DocxToMarkdownConverter 实现
 
@@ -30,8 +30,8 @@
 ## 4. Round-trip 测试
 
 - [ ] 4.1 `app/src/test/resources/converter/sample.md`:固定 10 条样本(覆盖所有 supported 元素)
-- [ ] 4.2 `MarkdownDocxRoundTripTest`:对每条样本跑 `md → docx → md`,断言结果与输入一致(deepEquals,忽略降级 placeholder)
-- [ ] 4.3 `MarkdownDocxUnsupportedTest`:故意写 `![img](x)` / `<div>html</div>` / ` ```mermaid ``` ` 三条样本,断言降级 placeholder 出现 + round-trip 仍稳定
+- [ ] 4.2 `MarkdownDocxRoundTripTest`:对每条样本跑 `md → docx → md`，断言结果与输入一致(deepEquals，忽略降级 placeholder)
+- [ ] 4.3 `MarkdownDocxUnsupportedTest`:故意写 `![img](x)` / `<div>html</div>` / ` ```mermaid ``` ` 三条样本，断言降级 placeholder 出现 + round-trip 仍稳定
 
 ## 5. i18n
 

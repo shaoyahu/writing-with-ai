@@ -1,22 +1,22 @@
 ## 1. 设置页同步日志挂载
 
-- [x] 1.1 `core/feishu/sync/FeishuSyncEventDao.kt` 新增 `observeLast(limit: Int = 20): Flow<List<FeishuSyncEventEntity>>`,内部用 `@Query("SELECT * FROM feishu_sync_events ORDER BY created_at DESC LIMIT :limit")` 包装;**沿用**现有 `suspend fun listLast(limit: Int = 20)` 不删
+- [x] 1.1 `core/feishu/sync/FeishuSyncEventDao.kt` 新增 `observeLast(limit: Int = 20): Flow<List<FeishuSyncEventEntity>>`，内部用 `@Query("SELECT * FROM feishu_sync_events ORDER BY created_at DESC LIMIT :limit")` 包装;**沿用**现有 `suspend fun listLast(limit: Int = 20)` 不删
 - [x] 1.2 `feature/settings/feishu/FeishuSyncLogSection.kt`(已存在)将内部 `listLast(20)` 调用改为 `observeLast(20).collectAsState(emptyList())`;首屏空 list 显 `R.string.feishu_sync_log_disclaimer` + 空态文案
 - [x] 1.3 `feature/settings/feishu/FeishuAuthScreen.kt`(已存在)已连接状态(检查 `FeishuAuthState.connected`)时挂载 `FeishuSyncLogSection(eventDao)`;未连接时不渲染
 
-## 2. ViewModel(薄包装,供单测)
+## 2. ViewModel(薄包装，供单测)
 
-- [x] 2.1 新建 `feature/quicknote/share/FeishuShareViewModel.kt`:`@HiltViewModel` 包装 `FeishuSyncService` + `FeishuRefDao`,暴露 `state: StateFlow<ShareState>`(`ShareState` sealed:Idle/Pushing/Pushed(docUrl)/Pulling/Pulled(noteId)/Conflict(noteId)/Error(msg))
+- [x] 2.1 新建 `feature/quicknote/share/FeishuShareViewModel.kt`:`@HiltViewModel` 包装 `FeishuSyncService` + `FeishuRefDao`，暴露 `state: StateFlow<ShareState>`(`ShareState` sealed:Idle/Pushing/Pushed(docUrl)/Pulling/Pulled(noteId)/Conflict(noteId)/Error(msg))
 - [x] 2.2 `push(noteId)`:调 `service.push(id)` → Pushing → Pushed(docUrl via ref.docUrl) 或 Error(throws FeishuError 转 msg)
 - [x] 2.3 `pull(docUrl)`:VM 内 regex 提取 docId(同 `QuickNoteDetailViewModel.extractDocId` 写法)→ 调 `service.pull(docId, docUrl, titleHint="来自飞书")` → Pulled(ref.noteId) 或 Error
-- [x] 2.4 `resolveConflictKeepLocal(noteId)` / `resolveConflictKeepRemote(noteId)`:重置 ref 状态 + 触发对应 push/pull,完成后 `clearState()`
+- [x] 2.4 `resolveConflictKeepLocal(noteId)` / `resolveConflictKeepRemote(noteId)`:重置 ref 状态 + 触发对应 push/pull，完成后 `clearState()`
 - [x] 2.5 `clearState()`:重置 `state.value = Idle`
 
 ## 3. i18n
 
 - [x] 3.1 `res/values/strings.xml` 新增 9 个 key:`feishu_chip_synced` / `feishu_chip_conflict` / `feishu_chip_remote_deleted` / `feishu_chip_pending` / `feishu_conflict_title` / `feishu_conflict_keep_local` / `feishu_conflict_keep_remote` / `share_to_feishu` / `feishu_sync_log_disclaimer`
 - [x] 3.2 `res/values-en/strings.xml` 同步 9 key 英文翻译(参考 D4 表)
-- [x] 3.3 验证 key 集合双侧完全一致(用 grep 双向 diff,无差异)
+- [x] 3.3 验证 key 集合双侧完全一致(用 grep 双向 diff，无差异)
 
 ## 4. JVM 单测
 
@@ -24,7 +24,7 @@
 - [x] 4.2 测 1:`push(noteId)` service 成功 → state 转 Pushed(docUrl="https://bytedance.feishu.cn/docx/abc")
 - [x] 4.3 测 2:`push(noteId)` service 抛 FeishuError → state 转 Error(msg)
 - [x] 4.4 测 3:`pull(docUrl="https://bytedance.feishu.cn/docx/abc")` service 成功 → state 转 Pulled(noteId)
-- [x] 4.5 测 4:`pull(...)` service 抛 FeishuError(冲突场景)→ state 转 Error(msg)(注:本 VM 简化,不弹 Conflict 状态,统一 Error)
+- [x] 4.5 测 4:`pull(...)` service 抛 FeishuError(冲突场景)→ state 转 Error(msg)(注:本 VM 简化，不弹 Conflict 状态，统一 Error)
 - [x] 4.6 测 5:`clearState()` 后 state == Idle
 
 ## 5. 端到端验证(USER-OWNED)

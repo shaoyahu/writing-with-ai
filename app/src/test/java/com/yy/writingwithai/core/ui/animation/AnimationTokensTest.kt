@@ -35,7 +35,7 @@ class AnimationTokensTest {
         assertEquals(ExitTransition.None, tokens.navPopExit)
         assertEquals(EnterTransition.None, tokens.dialogEnter)
         assertEquals(ExitTransition.None, tokens.dialogExit)
-        // spec 类型不强制,但 NONE 必须保证是无 spring/tween 的 snap(瞬时)
+        // spec 类型不强制，但 NONE 必须保证是无 spring/tween 的 snap(瞬时)
         assertEquals("SnapSpec", tokens.switchSpec::class.simpleName)
         assertEquals("SnapSpec", tokens.tabContentSpec::class.simpleName)
     }
@@ -62,7 +62,7 @@ class AnimationTokensTest {
 
     @Test
     fun `same style returns same token instance (factory memoization)`() {
-        // AnimationStyle 工厂用 companion object 缓存,toTokens() 应是引用相同。
+        // AnimationStyle 工厂用 companion object 缓存，toTokens() 应是引用相同。
         val a = AnimationStyle.MINIMAL.toTokens()
         val b = AnimationStyle.MINIMAL.toTokens()
         assertEquals(

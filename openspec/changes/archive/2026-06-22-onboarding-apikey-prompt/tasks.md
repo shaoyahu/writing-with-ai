@@ -2,7 +2,7 @@
 
 - [ ] 1.1 新建 `feature/onboarding/ApikeyPromptScreen.kt`:三段滚动页(隐私提醒 / AI 能力清单 / 成本说明)
 - [ ] 1.2 新建 `feature/onboarding/ApikeyPromptViewModel.kt`:读 / 写 `ack_apikey_prompt_v1`
-- [ ] 1.3 `AppNav` 路由表加 `onboarding/apikey-prompt`,同意页完成 → navigate apikey-prompt → 用户点确认或跳过 → navigate main
+- [ ] 1.3 `AppNav` 路由表加 `onboarding/apikey-prompt`，同意页完成 → navigate apikey-prompt → 用户点确认或跳过 → navigate main
 - [ ] 1.4 新建 `ApikeyPromptDialog`(复用 ApikeyPromptScreen 内容)给已装老用户拦截 AI 入口用
 
 ## 2. DataStore — UserPrefsStore

@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
  * feishu-user-oauth · 飞书 OAuth user_access_token + refresh_token 加密存储。
  *
  * 不持久化 appSecret;exchangeCode 时 `persistAppSecret` 写 transient,refresh 时
- * `getAppSecretSnapshot` 取,完成后 `clearAppSecret` 清。
+ * `getAppSecretSnapshot` 取，完成后 `clearAppSecret` 清。
  *
  * 加密 prefs 初始化失败时不会静默降级:暴露 `prefsInitError`,`authState` 切到
  * [FeishuAuthState.KEYSTORE_UNAVAILABLE],UI 必须显式处理(而不是看着像"未登录")。
@@ -41,9 +41,9 @@ interface FeishuAuthStore {
     suspend fun setOAuthCredentials(appId: String, accessToken: String, refreshToken: String, expiresAt: Long)
 
     /**
-     * ux-2026-06-28 · 仅写 appId(tokens 尚未到达时,供 OAuthCodeReceiver 首次回调
+     * ux-2026-06-28 · 仅写 appId(tokens 尚未到达时，供 OAuthCodeReceiver 首次回调
      * 通过 [getAppIdSnapshot] 取回 appId 完成 exchange)。setOAuthCredentials 需要
-     * 全部 4 个字段,在 token exchange 完成前无法调用。
+     * 全部 4 个字段，在 token exchange 完成前无法调用。
      */
     suspend fun setAppId(appId: String)
 
@@ -61,8 +61,8 @@ interface FeishuAuthStore {
     fun getFolderTokenSnapshot(): String?
 
     /**
-     * ux-2026-06-28 · 仅读 appId(无 refreshToken 也能读,供 OAuthCodeReceiver 首次回调时
-     * 拿到 appId 完成 token exchange)。原 [getAppIdAndRefreshToken] 要求 refreshToken 存在,
+     * ux-2026-06-28 · 仅读 appId(无 refreshToken 也能读，供 OAuthCodeReceiver 首次回调时
+     * 拿到 appId 完成 token exchange)。原 [getAppIdAndRefreshToken] 要求 refreshToken 存在，
      * 首次 OAuth 流程未结束时取不到 appId。
      */
     fun getAppIdSnapshot(): String?
@@ -71,12 +71,12 @@ interface FeishuAuthStore {
 
     /**
      * fix-2026-06-26-review-r3 CRITICAL C3:appSecret 现在持久化到 EncryptedSharedPreferences
-     * (与 token / refreshToken 同一文件,同一加密策略)。原 in-memory `ConcurrentHashMap` 在
-     * OAuthCodeReceiver 启动后立即读 `appSecret`,但 Android 进程可能因系统低内存被回收,
-     * 进程重启后 cache 丢 → 用户看到"appSecret missing"假失败。现在改落盘后,
-     * 即使进程被杀重启,OAuthCodeReceiver 仍能从加密 prefs 拿到 secret 完成 token exchange。
+     * (与 token / refreshToken 同一文件，同一加密策略)。原 in-memory `ConcurrentHashMap` 在
+     * OAuthCodeReceiver 启动后立即读 `appSecret`，但 Android 进程可能因系统低内存被回收，
+     * 进程重启后 cache 丢 → 用户看到"appSecret missing"假失败。现在改落盘后，
+     * 即使进程被杀重启，OAuthCodeReceiver 仍能从加密 prefs 拿到 secret 完成 token exchange。
      *
-     * 安全:EncryptedSharedPreferences 用 Android Keystore (AES256_GCM) 加密,
+     * 安全:EncryptedSharedPreferences 用 Android Keystore (AES256_GCM) 加密，
      * 不进明文 SharedPreferences / logcat / Auto Backup。
      */
     suspend fun persistAppSecret(requestId: String, secret: String)
@@ -86,7 +86,7 @@ interface FeishuAuthStore {
 
     /**
      * 是否有未完成的 OAuth 流程在等待 token exchange(用于进程重启后由
-     * OAuthCodeReceiver resume)。fix C2/C3 配合:state + appSecret 一起落盘,
+     * OAuthCodeReceiver resume)。fix C2/C3 配合:state + appSecret 一起落盘，
      * 进程被杀重启能恢复。
      */
     suspend fun persistPendingExchange(code: String, appId: String, secret: String, requestId: String)
@@ -97,13 +97,13 @@ interface FeishuAuthStore {
      * fix-2026-06-24-review-r1-critical · OAuth state CSRF 防护持久化。
      *
      * @param state 随机字符串(UUID/SecureRandom),OAuthLauncher 写、OAuthCodeReceiver 校验
-     * @param ttlMs 存活时长(默认 5 分钟),超过即视为过期
+     * @param ttlMs 存活时长(默认 5 分钟)，超过即视为过期
      */
     suspend fun persistOAuthState(state: String, ttlMs: Long = OAUTH_STATE_DEFAULT_TTL_MS)
 
     /**
-     * 取并清除已存的 OAuth state;返回 stored state,若不存在或过期返回 `null`。
-     * (单 KEY,不支持并发多 flow — 同设备单用户场景足够。)
+     * 取并清除已存的 OAuth state;返回 stored state，若不存在或过期返回 `null`。
+     * (单 KEY，不支持并发多 flow — 同设备单用户场景足够。)
      */
     fun consumeOAuthState(): String?
 
@@ -170,7 +170,7 @@ constructor(
         stateFlow.value = FeishuAuthState.CONNECTED
     }
 
-    // ux-2026-06-28:仅写 appId(OAuthLauncher.launch 在跳浏览器前调用,让 OAuthCodeReceiver
+    // ux-2026-06-28:仅写 appId(OAuthLauncher.launch 在跳浏览器前调用，让 OAuthCodeReceiver
     // 首次回调时能取回 appId)。不动 token / state。
     override suspend fun setAppId(appId: String) = withContext(Dispatchers.IO) {
         val p = requirePrefs() ?: return@withContext
@@ -192,11 +192,11 @@ constructor(
 
     override suspend fun clearAll() = withContext(Dispatchers.IO) {
         val p = requirePrefs() ?: return@withContext
-        // fix-2026-06-30-full-review-r1 MEDIUM M9:不要 .clear() 整个 prefs,会
-        // 抹掉 in-flight OAuth 流程的 pending exchange + CSRF state,导致
+        // fix-2026-06-30-full-review-r1 MEDIUM M9:不要 .clear() 整个 prefs，会
+        // 抹掉 in-flight OAuth 流程的 pending exchange + CSRF state，导致
         // OAuthCodeReceiver 回调时找不到 resume 上下文 → 静默失败。
         // 选择性清:token / appSecret(用户主动登出时该清的);pending + oauth state
-        // 不动,让进行中的 OAuth 流程能完成。
+        // 不动，让进行中的 OAuth 流程能完成。
         val editor = p.edit()
             .remove(KEY_APP_ID)
             .remove(KEY_ACCESS)
@@ -208,7 +208,7 @@ constructor(
             .filter { it.startsWith(KEY_SECRET_PREFIX) }
             .forEach { editor.remove(it) }
         editor.apply()
-        // L2 修:切到 DISCONNECTED 时清掉 in-memory appSecret 缓存,避免 stale secret。
+        // L2 修:切到 DISCONNECTED 时清掉 in-memory appSecret 缓存，避免 stale secret。
         secretCache.clear()
         stateFlow.value = FeishuAuthState.DISCONNECTED
     }
@@ -223,7 +223,7 @@ constructor(
     override fun getRefreshTokenSnapshot(): String? = requirePrefs()?.getString(KEY_REFRESH, null)
     override fun getFolderTokenSnapshot(): String? = requirePrefs()?.getString(KEY_FOLDER, null)
 
-    // ux-2026-06-28:仅读 appId,首次 OAuth 回调时(refreshToken 尚未写入)也能取到。
+    // ux-2026-06-28:仅读 appId，首次 OAuth 回调时(refreshToken 尚未写入)也能取到。
     override fun getAppIdSnapshot(): String? = requirePrefs()?.getString(KEY_APP_ID, null)
 
     override fun getAppIdAndRefreshToken(): Pair<String, String>? {
@@ -252,7 +252,7 @@ constructor(
 
     override fun getAppSecretSnapshot(requestId: String): String? {
         secretCache[requestId]?.let { return it }
-        // fix C3:cold start 时 cache miss,从 prefs 读
+        // fix C3:cold start 时 cache miss，从 prefs 读
         val p = requirePrefs() ?: return null
         val fromDisk = p.getString(secretKeyFor(requestId), null) ?: return null
         secretCache[requestId] = fromDisk
@@ -295,7 +295,7 @@ constructor(
             .remove(KEY_PENDING_REQUEST_ID)
             .remove(KEY_PENDING_CREATED_AT)
             .apply()
-        // TTL 保护:超过 10 分钟的 pending exchange 视为过期,不再 resume
+        // TTL 保护:超过 10 分钟的 pending exchange 视为过期，不再 resume
         if (System.currentTimeMillis() - createdAt > PENDING_TTL_MS) return null
         return PendingExchange(code, appId, secret, reqId, createdAt)
     }
@@ -304,7 +304,7 @@ constructor(
         val p = requirePrefs() ?: return false
         if (p.getString(KEY_PENDING_CODE, null) == null) return false
         // fix-MEDIUM(feishu M3):与 consumePendingExchange 保持一致 — 过期 pending
-        // (createdAt 超过 PENDING_TTL_MS) 不再视为 "has pending",避免冷启动 UI
+        // (createdAt 超过 PENDING_TTL_MS) 不再视为 "has pending"，避免冷启动 UI
         // 误显示"恢复上次未完成授权"按钮去 resume 一段已经过期的 OAuth code。
         val createdAt = p.getLong(KEY_PENDING_CREATED_AT, 0L)
         return System.currentTimeMillis() - createdAt <= PENDING_TTL_MS
@@ -321,7 +321,7 @@ constructor(
                 .putString(KEY_OAUTH_STATE_VALUE, state)
                 .putLong(KEY_OAUTH_STATE_EXPIRES, expiresAt)
                 .apply()
-            // 读回验证:EncryptedSharedPreferences 的 apply() 是异步落盘,立即读应可见
+            // 读回验证:EncryptedSharedPreferences 的 apply() 是异步落盘，立即读应可见
             val verifyValue = p.getString(KEY_OAUTH_STATE_VALUE, null)
             val verifyExpires = p.getLong(KEY_OAUTH_STATE_EXPIRES, 0L)
             Log.i(
@@ -352,7 +352,7 @@ constructor(
                 .apply()
             return null
         }
-        // 一次性消费:不论是否过期都清,避免 replay
+        // 一次性消费:不论是否过期都清，避免 replay
         p.edit()
             .remove(KEY_OAUTH_STATE_VALUE)
             .remove(KEY_OAUTH_STATE_EXPIRES)
@@ -364,7 +364,7 @@ constructor(
         return value
     }
 
-    /** 取 prefs;若 Keystore 不可用返回 null(调用方应继续 fail-safe,不抛错掩盖)。 */
+    /** 取 prefs;若 Keystore 不可用返回 null(调用方应继续 fail-safe，不抛错掩盖)。 */
     private fun requirePrefs(): SharedPreferences? = prefs
 
     private fun openEncryptedPrefs(): SharedPreferences {

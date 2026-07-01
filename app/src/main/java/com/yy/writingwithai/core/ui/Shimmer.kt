@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 
-/** fix-2026-06-26-review-r3 LOW:shimmer 动画周期常量,避免 magic number。 */
+/** fix-2026-06-26-review-r3 LOW:shimmer 动画周期常量，避免 magic number。 */
 private const val SHIMMER_DURATION_MS = 1200
 
 @Composable

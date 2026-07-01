@@ -8,7 +8,7 @@ import com.yy.writingwithai.core.feishu.converter.MarkdownToXmlConverter
 /** feishu-bidir-sync · 测试共享 fake 集合(internal 跨文件可见)。 */
 internal class FakeFeishuApiClient : FeishuApiClient {
     // ---- v1 ----
-    // fix-2026-06-27-review-r4 M13:val→var,override 内加++,让断言能读到计数。
+    // fix-2026-06-27-review-r4 M13:val→var,override 内加++，让断言能读到计数。
     var v1CreateCalls = 0
     var v1BatchDeleteCalls = 0
     val createdDocs = mutableListOf<String>()
@@ -120,7 +120,7 @@ internal class FakeFeishuSyncEventDao : FeishuSyncEventDao {
 }
 
 /**
- * 测试 fake:简单回显 markdown + title 拼成 XML,记录最近一次调用。
+ * 测试 fake:简单回显 markdown + title 拼成 XML，记录最近一次调用。
  * 不复刻 MarkdownToXmlConverter 全部边界(那条单测自己覆盖)。
  */
 internal class FakeXmlConverter : MarkdownToXmlConverter() {

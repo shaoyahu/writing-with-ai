@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
  * 重点覆盖 M10 review 修的"嵌套 marker 在 heading / quote / 段落里"。
  * 同时 regression 已有功能:heading / paragraph / bold / code / quote。
  *
- * spec: openspec/changes/feishu-doc-v2/spec.md(不直接对应,作为 converter 工具测试)。
+ * spec: openspec/changes/feishu-doc-v2/spec.md(不直接对应，作为 converter 工具测试)。
  */
 class MarkdownToXmlConverterTest {
 
@@ -68,7 +68,7 @@ class MarkdownToXmlConverterTest {
 
     @Test
     fun `code fence wraps multi-line in pre code`() {
-        // fix-2026-06-26-review-r3 HIGH H11:code block 走 CDATA 包裹,避免
+        // fix-2026-06-26-review-r3 HIGH H11:code block 走 CDATA 包裹，避免
         // `&`/`<`/`>`/控制字符在 v2 API HTML 嵌入时产出 malformed XML。
         val xml = converter.convert("```\nval x = 1\nval y = 2\n```", title = "T")
         assertTrue(

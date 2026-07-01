@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  * fix-ai-config-ux · PromptTemplate 编辑屏 ViewModel。
  *
  * 改动:
- * - init 默认填 DefaultPrompts.forOp(op)(store 仍空,只 drafts 层先填)
+ * - init 默认填 DefaultPrompts.forOp(op)(store 仍空，只 drafts 层先填)
  * - onPromptChange 只改 drafts + pendingSave(不立即写 store)
  * - 新增 save(op) 显式写 store + 清 dirty
  * - resetToDefault 写 store + 清 drafts + 清 dirty
@@ -45,7 +45,7 @@ constructor(
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     init {
-        // fix-ai-config-ux: store 空时默认填 DefaultPrompts,不改 store
+        // fix-ai-config-ux: store 空时默认填 DefaultPrompts，不改 store
         viewModelScope.launch {
             val expand = promptTemplateStore.getForOp(WritingOp.EXPAND)
                 ?: DefaultPrompts.forOp(WritingOp.EXPAND)
@@ -65,7 +65,7 @@ constructor(
         }
     }
 
-    /** 改草稿 + 标 pendingSave,不立即写 store。fix-ai-config-ux: 废除旧"自动保存"行为。 */
+    /** 改草稿 + 标 pendingSave，不立即写 store。fix-ai-config-ux: 废除旧"自动保存"行为。 */
     fun onPromptChange(op: WritingOp, value: String) {
         _uiState.update {
             it.copy(

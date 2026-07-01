@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test
  * 2. 对负数 hashCode 也能正确映射(原 `mod(360f)` 在 Int.MIN_VALUE 上边界不安全)
  * 3. 空 tag 列表走 primary fallback
  *
- * 注意:tagAccentColor 是 file-private,这里只能间接验证。
+ * 注意:tagAccentColor 是 file-private，这里只能间接验证。
  * 我们从已知的 tag 字符串验证 hue 数学性质 — 通过 hashCode → UInt → % 360。
  */
 class TagAccentColorHashTest {

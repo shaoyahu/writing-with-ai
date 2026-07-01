@@ -24,7 +24,7 @@ constructor(
     private val _aliases = MutableStateFlow<List<EntityAliasRow>>(emptyList())
     val aliases: StateFlow<List<EntityAliasRow>> = _aliases.asStateFlow()
 
-    // H8 修:sealed class 携带 @StringRes,Composable 端 stringResource 渲染,避免 VM 硬编码中文。
+    // H8 修:sealed class 携带 @StringRes,Composable 端 stringResource 渲染，避免 VM 硬编码中文。
     private val _message = MutableStateFlow<AliasMessage?>(null)
     val message: StateFlow<AliasMessage?> = _message.asStateFlow()
 

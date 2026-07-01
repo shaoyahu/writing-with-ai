@@ -25,7 +25,7 @@
 
 ## 5. FeishuAuthScreen
 
-- [x] 5.1 ViewModel 删 appSecret/folderToken input,新增 startOAuth()
+- [x] 5.1 ViewModel 删 appSecret/folderToken input，新增 startOAuth()
 - [x] 5.2 startOAuth 拉 OAuthLauncher
 - [x] 5.3 OAuthCodeReceiver → UserTokenProvider.exchangeCode
 - [x] 5.4 Screen 删 appSecret 输入框 + 新增 "登录飞书" 按钮
@@ -34,12 +34,12 @@
 ## 6. AuthInterceptor + Module
 
 - [x] 6.1 AuthInterceptor 注入 UserTokenProvider 替代 TenantTokenProvider
-- [x] 6.2 FeishuModule 删 TenantTokenProvider binding,加 UserTokenProvider
+- [x] 6.2 FeishuModule 删 TenantTokenProvider binding，加 UserTokenProvider
 - [x] 6.3 FeishuApiClientImpl 各端点不变(token 由 Interceptor 注入)
 
 ## 7. 验证
 
 - [x] 7.1 `openspec validate feishu-user-oauth --strict` 通过
 - [x] 7.2 `./gradlew :app:assembleDebug :app:ktlintCheck :app:testDebugUnitTest` 全绿
-- [x] 7.3 grep 校验:无 TenantTokenProvider 残留,appSecret 不在 store
+- [x] 7.3 grep 校验:无 TenantTokenProvider 残留，appSecret 不在 store
 - [x] 7.4 真机:登录飞书 → 同步 → URL 在用户云空间可见

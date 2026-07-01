@@ -8,7 +8,7 @@ package com.yy.writingwithai.core.feishu.auth
  * - [TOKEN_FETCHING]:正在 POST 取 token
  * - [CONNECTED]:token 有效
  * - [FAILED]:最近一次取 token 失败
- * - [KEYSTORE_UNAVAILABLE]:EncryptedSharedPreferences 初始化失败,无法安全存凭据
+ * - [KEYSTORE_UNAVAILABLE]:EncryptedSharedPreferences 初始化失败，无法安全存凭据
  */
 enum class FeishuAuthState {
     DISCONNECTED,

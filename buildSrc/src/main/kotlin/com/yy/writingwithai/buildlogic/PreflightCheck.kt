@@ -1,6 +1,6 @@
-// build-logic 助手,被 app/build.gradle.kts 引用,亦供 JVM 单测覆盖。
-// 放在 buildSrc/ 而非 app/src/main/,因为 buildSrc 是 precompiled build script 插件,
-// 自动加入所有 build.gradle.kts 的 classpath,但不进 app 运行时/test classpath。
+// build-logic 助手，被 app/build.gradle.kts 引用，亦供 JVM 单测覆盖。
+// 放在 buildSrc/ 而非 app/src/main/，因为 buildSrc 是 precompiled build script 插件，
+// 自动加入所有 build.gradle.kts 的 classpath，但不进 app 运行时/test classpath。
 package com.yy.writingwithai.buildlogic
 
 /**
@@ -21,7 +21,7 @@ data class PreflightFailure(
 /**
  * 解析 grep 输出为 [PreflightFailure] 列表。
  *
- * 期望输入格式:`file:line: match`(每行一条),由 `grep -n` 在 stdout 上产生。
+ * 期望输入格式:`file:line: match`(每行一条)，由 `grep -n` 在 stdout 上产生。
  *
  * - 空 / 空白输入 → 返回空 list
  * - 单行命中 → 1 条记录

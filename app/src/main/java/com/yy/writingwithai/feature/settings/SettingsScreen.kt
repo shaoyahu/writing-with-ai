@@ -66,7 +66,7 @@ fun SettingsScreen(
         containerColor = MaterialTheme.colorScheme.surfaceVariant
     ) { padding ->
         val ctx = LocalContext.current
-        // R5-4 fix: 仅在 Preview(InspectionMode)打 Log.w,避免 Release 日志被每次冷启污染。
+        // R5-4 fix: 仅在 Preview(InspectionMode)打 Log.w，避免 Release 日志被每次冷启污染。
         val isPreview = LocalInspectionMode.current
         // H2 fix: runCatching 防 Preview 崩溃; observeEnabled + collectAsStateWithLifecycle 保持状态同步
         val settings = remember {
@@ -86,7 +86,7 @@ fun SettingsScreen(
 
         LazyColumn(modifier = Modifier.padding(padding)) {
             // 反馈 #4:移除 AI 模型管理 / 提示词模板 / 实体别名 ListItem(已迁到"我的" tab)
-            // 保留"保存时使用 AI 找关联" Switch(全局 AI 关联开关,与具体模型/别名解耦)。
+            // 保留"保存时使用 AI 找关联" Switch(全局 AI 关联开关，与具体模型/别名解耦)。
             item {
                 ListItem(
                     headlineContent = {

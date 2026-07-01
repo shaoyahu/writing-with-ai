@@ -21,7 +21,7 @@ constructor(
         const val MAX_ERROR_LEN = 1_000
         const val PRUNE_DAYS = 90L
 
-        // H3 修:apikey / Bearer / x-api-key 等敏感 pattern 集中脱敏,
+        // H3 修:apikey / Bearer / x-api-key 等敏感 pattern 集中脱敏，
         // 避免 gateway / extractor 各自实现漂移。
         val APIKEY_PATTERNS = listOf(
             Regex("""sk-[A-Za-z0-9_\-]{16,}"""),

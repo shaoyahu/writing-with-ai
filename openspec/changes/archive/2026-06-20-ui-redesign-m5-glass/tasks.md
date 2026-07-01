@@ -1,6 +1,6 @@
 ## 1. 设计 tokens(theme/)
 
-- [ ] 1.1 `app/src/main/java/com/yy/writingwithai/app/ui/theme/Color.kt` 重写:种子色 `#3B82F6` 蓝,`lightColorScheme` + `darkColorScheme` 全 token 显式定义
+- [ ] 1.1 `app/src/main/java/com/yy/writingwithai/app/ui/theme/Color.kt` 重写:种子色 `#3B82F6` 蓝，`lightColorScheme` + `darkColorScheme` 全 token 显式定义
 - [ ] 1.2 `app/src/main/java/com/yy/writingwithai/app/ui/theme/Type.kt` 重写:中文字号优化(标题 22sp / 副标 16sp / 正文 15sp / 标签 12sp)
 - [ ] 1.3 新建 `app/src/main/java/com/yy/writingwithai/app/ui/theme/Spacing.kt`:`Spacing` data class + `LocalSpacing` CompositionLocal(xs/sm/md/lg/xl/xxl)
 - [ ] 1.4 新建 `app/src/main/java/com/yy/writingwithai/app/ui/theme/Motion.kt`:`tween(200, FastOutSlowInEasing)` + spring 标准 token
@@ -8,15 +8,15 @@
 
 ## 2. 随手记列表卡片化
 
-- [ ] 2.1 `feature/quicknote/list/QuickNoteListScreen.kt`:item 改 `Card(shape = RoundedCornerShape(16.dp))`,改用 `LocalSpacing.current.md` 等 token
+- [ ] 2.1 `feature/quicknote/list/QuickNoteListScreen.kt`:item 改 `Card(shape = RoundedCornerShape(16.dp))`，改用 `LocalSpacing.current.md` 等 token
 - [ ] 2.2 `feature/quicknote/list/QuickNoteListViewModel.kt`(若有):不动
-- [ ] 2.3 长按拖拽 + 滑动删除 —— 用 `SwipeToDismiss`(M5 polish 续,本期跳过)
+- [ ] 2.3 长按拖拽 + 滑动删除 —— 用 `SwipeToDismiss`(M5 polish 续，本期跳过)
 
 ## 3. 随手记详情 read mode
 
-- [ ] 3.1 `feature/quicknote/detail/QuickNoteDetailScreen.kt`:顶部 toolbar 极简化(`CenterAlignedTopAppBar` + 仅 back + edit + overflow),正文大字号 `headlineSmall` 标题 + `bodyLarge` 内容
+- [ ] 3.1 `feature/quicknote/detail/QuickNoteDetailScreen.kt`:顶部 toolbar 极简化(`CenterAlignedTopAppBar` + 仅 back + edit + overflow)，正文大字号 `headlineSmall` 标题 + `bodyLarge` 内容
 - [ ] 3.2 底部栏 ✨ 按钮改 `FilledIconButton` 风格 surface(更突出 AI 操作)
-- [ ] 3.3 `ActionSheet` 改 `ModalBottomSheet`(本 change 顺手做,user bug 也已存在)
+- [ ] 3.3 `ActionSheet` 改 `ModalBottomSheet`(本 change 顺手做，user bug 也已存在)
 
 ## 4. AI 流式面板重设计
 
@@ -33,7 +33,7 @@
 
 - [ ] 6.1 新建 `feature/settings/model/ModelManagementEntry.kt` —— `ModelManagementRoute` + `ModelProviderDetailRoute`
 - [ ] 6.2 新建 `feature/settings/model/ModelManagementScreen.kt` —— 3 个 provider Card + 当前选中 + "测试连通"按钮 + ping 状态显示
-- [ ] 6.3 新建 `feature/settings/model/ModelManagementViewModel.kt` —— `@HiltViewModel`,接 `SecureApiKeyStore` + `ProviderPrefsStore` + `AiGateway`,提供 `setProvider(id, apiKey)` + `ping()`
+- [ ] 6.3 新建 `feature/settings/model/ModelManagementViewModel.kt` —— `@HiltViewModel`，接 `SecureApiKeyStore` + `ProviderPrefsStore` + `AiGateway`，提供 `setProvider(id, apiKey)` + `ping()`
 - [ ] 6.4 新建 `feature/settings/model/ModelProviderDetailScreen.kt` —— OutlinedTextField + "显示" toggle + "保存"按钮
 - [ ] 6.5 `app/AppNav.kt` 加 2 个 `@Serializable` route + 2 个 `composable<>` block
 
@@ -50,7 +50,7 @@
 
 ## 9. widget 视觉重设计
 
-- [ ] 9.1 `core/widget/QuickNoteWidget.kt`:加 `MaterialTheme.colorScheme.surface` 显式背景(避免硬编码 `Color.White`),文字走 `ColorProvider.color(MaterialTheme.colorScheme.onSurface)`
+- [ ] 9.1 `core/widget/QuickNoteWidget.kt`:加 `MaterialTheme.colorScheme.surface` 显式背景(避免硬编码 `Color.White`)，文字走 `ColorProvider.color(MaterialTheme.colorScheme.onSurface)`
 - [ ] 9.2 `core/widget/QuickNote1x4Widget.kt`:同样走 Material You token;按钮改圆角 `RoundedCornerShape(12.dp)` 风格
 
 ## 10. Onboarding 屏

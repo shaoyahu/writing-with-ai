@@ -43,7 +43,7 @@ class AiActionViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
 
     // M4-4:VM 构造注入 ConsentStore + SecureApiKeyStore。M3 测试默认全同意 + 无 apikey
-    // (走 fake provider 路径,行为与 M3 一致)。
+    // (走 fake provider 路径，行为与 M3 一致)。
     private val consentStore = FakeConsentStore().apply {
         seed(ConsentState(accepted = true, acceptedAt = 1L, version = 1))
     }
@@ -55,7 +55,7 @@ class AiActionViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         // fix-2026-06-28-ai-model-selection-actually-used:VM.start 调 aiGateway.listProviders()
-        // 拿 defaultModel(走 resolveActualModel 算 actualModel);默认返空,fake provider 路径继续。
+        // 拿 defaultModel(走 resolveActualModel 算 actualModel);默认返空，fake provider 路径继续。
         coEvery { aiGateway.listProviders() } returns emptyList()
     }
 
@@ -100,7 +100,7 @@ class AiActionViewModelTest {
         val noteWithTags = NoteWithTags(note, emptyList())
         coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } returns
             flowOf(AiStreamEvent.Delta("新"), AiStreamEvent.Done)
-        // M2 修后:acceptReplace 用 observeNoteWithTags 一次 IO 拿 Note + tags,不再单独调 getNote。
+        // M2 修后:acceptReplace 用 observeNoteWithTags 一次 IO 拿 Note + tags，不再单独调 getNote。
         coEvery { noteRepository.observeNoteWithTags("n1") } returns flowOf(noteWithTags)
         coEvery { noteRepository.upsert(any(), any()) } returns Unit
         coEvery { noteRepository.updateAiMetadata("n1", any(), any()) } returns Unit

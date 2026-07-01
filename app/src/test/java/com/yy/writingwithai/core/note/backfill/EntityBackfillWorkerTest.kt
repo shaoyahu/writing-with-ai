@@ -10,12 +10,12 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * review r3 修 H6:EntityBackfillWorker 之前 `catch (Exception)` 静默吞 IO/Json 异常,
- * `ok` 不增,失败不可见。修后:计数 `failed` + `Log.w`,并通过 companion `runBackfillLoop`
- * 把循环逻辑抽成可测函数,避免依赖 WorkManager runtime。
+ * review r3 修 H6:EntityBackfillWorker 之前 `catch (Exception)` 静默吞 IO/Json 异常，
+ * `ok` 不增，失败不可见。修后:计数 `failed` + `Log.w`，并通过 companion `runBackfillLoop`
+ * 把循环逻辑抽成可测函数，避免依赖 WorkManager runtime。
  *
  * 验证:
- * - 单条 poisoned note 不 abort 整个 worker,后续 note 仍继续
+ * - 单条 poisoned note 不 abort 整个 worker，后续 note 仍继续
  * - failed 计数与 succeeded 计数都准确
  * - CancellationException 正确重抛(不被算入 failed)
  */
@@ -104,7 +104,7 @@ class EntityBackfillWorkerTest {
 
     @Test
     fun `shouldRun guard returns false when pauseBackfill is true`() {
-        // entity-extraction-polish §3.1:Worker 自身 pause guard 抽成 companion fun 让单测可调,
+        // entity-extraction-polish §3.1:Worker 自身 pause guard 抽成 companion fun 让单测可调，
         // 不依赖 WorkManager runtime 跑整 doWork。
         val store = io.mockk.mockk<com.yy.writingwithai.core.prefs.NoteAssociationSettingsStore>()
         io.mockk.every { store.pauseBackfill() } returns true

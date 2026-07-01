@@ -4,7 +4,7 @@
 >
 > 通用协议见 `api-anthropic-compatible.md`(端点形态 / 字段语义 / SSE 事件 / 错误码)。本文只列 **minimax 特定** 的部分。
 >
-> 数据来源:[MiniMax Anthropic API 文档](https://platform.minimaxi.com/docs/api-reference/text-chat-anthropic)(2026-06 抓取)。**如有出入,以官方文档为准**。
+> 数据来源:[MiniMax Anthropic API 文档](https://platform.minimaxi.com/docs/api-reference/text-chat-anthropic)(2026-06 抓取)。**如有出入，以官方文档为准**。
 
 ---
 
@@ -26,7 +26,7 @@ Authorization: Bearer <API_KEY>
 x-api-key: <API_KEY>
 ```
 
-> 本项目 v1 用 `Authorization: Bearer`(优先),与 Anthropic 官方默认一致;若用户报告 401,fallback 到 `x-api-key` 重试 1 次。
+> 本项目 v1 用 `Authorization: Bearer`(优先)，与 Anthropic 官方默认一致;若用户报告 401,fallback 到 `x-api-key` 重试 1 次。
 
 ## 3. 支持的模型
 
@@ -38,7 +38,7 @@ x-api-key: <API_KEY>
 | `MiniMax-M2.1` / `MiniMax-M2.1-highspeed` | 通用 |
 | `MiniMax-M2` | 旧版基线 |
 
-**v1 UI 默认**:`MiniMax-M2.7`(推荐体验);设置里允许切换到 `MiniMax-M2.7-highspeed`(速度优先) 等其他档位。**`M3` 仅在用户明确选"支持多模态/思考"时显示**,且 v1 写作场景实际不传图/视频。
+**v1 UI 默认**:`MiniMax-M2.7`(推荐体验);设置里允许切换到 `MiniMax-M2.7-highspeed`(速度优先) 等其他档位。**`M3` 仅在用户明确选"支持多模态/思考"时显示**，且 v1 写作场景实际不传图/视频。
 
 ## 4. 字段差异(对比 Anthropic 标准)
 
@@ -46,7 +46,7 @@ x-api-key: <API_KEY>
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `service_tier` | string | ❌ | `standard`(默认)或 `priority`(1.5 倍价格);v1 不传,默认 `standard` |
+| `service_tier` | string | ❌ | `standard`(默认)或 `priority`(1.5 倍价格);v1 不传，默认 `standard` |
 
 ### 4.2 字段能力矩阵
 
@@ -64,7 +64,7 @@ x-api-key: <API_KEY>
 - `M3` 默认 `0.95`
 - `M2.x` 默认 `0.9`
 
-> v1 不传 `top_p`,用各家默认。
+> v1 不传 `top_p`，用各家默认。
 
 ## 5. 错误码(MiniMax 实际返回)
 
@@ -83,13 +83,13 @@ x-api-key: <API_KEY>
 
 ## 6. 限流
 
-按 **RPM / TPM / 连接数** 限制;具体阈值在 minimax 控制台可见。429 响应里带 `Retry-After`(本项目 v1 读这个 header 退避重试,30s 上限)。
+按 **RPM / TPM / 连接数** 限制;具体阈值在 minimax 控制台可见。429 响应里带 `Retry-After`(本项目 v1 读这个 header 退避重试，30s 上限)。
 
 ## 7. 注意事项
 
-- **`service_tier`**:v1 默认 `standard`;若用户在 v2+ 选了 `priority`,设置里额外提示价格差异(1.5x)。
-- **多模态**:v1 写作场景只用文本,**不暴露 image/video 接口给业务层**;`core/ai` 抽象层的 `AiRequest` v1 不含图片字段。
-- **prompt cache**:M3 支持,v1 不强依赖。
+- **`service_tier`**:v1 默认 `standard`;若用户在 v2+ 选了 `priority`，设置里额外提示价格差异(1.5x)。
+- **多模态**:v1 写作场景只用文本，**不暴露 image/video 接口给业务层**;`core/ai` 抽象层的 `AiRequest` v1 不含图片字段。
+- **prompt cache**:M3 支持，v1 不强依赖。
 - **未列出字段一律不传**(避免 deepseek 那种"忽略但不报错"的隐藏语义)。
 
 ## 8. 本项目实现要点
@@ -114,8 +114,8 @@ x-api-key: <API_KEY>
       ),
   )
   ```
-- **不需要单独写 `stream()` 实现**,由通用 `AnthropicCompatibleAdapter` 处理。
-- 错误映射走通用 `ErrorMapper`;529(overloaded)显示"服务繁忙,稍后重试"提示,自动重试 1 次。
+- **不需要单独写 `stream()` 实现**，由通用 `AnthropicCompatibleAdapter` 处理。
+- 错误映射走通用 `ErrorMapper`;529(overloaded)显示"服务繁忙，稍后重试"提示，自动重试 1 次。
 - 模型名用 `enum class MinimaxModel(val apiName: String)`,default = `M2_7`。
 
 ## 9. 参考

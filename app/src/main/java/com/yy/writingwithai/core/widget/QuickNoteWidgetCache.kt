@@ -8,12 +8,12 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * Glance widget 每次 `provideGlance`(系统周期 / 主动 updateAll)都触发
  * `NoteRepository.observeRecent(limit).first()` 走一次 Room 读;在用户无操作时
- * 这些查询完全是冗余的。加 30s TTL:同一 limit 在 TTL 内复用上次结果,降低 Room 负载。
+ * 这些查询完全是冗余的。加 30s TTL:同一 limit 在 TTL 内复用上次结果，降低 Room 负载。
  *
- * 主路径写(save/delete)仍走 `QuickNoteWidgetUpdater.updateAll(context)` 强制刷新,
- * 缓存本身在下次 expire 时也会自然过期,所以**不会**让用户看到陈旧笔记超过 30s。
+ * 主路径写(save/delete)仍走 `QuickNoteWidgetUpdater.updateAll(context)` 强制刷新，
+ * 缓存本身在下次 expire 时也会自然过期，所以**不会**让用户看到陈旧笔记超过 30s。
  *
- * AtomicReference 持 [Pair],read 一致 + write atomic,无锁、无 volatile 边界坑。
+ * AtomicReference 持 [Pair],read 一致 + write atomic，无锁、无 volatile 边界坑。
  */
 internal object QuickNoteWidgetCache {
     private const val TTL_MS = 30_000L

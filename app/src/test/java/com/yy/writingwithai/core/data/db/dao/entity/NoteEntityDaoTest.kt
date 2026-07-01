@@ -24,7 +24,7 @@ import org.robolectric.RobolectricTestRunner
  * - querySharedEntityHits 跨 note 共享 entity 命中
  * - queryAllEntityKeys DISTINCT + LIMIT/OFFSET
  *
- * 注意:用 JUnit4 + RobolectricTestRunner,跟仓库既有 [NoteRepositoryDeleteOrderTest] 一致
+ * 注意:用 JUnit4 + RobolectricTestRunner，跟仓库既有 [NoteRepositoryDeleteOrderTest] 一致
  * (JUnit5 RobolectricExtension 需额外依赖)。
  */
 @RunWith(RobolectricTestRunner::class)
@@ -42,7 +42,7 @@ class NoteEntityDaoTest {
             .build()
         dao = db.noteEntityDao()
         noteDao = db.noteDao()
-        // note_entities.noteId FK → notes.id,先插父表
+        // note_entities.noteId FK → notes.id，先插父表
         runBlocking {
             listOf("n1", "n2", "n3").forEach { id ->
                 noteDao.upsert(

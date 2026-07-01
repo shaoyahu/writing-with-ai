@@ -25,8 +25,8 @@ import androidx.compose.ui.text.withStyle
  * - `- item` 无序列表
  * - `**bold**` 行内粗体
  *
- * 不支持:链接 / 图片 / 代码块 / 表格(隐私条款用到表格是 `|` 分隔的简表,
- * 当前解析为纯文本段落,已可读;完整 Markdown 留 M5 polish)。
+ * 不支持:链接 / 图片 / 代码块 / 表格(隐私条款用到表格是 `|` 分隔的简表，
+ * 当前解析为纯文本段落，已可读;完整 Markdown 留 M5 polish)。
  */
 sealed interface MarkdownBlock {
     val id: Int
@@ -132,15 +132,15 @@ fun MarkdownBlockView(block: MarkdownBlock) {
 /**
  * animation-system-and-consent-redesign §7:条款卡片分组。
  *
- * 把 [parseSimpleMarkdown] 输出的 MarkdownBlock 列表按 H2 标题切片,每个 H2 段构成一个
- * [ConsentSection]。H1 标题被忽略(条款 markdown 顶层 H1 是「使用条款」之类的全局标题,
+ * 把 [parseSimpleMarkdown] 输出的 MarkdownBlock 列表按 H2 标题切片，每个 H2 段构成一个
+ * [ConsentSection]。H1 标题被忽略(条款 markdown 顶层 H1 是「使用条款」之类的全局标题，
  * 不属于任意 section)。
  *
  * - [title]:H2 文本(去 ## 前缀 / trim)
  * - [icon]:按 title 关键词映射的 [ImageVector](§7.2)
- * - [summaryRes]:摘要 stringRes(由调用方提供,onboarding-redesign 设计阶段规划 5 个
+ * - [summaryRes]:摘要 stringRes(由调用方提供，onboarding-redesign 设计阶段规划 5 个
  *   卡片摘要:数据 / AI / 第三方 / 撤回 / 联系)
- * - [blocks]:H2 之后的 block 列表,直到下一个 H2 或文档末尾(不包含 H2 自身,
+ * - [blocks]:H2 之后的 block 列表，直到下一个 H2 或文档末尾(不包含 H2 自身，
  *   不包含 H1)
  */
 data class ConsentSection(
@@ -155,7 +155,7 @@ data class ConsentSection(
  * animation-system-and-consent-redesign §7.1 + §7.2:按 H2 分组 + 关键词 → 图标映射。
  *
  * 调用方传入 `summaryResolver: (title) -> Int?` 把 title 映射到对应 stringRes(放在
- * ViewModel / 业务层管理 string key,避免本纯解析模块耦合 strings.xml)。
+ * ViewModel / 业务层管理 string key，避免本纯解析模块耦合 strings.xml)。
  *
  * 未匹配到关键词的 section 默认 [Icons.Filled.Storage](兜底「数据」主题)。
  */
@@ -169,11 +169,11 @@ fun parseGroupedMarkdown(raw: String, summaryResolver: (title: String) -> Int?):
     fun flush() {
         val title = currentTitle ?: return
         val summary = summaryResolver(title)
-        // 无论 summary 是否为 null,都要清空 currentBlocks,避免泄漏到下一个 section。
+        // 无论 summary 是否为 null，都要清空 currentBlocks，避免泄漏到下一个 section。
         val blocksToFlush = currentBlocks.toList()
         currentBlocks.clear()
         if (summary == null) return
-        // CR-FIX-M8:sectionId 只在 section 实际入列时递增,避免被丢弃的 section 占用 ID。
+        // CR-FIX-M8:sectionId 只在 section 实际入列时递增，避免被丢弃的 section 占用 ID。
         val nextId = sectionId
         sectionId = nextId + 1
         sections += ConsentSection(
@@ -206,7 +206,7 @@ fun parseGroupedMarkdown(raw: String, summaryResolver: (title: String) -> Int?):
 /**
  * animation-system-and-consent-redesign §7.2:标题关键词 → ImageVector 映射。
  *
- * 关键词按顺序匹配,匹配到返回对应图标;未匹配到返回 [Icons.Filled.Storage](数据兜底)。
+ * 关键词按顺序匹配，匹配到返回对应图标;未匹配到返回 [Icons.Filled.Storage](数据兜底)。
  * 设计阶段规划的 5 类:数据 / AI / 第三方 / 撤回 / 联系。
  */
 private fun iconForTitle(title: String): ImageVector {

@@ -11,7 +11,7 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "note_attachments",
-    // fix-2026-06-25-review-r1 H1:JOIN attachments ON noteId = ? 走全表扫,
+    // fix-2026-06-25-review-r1 H1:JOIN attachments ON noteId = ? 走全表扫，
     // 加 `Index("noteId")` 让查询走索引。
     indices = [Index("noteId")],
     foreignKeys = [

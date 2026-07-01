@@ -17,9 +17,9 @@ import kotlinx.coroutines.launch
  * 与 `BuildConfig.VERSION_CODE` 比对。
  *
  * 三种结果:
- * - `UpToDate`:远端 versionCode <= 本地,提示「已是最新 vX」即可
- * - `UpdateAvailable`:弹 dialog,展示新版本 versionName + releaseNotes;下载走现有 ApkDownloader(spec)
- * - `Failed`:网络/解析/HTTP 错误统一提示「检查失败,稍后重试」
+ * - `UpToDate`:远端 versionCode <= 本地，提示「已是最新 vX」即可
+ * - `UpdateAvailable`:弹 dialog，展示新版本 versionName + releaseNotes;下载走现有 ApkDownloader(spec)
+ * - `Failed`:网络/解析/HTTP 错误统一提示「检查失败，稍后重试」
  *
  * 消费方:`MyScreen` 收集 state,Snackbar 提示 UpToDate/Failed,AlertDialog 提示 UpdateAvailable。
  */
@@ -52,7 +52,7 @@ constructor(
         }
     }
 
-    /** dialog 关闭 / snackbar 消费后清回 Idle,避免重组时再触发一次。 */
+    /** dialog 关闭 / snackbar 消费后清回 Idle，避免重组时再触发一次。 */
     fun consume() {
         _state.value = CheckUpdateState.Idle
     }

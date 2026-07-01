@@ -48,7 +48,7 @@ class MarkdownDocxConverterTest {
             .bufferedReader().readText()
         val blocks = md2docx.convert(sample)
         val reversed = docx2md.convert(blocks)
-        // 关键元素断言(不要求字符 1:1,因为空白规范化由 normalize() 负责)
+        // 关键元素断言(不要求字符 1:1，因为空白规范化由 normalize() 负责)
         assertTrue(reversed.contains("# 一级标题"))
         assertTrue(reversed.contains("**粗体**"))
         assertTrue(reversed.contains("*斜体*"))
@@ -64,7 +64,7 @@ class MarkdownDocxConverterTest {
     @Test
     fun `unsupported html degrades to paragraph raw`() = runTest {
         val blocks = md2docx.convert("<div>raw html</div>")
-        // 无 matched prefix → 走 paragraph 默认分支,保留 raw 文本
+        // 无 matched prefix → 走 paragraph 默认分支，保留 raw 文本
         assertEquals(1, blocks.size)
         val p = blocks[0] as FeishuBlock.Paragraph
         assertTrue(p.runs[0].text.contains("<div>raw html</div>"))

@@ -4,7 +4,7 @@
 
 ### Requirement: Internal testing scope is 5 testers + debug channel only
 
-v1 internal testing MUST 限制在 5 人范围(自用 + 朋友),APK 分发 MUST 走 debug 通道(`./gradlew :app:assembleDebug` 产物),MUST NOT 走 release 通道(`./gradlew :app:assembleRelease` 需 R8 签名凭据,本阶段不允许)。
+v1 internal testing MUST 限制在 5 人范围(自用 + 朋友),APK 分发 MUST 走 debug 通道(`./gradlew :app:assembleDebug` 产物),MUST NOT 走 release 通道(`./gradlew :app:assembleRelease` 需 R8 签名凭据，本阶段不允许)。
 
 `docs/usage/internal-testing.md` MUST 明文标注 testers 范围 + 通道限定 + 升级到 release 的条件(留待 v1.1 稳定性验证后切)。
 
@@ -36,11 +36,11 @@ v1 internal testing MUST 限制在 5 人范围(自用 + 朋友),APK 分发 MUST 
 
 #### Scenario: MiniMax / MiMo placeholder documented
 - **WHEN** 读 runbook MiniMax / MiMo 段
-- **THEN** 显式说明 "内测阶段 placeholder,真机 verify 留待 v1.1"
+- **THEN** 显式说明 "内测阶段 placeholder，真机 verify 留待 v1.1"
 
 ### Requirement: ROM compatibility matrix covers 4 OEMs with verify state
 
-`docs/usage/rom-compatibility-notes.md` MUST 在 release-readiness 已落档的 4 大 OEM(小米 MIUI / 华为 HarmonyOS / OPPO ColorOS / vivo OriginOS)段落之外,**新增**一张 4 列 markdown 验证矩阵:
+`docs/usage/rom-compatibility-notes.md` MUST 在 release-readiness 已落档的 4 大 OEM(小米 MIUI / 华为 HarmonyOS / OPPO ColorOS / vivo OriginOS)段落之外，**新增**一张 4 列 markdown 验证矩阵:
 
 | 列 | 含义 |
 |---|---|
@@ -59,7 +59,7 @@ v1 internal testing MUST 限制在 5 人范围(自用 + 朋友),APK 分发 MUST 
 
 ### Requirement: Known issues document exists with severity + workaround
 
-`docs/usage/known-issues.md` MUST 首版存在,包含从 R5 review / R6 review / entity-extraction-polish deferred / 国产 ROM widget 限制 4 类源汇总的 known issues,每条 MUST 含:
+`docs/usage/known-issues.md` MUST 首版存在，包含从 R5 review / R6 review / entity-extraction-polish deferred / 国产 ROM widget 限制 4 类源汇总的 known issues，每条 MUST 含:
 - `severity`: CRITICAL / HIGH / MEDIUM / LOW
 - `description`: 问题描述 + 触发场景 + 复现步骤
 - `workaround`: 临时降级方案(用户可绕过)
@@ -79,8 +79,8 @@ v1 internal testing MUST 限制在 5 人范围(自用 + 朋友),APK 分发 MUST 
 
 ### Requirement: Feedback channel documented with bug report template
 
-`docs/usage/feedback-channel.md` MUST 存在,包含:
-1. 反馈入口占位(邮件 / 飞书机器人 / 微信群二维码,`TODO(替换为实际联系方式)` 占位文本由用户后续替换)
+`docs/usage/feedback-channel.md` MUST 存在，包含:
+1. 反馈入口占位(邮件 / 飞书机器人 / 微信群二维码，`TODO(替换为实际联系方式)` 占位文本由用户后续替换)
 2. bug report 模板(设备型号 / 系统版本 / app versionCode / 复现步骤 / 期望 vs 实际 / 截图 / logcat)
 3. 提单流程(截图 → 模板填 → 发到对应渠道 → AI 每周扫一次 → 落到 known-issues.md)
 
@@ -94,7 +94,7 @@ v1 internal testing MUST 限制在 5 人范围(自用 + 朋友),APK 分发 MUST 
 
 #### Scenario: No issue tracker required
 - **WHEN** grep `feedback-channel.md` 整文
-- **THEN** 0 个 GitHub Issues / Jira / Sentry 强制要求引用(可有"如需升级到 issue tracker"留 v2 说明,但 MUST NOT 是当前必需路径)
+- **THEN** 0 个 GitHub Issues / Jira / Sentry 强制要求引用(可有"如需升级到 issue tracker"留 v2 说明，但 MUST NOT 是当前必需路径)
 
 ### Requirement: Internal testing MVP acceptance criteria is 4 weeks + zero blocker
 

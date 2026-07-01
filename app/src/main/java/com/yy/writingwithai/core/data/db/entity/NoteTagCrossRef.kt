@@ -6,8 +6,8 @@ import androidx.room.Index
 /**
  * 笔记 ↔ 标签 多对多交叉表。
  *
- * - `noteId`: 外键到 [NoteEntity.id](逻辑外键,M1 不开 `ForeignKey` 注解,避免级联约束与删除逻辑打架)
- * - `tag`: 自由文本(M1 不规范化,不做 `tags` 表)
+ * - `noteId`: 外键到 [NoteEntity.id](逻辑外键，M1 不开 `ForeignKey` 注解，避免级联约束与删除逻辑打架)
+ * - `tag`: 自由文本(M1 不规范化，不做 `tags` 表)
  *
  * 联合主键 `(noteId, tag)` 保证同一笔记不会挂重复 tag;
  * 两个独立二级索引让"按 tag 查所有笔记"和"按笔记查所有 tag"都走索引。

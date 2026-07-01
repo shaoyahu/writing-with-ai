@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * entity-extraction-polish §4.1:设置页 VM,统一管理 threshold / pauseBackfill / WorkInfo 订阅 /
+ * entity-extraction-polish §4.1:设置页 VM，统一管理 threshold / pauseBackfill / WorkInfo 订阅 /
  * 强制重排按钮。
  *
  * 设计:threshold 默认对齐 SQL 当前 0.10(从 store 读),slider 范围 0.05–0.80。
@@ -35,13 +35,13 @@ constructor(
 ) : ViewModel() {
 
     /**
-     * §4.3:一次性迁移 banner — 升级时若 store 里残留 >0.50 的旧值,自动重置 0.10 并提示用户。
-     * bannerFlow 是普通 StateFlow,首次消费后调用 [acknowledgeMigrationBanner] 清空。
+     * §4.3:一次性迁移 banner — 升级时若 store 里残留 >0.50 的旧值，自动重置 0.10 并提示用户。
+     * bannerFlow 是普通 StateFlow，首次消费后调用 [acknowledgeMigrationBanner] 清空。
      */
     private val _migrationBanner = MutableStateFlow(false)
     val migrationBanner: StateFlow<Boolean> = _migrationBanner.asStateFlow()
 
-    /** Slider 范围与默认值,UI 用。 */
+    /** Slider 范围与默认值，UI 用。 */
     val sliderRange: ClosedFloatingPointRange<Float> = THRESHOLD_RANGE
     val sliderSteps: Int = THRESHOLD_STEPS
     val defaultThreshold: Float = THRESHOLD_DEFAULT.toFloat()
@@ -58,7 +58,7 @@ constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, assocSettings.pauseBackfill())
 
     /**
-     * §4.4:WorkInfo 订阅 — tag = entity_backfill,优先取最新 non-terminal worker(RUNNING / ENQUEUED / BLOCKED)。
+     * §4.4:WorkInfo 订阅 — tag = entity_backfill，优先取最新 non-terminal worker(RUNNING / ENQUEUED / BLOCKED)。
      *
      * R4-2-D fix:原实现 `infos.maxByOrNull { state.ordinal }` 在 REPLACE 后会选旧 CANCELLED worker
      * (ordinal=5),UI 显示 stale 状态而非新 ENQUEUED (ordinal=0)。现在优先 non-terminal,
@@ -95,7 +95,7 @@ constructor(
         _migrationBanner.value = false
     }
 
-    /** §4.1:Slider `onValueChangeFinished` 调,节流写盘。 */
+    /** §4.1:Slider `onValueChangeFinished` 调，节流写盘。 */
     fun onThresholdChangeFinished(value: Float) {
         val clamped = value.coerceIn(THRESHOLD_RANGE.start, THRESHOLD_RANGE.endInclusive)
         assocSettings.setThreshold(clamped)
@@ -105,19 +105,19 @@ constructor(
         assocSettings.setPauseBackfill(value)
         if (value) {
             // R4-2-B fix:用户切到 pause=true 时主动取消已 enqueue 的 worker。
-            // R5-1 fix:不写 PREF_DONE(只有 Worker success 才写),见 BackfillScheduler.pauseEntityBackfill KDoc。
+            // R5-1 fix:不写 PREF_DONE(只有 Worker success 才写)，见 BackfillScheduler.pauseEntityBackfill KDoc。
             backfillScheduler.pauseEntityBackfill()
         } else {
             // R4-2-A fix:用 scheduleEntityBackfillResume(KEEP) 而不是 scheduleEntityBackfillNow(REPLACE)。
-            // REPLACE 会取消任何 in-flight RUNNING worker,丢已抽取的 N 笔记进度;
-            // unpause 语义是"让进行中的 backfill 继续",不是"扔掉重启"。
+            // REPLACE 会取消任何 in-flight RUNNING worker，丢已抽取的 N 笔记进度;
+            // unpause 语义是"让进行中的 backfill 继续"，不是"扔掉重启"。
             backfillScheduler.scheduleEntityBackfillResume()
         }
     }
 
     /** §4.2:「立即重跑回填」按钮 — force=true 绕过 pause,Worker 自检仍生效。 */
     fun onReRunClick() {
-        // R5-3 fix:同步读 pauseBackfill,防止 StateFlow lag 期间按钮仍 enabled 导致
+        // R5-3 fix:同步读 pauseBackfill，防止 StateFlow lag 期间按钮仍 enabled 导致
         // force=true enqueue → Worker shouldRun=false → red FAILED "已暂停"。
         if (assocSettings.pauseBackfill()) return
         viewModelScope.launch {
@@ -126,7 +126,7 @@ constructor(
     }
 
     companion object {
-        // §4.1:Slider 范围 0.05–0.80,step 0.05,默认 0.10(对齐 SQL 当前值)。
+        // §4.1:Slider 范围 0.05–0.80,step 0.05，默认 0.10(对齐 SQL 当前值)。
         val THRESHOLD_RANGE: ClosedFloatingPointRange<Float> = 0.05f..0.80f
         const val THRESHOLD_STEPS = 14
         const val THRESHOLD_DEFAULT = 0.10f

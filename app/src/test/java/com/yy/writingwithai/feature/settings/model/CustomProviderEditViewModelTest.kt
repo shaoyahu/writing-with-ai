@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test
  * - `onApiFormatChanged` 更新 state
  * - `loadExisting` 回填 apiFormat(OPENAI 配置加载后 state.apiFormat = OPENAI)
  * - `buildConfig` 选 OPENAI / ANTHROPIC → 返回 ProviderConfig.apiFormat 与之对应;
- *   baseUrl 直用,不追加 path(endpointPath 永远 = "")
+ *   baseUrl 直用，不追加 path(endpointPath 永远 = "")
  * - `save` 走的 config 含 OPENAI(apiFormat 通过 buildConfig 透传到 store.save)
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -171,7 +171,7 @@ class CustomProviderEditViewModelTest {
     }
 
     /**
-     * custom-provider-api-format · baseUrl 末尾 `/` 被剥,避免拼成双斜杠。
+     * custom-provider-api-format · baseUrl 末尾 `/` 被剥，避免拼成双斜杠。
      */
     @Test
     fun buildConfig_anthropic_trailingSlashStripped() = runTest(dispatcher) {

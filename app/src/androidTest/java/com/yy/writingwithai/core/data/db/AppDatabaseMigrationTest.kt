@@ -11,15 +11,15 @@ import org.junit.runner.RunWith
 /**
  * fix-2026-06-25-review-r1 M9 · AppDatabase 1→9 AutoMigration 验证。
  *
- * 之前 r1:AppDatabase 累计 7 个 `@AutoMigration` 但没有 `MigrationTestHelper` 覆盖,
- * 如果 `app/schemas/.../<n>.json` 漏提交某个版本,生产 v8 升级 v9 时 AutoMigration
+ * 之前 r1:AppDatabase 累计 7 个 `@AutoMigration` 但没有 `MigrationTestHelper` 覆盖，
+ * 如果 `app/schemas/.../<n>.json` 漏提交某个版本，生产 v8 升级 v9 时 AutoMigration
  * 会抛 IllegalStateException 启动崩溃。
  *
  * 现版:在 androidTest 走真实 SQLite 跑全链路 AutoMigration。本地
  * `./gradlew :app:testDebugUnitTest` **不会**跑此 test(androidTest 必须连接设备
  * / 模拟器),CI 跑 `:app:connectedDebugAndroidTest` 时执行。schema 路径
  * `app/schemas/com.yy.writingwithai.core.data.db.AppDatabase/<n>.json` 由
- * `app/build.gradle.kts` 的 KSP arg `room.schemaLocation` 生成,
+ * `app/build.gradle.kts` 的 KSP arg `room.schemaLocation` 生成，
  * `MigrationTestHelper` 默认从 instrumentation context 读 `schemas/` 资源。
  *
  * spec:openspec/changes/quick-note-feature/specs/quick-note/spec.md

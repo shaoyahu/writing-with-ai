@@ -7,13 +7,13 @@ import kotlin.math.floor
 /**
  * entity-extraction-association · note link candidate cap 策略。
  *
- * v1 规则:单笔记最多 [cap] 条,ENTITY_HIT 约占 [entityRatio](默认 66%),
+ * v1 规则:单笔记最多 [cap] 条，ENTITY_HIT 约占 [entityRatio](默认 66%),
  * 其余留给 LLM_EXTRACT / TAG_OVERLAP / WIKILINK / CONTENT_SIM。任一侧不足时由另一侧补齐。
  */
 object NoteLinkCap {
     /**
      * entity-extraction-polish §2.4:加 [threshold] 形参 — score ≤ threshold 的候选在 cap 之前先剔除。
-     * SQL 层(`NoteLinkDao.getRelated` / `getBacklinks`)也做同样过滤,这里冗余防御 +
+     * SQL 层(`NoteLinkDao.getRelated` / `getBacklinks`)也做同样过滤，这里冗余防御 +
      * 覆盖 entity backlinker / composite 路径写入的边(不走 DAO 聚合)。
      */
     fun enforce(

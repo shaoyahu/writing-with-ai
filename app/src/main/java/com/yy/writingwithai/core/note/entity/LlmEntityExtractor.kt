@@ -22,10 +22,10 @@ import kotlinx.serialization.json.jsonPrimitive
 /**
  * entity-extraction-association · LLM 实体抽取实现(tasks §2.5)。
  *
- * 通过 `AiGateway.streamWritingOp(op=EXPAND, systemPrompt=...)` 取 JSON 数组,
+ * 通过 `AiGateway.streamWritingOp(op=EXPAND, systemPrompt=...)` 取 JSON 数组，
  * 容错解析 + key 规范化 + 写入 `note_entities`。
  *
- * 安全:用户 content 包含 `ignore previous instructions` / `忽略之前指令` 时跳过抽取,
+ * 安全:用户 content 包含 `ignore previous instructions` / `忽略之前指令` 时跳过抽取，
  * 防止 prompt 注入(spec §8.2)。
  */
 @Singleton
@@ -44,8 +44,8 @@ constructor(
             val content = note.title + "\n" + note.content
             if (containsInjection(content)) return@withContext 0
 
-            // review r1 C1:与 SemanticNoteLinker 对齐,走 secureApiKeyStore 取真实 provider + apikey;
-            // release 构建 fake provider 不在 map 中,硬编码 "fake" 会全量静默失败。
+            // review r1 C1:与 SemanticNoteLinker 对齐，走 secureApiKeyStore 取真实 provider + apikey;
+            // release 构建 fake provider 不在 map 中，硬编码 "fake" 会全量静默失败。
             val providers = secureApiKeyStore.observeConfiguredProviders().first()
             val providerId = providers.firstOrNull()
                 ?: if (com.yy.writingwithai.BuildConfig.DEBUG) "fake" else return@withContext 0
@@ -118,7 +118,7 @@ constructor(
     companion object {
         const val ENTITY_EXTRACT_SYSTEM_ZH: String =
             "你是笔记实体抽取助手。从文本中抽取 PERSON / WORK / LOCATION 三类实体。" +
-                "每条输出 JSON 对象 {type,key,surface},仅返回 JSON 数组,key 用小写英文。"
+                "每条输出 JSON 对象 {type,key,surface}，仅返回 JSON 数组，key 用小写英文。"
 
         // fix-2026-06-24-review-r1-critical:LLM 输出字符上限 ≈ 4K tokens
         // fix-2026-06-26-review-r3 LOW:去重到 AiConstants.LLM_MAX_OUTPUT_CHARS

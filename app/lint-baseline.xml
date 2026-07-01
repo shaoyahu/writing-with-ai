@@ -1129,7 +1129,7 @@
     <issue
         id="UnusedResources"
         message="The resource `R.string.reset_apikey_prompt_toast` appears to be unused"
-        errorLine1="    &lt;string name=&quot;reset_apikey_prompt_toast&quot;>已重置,下次 AI 调用时会再次显示说明&lt;/string>"
+        errorLine1="    &lt;string name=&quot;reset_apikey_prompt_toast&quot;>已重置，下次 AI 调用时会再次显示说明&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
@@ -1250,7 +1250,7 @@
     <issue
         id="UnusedResources"
         message="The resource `R.string.model_provider_detail_base_url_locked_hint` appears to be unused"
-        errorLine1="    &lt;string name=&quot;model_provider_detail_base_url_locked_hint&quot;>端点由 provider 预置,不可修改&lt;/string>"
+        errorLine1="    &lt;string name=&quot;model_provider_detail_base_url_locked_hint&quot;>端点由 provider 预置，不可修改&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"

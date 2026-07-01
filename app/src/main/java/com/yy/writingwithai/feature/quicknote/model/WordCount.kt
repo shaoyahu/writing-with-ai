@@ -17,19 +17,19 @@ object WordCount {
     internal fun cjkCount(content: String): Int = CJK_REGEX.findAll(content).count()
 
     internal fun englishWordCount(content: String): Int {
-        // 先把 CJK 字符替换成空格,避免它们被英文 split 当成"1 个词"
+        // 先把 CJK 字符替换成空格，避免它们被英文 split 当成"1 个词"
         val noCjk = CJK_REGEX.replace(content, " ")
         val stripped = NON_WORD.replace(noCjk, " ")
         return stripped.split(' ').count { it.isNotBlank() }
     }
 
-    // CJK 统一表意 + 平假名 + 片假名(显式范围,避免依赖 script flag)
+    // CJK 统一表意 + 平假名 + 片假名(显式范围，避免依赖 script flag)
     private val CJK_REGEX = Regex("[\\u4e00-\\u9fff\\u3040-\\u309f\\u30a0-\\u30ff]")
     private val NON_WORD = Regex("[^\\p{L}\\p{N}']+")
 }
 
 /**
- * 预估阅读时间(分钟):取中文速率与英文速率较慢者,向上取整(spec §"Word count and reading time")。
+ * 预估阅读时间(分钟):取中文速率与英文速率较慢者，向上取整(spec §"Word count and reading time")。
  */
 object ReadingTime {
     private const val CN_WPM = 300

@@ -2,7 +2,7 @@
 
 ### Requirement: AppNav startDestination is AppShell with My tab
 
-`AppNav.kt` MUST 把 `startDestination` 由 `QuicknoteList` 改为新引入的 `AppShell` route;`AppShell` 是承载底部 tab bar 的容器 Composable(`app/AppShell.kt`),内部嵌入子 NavHost 渲染 `Notes` / `Me` 两个 tab 根屏。
+`AppNav.kt` MUST 把 `startDestination` 由 `QuicknoteList` 改为新引入的 `AppShell` route;`AppShell` 是承载底部 tab bar 的容器 Composable(`app/AppShell.kt`)，内部嵌入子 NavHost 渲染 `Notes` / `Me` 两个 tab 根屏。
 
 #### Scenario: AppNav startDestination 已切到 AppShell
 - **WHEN** grep `AppNav.kt` `startDestination`
