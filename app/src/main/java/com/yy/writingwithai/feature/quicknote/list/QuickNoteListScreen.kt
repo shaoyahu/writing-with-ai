@@ -17,12 +17,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -116,6 +118,11 @@ fun QuickNoteListScreen(
     var showAddTagFor by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
+        // app-bottom-tab-bar · 跟【我的】tab 一致:AppShell 外层 Scaffold 已用 innerPadding
+        // 扣掉 bottomBar(tab 栏)占位,这里不应再吃 bottom inset(默认 systemBars 含 bottom),
+        // 否则 LazyColumn 滚到底会跟 tab 栏之间留一段空隙。改成只吃 statusBars 让 TopAppBar
+        // 正常避让状态栏,horizontal + bottom 全交给外层。
+        contentWindowInsets = WindowInsets.statusBars,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.quicknote_list_title)) }

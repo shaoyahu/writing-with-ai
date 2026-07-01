@@ -83,11 +83,11 @@ constructor(
 // 之前硬编码 path = /anthropic/v1/messages 对 DeepSeek 用户造成 /anthropic 重复
 // (logcat 23:53:08 验证:POST https://api.deepseek.com/anthropic/anthropic/v1/messages
 // → 404,因为 DeepSeek baseUrl 已经含 /anthropic,adapter 不应再拼)。
-val url = if (config.endpointPath.isBlank()) {
-    baseUrl
-} else {
-    "$baseUrl${config.endpointPath}"
-}
+            val url = if (config.endpointPath.isBlank()) {
+                baseUrl
+            } else {
+                "$baseUrl${config.endpointPath}"
+            }
             // fix-2026-06-24-review-r1-high H9:strip role-marker + cap length 8192
             val systemPrompt = sanitizeSystemPrompt(request.systemPrompt ?: systemPromptFor(request.op))
 

@@ -145,8 +145,7 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
                             // ux-2026-06-28 P6:笔记关联设置专属路由
                             MeTabTarget.SettingsNoteAssociation -> rootNavController.navigate(SettingsNoteAssociation)
                         }
-                    },
-                    onBack = { innerNavController.popBackStack(Notes, inclusive = false) }
+                    }
                 )
             }
         }

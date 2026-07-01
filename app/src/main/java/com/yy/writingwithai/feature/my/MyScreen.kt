@@ -6,14 +6,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Animation
 import androidx.compose.material.icons.filled.Cloud
@@ -27,7 +28,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -68,14 +68,14 @@ import com.yy.writingwithai.app.ui.theme.WritingAppTheme
  * ux-2026-06-28 #7:关于页新增「检查更新」可点击入口 → `CheckUpdateViewModel` 拉远端 manifest,
  * 已是最新 / 失败 → Snackbar;有新版本 → AlertDialog(下载流程后续 PR 接入 ApkDownloader)。
  *
- * TopAppBar 含 `navigationIcon = ArrowBack` 走 `onBack` lambda(spec 2.4 — 所有非主页
- * destination TopAppBar 含 navigationIcon = ArrowBack)。
+ * TopAppBar 无 `navigationIcon` ——【我的】是 `AppShell` 内嵌子 NavHost 的顶级 tab 根屏
+ * (spec 2.4:所有**非主页** destination TopAppBar 才含 `navigationIcon = ArrowBack`),
+ * 顶级 tab 不应有返回箭头,tab 切换由底部 `AppTabBar` 走 navigate 而非 pop。
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MyScreen(
     onNavigate: (MeTabTarget) -> Unit,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     // ux-2026-06-28 #7:关于页「检查更新」VM。Hilt 默认注入,无外部依赖。
     viewModel: CheckUpdateViewModel = hiltViewModel()
@@ -104,17 +104,14 @@ fun MyScreen(
     }
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        // ux-2026-07-01 #tab-gap:AppShell 外层 Scaffold 已用 innerPadding 扣掉 bottomBar(tab 栏)
+        // 占位,内层 Scaffold 不应再吃 bottom inset(默认 contentWindowInsets = systemBars 包含
+        // bottom),否则 LazyColumn 滚到底会跟 tab 栏之间留一段空隙。
+        // 改成只吃 statusBars 让 TopAppBar 正常避让状态栏(horizontal + bottom 全交给外层)。
+        contentWindowInsets = WindowInsets.statusBars,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.me_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.common_back)
-                        )
-                    }
-                }
+                title = { Text(stringResource(R.string.me_title)) }
             )
         },
         // ux-2026-06-28 #7:检查更新 Snackbar 通道(UpToDate / Failed 用)
@@ -345,6 +342,6 @@ private fun MyAboutItem(title: String) {
 @Composable
 private fun MyScreenPreview() {
     WritingAppTheme {
-        MyScreen(onNavigate = {}, onBack = {})
+        MyScreen(onNavigate = {})
     }
 }
