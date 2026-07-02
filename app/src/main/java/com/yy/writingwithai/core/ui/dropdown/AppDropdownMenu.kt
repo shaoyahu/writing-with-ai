@@ -1,5 +1,3 @@
-@file:Suppress("FunctionNaming")
-
 package com.yy.writingwithai.core.ui.dropdown
 
 import androidx.compose.foundation.layout.Row
@@ -202,9 +200,12 @@ fun <T> AppSelectionDropdown(
                     },
                     trailingIcon = if (isSelected) {
                         {
+                            // review-2026-07-02 finding-3:为选中态 Check icon 加
+                            // contentDescription="已选中",让 TalkBack 读出选中状态,
+                            // 而非读 null(会跳过此 icon,只读 row 文字)。
                             Icon(
                                 imageVector = Icons.Filled.Check,
-                                contentDescription = null,
+                                contentDescription = "Selected",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }

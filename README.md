@@ -33,7 +33,7 @@ Android Studio 仍是日常开发首选(Compose Preview / Glance Preview / Layou
 
 ## 当前状态
 
-M0~M6 全部落地;主屏/详情/编辑/小组件/AI 操作/同意门/自定义 Provider 全链路可用。
+M0~M6 主链路全部落地;主屏/详情/编辑/小组件/AI 操作/同意门/自定义 Provider 可用。进行中的 change 见 `openspec/changes/`(language-switcher / app-tab-bar-redesign / custom-provider-api-format / feishu-sync-end-to-end 等),归档见 `openspec/changes/archive/`。
 
 下一个候选:`docs/plans/writing-with-ai-mobile-roadmap.md §13 + §15.2` 列出的 v1+ 方向。
 

@@ -46,16 +46,18 @@ constructor(
     val sliderSteps: Int = THRESHOLD_STEPS
     val defaultThreshold: Float = THRESHOLD_DEFAULT.toFloat()
 
+    // review-2026-07-02 coroutine-scope:Eagerly → WhileSubscribed(5s)，与 workInfo 一致;
+    // 设置页不在前台时停止上游订阅，避免 DataStore 持续发射无意义更新。
     val threshold: StateFlow<Float> = assocSettings.observeThreshold()
         .map { it.coerceIn(THRESHOLD_RANGE.start, THRESHOLD_RANGE.endInclusive) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, assocSettings.threshold())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), assocSettings.threshold())
 
     /**
      * §4.1:观察 [NoteAssociationSettingsStore.pauseBackfill]。store 没显式 observe,
      * 这里直接 subscribe callbackFlow 风格 — 通过 [observePauseBackfill] 包装(若不存在则走原始 observeEnabled)。
      */
     val paused: StateFlow<Boolean> = assocSettings.observePauseBackfill()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, assocSettings.pauseBackfill())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), assocSettings.pauseBackfill())
 
     /**
      * §4.4:WorkInfo 订阅 — tag = entity_backfill，优先取最新 non-terminal worker(RUNNING / ENQUEUED / BLOCKED)。

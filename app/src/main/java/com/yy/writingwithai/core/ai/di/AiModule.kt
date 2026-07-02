@@ -15,18 +15,34 @@ import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
+import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AiModule {
+    // review-2026-07-02 SEC-007:对三家内置 provider 配 TLS pin,防 MITM 替换 root CA 后
+    // 截获 apikey / prompt。pin 集合是 SPKI SHA-256 base64;若 provider 轮换证书,
+    // 需要同步更新这里,否则 OkHttp 抛 SSLPeerUnverifiedException。
+    //
+    // 自定义 provider 由用户自配 baseUrl,不在此 pin 范围(走系统 trust store)。
+    //
+    // 当前不在此处预配真实 pin(防止 placeholder pin 阻断真请求),改在 `res/xml/network_security_config.xml`
+    // 配 `<pin-set>` 块 + 走 BuildConfig.TLS_PINNING_ENABLED 开关;开关关闭时走系统 trust store,
+    // 开启时严格 pin。release 前由 ops 用 openssl s_client 取各家 leaf/intermediate SPKI 写入。
+    private val aiCertificatePinner: CertificatePinner? = null
+        .takeIf { false } // 占位:开启时改 `false` → `BuildConfig.TLS_PINNING_ENABLED`
+
     @Provides
     @Singleton
     @Named("ai")
-    fun provideAiOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    fun provideAiOkHttpClient(): OkHttpClient {
+        val builder = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+        aiCertificatePinner?.let { builder.certificatePinner(it) }
+        return builder.build()
+    }
 
     /**
      * fix-2026-06-24-review-r1-critical:仅在 `BuildConfig.DEBUG` 时注册 `FakeAiProvider`,

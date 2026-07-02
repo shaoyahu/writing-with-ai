@@ -3,6 +3,7 @@
 package com.yy.writingwithai.feature.settings.i18n
 
 import android.app.Activity
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,10 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
+import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
+import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.core.i18n.LocaleSelection
 
 /**
@@ -50,7 +52,21 @@ fun SettingsLanguageScreen(
     viewModel: SettingsLanguageViewModel = hiltViewModel()
 ) {
     val current by viewModel.current.collectAsStateWithLifecycle()
-    val activity = LocalContext.current as? Activity
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val spacing = LocalSpacing.current
+    val cornerRadius = LocalCornerRadius.current
+
+    // review-2026-07-02 code-quality:非 Activity context(如 Preview / Glance)时
+    // 静默忽略点击会令用户困惑;改为 Toast 提示"无法切换"。
+    val onSelect: (LocaleSelection) -> Unit = { selection ->
+        val act = activity
+        if (act != null) {
+            viewModel.select(selection, act)
+        } else {
+            Toast.makeText(context, "Cannot switch language in this context", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -72,16 +88,16 @@ fun SettingsLanguageScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)
+                .padding(spacing.md)
         ) {
             Text(
                 text = stringResource(R.string.settings_language_section_display),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary
             )
-            Spacer(Modifier.size(8.dp))
+            Spacer(Modifier.size(spacing.sm))
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(cornerRadius.lg),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -89,21 +105,21 @@ fun SettingsLanguageScreen(
                     LanguageOption(
                         label = stringResource(R.string.settings_language_option_system),
                         selected = current == LocaleSelection.SYSTEM,
-                        onClick = { activity?.let { viewModel.select(LocaleSelection.SYSTEM, it) } }
+                        onClick = { onSelect(LocaleSelection.SYSTEM) }
                     )
                     LanguageOption(
                         label = stringResource(R.string.settings_language_option_zh),
                         selected = current == LocaleSelection.ZH,
-                        onClick = { activity?.let { viewModel.select(LocaleSelection.ZH, it) } }
+                        onClick = { onSelect(LocaleSelection.ZH) }
                     )
                     LanguageOption(
                         label = stringResource(R.string.settings_language_option_en),
                         selected = current == LocaleSelection.EN,
-                        onClick = { activity?.let { viewModel.select(LocaleSelection.EN, it) } }
+                        onClick = { onSelect(LocaleSelection.EN) }
                     )
                 }
             }
-            Spacer(Modifier.size(12.dp))
+            Spacer(Modifier.size(spacing.sm2))
             Text(
                 text = stringResource(R.string.settings_language_hint),
                 style = MaterialTheme.typography.bodySmall,
@@ -115,20 +131,21 @@ fun SettingsLanguageScreen(
 
 @Composable
 private fun LanguageOption(label: String, selected: Boolean, onClick: () -> Unit) {
+    val spacing = LocalSpacing.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = spacing.md, vertical = spacing.sm2),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Filled.Translate,
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(spacing.md2 - spacing.xs),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.size(12.dp))
+        Spacer(Modifier.size(spacing.sm2))
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,

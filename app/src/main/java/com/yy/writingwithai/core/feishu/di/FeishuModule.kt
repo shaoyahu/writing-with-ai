@@ -3,12 +3,7 @@ package com.yy.writingwithai.core.feishu.di
 import androidx.room.withTransaction
 import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.feishu.api.AuthInterceptor
-import com.yy.writingwithai.core.feishu.api.FeishuApiClient
-import com.yy.writingwithai.core.feishu.api.FeishuApiClientImpl
-import com.yy.writingwithai.core.feishu.auth.FeishuAuthStore
-import com.yy.writingwithai.core.feishu.auth.FeishuAuthStoreImpl
 import com.yy.writingwithai.core.feishu.sync.TransactionExecutor
-import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,20 +45,8 @@ object FeishuModule {
     fun provideTransactionExecutor(db: AppDatabase): TransactionExecutor = object : TransactionExecutor {
         override suspend fun <R> execute(block: suspend () -> R): R = db.withTransaction { block() }
     }
-}
 
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class FeishuModuleBinds {
-
-    @Binds
-    @Singleton
-    abstract fun bindFeishuAuthStore(impl: FeishuAuthStoreImpl): FeishuAuthStore
-
-    @Binds
-    @Singleton
-    abstract fun bindFeishuApiClient(impl: FeishuApiClientImpl): FeishuApiClient
-
+    // review-2026-07-02 DI-005:@Binds 部分已拆到 FeishuBindsModule.kt 与其他模块惯例对齐。
     // feishu-bidir-sync providers:FeishuSyncService + FeishuConflictResolver 自身有 @Inject ctor,
     // Hilt 可直接发现，但显式通过 Module 提供以保持一致性(claude.md 约束)
 }

@@ -292,7 +292,8 @@ private fun SectionCard(cornerRadius: Dp, content: @Composable () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(cornerRadius),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        // review-2026-07-02:暗色模式下 0dp 融入背景,1dp 微差
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         content()
     }

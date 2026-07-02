@@ -65,6 +65,10 @@ interface SecureApiKeyStore {
 
     /** fix-ai-config-ux: 返回当前所有已配置 apikey 的 providerId 集合，含实时监听。 */
     fun observeConfiguredProviders(): Flow<Set<String>>
+
+    /** review-2026-07-02 SEC-016:KeyStore 健康状态。true=EncryptedSharedPreferences 可用,
+     *  false=初始化失败(keystore 损坏/未配置/TEE 不可用),上层 UI 提示用户检查设备安全状态。 */
+    val keystoreHealth: StateFlow<Boolean>
 }
 
 @Singleton
@@ -73,11 +77,18 @@ class SecureApiKeyStoreImpl
 constructor(
     @ApplicationContext private val context: Context
 ) : SecureApiKeyStore {
+    // review-2026-07-02 SEC-016:把 KeyStore 健康状态从"静默 fallback null"升级为可观测
+    // StateFlow,UI 层(MeTabTarget / 我的页)据此提示用户检查设备安全状态,而不是
+    // 把 keystore 损坏误报为"未配置 apikey"。
+    private val _keystoreHealth = MutableStateFlow(true)
+    override val keystoreHealth: StateFlow<Boolean> = _keystoreHealth.asStateFlow()
+
     private val prefs: SharedPreferences? =
         runCatching { openEncryptedPrefs() }.getOrElse { e ->
             // KeyStore 损坏(罕见:设备 root 后 / 系统重置):走 fallback，记一行日志
             // (不 log apikey，只 log 类名 + 异常类型)。
             Log.w(TAG, "EncryptedSharedPreferences init failed: ${e.javaClass.simpleName}: ${e.message}")
+            _keystoreHealth.value = false
             null
         }
 
