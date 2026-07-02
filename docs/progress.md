@@ -2,6 +2,39 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log，单次评审查 `docs/reviews/`，规划查 `docs/plans/`。
 
+## 2026-07-02 · feishu-folder-migration change(folder token 变更迁移)
+
+- **需求**:用户改 folder token 后,已在旧文件夹同步的笔记需要迁移;用户选择**只提供删除+新建**方式(不实现 move API)
+- **数据层**:
+  - `FeishuRefEntity` 新增 `folderToken: String? = null` 字段,记录创建文档时使用的 folder token;`AppDatabase` v10→11 AutoMigration
+  - `FeishuApiClient` + `FeishuApiClientImpl` 新增 `deleteFile(fileToken)` 接口,DELETE `/open-apis/drive/v1/files/{file_token}`(文件移到回收站,30 天可恢复)
+- **业务层**:
+  - `FeishuError` 新增 `FolderTokenMismatch` sealed variant(携带 `currentFolderToken` + `refFolderToken` 供 UI 展示)
+  - `FeishuDocService.createDoc` 存 `folderToken` 到 ref;新增 `deleteDoc(ref)` 降级记录(失败不抛)
+  - `FeishuSyncService.push()` 有 ref 时先检测 folder mismatch;新增 `pushWithFolderMigration(noteId, choice)` + `FolderMigrationChoice { DELETE_AND_RECREATE, UPDATE_IN_PLACE }` 枚举
+- **UI 层**:
+  - `FolderMigrationDialog` 新文件(stateless + callback 注入,沿用 ConflictResolutionDialog 模式)
+  - `QuickNoteDetailViewModel` 新增 `_showFolderMigrationDialog` + `_folderMigrationInfo` StateFlow + 3 个处理方法
+  - `QuickNoteDetailScreen` 接入对话框,`describeLocation` helper 把 token 渲染成"默认空间(根目录)"/"文件夹 fldcnABC…" label
+  - 7 个双语 i18n key(`feishu_folder_migration_*`)
+- **测试**:`SyncTestFakes.kt` FakeFeishuApiClient 加 `deleteFile()` stub + 删除计数;新 `FeishuFolderMigrationTest` 10 个 case:folderToken 记录 / mismatch 4 种组合(都 null / 都同值 / null↔value) / UPDATE_IN_PLACE / DELETE_AND_RECREATE / no-ref 错误
+- **文档**:`docs/usage/api-feishu.md` §4 改名 "文件元数据" → "文件元数据 + 文件操作" + 新 §4.2 `deleteFile` API 文档 + §7 实现映射加行 + §8.1 `feishu_ref` 表加 `folderToken` 列
+- **跑通**:`./gradlew :app:assembleDebug` ✓ / `:app:ktlintCheck` 0 violations(自动修 6 处:recordEventSafe 参数换行 + FolderMigrationChoice enum 注释前后空行 + pushWithFolderMigration 形参换行 + 函数返回类型显式 Unit)/ `:app:testDebugUnitTest` 全绿(含 10 个新 case)
+- **编译 bug 修复**:`FeishuApiClientImpl.deleteFile` 返回类型 `executeRequest` 派生 `ParsedResponse`,显式标注 `: Unit` 防暴露内部类型;`QuickNoteDetailScreen` smart cast 不适用于 delegated property,提取局部 `val migrationInfo` 走 null check
+- **未提交**:按 CLAUDE.md「提交控制」,等用户确认后 `git add` + `git commit`
+
+## 2026-07-02 · animation-switch-redesign change(动画开关解耦 + AnimatedSwitch padding 修复)
+
+- **OpenSpec change**:`animation-switch-redesign`(已归档 → `archive/2026-07-02-animation-switch-redesign`) — 用户在「我的 → 动画风格」看到 4 张卡片里嵌入的 switch 是「摆设」，遂让 2 个独立开关接管「导航动画 / 标签动画」总开关,顺手修 `AnimatedSwitch` thumb padding 不对称 bug
+  - 基础设施:`AnimationTokens.tokensFor(style, navEnabled, tabEnabled)` 顶层函数(5 字段覆盖,其它透传);`UserPrefsStore` 加 `nav_animations_enabled_v1` / `tab_animations_enabled_v1` 2 个 Boolean key + Flow + setter,默认 `true`
+  - UI 接线:`WritingAppTheme` 3 路 Flow collect(navEnabled / tabEnabled / reduceMotion);`AnimationStylePreviewViewModel` 暴露 2 个独立 `StateFlow<Boolean>` + 2 个 toggle 方法
+  - 布局重构:`AnimationStylePreviewScreen` 第一段 2 个独立开关行(`AnimationToggleRow` 新内部组件),reduce-motion 时 disabled 显示;第二段保留 4 张「风格库」卡片,**移除**每张卡片内嵌的 AnimatedSwitch 演示器
+  - 共享组件:`core/ui/AnimatedSwitch` thumb padding 算法改为 `offsetPx = 2dp + progress * 24dp`(52dp track - 24dp thumb - 2*2dp 端距 = 24dp travel,两端各 2dp 对称)
+  - i18n:`values/strings.xml` + `values-en/strings.xml` 同步加 4 个 key(`anim_toggle_nav/tab_title/description`)
+  - 单测:新建 `UserPrefsStoreTest`(7 case 覆盖 2 个 key 契约)+ `AnimationStylePreviewViewModelTest`(4 case)+ `AnimationTokensTest` 追加 4 个 `tokensFor` case
+- **跑通**:`./gradlew :app:assembleDebug` BUILD SUCCESSFUL + `./gradlew :app:ktlintCheck` 0 violations + `./gradlew :app:testDebugUnitTest` 全绿(0 failures,含 19 个新增 case)+ `./gradlew :app:installDebug` 装到 Pixel_7_API_35 + DataStore 文件确认 `nav_animations_enabled_v1` / `tab_animations_enabled_v1` 持久化
+- **未提交**:按 CLAUDE.md「提交控制」,等用户确认后 `git add` + `git commit`
+
 ## 2026-07-01 · language-switcher change(APP 内语言切换)
 
 - **OpenSpec change**:`language-switcher`(active) — 「我的 → 设置 → 语言」可手动切跟随系统 / 中文 / English,DataStore 持久化 + `recreate()` 即时生效

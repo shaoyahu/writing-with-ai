@@ -171,6 +171,8 @@ fun QuickNoteDetailScreen(
     val syncLoading by viewModel.syncLoading.collectAsStateWithLifecycle()
     val feishuRef by viewModel.feishuRef.collectAsStateWithLifecycle()
     val showConflictDialog by viewModel.showConflictDialog.collectAsStateWithLifecycle()
+    val showFolderMigrationDialog by viewModel.showFolderMigrationDialog.collectAsStateWithLifecycle()
+    val folderMigrationInfo by viewModel.folderMigrationInfo.collectAsStateWithLifecycle()
 
     var showPullDialog by remember { mutableStateOf(false) }
     var pullUrlInput by remember { mutableStateOf("") }
@@ -752,6 +754,18 @@ fun QuickNoteDetailScreen(
             onResolveKeepLocal = viewModel::resolveConflictKeepLocal,
             onResolveKeepRemote = viewModel::resolveConflictKeepRemote,
             onCancel = viewModel::cancelConflictResolution
+        )
+    }
+
+    // feishu-folder-migration:folder token 变更迁移对话框
+    val migrationInfo = folderMigrationInfo
+    if (showFolderMigrationDialog && migrationInfo != null) {
+        FolderMigrationDialog(
+            oldLocation = describeFolderLocation(migrationInfo.refFolderToken),
+            newLocation = describeFolderLocation(migrationInfo.currentFolderToken),
+            onDeleteAndRecreate = viewModel::resolveFolderMigrationDeleteAndRecreate,
+            onUpdateInPlace = viewModel::resolveFolderMigrationUpdateInPlace,
+            onCancel = viewModel::cancelFolderMigration
         )
     }
 

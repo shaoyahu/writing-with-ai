@@ -45,6 +45,9 @@ constructor(
      * fix-2026-06-30-full-review-r1 CRITICAL C2:有 ref 时，updateDoc 前先 readDoc 拿
      * 远端当前 revision，与 ref.remoteRevision 比较:不一致 → 标记 ref.status = CONFLICT
      * 并抛 [FeishuError.Conflict] 让 UI 弹冲突对话框，不再静默覆盖远端修改。
+     *
+     * feishu-folder-migration:有 ref 时，先检测当前 folder token 与 ref.folderToken 是否一致，
+     * 不一致 → 抛 [FeishuError.FolderTokenMismatch] 让 UI 弹迁移对话框。
      */
     suspend fun push(noteId: String): String = withContext(Dispatchers.IO) {
         val note = noteRepository.getNote(noteId) ?: throw FeishuError.NotFound("note $noteId")
@@ -55,6 +58,24 @@ constructor(
             val ref = docService.createDoc(note, folderToken)
             "同步完成: ${ref.docUrl}"
         } else {
+            // feishu-folder-migration:检测 folder token 变更
+            val currentFolderToken = authStore.getFolderTokenSnapshot()
+            if (currentFolderToken != existingRef.folderToken) {
+                recordEventSafe(
+                    noteId,
+                    SyncDirection.PUSH,
+                    "FOLDER_MISMATCH",
+                    "current=$currentFolderToken ref=${existingRef.folderToken}"
+                )
+                throw FeishuError.FolderTokenMismatch(
+                    noteId = noteId,
+                    docId = existingRef.docId,
+                    docUrl = existingRef.docUrl,
+                    currentFolderToken = currentFolderToken,
+                    refFolderToken = existingRef.folderToken
+                )
+            }
+
             // C2 修:远端 revision 若已变，不让 push 静默覆盖。
             val remoteContent = runCatching { docService.readDoc(existingRef.docUrl) }.getOrNull()
             val newRemoteRev = remoteContent?.revisionId.orEmpty()
@@ -73,6 +94,58 @@ constructor(
             "同步完成: ${ref.docUrl}"
         }
     }
+
+    /**
+     * feishu-folder-migration · folder token 变更后的迁移 push。
+     *
+     * 用户在 FolderMigrationDialog 中做出选择后调用:
+     * - [FolderMigrationChoice.DELETE_AND_RECREATE]: 删除远端旧文档 → 删本地 ref → 在新文件夹创建
+     * - [FolderMigrationChoice.UPDATE_IN_PLACE]: 原地更新(忽略 folder token 变更)
+     *
+     * DELETE_AND_RECREATE 路径约束:
+     * 1. 远端 deleteFile 必须返回成功 — 失败 → 抛 FeishuError.ServerError / .NetworkError(避免
+     *    远端删除失败却创建新文档,导致"旧文档仍在 + 新文档在另一文件夹"双份)
+     * 2. refDao.deleteByNoteId + createDoc 包进 txExecutor.execute,保证本地状态原子一致
+     *    (M3 H6 note + ref 必须在同一事务思路的延伸)
+     * 3. UPDATE_IN_PLACE 不涉及 ref 删除/重建,直接走 updateDoc;不通过 txExecutor
+     *    (只在 DAO 层走单条 refDao.upsert,createDoc / updateDoc 自管)
+     */
+    suspend fun pushWithFolderMigration(noteId: String, choice: FolderMigrationChoice): String =
+        withContext(Dispatchers.IO) {
+            val note = noteRepository.getNote(noteId) ?: throw FeishuError.NotFound("note $noteId")
+            val existingRef = refDao.getByNoteId(noteId)
+                ?: throw FeishuError.BadRequest(0, "no existing ref for migration")
+
+            when (choice) {
+                FolderMigrationChoice.DELETE_AND_RECREATE -> {
+                    // 1. 远端删除(必须成功;失败已被 docService.deleteDoc 内部降级记录 DELETE_FAILED 事件,
+                    //    此处把 Boolean 转成异常抛给 VM,VM 已知 DELETE_FAILED 事件存在)
+                    val deleted = docService.deleteDoc(existingRef)
+                    if (!deleted) {
+                        // 不删 ref、不创建新文档,保留旧 ref 让用户下次 push 重试或选 UPDATE_IN_PLACE
+                        recordEventSafe(
+                            noteId,
+                            SyncDirection.PUSH,
+                            "DELETE_AND_RECREATE_ABORTED",
+                            "远程删除失败,旧文档保留在原位置"
+                        )
+                        throw FeishuError.ServerError(0)
+                    }
+                    // 2+3. 本地 ref 删除 + 新建文档在同一事务内,保证本地 ref ↔ 远端 doc 一致性
+                    val folderToken = authStore.getFolderTokenSnapshot()
+                    val ref = txExecutor.execute {
+                        refDao.deleteByNoteId(noteId)
+                        docService.createDoc(note, folderToken)
+                    }
+                    "同步完成: ${ref.docUrl}"
+                }
+                FolderMigrationChoice.UPDATE_IN_PLACE -> {
+                    // 原地更新(不改变文件夹)
+                    val ref = docService.updateDoc(note, existingRef)
+                    "同步完成: ${ref.docUrl}"
+                }
+            }
+        }
 
     /**
      * pull 工作流(design D3):委托 `FeishuDocService.readDoc` 拿真 markdown + 写本地 note。
@@ -229,4 +302,16 @@ constructor(
             )
         }
     }
+}
+
+/**
+ * feishu-folder-migration · folder token 变更后用户选择的迁移方式。
+ */
+
+enum class FolderMigrationChoice {
+    /** 删除远端旧文档(移到回收站) + 在新文件夹创建新文档 */
+    DELETE_AND_RECREATE,
+
+    /** 忽略 folder token 变更，在原位置更新文档内容 */
+    UPDATE_IN_PLACE
 }

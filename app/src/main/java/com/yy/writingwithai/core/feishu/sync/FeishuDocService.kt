@@ -40,7 +40,18 @@ constructor(
     suspend fun createDoc(note: Note, folderToken: String? = null): FeishuRefEntity = withContext(Dispatchers.IO) {
         val title = note.title.ifBlank { "未命名笔记" }
         val xml = xmlConverter.convert(note.content, title)
-        val created = feishuApi.createDocumentV2(xml, folderToken)
+        // fix(feishu-folder-token):用户可能输入 wiki 类型的 token，需要先通过
+        // drive/v1/metas/batch_query 解析为真实的 docx folder token。
+        val resolvedFolderToken = if (folderToken != null) {
+            val resolved = feishuApi.resolveFolderToken(folderToken)
+            if (resolved.resolved && resolved.originalType != null && resolved.originalType != "folder") {
+                Log.i(TAG, "resolveFolderToken: $folderToken (type=${resolved.originalType}) → ${resolved.token}")
+            }
+            resolved.token
+        } else {
+            null
+        }
+        val created = feishuApi.createDocumentV2(xml, resolvedFolderToken)
         val now = System.currentTimeMillis()
         val ref = FeishuRefEntity(
             noteId = note.id,
@@ -50,7 +61,10 @@ constructor(
             syncDirection = SyncDirection.PUSH,
             localRevision = note.updatedAt,
             remoteRevision = created.revisionId,
-            status = FeishuRefStatus.SYNCED
+            status = FeishuRefStatus.SYNCED,
+            // feishu-folder-migration:记录创建文档时使用的 folder token，
+            // 用于后续 push 时检测 folder token 是否变更。
+            folderToken = resolvedFolderToken
         )
         refDao.upsert(ref)
         recordEventSafe(note.id, SyncDirection.PUSH, "OK", null)
@@ -111,6 +125,28 @@ constructor(
             // parent_block_id 失效 → 退回整篇覆盖(v2 overwrite 原子)
             recordEventSafe(note.id, SyncDirection.PUSH, "FALLBACK_TO_UPDATE", "parent_missing")
             updateDoc(note, ref)
+        }
+    }
+
+    /**
+     * feishu-folder-migration · 删除远端飞书文档(移到回收站)。
+     *
+     * 当用户变更 folder token 后选择"删除旧文档 + 在新文件夹新建"时调用。
+     * 返回 `true` 表示远端已成功移到回收站,`false` 表示 API 调用失败(已记录
+     * `DELETE_FAILED` 事件)。
+     *
+     * 失败不抛异常(降级记录),让调用方根据返回值决定是否继续后续 ref 删除 +
+     * 重建流程。调用方负责删除本地 ref 和创建新文档。
+     */
+    suspend fun deleteDoc(ref: FeishuRefEntity): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            feishuApi.deleteFile(ref.docId)
+            recordEventSafe(ref.noteId, SyncDirection.PUSH, "DELETED", null)
+            true
+        }.getOrElse { e ->
+            Log.w(TAG, "deleteDoc failed for ${ref.docId}: ${e.message}")
+            recordEventSafe(ref.noteId, SyncDirection.PUSH, "DELETE_FAILED", e.message)
+            false
         }
     }
 

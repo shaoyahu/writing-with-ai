@@ -51,7 +51,7 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         SyncMetaEntity::class,
         NoteAttachmentEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -66,7 +66,10 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         // fix-2026-06-30-full-review-r1 MEDIUM M5 + LOW L1:加 feishu_ref.docId 索引 +
         // feishu_sync_event.noteId 索引 + noteId ForeignKey CASCADE。SQLite 加索引 /
         // 外键是 schema diff,AutoMigration 会自动建。
-        AutoMigration(from = 9, to = 10)
+        AutoMigration(from = 9, to = 10),
+        // feishu-folder-migration:feishu_ref 加 folderToken 可空列，
+        // 记录创建文档时使用的文件夹 token，用于检测 folder token 变更。
+        AutoMigration(from = 10, to = 11)
     ]
 )
 @TypeConverters(SyncStatusConverter::class)

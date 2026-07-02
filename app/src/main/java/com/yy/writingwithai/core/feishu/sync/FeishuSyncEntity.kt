@@ -30,7 +30,9 @@ data class FeishuRefEntity(
     val syncDirection: SyncDirection,
     val localRevision: Long,
     val remoteRevision: String,
-    val status: FeishuRefStatus
+    val status: FeishuRefStatus,
+    /** 创建文档时使用的 folder token；null 表示根目录或历史数据(该字段上线前创建)。 */
+    val folderToken: String? = null
 )
 
 /**

@@ -8,9 +8,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -216,11 +218,11 @@ constructor(
 
     // ---- v2 docs_ai/v1(XML format，参考 larksuite/cli) ----
 
-    override suspend fun createDocumentV2(xmlContent: String, folderToken: String?): DocCreateResultV2 =
+    override suspend fun createDocumentV2(xml: String, folderToken: String?): DocCreateResultV2 =
         withContext(Dispatchers.IO) {
             val bodyObj = buildJsonObject {
                 put("format", "xml")
-                put("content", xmlContent)
+                put("content", xml)
                 if (folderToken != null) put("parent_token", folderToken)
             }
             val request = Request.Builder()
@@ -228,39 +230,57 @@ constructor(
                 .post(bodyObj.toString().toRequestBody(JSON_MEDIA_TYPE))
                 .build()
             val resp = executeRequest(request)
+            // fix(feishu-folder-token):飞书 docs_ai/v1 创建文档到文件夹时，
+            // 响应 data.document 可能不包含 document_id 字段，而是用 node_token
+            // 或 obj_token 作为标识。先尝试 document_id，再 fallback 到 node_token / obj_token。
             val doc = resp.data["document"]?.jsonObject
-                ?: throw FeishuError.BadRequest(0, "missing data.document in v2 create")
+                ?: throw FeishuError.BadRequest(
+                    0,
+                    "missing data.document in v2 create, raw data keys: ${resp.data.keys}"
+                )
+            val docId = doc.optionalString("document_id")
+                ?: doc.optionalString("node_token")
+                ?: doc.optionalString("obj_token")
+                ?: throw FeishuError.BadRequest(
+                    0,
+                    "missing document_id/node_token/obj_token in v2 create, doc keys: ${doc.keys}"
+                )
+            val docUrl = doc.optionalString("url")
+                ?: doc.optionalString("url_outer")
+                ?: "https://bytedance.feishu.cn/docx/$docId"
             DocCreateResultV2(
-                docId = doc.requireString("document_id"),
-                docUrl = doc.optionalString("url")
-                    ?: "https://bytedance.feishu.cn/docx/${doc.requireString("document_id")}",
+                docId = docId,
+                docUrl = docUrl,
                 revisionId = doc.optionalString("revision_id") ?: ""
             )
         }
 
-    override suspend fun updateDocumentV2(docToken: String, xmlContent: String): DocMetadata? =
-        withContext(Dispatchers.IO) {
-            val bodyObj = buildJsonObject {
-                put("format", "xml")
-                put("command", "overwrite")
-                put("content", xmlContent)
-            }
-            val request = Request.Builder()
-                .url(urlFor("docs_ai/v1/documents/$docToken"))
-                .put(bodyObj.toString().toRequestBody(JSON_MEDIA_TYPE))
-                .build()
-            val resp = executeRequest(request)
-            val doc = resp.data["document"]?.jsonObject
-            if (doc != null) {
-                DocMetadata(
-                    docId = doc.requireString("document_id"),
-                    revisionId = doc.optionalString("revision_id") ?: "",
-                    title = doc.optionalString("title") ?: ""
-                )
-            } else {
-                null
-            }
+    override suspend fun updateDocumentV2(docToken: String, xml: String): DocMetadata? = withContext(Dispatchers.IO) {
+        val bodyObj = buildJsonObject {
+            put("format", "xml")
+            put("command", "overwrite")
+            put("content", xml)
         }
+        val request = Request.Builder()
+            .url(urlFor("docs_ai/v1/documents/$docToken"))
+            .put(bodyObj.toString().toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        val resp = executeRequest(request)
+        val doc = resp.data["document"]?.jsonObject
+        if (doc != null) {
+            val docId = doc.optionalString("document_id")
+                ?: doc.optionalString("node_token")
+                ?: doc.optionalString("obj_token")
+                ?: docToken
+            DocMetadata(
+                docId = docId,
+                revisionId = doc.optionalString("revision_id") ?: "",
+                title = doc.optionalString("title") ?: ""
+            )
+        } else {
+            null
+        }
+    }
 
     override suspend fun fetchDocumentV2(docToken: String): String = withContext(Dispatchers.IO) {
         val bodyObj = buildJsonObject { put("format", "markdown") }
@@ -272,13 +292,13 @@ constructor(
         resp.data["document"]?.jsonObject?.optionalString("content") ?: ""
     }
 
-    override suspend fun appendBlockV2(docToken: String, xmlContent: String) {
+    override suspend fun appendBlockV2(docToken: String, xml: String) {
         withContext(Dispatchers.IO) {
             val bodyObj = buildJsonObject {
                 put("format", "xml")
                 put("command", "block_insert_after")
                 put("block_id", "-1")
-                put("content", xmlContent)
+                put("content", xml)
             }
             val request = Request.Builder()
                 .url(urlFor("docs_ai/v1/documents/$docToken"))
@@ -286,6 +306,94 @@ constructor(
                 .build()
             executeRequest(request)
         }
+    }
+
+    override suspend fun resolveFolderToken(rawToken: String): ResolvedFolderToken = withContext(Dispatchers.IO) {
+        // 根据飞书 token 前缀推断 doc_type:
+        // - fldcn* → folder, wikcn* → wiki, doccn* → doc, docx* → docx
+        // 如果无法推断，用 "folder" 作为默认（让飞书 API 自行校验）
+        val docType = when {
+            rawToken.startsWith("fldcn") -> "folder"
+            rawToken.startsWith("wikcn") -> "wiki"
+            rawToken.startsWith("doccn") -> "doc"
+            rawToken.startsWith("docx") -> "docx"
+            else -> "folder"
+        }
+        val bodyObj = buildJsonObject {
+            put(
+                "request_docs",
+                kotlinx.serialization.json.buildJsonArray {
+                    add(
+                        buildJsonObject {
+                            put("doc_token", rawToken)
+                            put("doc_type", docType)
+                        }
+                    )
+                }
+            )
+            put("with_url", false)
+        }
+        val request = Request.Builder()
+            .url(urlFor("drive/v1/metas/batch_query"))
+            .post(bodyObj.toString().toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        try {
+            val resp = executeRequest(request)
+            val metas = resp.data["metas"]?.jsonArray
+            Log.i(
+                "FeishuApi",
+                "resolveFolderToken: rawToken=$rawToken docType=$docType metas=${metas?.size ?: 0}"
+            )
+            if (metas.isNullOrEmpty()) {
+                // 没有返回元数据，降级返回原 token
+                Log.w("FeishuApi", "resolveFolderToken: no metas returned for $rawToken, falling back")
+                return@withContext ResolvedFolderToken(token = rawToken, originalType = null, resolved = false)
+            }
+            val meta = metas[0].jsonObject
+            val resolvedType = meta.optionalString("doc_type")
+            val resolvedToken = meta.optionalString("doc_token") ?: rawToken
+            Log.i(
+                "FeishuApi",
+                "resolveFolderToken: resolvedType=$resolvedType resolvedToken=$resolvedToken"
+            )
+
+            // 如果原始类型是 folder，直接用原 token（folder token 就是正确的父文件夹 token）
+            if (resolvedType == "folder") {
+                return@withContext ResolvedFolderToken(
+                    token = rawToken,
+                    originalType = resolvedType,
+                    resolved = true
+                )
+            }
+            // wiki 或其他类型：返回 batch_query 解析出的真实 doc_token
+            ResolvedFolderToken(
+                token = resolvedToken,
+                originalType = resolvedType,
+                resolved = true
+            )
+        } catch (e: FeishuError) {
+            // batch_query 失败，降级返回原 token（让后续 create API 自行校验）
+            Log.w("FeishuApi", "resolveFolderToken: batch_query failed for $rawToken: ${e.message}, falling back")
+            ResolvedFolderToken(token = rawToken, originalType = null, resolved = false)
+        }
+    }
+
+    /**
+     * feishu-folder-migration · 删除飞书文件(移到回收站)。
+     *
+     * API: `DELETE /open-apis/drive/v1/files/{file_token}`
+     * 文件移入回收站，30 天内用户可在飞书恢复。
+     *
+     * DELETE 请求 RFC 7230 §4.3.5 不强制需要 body,但飞书服务端要求 Content-Type 必填
+     * 才校验请求(否则拒绝)。传空 body + JSON MediaType 占位是常见做法。
+     */
+    override suspend fun deleteFile(fileToken: String): Unit = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(urlFor("drive/v1/files/$fileToken"))
+            .delete("".toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        executeRequest(request)
+        Unit
     }
 
     /**

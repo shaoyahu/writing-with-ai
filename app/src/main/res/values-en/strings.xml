@@ -426,6 +426,18 @@
     <string name="feishu_conflict_keep_remote">Keep Feishu</string>
     <string name="feishu_conflict_cancel">Cancel</string>
 
+    <!-- feishu-folder-migration · Folder token change migration dialog -->
+    <string name="feishu_folder_migration_title">Sync target folder changed</string>
+    <string name="feishu_folder_migration_body">This note was previously synced to another location, but the folder setting has changed. Choose an action:</string>
+    <string name="feishu_folder_migration_old_location">Previous: %s</string>
+    <string name="feishu_folder_migration_new_location">New: %s</string>
+    <string name="feishu_folder_migration_delete_and_recreate">Delete old &amp; recreate</string>
+    <string name="feishu_folder_migration_update_in_place">Update in place</string>
+    <string name="feishu_folder_migration_cancel">Cancel</string>
+    <!-- feishu-folder-migration · Render folder token to UI label. describeFolderLocation helper truncates the token then uses these keys. -->
+    <string name="feishu_folder_location_default">Default space (root)</string>
+    <string name="feishu_folder_location_named">Folder %s</string>
+
     <!-- ===== M6 custom-model · Custom Provider ===== -->
     <string name="custom_provider_new_title">New custom model</string>
     <string name="custom_provider_edit_title">Edit custom model</string>
@@ -532,6 +544,13 @@
     <string name="anim_style_reduce_motion_banner">System \"reduce motion\" is on — switched to None automatically</string>
     <string name="anim_style_preview_nav">Navigation</string>
     <string name="anim_style_preview_tab">Tab</string>
+    <!-- animation-switch-redesign §4.2:independent toggle row title/description -->
+    <string name="anim_toggle_nav_title">Navigation animations</string>
+    <string name="anim_toggle_nav_description">Transitions when navigating between screens</string>
+    <string name="anim_toggle_tab_title">Tab animations</string>
+    <string name="anim_toggle_tab_description">Content transitions when switching tabs</string>
+    <!-- animation-switch-redesign-followup §8:Animation details (MyScreen entry + secondary page title) -->
+    <string name="anim_detail_title">Animation Details</string>
 
     <!-- ===== Consent page card summaries (consent_section_*) ===== -->
     <string name="consent_section_data_summary">Notes are stored in a local database. Export/import uses ZIP. Cloud sync is off by default.</string>

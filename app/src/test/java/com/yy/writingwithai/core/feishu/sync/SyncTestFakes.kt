@@ -3,6 +3,8 @@ package com.yy.writingwithai.core.feishu.sync
 import com.yy.writingwithai.core.feishu.api.DocCreateResult
 import com.yy.writingwithai.core.feishu.api.DocMetadata
 import com.yy.writingwithai.core.feishu.api.FeishuApiClient
+import com.yy.writingwithai.core.feishu.api.FeishuError
+import com.yy.writingwithai.core.feishu.api.ResolvedFolderToken
 import com.yy.writingwithai.core.feishu.converter.MarkdownToXmlConverter
 
 /** feishu-bidir-sync · 测试共享 fake 集合(internal 跨文件可见)。 */
@@ -64,6 +66,23 @@ internal class FakeFeishuApiClient : FeishuApiClient {
     override suspend fun appendBlockV2(docToken: String, xml: String) {
         appendedDocIds += docToken
     }
+
+    // drive/v1
+    var deleteFileCalls = 0
+    val deletedFileTokens = mutableListOf<String>()
+
+    /** 测试用:设 true 模拟远端删除失败,触发 FeishuError.ServerError。 */
+    var deleteFileShouldFail: Boolean = false
+    override suspend fun resolveFolderToken(rawToken: String): ResolvedFolderToken =
+        ResolvedFolderToken(token = rawToken, originalType = "folder", resolved = true)
+
+    override suspend fun deleteFile(fileToken: String) {
+        deleteFileCalls++
+        if (deleteFileShouldFail) {
+            throw FeishuError.ServerError(500)
+        }
+        deletedFileTokens += fileToken
+    }
 }
 
 internal class FakeFeishuRefDao : FeishuRefDao {
@@ -117,6 +136,51 @@ internal class FakeFeishuSyncEventDao : FeishuSyncEventDao {
         val toRemove = sortedAsc.take(store.size - cap).map { it.id }.toSet()
         store.removeAll { it.id in toRemove }
     }
+}
+
+/**
+ * feishu-folder-migration + 历史测试通用 fake。
+ *
+ * 真实 `FeishuAuthStore` 有 18 个方法(包含 OAuth state / appSecret / pendingExchange 等),
+ * 测试只关心 `getFolderTokenSnapshot()` 的返回值,其它方法 no-op。
+ *
+ * 用法:
+ *   val folderTokenRef = mutableRef("fldcnA")
+ *   val auth = FakeFeishuAuthStore(folderTokenSnapshot = { folderTokenRef.value })
+ *   // 测试中修改 folderTokenRef.value 即可模拟用户切换 folder token
+ */
+internal class FakeFeishuAuthStore(
+    var folderTokenSnapshot: () -> String? = { null }
+) : com.yy.writingwithai.core.feishu.auth.FeishuAuthStore {
+    private fun flowOfString(value: String?): kotlinx.coroutines.flow.Flow<String?> =
+        kotlinx.coroutines.flow.flowOf(value)
+    override val appId: kotlinx.coroutines.flow.Flow<String?> get() = flowOfString(folderTokenSnapshot())
+    override val folderToken: kotlinx.coroutines.flow.Flow<String?> get() = flowOfString(folderTokenSnapshot())
+    override val accessToken: kotlinx.coroutines.flow.Flow<String?> = kotlinx.coroutines.flow.flowOf(null)
+    override val refreshToken: kotlinx.coroutines.flow.Flow<String?> = kotlinx.coroutines.flow.flowOf(null)
+    override val expiresAt: kotlinx.coroutines.flow.Flow<Long?> = kotlinx.coroutines.flow.flowOf(null)
+    override val authState: kotlinx.coroutines.flow.StateFlow<com.yy.writingwithai.core.feishu.auth.FeishuAuthState> =
+        kotlinx.coroutines.flow.MutableStateFlow(com.yy.writingwithai.core.feishu.auth.FeishuAuthState.CONFIGURED)
+    override val prefsInitError: Throwable? = null
+    override suspend fun setOAuthCredentials(a: String, ac: String, rt: String, e: Long) {}
+    override suspend fun setAuthState(s: com.yy.writingwithai.core.feishu.auth.FeishuAuthState) {}
+    override suspend fun clearAll() {}
+    override fun getAccessTokenSnapshot(): Pair<String, Long>? = null
+    override fun getRefreshTokenSnapshot(): String? = null
+    override fun getFolderTokenSnapshot(): String? = folderTokenSnapshot()
+    override fun getAppIdAndRefreshToken(): Pair<String, String>? = null
+    override suspend fun setAppId(appId: String) {}
+    override suspend fun setFolderToken(folderToken: String?) {}
+    override fun getAppIdSnapshot(): String? = null
+    override suspend fun persistAppSecret(requestId: String, secret: String) {}
+    override suspend fun clearAppSecret(requestId: String) {}
+    override fun getAppSecretSnapshot(requestId: String): String? = null
+    override fun getAppIdAndSecret(requestId: String): Pair<String, String>? = null
+    override suspend fun persistOAuthState(state: String, ttlMs: Long) {}
+    override fun consumeOAuthState(): String? = null
+    override suspend fun persistPendingExchange(code: String, appId: String, secret: String, requestId: String) {}
+    override fun consumePendingExchange(): com.yy.writingwithai.core.feishu.auth.PendingExchange? = null
+    override fun hasPendingExchange(): Boolean = false
 }
 
 /**

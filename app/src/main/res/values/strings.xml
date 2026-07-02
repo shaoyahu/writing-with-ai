@@ -556,6 +556,18 @@
     <string name="feishu_conflict_keep_remote">保留飞书</string>
     <string name="feishu_conflict_cancel">取消</string>
 
+    <!-- feishu-folder-migration · 文件夹变更迁移对话框 -->
+    <string name="feishu_folder_migration_title">同步目标文件夹已变更</string>
+    <string name="feishu_folder_migration_body">该笔记之前已同步到其他位置，当前文件夹设置已变更。请选择操作方式:</string>
+    <string name="feishu_folder_migration_old_location">原位置: %s</string>
+    <string name="feishu_folder_migration_new_location">新位置: %s</string>
+    <string name="feishu_folder_migration_delete_and_recreate">删除旧文档并新建</string>
+    <string name="feishu_folder_migration_update_in_place">在原位置更新</string>
+    <string name="feishu_folder_migration_cancel">取消</string>
+    <!-- feishu-folder-migration · folder token 渲染成 UI label。describeFolderLocation helper 把 token 截断后用这两个 key 翻译。 -->
+    <string name="feishu_folder_location_default">默认空间(根目录)</string>
+    <string name="feishu_folder_location_named">文件夹 %s</string>
+
     <!-- ===== v1 内测 ===== -->
     <string name="internal_testing_title">v1 内测</string>
     <string name="internal_testing_howto">本次为 5 人内测构建(自用 + 朋友)，仅 debug 通道分发，有意参与请联系作者本人。</string>
@@ -594,6 +606,13 @@
     <string name="anim_style_reduce_motion_banner">系统已开启「减少动画」，已自动切换到「无」</string>
     <string name="anim_style_preview_nav">导航</string>
     <string name="anim_style_preview_tab">标签</string>
+    <!-- animation-switch-redesign §4.1:独立开关行 title/description -->
+    <string name="anim_toggle_nav_title">导航动画</string>
+    <string name="anim_toggle_nav_description">页面之间切换的过渡动画</string>
+    <string name="anim_toggle_tab_title">标签动画</string>
+    <string name="anim_toggle_tab_description">Tab 切换时的内容过渡</string>
+    <!-- animation-switch-redesign-followup §8:动画详细(MyScreen 入口 + 二级页 title) -->
+    <string name="anim_detail_title">动画详细</string>
 
     <!-- ===== 同意页卡片摘要(consent_section_*) ===== -->
     <string name="consent_section_data_summary">笔记以本地数据库存储，导出 / 导入走 ZIP，默认关闭云同步</string>

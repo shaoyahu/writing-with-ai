@@ -9,6 +9,7 @@ import com.yy.writingwithai.core.feishu.api.FeishuError
 import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
 import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
+import com.yy.writingwithai.core.feishu.sync.FolderMigrationChoice
 import com.yy.writingwithai.core.ui.AiActionFabState
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
 import com.yy.writingwithai.feature.quicknote.model.ReadingTime
@@ -158,6 +159,12 @@ constructor(
                 _feishuRef.value = feishuSyncService.getRef(id)
                 _showConflictDialog.value = true
                 _syncMessage.value = SyncMessage.Failure("同步冲突:请选择保留本地或远端")
+            } catch (e: FeishuError.FolderTokenMismatch) {
+                // feishu-folder-migration:folder token 变更 → 弹迁移对话框
+                _feishuRef.value = feishuSyncService.getRef(id)
+                _folderMigrationInfo.value = e
+                _showFolderMigrationDialog.value = true
+                _syncMessage.value = SyncMessage.Failure("同步目标文件夹已变更")
             } catch (e: FeishuError) {
                 _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -256,6 +263,57 @@ constructor(
 
     fun cancelConflictResolution() {
         _showConflictDialog.value = false
+    }
+
+    // feishu-folder-migration:folder token 变更迁移
+    private val _showFolderMigrationDialog = MutableStateFlow(false)
+    val showFolderMigrationDialog: StateFlow<Boolean> = _showFolderMigrationDialog.asStateFlow()
+
+    private val _folderMigrationInfo = MutableStateFlow<FeishuError.FolderTokenMismatch?>(null)
+    val folderMigrationInfo: StateFlow<FeishuError.FolderTokenMismatch?> = _folderMigrationInfo.asStateFlow()
+
+    fun resolveFolderMigrationDeleteAndRecreate() = resolveFolderMigration(FolderMigrationChoice.DELETE_AND_RECREATE)
+
+    fun resolveFolderMigrationUpdateInPlace() = resolveFolderMigration(FolderMigrationChoice.UPDATE_IN_PLACE)
+
+    /**
+     * feishu-folder-migration · folder token 迁移对话框的统一处理入口。
+     *
+     * 把 pushWithFolderMigration 的成功/失败结果映射到现有的 _syncMessage + _feishuRef +
+     * _showFolderMigrationDialog 状态机,避免 DELETE_AND_RECREATE / UPDATE_IN_PLACE 两个
+     * 入口复制 22 行 try/catch(过去类似 resolveConflictKeepLocal / KeepRemote 也有复制,
+     * 留到下个 polish change 统一抽 helper)。
+     *
+     * 错误处理约定:catch FeishuError(业务错) + catch Throwable(兜底),中间 rethrow
+     * CancellationException(防止协程取消被吞)。
+     */
+    private fun resolveFolderMigration(choice: FolderMigrationChoice) {
+        val id = noteId ?: return
+        viewModelScope.launch {
+            _syncLoading.value = true
+            _syncMessage.value = null
+            try {
+                val docUrl = feishuSyncService.pushWithFolderMigration(id, choice)
+                    .removePrefix("同步完成:").trim()
+                _syncMessage.value = SyncMessage.Success(docUrl)
+                _feishuRef.value = feishuSyncService.getRef(id)
+                _showFolderMigrationDialog.value = false
+            } catch (e: FeishuError) {
+                _showFolderMigrationDialog.value = false
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                _showFolderMigrationDialog.value = false
+                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+            } finally {
+                _syncLoading.value = false
+            }
+        }
+    }
+
+    fun cancelFolderMigration() {
+        _showFolderMigrationDialog.value = false
     }
 
     // feishu-bidir-sync:远程已删恢复 —— 删旧 ref + push 创新文档

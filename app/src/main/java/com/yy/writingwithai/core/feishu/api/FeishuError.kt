@@ -45,4 +45,20 @@ sealed class FeishuError(message: String, cause: Throwable? = null) : Exception(
         val docId: String,
         val docUrl: String
     ) : FeishuError("飞书同步冲突: $docUrl")
+
+    /**
+     * feishu-folder-migration · folder token 变更检测。
+     *
+     * push 时检测到当前设置的 folder token 与 FeishuRefEntity.folderToken 不一致，
+     * 抛此错让 UI 弹 [FolderMigrationDialog] 让用户选择:
+     * - 删除旧文档 + 在新文件夹新建
+     * - 在原位置更新(忽略 folder token 变更)
+     */
+    data class FolderTokenMismatch(
+        val noteId: String,
+        val docId: String,
+        val docUrl: String,
+        val currentFolderToken: String?,
+        val refFolderToken: String?
+    ) : FeishuError("飞书同步目标文件夹已变更")
 }
