@@ -26,6 +26,31 @@ fun AnimationStyle.toTokens(): AnimationTokens = when (this) {
     AnimationStyle.NONE -> noneTokens
 }
 
+/**
+ * animation-system · 带 override 的 token 工厂(animation-switch-redesign)。
+ *
+ * 在 [toTokens] 基线上,根据 `navEnabled` / `tabEnabled` 覆盖 5 个 nav/tab 字段:
+ * - `navEnabled == false` → 4 个 nav field 全部退化为 `EnterTransition.None / ExitTransition.None`
+ * - `tabEnabled == false` → `tabContentSpec` 退化为 `snap()`(即时切换)
+ *
+ * 其它字段(`switchSpec` / `expandSpec` / `collapseSpec` / `listItemSpec` / `dialogEnter/Exit`)
+ * 透传基线风格,不受开关影响。
+ *
+ * 调用方:`app/ui/theme/WritingAppTheme` 收集 3 路 Flow 后用此函数算最终 token;
+ * `AnimationStyle.toTokens()` 仍是历史 API,实现委托本函数并传 `navEnabled=true, tabEnabled=true`。
+ */
+fun tokensFor(style: AnimationStyle, navEnabled: Boolean, tabEnabled: Boolean): AnimationTokens {
+    val base = style.toTokens()
+    if (navEnabled && tabEnabled) return base
+    return base.copy(
+        navEnter = if (navEnabled) base.navEnter else EnterTransition.None,
+        navExit = if (navEnabled) base.navExit else ExitTransition.None,
+        navPopEnter = if (navEnabled) base.navPopEnter else EnterTransition.None,
+        navPopExit = if (navEnabled) base.navPopExit else ExitTransition.None,
+        tabContentSpec = if (tabEnabled) base.tabContentSpec else snap()
+    )
+}
+
 // === MINIMAL ===
 private val minimalTokens = AnimationTokens(
     navEnter = fadeIn(tween(200)),

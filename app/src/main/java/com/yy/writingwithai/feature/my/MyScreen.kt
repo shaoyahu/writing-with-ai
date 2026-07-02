@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -152,6 +153,13 @@ fun MyScreen(
                         title = stringResource(R.string.anim_style_title),
                         icon = Icons.Filled.Animation,
                         onClick = { onNavigate(MeTabTarget.SettingsAnimationStyle) }
+                    )
+                    HorizontalDivider()
+                    // animation-switch-redesign-followup §7.1:动画详细入口(nav/tab 细分开关)。
+                    MyListItem(
+                        title = stringResource(R.string.anim_detail_title),
+                        icon = Icons.Filled.Tune,
+                        onClick = { onNavigate(MeTabTarget.SettingsAnimationDetail) }
                     )
                     HorizontalDivider()
                     MyListItem(

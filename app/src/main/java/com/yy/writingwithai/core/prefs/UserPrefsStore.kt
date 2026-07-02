@@ -46,6 +46,24 @@ interface UserPrefsStore {
 
     /** 持久化用户选择的动画风格(spec D2:存 enum name String)。 */
     suspend fun setAnimationStyle(style: AnimationStyle)
+
+    /**
+     * animation-switch-redesign · 「导航动画」总开关(animation-system spec ADDED REQ 1)。
+     * 未设置或解析失败回退 `true`(尊重现状,reduce-motion 走 NONE 仍保 fallback)。
+     */
+    val navAnimationsEnabledFlow: Flow<Boolean>
+
+    /** 持久化「导航动画」开关。`false` 时 nav 切换立即退化为无动画。 */
+    suspend fun setNavAnimationsEnabled(enabled: Boolean)
+
+    /**
+     * animation-switch-redesign · 「标签动画」总开关(animation-system spec ADDED REQ 2)。
+     * 未设置或解析失败回退 `true`。
+     */
+    val tabAnimationsEnabledFlow: Flow<Boolean>
+
+    /** 持久化「标签动画」开关。`false` 时 tab 内容切换立即退化为 `snap()`。 */
+    suspend fun setTabAnimationsEnabled(enabled: Boolean)
 }
 
 private val Context.userPrefsDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs_store")
@@ -76,6 +94,24 @@ constructor(
         store.edit { it[KEY_ANIMATION_STYLE_V1] = style.name }
     }
 
+    override val navAnimationsEnabledFlow: Flow<Boolean> =
+        store.data.map { prefs ->
+            prefs[KEY_NAV_ANIMATIONS_ENABLED_V1] ?: DEFAULT_ANIMATIONS_ENABLED
+        }
+
+    override suspend fun setNavAnimationsEnabled(enabled: Boolean) {
+        store.edit { it[KEY_NAV_ANIMATIONS_ENABLED_V1] = enabled }
+    }
+
+    override val tabAnimationsEnabledFlow: Flow<Boolean> =
+        store.data.map { prefs ->
+            prefs[KEY_TAB_ANIMATIONS_ENABLED_V1] ?: DEFAULT_ANIMATIONS_ENABLED
+        }
+
+    override suspend fun setTabAnimationsEnabled(enabled: Boolean) {
+        store.edit { it[KEY_TAB_ANIMATIONS_ENABLED_V1] = enabled }
+    }
+
     companion object {
         private val KEY_ACK_APIKEY_PROMPT = booleanPreferencesKey("ack_apikey_prompt_v1")
 
@@ -84,6 +120,26 @@ constructor(
          */
         @Suppress("MemberVisibilityCanBePrivate")
         val KEY_ANIMATION_STYLE_V1 = stringPreferencesKey("animation_style_v1")
+
+        /**
+         * animation-switch-redesign · DataStore key:「导航动画」总开关。
+         * 公开给 [FakeUserPrefsStore] 复用。
+         */
+        @Suppress("MemberVisibilityCanBePrivate")
+        val KEY_NAV_ANIMATIONS_ENABLED_V1 = booleanPreferencesKey("nav_animations_enabled_v1")
+
+        /**
+         * animation-switch-redesign · DataStore key:「标签动画」总开关。
+         * 公开给 [FakeUserPrefsStore] 复用。
+         */
+        @Suppress("MemberVisibilityCanBePrivate")
+        val KEY_TAB_ANIMATIONS_ENABLED_V1 = booleanPreferencesKey("tab_animations_enabled_v1")
+
+        /**
+         * 2 个动画开关的默认值;缺失或解析失败走 `true`(尊重现状)。
+         * spec ADDED REQ 1 / REQ 2:「Default SHALL be `true`」。
+         */
+        private const val DEFAULT_ANIMATIONS_ENABLED = true
 
         /**
          * 把 DataStore 存的 String 还原为 [AnimationStyle];未知 / null / 解析失败返回 null

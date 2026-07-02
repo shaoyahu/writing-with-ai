@@ -21,6 +21,8 @@ class FakeUserPrefsStore
 constructor() : UserPrefsStore {
     private val ackState = MutableStateFlow(false)
     private val animState = MutableStateFlow(AnimationStyle.MINIMAL)
+    private val navEnabledState = MutableStateFlow(true)
+    private val tabEnabledState = MutableStateFlow(true)
 
     override val ackApikeyPromptFlow: StateFlow<Boolean> = ackState.asStateFlow()
 
@@ -34,6 +36,18 @@ constructor() : UserPrefsStore {
 
     override suspend fun setAnimationStyle(style: AnimationStyle) {
         animState.value = style
+    }
+
+    override val navAnimationsEnabledFlow: StateFlow<Boolean> = navEnabledState.asStateFlow()
+
+    override suspend fun setNavAnimationsEnabled(enabled: Boolean) {
+        navEnabledState.value = enabled
+    }
+
+    override val tabAnimationsEnabledFlow: StateFlow<Boolean> = tabEnabledState.asStateFlow()
+
+    override suspend fun setTabAnimationsEnabled(enabled: Boolean) {
+        tabEnabledState.value = enabled
     }
 
     /** 测试 hook:直接注入 ack 初值。 */

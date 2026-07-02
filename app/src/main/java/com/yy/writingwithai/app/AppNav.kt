@@ -29,6 +29,7 @@ import com.yy.writingwithai.feature.quicknote.detail.QuickNoteDetailScreen
 import com.yy.writingwithai.feature.quicknote.edit.QuickNoteEditorScreen
 import com.yy.writingwithai.feature.settings.SettingsEntry
 import com.yy.writingwithai.feature.settings.alias.AliasManagementScreen
+import com.yy.writingwithai.feature.settings.animation.AnimationDetailScreen
 import com.yy.writingwithai.feature.settings.animation.AnimationStylePreviewScreen
 import com.yy.writingwithai.feature.settings.association.NoteAssociationSettingsScreen
 import com.yy.writingwithai.feature.settings.data.SettingsDataScreen
@@ -198,15 +199,22 @@ fun AppNav(
     }
 
     // animation-system · 导航过渡接 token(spec §REQ 4)。
-    // NavHost transition lambda 不是 @Composable，需提前读 token 再 lambda 内引用。
-    val navTokens = LocalAnimationTokens.current
+    // NavHost transition lambda 不是 @Composable，无法直接读 CompositionLocal。
+    // 解法:用 `remember { mutableStateOf(...) }` 持有可观察的 token 引用,
+    // 每次重组时把最新的 LocalAnimationTokens.current 写入 state.value,
+    // transition lambda 通过 `navTokensState.value` 读取 —— State 引用不变但 .value 会更新。
+    // 注意:不能用 `key(navTokens)` 包裹 NavHost,因为 key 变化会销毁重建 NavHost,
+    // 导致导航栈丢失(用户被弹回 startDestination)。
+    val currentTokens = LocalAnimationTokens.current
+    val navTokensState = remember { mutableStateOf(currentTokens) }
+    navTokensState.value = currentTokens
     NavHost(
         navController = navController,
         startDestination = AppShell,
-        enterTransition = { navTokens.navEnter },
-        exitTransition = { navTokens.navExit },
-        popEnterTransition = { navTokens.navPopEnter },
-        popExitTransition = { navTokens.navPopExit }
+        enterTransition = { navTokensState.value.navEnter },
+        exitTransition = { navTokensState.value.navExit },
+        popEnterTransition = { navTokensState.value.navPopEnter },
+        popExitTransition = { navTokensState.value.navPopExit }
     ) {
         composable<AppShell> {
             AppShell(
@@ -295,6 +303,12 @@ fun AppNav(
         // animation-system-and-consent-redesign §11.2:动画风格设置 route。
         composable<SettingsAnimationStyle> {
             AnimationStylePreviewScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        // animation-switch-redesign-followup §6.1:动画详细设置 route(2 个细分开关入口)。
+        composable<SettingsAnimationDetail> {
+            AnimationDetailScreen(
                 onBack = { navController.popBackStack() }
             )
         }
@@ -401,6 +415,14 @@ data class SettingsCustomProviderEdit(val providerId: String? = null)
  */
 @Serializable
 data object SettingsAnimationStyle
+
+/**
+ * animation-switch-redesign-followup §6.1:动画详细设置 route(@Serializable data object)。
+ * 由 MeTabTarget.SettingsAnimationDetail 经 `AppShell` 的 onNavigate 翻译，根 NavHost 注册
+ * `composable<SettingsAnimationDetail>` 渲染 `AnimationDetailScreen`(nav/tab 细分开关)。
+ */
+@Serializable
+data object SettingsAnimationDetail
 
 /** ux-2026-06-28 P6:飞书授权页专属 route(不再走 Settings hub)。 */
 @Serializable

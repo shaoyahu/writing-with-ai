@@ -6,7 +6,6 @@ import android.view.accessibility.AccessibilityManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.prefs.UserPrefsStore
-import com.yy.writingwithai.core.ui.animation.AnimationStyle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -18,20 +17,21 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * animation-system-and-consent-redesign §10.1 + animation-switch-redesign-followup §3.1:
- * 动画风格(全 APP 4 选 1)设置页 VM。
+ * animation-switch-redesign-followup §3.2:动画详细页 VM(原 `animation-switch-redesign` 的
+ * nav/tab 细分开关已从 [AnimationStylePreviewViewModel] 迁出,转交本 VM)。
  *
- * - 当前风格:`UserPrefsStore.animationStyleFlow`(enum,unknown → MINIMAL fallback,见 UserPrefsStore)
- * - 系统 reduce-motion:`AccessibilityManager.isReduceMotionEnabled`,仅展示提示,**不**自动写入;
- *   真实覆盖由 [com.yy.writingwithai.app.ui.theme.WritingAppTheme] 在根 Composable 处强切 NONE。
- * - 写盘:`onStyleSelected(style)` → `setAnimationStyle` 持久化;UI 通过 collect 重绘。
+ * 承载 2 个独立 Boolean:
+ * - `navAnimationsEnabled`:导航动画(页面 push/pop 过渡)。
+ * - `tabAnimationsEnabled`:Tab 切换时的内容过渡。
  *
- * nav/tab 细分开关已迁出本 VM(spec followup §Decisions 3),由 [AnimationDetailViewModel] 承载。
+ * reduce-motion:仅展示提示,**不**自动写入;真实覆盖由
+ * [com.yy.writingwithai.app.ui.theme.WritingAppTheme] 在根 Composable 处强切 NONE。
  *
- * spec 关联:openspec/changes/animation-system-and-consent-redesign/specs/animation-system/spec.md
+ * spec 关联:openspec/changes/animation-switch-redesign-followup/specs/animation-system/spec.md
+ * REQ ADDED AnimationDetailScreen exposes nav/tab animation toggles。
  */
 @HiltViewModel
-class AnimationStylePreviewViewModel
+class AnimationDetailViewModel
 @Inject
 constructor(
     @ApplicationContext context: Context,
@@ -43,19 +43,26 @@ constructor(
             context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
         }.getOrNull()
 
-    /** 当前生效的动画风格(spec D2:DataStore 存 enum name String)。 */
-    val animationStyle: StateFlow<AnimationStyle> = userPrefsStore.animationStyleFlow
+    /** 「导航动画」开关 —— 直接从 PrefsStore 拿 Boolean flow,初值 `true` 与 `?: true` 兜底一致。 */
+    val navAnimationsEnabled: StateFlow<Boolean> = userPrefsStore.navAnimationsEnabledFlow
         .stateIn(
             viewModelScope,
             SharingStarted.Eagerly,
-            // 初值给 MINIMAL;真实值在 collect 后立刻 emit 覆盖,UI 不会出现抖动。
-            AnimationStyle.MINIMAL
+            true
+        )
+
+    /** 「标签动画」开关。 */
+    val tabAnimationsEnabled: StateFlow<Boolean> = userPrefsStore.tabAnimationsEnabledFlow
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            true
         )
 
     /**
      * 系统 reduce-motion 状态。读一次 [AccessibilityManager.isReduceMotionEnabled](API 33+) —
      * 低于 33 时返回 `false`(API < 33 设备视为未启用)。reduce-motion 是用户在系统设置里切的,
-     * 在设置页停留期间基本不变,无 hot flow 订阅需求(spec §REQ 3)。
+     * 在设置页停留期间基本不变,无 hot flow 订阅需求。
      */
     private val _reduceMotionEnabled = MutableStateFlow(isReduceMotionEnabled())
     val reduceMotionEnabled: StateFlow<Boolean> = _reduceMotionEnabled.asStateFlow()
@@ -63,7 +70,6 @@ constructor(
     private fun isReduceMotionEnabled(): Boolean {
         val manager = accessibilityManager ?: return false
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // 反射调用避免编译期对 API 33 属性的引用
             runCatching {
                 val method = AccessibilityManager::class.java.getMethod("isReduceMotionEnabled")
                 method.invoke(manager) as? Boolean ?: false
@@ -74,12 +80,22 @@ constructor(
     }
 
     /**
-     * 写盘;若 reduce-motion 已启用,调用此方法仍会写入(用户明确选择),但实际生效由
-     * [com.yy.writingwithai.app.ui.theme.WritingAppTheme] 强切 NONE(spec §REQ 3)。
+     * 「导航动画」toggle 写盘(spec ADDED REQ AnimationDetailScreen)。
+     * reduce-motion 开启时,UI 层会传 `enabled = false` 但本方法**不**额外屏蔽写入 —
+     * 持久化值保留,关掉 reduce-motion 后立即恢复。
      */
-    fun onStyleSelected(style: AnimationStyle) {
+    fun onNavAnimationsToggled(enabled: Boolean) {
         viewModelScope.launch {
-            userPrefsStore.setAnimationStyle(style)
+            userPrefsStore.setNavAnimationsEnabled(enabled)
+        }
+    }
+
+    /**
+     * 「标签动画」toggle 写盘。
+     */
+    fun onTabAnimationsToggled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPrefsStore.setTabAnimationsEnabled(enabled)
         }
     }
 }

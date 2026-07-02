@@ -26,6 +26,7 @@ import com.yy.writingwithai.core.prefs.UserPrefsStore
 import com.yy.writingwithai.core.ui.animation.AnimationStyle
 import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
 import com.yy.writingwithai.core.ui.animation.toTokens
+import com.yy.writingwithai.core.ui.animation.tokensFor
 
 /**
  * ui-redesign-v2 · 语义色 token 集合，业务侧通过 MaterialTheme.customColors.success / warning 引用。
@@ -101,12 +102,33 @@ fun WritingAppTheme(
         animationStyle
     }
 
+    // animation-switch-redesign · 2 个动画总开关:nav / tab 独立控制。
+    // 未设置时 spec ADDED REQ 1/2 默认 `true`,与 Flow 的 `.map { ?: true }` 兜底保持一致。
+    val navEnabled: Boolean = if (userPrefsStore != null) {
+        val state by userPrefsStore.navAnimationsEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
+        state
+    } else {
+        true
+    }
+    val tabEnabled: Boolean = if (userPrefsStore != null) {
+        val state by userPrefsStore.tabAnimationsEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
+        state
+    } else {
+        true
+    }
+
     // animation-system · reduce-motion 检测(spec D3):Android 9+ API 28 `isReduceMotionEnabled`。
     // 用 LifecycleEventObserver 在 ON_RESUME 重读，捕获运行时切换系统设置。
     val reduceMotion = rememberReduceMotion()
 
     val effectiveStyle: AnimationStyle = if (reduceMotion) AnimationStyle.NONE else persistedStyle
-    val tokens = effectiveStyle.toTokens()
+    // animation-switch-redesign · reduce-motion 强制走 NONE(纯 token 覆盖,不写盘 2 个 Boolean);
+    // 其它情况走 `tokensFor` 让 navEnabled/tabEnabled 覆盖 5 个 nav/tab 字段。
+    val tokens = if (reduceMotion) {
+        effectiveStyle.toTokens()
+    } else {
+        tokensFor(effectiveStyle, navEnabled = navEnabled, tabEnabled = tabEnabled)
+    }
 
     CompositionLocalProvider(
         LocalSpacing provides DefaultSpacing,

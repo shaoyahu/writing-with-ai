@@ -140,6 +140,8 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
                             // animation-system-and-consent-redesign §11.3:MyScreen when 分支接
                             // SettingsAnimationStyle → 根 NavController navigate 走 AnimationStylePreviewScreen
                             MeTabTarget.SettingsAnimationStyle -> rootNavController.navigate(SettingsAnimationStyle)
+                            // animation-switch-redesign-followup §6.3:SettingsAnimationDetail → AnimationDetailScreen(nav/tab 细分开关)
+                            MeTabTarget.SettingsAnimationDetail -> rootNavController.navigate(SettingsAnimationDetail)
                             // ux-2026-06-28 P6:飞书授权页专属路由
                             MeTabTarget.SettingsFeishu -> rootNavController.navigate(SettingsFeishu)
                             // ux-2026-06-28 P6:笔记关联设置专属路由

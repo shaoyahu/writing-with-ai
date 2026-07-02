@@ -71,4 +71,76 @@ class AnimationTokensTest {
             b
         )
     }
+
+    // animation-switch-redesign §5.2:覆盖 tokensFor(style, navEnabled, tabEnabled)。
+
+    @Test
+    fun `tokensFor with both toggles disabled zeros out nav transitions and snaps tab`() {
+        // IMMERSIVE 风格基线:nav 一定有非 None 动画;tokensFor 关掉后必须全部退化为 None / snap。
+        val base = AnimationStyle.IMMERSIVE.toTokens()
+        val overridden = tokensFor(AnimationStyle.IMMERSIVE, navEnabled = false, tabEnabled = false)
+
+        // 5 个被覆盖的字段(spec ADDED REQ 3)
+        assertEquals(EnterTransition.None, overridden.navEnter)
+        assertEquals(ExitTransition.None, overridden.navExit)
+        assertEquals(EnterTransition.None, overridden.navPopEnter)
+        assertEquals(ExitTransition.None, overridden.navPopExit)
+        assertEquals("SnapSpec", overridden.tabContentSpec::class.simpleName)
+
+        // 其它字段透传(开关不影响 dialog / expand / collapse / switchSpec / listItemSpec)
+        assertEquals(base.switchSpec, overridden.switchSpec)
+        assertEquals(base.dialogEnter, overridden.dialogEnter)
+        assertEquals(base.dialogExit, overridden.dialogExit)
+        assertEquals(base.expandSpec, overridden.expandSpec)
+        assertEquals(base.collapseSpec, overridden.collapseSpec)
+        assertEquals(base.listItemSpec, overridden.listItemSpec)
+    }
+
+    @Test
+    fun `tokensFor with both toggles enabled matches style baseline`() {
+        // OPEN Q4:navEnabled = tabEnabled = true 时,行为完全等同 style.toTokens()(spec Decision 1)。
+        AnimationStyle.entries.forEach { style ->
+            val base = style.toTokens()
+            val overridden = tokensFor(style, navEnabled = true, tabEnabled = true)
+            assertEquals(
+                "$style tokensFor(true, true) must equal style.toTokens()",
+                base,
+                overridden
+            )
+        }
+    }
+
+    @Test
+    fun `tokensFor navEnabled false but tabEnabled true preserves tab spec`() {
+        // nav 关 + tab 开:nav 退化 None,tab 保留基线 spec。
+        val base = AnimationStyle.FLUID.toTokens()
+        val overridden = tokensFor(AnimationStyle.FLUID, navEnabled = false, tabEnabled = true)
+
+        assertEquals(EnterTransition.None, overridden.navEnter)
+        assertEquals(ExitTransition.None, overridden.navExit)
+        assertEquals(EnterTransition.None, overridden.navPopEnter)
+        assertEquals(ExitTransition.None, overridden.navPopExit)
+        // tab 透传 — FLUID 的 tabContentSpec 不是 snap(否则这个断言会失败)
+        assertEquals(base.tabContentSpec, overridden.tabContentSpec)
+        assertNotEquals(
+            "FLUID tabContentSpec should NOT be SnapSpec (animation enabled)",
+            "SnapSpec",
+            overridden.tabContentSpec::class.simpleName
+        )
+    }
+
+    @Test
+    fun `tokensFor navEnabled true but tabEnabled false snaps tab only`() {
+        // nav 开 + tab 关:nav 保持基线,tab snap。
+        val base = AnimationStyle.FLUID.toTokens()
+        val overridden = tokensFor(AnimationStyle.FLUID, navEnabled = true, tabEnabled = false)
+
+        // nav 透传
+        assertEquals(base.navEnter, overridden.navEnter)
+        assertEquals(base.navExit, overridden.navExit)
+        assertEquals(base.navPopEnter, overridden.navPopEnter)
+        assertEquals(base.navPopExit, overridden.navPopExit)
+        // tab snap
+        assertEquals("SnapSpec", overridden.tabContentSpec::class.simpleName)
+    }
 }

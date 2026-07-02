@@ -83,12 +83,19 @@ fun AnimatedSwitch(
             ),
         contentAlignment = Alignment.CenterStart
     ) {
-        // thumb 沿 x 轴 ±10dp 滑动;需 dp→px 转换以适配不同 density 设备。
-        val travelPx = with(LocalDensity.current) { 20.dp.roundToPx() }
-        val offsetPx = (progress * travelPx).roundToInt()
+        // thumb 沿 x 轴对称滑动(animation-system spec: 关闭/打开两端 padding 对称)。
+        // 之前用 travel=20dp,thumb 24dp,导致关闭时 thumb 左边贴 track 左边(0dp),
+        // 打开时 thumb 右边只留 8dp,严重不对称;这里改用 thumbEndPadding=2dp,
+        // 让 thumb 在两端各留 2dp 对称 padding。
+        val thumbSize = 24.dp
+        val thumbEndPadding = 2.dp
+        val density = LocalDensity.current
+        val travelPx = with(density) { 24.dp.roundToPx() }
+        val paddingPx = with(density) { thumbEndPadding.roundToPx() }
+        val offsetPx = paddingPx + (progress * travelPx).roundToInt()
         Box(
             modifier = Modifier
-                .size(24.dp)
+                .size(thumbSize)
                 .offset { IntOffset(x = offsetPx, y = 0) }
                 .clip(CircleShape)
                 .background(thumbColor)

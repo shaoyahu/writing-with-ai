@@ -27,6 +27,9 @@ enum class MeTabTarget {
     /** animation-system-and-consent-redesign §11.1:动画风格设置入口。 */
     SettingsAnimationStyle,
 
+    /** animation-switch-redesign-followup §6.2:动画详细设置入口(nav/tab 细分开关)。 */
+    SettingsAnimationDetail,
+
     /** ux-2026-06-28 P6:飞书授权页专属路由(不再走 Settings hub) */
     SettingsFeishu,
 
