@@ -9,7 +9,7 @@
          Composable 内禁止硬编码中文，所有用户可见字符串走 R.string.* 引用。 -->
 
     <!-- 列表 -->
-    <string name="quicknote_list_title">随手记</string>
+    <string name="quicknote_list_title">笔记</string>
     <string name="quicknote_list_empty">还没有笔记</string>
     <string name="quicknote_list_empty_cta">点 + 创建第一条</string>
     <string name="quicknote_list_search_hint">搜索标题或正文</string>
@@ -176,10 +176,10 @@
     <string name="ai_error_action_go_settings">去设置</string>
 
     <!-- ===== M4-1 桌面小组件 home-screen-widget ===== -->
-    <string name="widget_2x2_title">随手记</string>
-    <string name="widget_4x2_title">随手记</string>
+    <string name="widget_2x2_title">笔记</string>
+    <string name="widget_4x2_title">笔记</string>
     <string name="widget_1x1_label">记笔记</string>
-    <string name="widget_1x4_title">随手记</string>
+    <string name="widget_1x4_title">笔记</string>
     <string name="widget_1x4_layout_label">4x1 横条</string>
     <string name="widget_empty">还没有笔记\n点 + 创建第一条</string>
     <!-- widget-rome-compat · 国产 ROM widget 自启动提示 -->
@@ -586,7 +586,7 @@
     <string name="provider_step_1_install">步骤 1:安装 debug APK，启动器显示小札图标。</string>
     <string name="provider_step_2_consent">步骤 2:首次启动，滑到条款页底部，点击「同意并继续」。</string>
     <string name="provider_step_3_apikey_intro">步骤 3:API Key 说明页，阅读后点击「知道了」。</string>
-    <string name="provider_step_4_note_and_ai">步骤 4:进入随手记，写一条笔记，打开详情，选中文字，点击 AI 按钮，弹出操作面板。</string>
+    <string name="provider_step_4_note_and_ai">步骤 4:进入笔记，写一条笔记，打开详情，选中文字，点击 AI 按钮，弹出操作面板。</string>
     <string name="provider_step_5_open_model_mgmt">步骤 5:进入「我的」→「设置」→「AI 模型管理」，确认有 4 张卡:DeepSeek / Minimax / MiMo / 自定义。</string>
     <string name="provider_step_6_configure_deepseek">步骤 6:点 DeepSeek 卡，API Key 栏为空，默认模型为 deepseek-v4-flash，粘贴 DeepSeek apikey 并保存，Toast 显示「已保存」。</string>
     <string name="provider_step_7_trigger_expand">步骤 7:返回笔记详情，再次点 AI 按钮，选「扩写」，流式面板在秒级展示生成内容。</string>

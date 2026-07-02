@@ -6,7 +6,7 @@
     <string name="app_name">Xiaozha</string>
     <string name="placeholder_greeting">Xiaozha scaffold ready</string>
 
-    <string name="quicknote_list_title">Quick Notes</string>
+    <string name="quicknote_list_title">Notes</string>
     <string name="quicknote_list_empty">No notes yet</string>
     <string name="quicknote_list_empty_cta">Tap + to create your first</string>
     <string name="quicknote_list_search_hint">Search title or body</string>
@@ -129,9 +129,9 @@
     <!-- real-provider-integration §4:Snackbar action 跳模型管理 -->
     <string name="ai_error_action_go_settings">Settings</string>
 
-    <string name="widget_2x2_title">Quick Notes</string>
-    <string name="widget_4x2_title">Quick Notes</string>
-    <string name="widget_1x4_title">Quick Notes</string>
+    <string name="widget_2x2_title">Notes</string>
+    <string name="widget_4x2_title">Notes</string>
+    <string name="widget_1x4_title">Notes</string>
     <string name="widget_1x1_label">Note</string>
     <string name="widget_1x4_layout_label">4x1 strip</string>
     <string name="widget_empty">No notes yet\nTap + to create one</string>
@@ -524,7 +524,7 @@
     <string name="provider_step_1_install">Step 1: Install the debug APK; launcher shows the Xiaozha icon.</string>
     <string name="provider_step_2_consent">Step 2: On first launch, scroll the consent page to the bottom, tap "Accept and continue".</string>
     <string name="provider_step_3_apikey_intro">Step 3: On the API key intro screen, read it and tap "Got it".</string>
-    <string name="provider_step_4_note_and_ai">Step 4: Open Quick Notes, write a note, open detail, select text, tap the AI button. Action sheet appears.</string>
+    <string name="provider_step_4_note_and_ai">Step 4: Open Notes, write a note, open detail, select text, tap the AI button. Action sheet appears.</string>
     <string name="provider_step_5_open_model_mgmt">Step 5: Open Me → Settings → AI Models. Verify 4 cards: DeepSeek / MiniMax / MiMo / Custom.</string>
     <string name="provider_step_6_configure_deepseek">Step 6: Tap the DeepSeek card. API Key field is empty; default model is deepseek-v4-flash. Paste your DeepSeek apikey and Save. Toast shows "Saved".</string>
     <string name="provider_step_7_trigger_expand">Step 7: Back to note detail, retrigger AI button, tap Expand. Streaming panel shows generated content within seconds.</string>

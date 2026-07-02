@@ -125,7 +125,13 @@ fun QuickNoteListScreen(
         contentWindowInsets = WindowInsets.statusBars,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.quicknote_list_title)) }
+                title = {
+                    Text(
+                        stringResource(R.string.quicknote_list_title),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
             )
         }
     ) { innerPadding ->
