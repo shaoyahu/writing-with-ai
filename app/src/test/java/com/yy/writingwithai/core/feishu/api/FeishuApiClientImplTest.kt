@@ -85,6 +85,26 @@ class FeishuApiClientImplTest {
         }
     }
 
+    /**
+     * fix(feishu-doc-deleted-3380003):飞书对已被用户删除的文档调用 v2 update API,
+     * 返回 HTTP 200 + 业务 code=3380003 而非 HTTP 404。原执行链路把这种"业务码表
+     * 示已删除"包成 FeishuError.BadRequest 直接逃到 UI,导致 sync 显示"操作失败"。
+     * 特判后应翻译为 NotFound,让上层 catch NotFound 自动重建文档。
+     */
+    @Test
+    fun `updateDocumentV2 throws NotFound when feishu code == 3380003 (doc deleted)`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """{"code":3380003,"msg":"Document page has been deleted. This page can no longer be edited","data":{}}"""
+            )
+        )
+        val ex = assertThrows(FeishuError.NotFound::class.java) {
+            kotlinx.coroutines.runBlocking { api.updateDocumentV2("doc-deleted", "<xml/>") }
+        }
+        // resource 应包含原 URL 路径,方便上层 log 定位
+        assertTrue(ex.resource.contains("docs_ai") || ex.resource.contains("doc-deleted"))
+    }
+
     @Test
     fun `getBlocks throws NotFound on HTTP 404`() = runTest {
         server.enqueue(MockResponse().setResponseCode(404).setBody("not found"))

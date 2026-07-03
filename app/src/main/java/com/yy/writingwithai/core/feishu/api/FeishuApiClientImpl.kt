@@ -104,9 +104,7 @@ constructor(
         }
     }
 
-    /**
-     * 统一执行:状态码 → FeishuError 映射;body → 业务错误 code 检查。
-     */
+    // ---- v2 docs_ai/v1 ----
     private fun executeRequest(request: Request): ParsedResponse {
         val response = try {
             httpClient.newCall(request).execute()
@@ -172,6 +170,14 @@ constructor(
                     if (code != 0) {
                         val msg = parsed["msg"]?.jsonPrimitive?.contentOrNull ?: ""
                         if (code == AuthInterceptor.FEISHU_TOKEN_INVALID_CODE) throw FeishuError.TokenInvalid
+                        // fix(feishu-doc-deleted-3380003):飞书对已删除文档返回 HTTP 200
+                        // 但业务 code=3380003(msg="Document page has been deleted"),原本包成
+                        // BadRequest 直接逃到 UI 显示"操作失败"。特判翻译成 NotFound,
+                        // 让 FeishuDocService.updateDoc 已有的 catch NotFound 链路接管:
+                        // 标记 REMOTE_DELETED → sync push catch NotFound → 删旧 ref + 重建 doc。
+                        if (code == FEISHU_DOC_DELETED_CODE) {
+                            throw FeishuError.NotFound(resource = request.url.encodedPath)
+                        }
                         throw FeishuError.BadRequest(code, msg)
                     }
                     val data = try {
@@ -444,5 +450,12 @@ constructor(
         // F2 fix: 与 AnthropicCompatibleAdapter.MAX_RESPONSE_BODY_BYTES(1 MiB)对齐，
         // 避免恶意/异常 endpoint 返回 MB 级 body 触发 OOM。
         private const val MAX_BODY: Long = 1L * 1024 * 1024
+
+        // fix(feishu-doc-deleted-3380003):飞书对已删除的文档/update API 返回 HTTP 200
+        // 但业务 code=3380003,msg="Document page has been deleted. This page can no
+        // longer be edited..."。executeRequest 特判该 code,翻译为 FeishuError.NotFound,
+        // 让 FeishuDocService.updateDoc 已有的 catch NotFound 链路自动接管(标记
+        // REMOTE_DELETED → 上层 push catch NotFound → 删旧 ref + createDoc 重建)。
+        private const val FEISHU_DOC_DELETED_CODE = 3380003
     }
 }

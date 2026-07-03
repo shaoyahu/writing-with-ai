@@ -1,5 +1,6 @@
 package com.yy.writingwithai.feature.quicknote.detail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -195,9 +196,7 @@ private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit) {
                 if (note.signals.contains(LinkType.WIKILINK)) {
                     SignalChip(text = stringResource(R.string.note_association_signal_wikilink))
                 }
-                if (note.signals.contains(LinkType.TAG_OVERLAP)) {
-                    SignalChip(text = stringResource(R.string.note_association_signal_tag))
-                }
+                // TAG_OVERLAP 不再显示"标签"文字 chip，改为下方直接显示实际标签名
                 if (note.signals.contains(LinkType.CONTENT_SIM)) {
                     SignalChip(text = stringResource(R.string.note_association_signal_content))
                 }
@@ -209,12 +208,18 @@ private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit) {
                 }
             }
             // 展示共享标签名(TAG_OVERLAP → sharedTags)和共享实体名(ENTITY_HIT → sharedEntities)
-            val sharedItems = parseSharedItems(note.evidence)
-            if (sharedItems.isNotEmpty()) {
+            // 标签用 TagChip 样式(圆角背景)，实体用 SignalChip 样式
+            val (sharedTags, sharedEntities) = parseSharedItems(note.evidence)
+            if (sharedTags.isNotEmpty() || sharedEntities.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    sharedItems.take(6).forEach { item ->
-                        SignalChip(text = item)
+                    // 标签用 TagChip 样式
+                    sharedTags.take(3).forEach { tag ->
+                        TagChip(text = tag)
+                    }
+                    // 实体用 SignalChip 样式
+                    sharedEntities.take(3).forEach { entity ->
+                        SignalChip(text = entity)
                     }
                 }
             }
@@ -229,6 +234,24 @@ private fun SignalChip(text: String) {
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    )
+}
+
+/**
+ * TagChip: 标签专用 chip，带圆角背景色（与列表页 NoteRow 标签样式一致）
+ */
+@Composable
+private fun TagChip(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(8.dp)
+            )
             .padding(horizontal = 8.dp, vertical = 2.dp)
     )
 }
@@ -331,18 +354,32 @@ private fun EmptyState(aiState: AiExtractState, showAiButton: Boolean, onAiTrigg
  *
  * TAG_OVERLAP evidence 格式: `{"sharedTags":["科研","AI"]}`
  * ENTITY_HIT evidence 格式: `{"sharedEntities":["M3","Agent"]}`
- * GROUP_CONCAT 拼接后可能同时包含两者，用正则分别提取后去重合并。
+ * GROUP_CONCAT 拼接后可能同时包含两者，用正则分别提取。
+ *
+ * 返回 Pair(sharedTags, sharedEntities)，分别用于不同 chip 样式渲染。
  */
-private fun parseSharedItems(evidence: String?): List<String> {
-    if (evidence.isNullOrBlank()) return emptyList()
-    val items = mutableSetOf<String>()
+private fun parseSharedItems(evidence: String?): Pair<List<String>, List<String>> {
+    if (evidence.isNullOrBlank()) return emptyList<String>() to emptyList<String>()
+
+    val tags = mutableListOf<String>()
+    val entities = mutableListOf<String>()
+
     // 匹配 "sharedTags":[...] 和 "sharedEntities":[...]
-    val arrayPattern = Regex(""""shared(?:Tags|Entities)"\s*:\s*\[([^]]*)]""")
     val stringPattern = Regex(""""([^"\\]+)""")
-    arrayPattern.findAll(evidence).forEach { match ->
+
+    // 提取 sharedTags
+    Regex(""""sharedTags"\s*:\s*\[([^]]*)]""").findAll(evidence).forEach { match ->
         stringPattern.findAll(match.groupValues[1]).forEach { s ->
-            items.add(s.groupValues[1])
+            tags.add(s.groupValues[1])
         }
     }
-    return items.toList()
+
+    // 提取 sharedEntities
+    Regex(""""sharedEntities"\s*:\s*\[([^]]*)]""").findAll(evidence).forEach { match ->
+        stringPattern.findAll(match.groupValues[1]).forEach { s ->
+            entities.add(s.groupValues[1])
+        }
+    }
+
+    return tags.toList() to entities.toList()
 }
