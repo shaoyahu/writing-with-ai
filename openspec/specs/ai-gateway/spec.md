@@ -24,6 +24,14 @@ TBD - created by archiving change ai-abstraction-layer. Update Purpose after arc
 - **WHEN** 调用 `AiGateway.streamWritingOp(providerId="deepseek", apikey="sk-real-123")`
 - **THEN** `CoreAiGateway` 内部用 `apikey="sk-real-123"` 构造 `AiCredentials` 传给 `AnthropicCompatibleAdapter.stream()`;**不**硬编码 `"fake-apikey"` 等占位字面量
 
+#### Scenario: modelName null fallback to provider.defaultModel
+- **WHEN** 调用 `AiGateway.streamWritingOp(providerId="deepseek", apikey="sk-real-123", modelName=null)`,`DeepseekConfig.config.defaultModel == "deepseek-v4-flash"`
+- **THEN** gateway 内部用 `model = "deepseek-v4-flash"` 构造 `AiRequest`，传给 `AnthropicCompatibleAdapter.stream()`;**不**用 `provider.supportedModels.firstOrNull()`(若列表顺序变化，行为不变)
+
+#### Scenario: modelName null + defaultModel null emits ProviderNotConfigured
+- **WHEN** 调用 `AiGateway.streamWritingOp(providerId="x", apikey="sk-1", modelName=null)`，且 `resolveProvider("x")` 返回的 `provider.defaultModel` 为 null 或 blank
+- **THEN** 返回 `Flow` 的首个事件为 `AiStreamEvent.Failed(AiError.ProviderNotConfigured, recoverable=false)`,**不**调 `provider.stream(...)`(0 次 adapter 调用)
+
 ### Requirement: AiGateway does not depend on SecureApiKeyStore
 
 `CoreAiGateway` 构造 MUST **不** 注入 `SecureApiKeyStore` / `ProviderPrefsStore`;apikey 由 caller(`AiActionViewModel` / `ModelManagementViewModel`)在调 gateway 前通过 `SecureApiKeyStore.get(providerId)` 取得，`null` → caller 自行 emit `ProviderNotConfigured` Failed，非 null → 透传进 `AiGateway.streamWritingOp(..., apikey = apikey)` / `AiGateway.ping(..., apikey = apikey)`。理由:gateway 保持单一职责(只做 protocol 路由)，凭证获取属于业务侧职责;`SecureApiKeyStore` 是业务设施(走 Hilt @ApplicationContext 注入)，不应该被 `core/ai/api/AiGateway` 抽象依赖。

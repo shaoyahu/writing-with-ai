@@ -26,11 +26,15 @@ All Card components in the application SHALL use elevation=0 with a 1dp BorderSt
 - **THEN** it shows a 2dp border in `primary` color
 
 ### Requirement: CornerRadius token provides five tiers
-`CornerRadius` data class SHALL provide xs(4dp), sm(8dp), md(12dp), lg(16dp), xl(24dp). Card components SHALL use md(12dp). ModalBottomSheet SHALL use lg(16dp). Search bars SHALL use xl(24dp).
+`CornerRadius` data class SHALL provide xs(4dp), sm(8dp), md(12dp), lg(16dp), xl(24dp). Card components SHALL use md(12dp). ModalBottomSheet SHALL use lg(16dp). Search bars SHALL use xl(24dp). Dropdown menus SHALL use md(12dp).
 
 #### Scenario: Card uses md corner radius
 - **WHEN** any Card is rendered
 - **THEN** its corner radius is 12dp
+
+#### Scenario: Dropdown menu uses md corner radius
+- **WHEN** any DropdownMenu or ExposedDropdownMenu is rendered via AppActionDropdown or AppSelectionDropdown
+- **THEN** its corner radius is 12dp (cornerRadius.md)
 
 ### Requirement: Spacing token provides nine tiers
 `Spacing` data class SHALL provide xs2(2dp), xs(4dp), sm(8dp), sm2(12dp), md(16dp), md2(20dp), lg(24dp), xl(32dp), xl2(40dp). Business Composables SHALL NOT use bare `.dp` for spacing — all spacing MUST reference `LocalSpacing.current`.

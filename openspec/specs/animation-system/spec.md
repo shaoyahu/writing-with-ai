@@ -102,13 +102,33 @@ The system SHALL replace bare `expandVertically()` / `shrinkVertically()` in col
 - **THEN** content area SHALL use `AnimatedContent` with `tabContentSpec` from `LocalAnimationTokens.current`
 
 ### Requirement: AnimationStylePreviewScreen lists 4 styles
-The system SHALL provide `feature/settings/animation/AnimationStylePreviewScreen.kt` with 4 selectable style cards (MINIMAL / FLUID / IMMERSIVE / NONE) acting as a visual style library, plus 2 independent toggle rows for "导航动画" and "标签动画" bound to `UserPrefsStore.navAnimationsEnabled` and `UserPrefsStore.tabAnimationsEnabled` respectively.
+The system SHALL provide `feature/settings/animation/AnimationStylePreviewScreen.kt` with **4 selectable style cards only** (MINIMAL / FLUID / IMMERSIVE / NONE) acting as a visual style library. Each card SHALL present its style as a 4-of-1 single-select choice. The screen SHALL NOT expose nav/tab animation toggles; those belong to `AnimationDetailScreen`.
 
-#### Scenario: 4 style cards rendered
+#### Scenario: 4 cards rendered
 - **WHEN** user opens "动画风格" settings page
-- **THEN** the screen SHALL render exactly 4 style cards (MINIMAL / FLUID / IMMERSIVE / NONE) as a visual library
-- **AND** each card SHALL show a mini preview of nav transition + Switch + Tab animation
-- **AND** tapping a card SHALL invoke `UserPrefsStore.setAnimationStyle(<style>)` only
+- **THEN** the screen SHALL render exactly 4 cards (MINIMAL / FLUID / IMMERSIVE / NONE) as a visual library
+- **AND** exactly one card SHALL display a selected-state indicator driven by `RadioButton(selected = …)`
+- **AND** no card SHALL render a secondary "checkmark" icon as a duplicate selected-state indicator
+
+#### Scenario: Selecting IMMERSIVE writes DataStore
+- **WHEN** user taps the IMMERSIVE card
+- **THEN** `UserPrefsStore.setAnimationStyle(IMMERSIVE)` SHALL be invoked
+- **AND** the active style SHALL update to IMMERSIVE
+
+#### Scenario: Reduce-motion banner
+- **WHEN** `AccessibilityManager.isReduceMotionEnabled == true`
+- **THEN** the screen SHALL display a Banner explaining reduce-motion forces NONE
+
+#### Scenario: Route registration
+- **WHEN** user navigates from MyScreen to animation settings
+- **THEN** route `SettingsAnimationStyle` SHALL resolve to `AnimationStylePreviewScreen`
+
+### Requirement: AnimationDetailScreen exposes nav/tab animation toggles
+The system SHALL provide `feature/settings/animation/AnimationDetailScreen.kt` with 2 independent toggle rows: "导航动画" (navigation) and "标签动画" (tab content). Each row SHALL be implemented via the reusable `AnimationToggleRow.kt` Composable in the same package, and SHALL bind to `UserPrefsStore.navAnimationsEnabled` and `UserPrefsStore.tabAnimationsEnabled` respectively. When `AccessibilityManager.isReduceMotionEnabled == true`, both toggles SHALL render as disabled (non-interactive) but visually present, and a banner SHALL explain reduce-motion forces NONE.
+
+#### Scenario: Both toggles rendered
+- **WHEN** user navigates to "动画详细" page
+- **THEN** the screen SHALL render 2 toggle rows (navigation + tab) with title and description in addition to a header
 
 #### Scenario: Nav animation toggle persists
 - **WHEN** user toggles the "导航动画" `AnimatedSwitch` from ON to OFF
@@ -120,14 +140,29 @@ The system SHALL provide `feature/settings/animation/AnimationStylePreviewScreen
 - **THEN** `UserPrefsStore.setTabAnimationsEnabled(false)` SHALL be invoked
 - **AND** within 1 second, the active `LocalAnimationTokens.tabContentSpec` SHALL resolve to `snap()`
 
-#### Scenario: Reduce-motion banner
+#### Scenario: Reduce-motion disables toggles
 - **WHEN** `AccessibilityManager.isReduceMotionEnabled == true`
-- **THEN** the screen SHALL display a Banner explaining reduce-motion forces NONE
-- **AND** both "导航动画" and "标签动画" toggles SHALL be displayed as disabled (non-interactive) and forced OFF
+- **THEN** both toggles SHALL be displayed as disabled (non-interactive) but visually present
+- **AND** a banner SHALL explain reduce-motion forces NONE
+
+#### Scenario: AnimationToggleRow is reusable
+- **WHEN** `AnimationToggleRow.kt` is committed at the same package top level as the screens
+- **THEN** both `AnimationStylePreviewScreen` and `AnimationDetailScreen` (if sharing) can reference it without creating a circular import
 
 #### Scenario: Route registration
-- **WHEN** user navigates from MyScreen to animation settings
-- **THEN** route `SettingsAnimationStyle` SHALL resolve to `AnimationStylePreviewScreen`
+- **WHEN** user navigates from "动画风格" page to "动画详细" page
+- **THEN** route `SettingsAnimationDetail` SHALL resolve to `AnimationDetailScreen`
+
+### Requirement: AnimationToggleRow lives at package top level
+The system SHALL place `AnimationToggleRow.kt` at the same package as `AnimationStylePreviewScreen.kt` and `AnimationDetailScreen.kt` (`feature.settings.animation`), not nested in either screen's sub-folder. This ensures both screens can reuse the row without a circular import.
+
+#### Scenario: Shared between animation pages
+- **WHEN** `AnimationToggleRow.kt` exists at `feature/settings/animation/AnimationToggleRow.kt`
+- **THEN** both `AnimationStylePreviewScreen.kt` and `AnimationDetailScreen.kt` in the same package SHALL be able to import it directly via `package feature.settings.animation`
+
+#### Scenario: Disabled state visual
+- **WHEN** `AnimationToggleRow(enabled = false)` is rendered
+- **THEN** the row SHALL appear with reduced opacity / muted colors AND the underlying `AnimatedSwitch` SHALL ignore click events (i.e. `clickable.enabled = false`)
 
 ### Requirement: i18n parity for animation settings
 The system SHALL add the 10 animation-style string keys to both `values/strings.xml` and `values-en/strings.xml` with matching key sets.

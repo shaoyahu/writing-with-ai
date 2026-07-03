@@ -2,6 +2,20 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log，单次评审查 `docs/reviews/`，规划查 `docs/plans/`。
 
+## 2026-07-03 · 8 个 OpenSpec change 批量 sync + archive（首次全量同步）
+
+- **方式**:delta spec 经 review 后,逐个 sync 到 main spec + 归档到 `archive/2026-07-03-<name>/`。跟 `eadd994` (`fix(review-2026-06-29)`) 的同期批量 archive 模式不同,本次**先 sync 后 archive**,使 main spec 与代码实装一致
+- **8 个 A 档 change 全部收口**:
+  - `unify-dropdown-menu-style` — 新建 `app-dropdown-menu/spec.md` 主规格;`design-system-v2/spec.md` 补 Dropdown menu 用 12dp corner scenario
+  - `note-list-card-actions` — `quick-note/spec.md` 末尾追加 3 个新 Requirement(长按菜单 / 左滑动作 / 添加标签 dialog)+ 11 个 scenario
+  - `app-tab-bar-redesign` — `app-tab-bar/spec.md` 整段替换 `Bottom tab bar with three slots and a raised center FAB`(老 NavigationBar+FAB) → 新 `Bottom tab bar styled to match the My tab's card aesthetic`(Surface+子卡+CenterCreateCard)
+  - `note-decompose-highlight` — 新建 `note-decompose-highlight/spec.md` 主规格(4 个 Requirement)
+  - `animation-switch-redesign-followup` — `animation-system/spec.md` 拆 `AnimationStylePreviewScreen`(纯 4-cards),抽出 `AnimationDetailScreen` + `AnimationToggleRow` 两个新 Requirement
+  - `ai-model-selection-actually-used` — `ai-gateway/spec.md` 追加 2 个 modelName fallback scenario;新建 `ai-model-selection-persistence/spec.md` + `ai-model-selection-ui-transparency/spec.md` 两个新主规格
+  - `custom-provider-api-format` — 新建 `custom-provider-config/spec.md` 主规格(5 个 Requirement)
+  - `feishu-sync-end-to-end` — `feishu-auth/spec.md` 追加 `FeishuSyncLogSection visibility`;`feishu-bidir-sync/spec.md` 追加 `QuickNote detail UI exposes push / pull entry points`
+- **未归档(B/C 档 blocker)**:`language-switcher` / `onboarding-consent-card-redesign` / `real-provider-integration` / `release-preflight-automation` / `v1-internal-testing` 留待用户后续指示
+
 ## 2026-07-02 · feishu-folder-migration change(folder token 变更迁移)
 
 - **需求**:用户改 folder token 后,已在旧文件夹同步的笔记需要迁移;用户选择**只提供删除+新建**方式(不实现 move API)

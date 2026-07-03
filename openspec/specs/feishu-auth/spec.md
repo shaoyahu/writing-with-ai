@@ -165,3 +165,17 @@ The system SHALL persist the pending OAuth exchange to disk (`persistPendingExch
 - **THEN** the receiver does NOT re-persist
 - **AND** falls through to the normal `consumeOAuthState()` validation path (which may also fail and show "state expired" toast)
 
+### Requirement: FeishuSyncLogSection visibility tied to connection state
+
+The `FeishuSyncLogSection` Composable MUST only render when `FeishuAuthState.connected == true`. When disconnected, the settings page MUST render only the "连接飞书" CTA, hiding any sync log content.
+
+#### Scenario: Connected settings page shows sync log section
+- **WHEN** `FeishuAuthState.connected = true` and user opens `FeishuAuthScreen`
+- **THEN** screen MUST render `FeishuSyncLogSection(eventDao)` showing last 20 sync events (newest first) with timestamp / direction / status / error columns
+- **AND** each event row MUST display direction icon (PUSH / PULL) and status badge (SUCCESS / FAILURE / CONFLICT)
+- **AND** disclaimer line "同步不消耗 AI token，只调飞书 API" MUST be visible above the list
+
+#### Scenario: Disconnected settings page hides sync log
+- **WHEN** `FeishuAuthState.connected = false`
+- **THEN** `FeishuSyncLogSection` MUST NOT be rendered;screen MUST show only "连接飞书" CTA
+
