@@ -1,6 +1,46 @@
 # scripts/
 
-本地开发辅助脚本。**不放构建 / CI / 部署脚本**(那部分走 `./gradlew`)。
+本地开发辅助脚本。
+
+## `release-server/` — APK 发版脚本
+
+APK 托管于 GitHub Releases CDN，服务器仅存放 `version.json` + `index.html` + `release-notes/`。
+
+### `publish-release.sh` — 一行发版
+
+```bash
+./scripts/release-server/publish-release.sh <versionCode> <versionName> <notes.md> <apk> [debug|release]
+```
+
+自动完成:
+1. 创建 GitHub Release + 上传 APK
+2. 本地生成 `version.json`（apkUrl 指向 GitHub Releases CDN）
+3. 本地生成 `index.html`（下载按钮指向 GitHub Releases CDN）
+4. scp 元数据到服务器
+
+幂等:重跑覆盖同名文件和 GitHub Release assets。
+
+### `build-version-json-local.py` — 本地生成 version.json
+
+```bash
+python3 scripts/release-server/build-version-json-local.py \
+  --version-code 3 --version-name 0.3.0 \
+  --channel release --apk ./app-release.apk \
+  --notes ./release-notes/3.md
+```
+
+显式参数驱动,本地计算 SHA-256,apkUrl 指向 GitHub Releases。输出到 stdout。
+
+### `build-index-local.py` — 本地生成下载页
+
+```bash
+python3 scripts/release-server/build-index-local.py \
+  --current release --version-json ./version.json
+```
+
+当前通道数据从本地 version.json 读取,另一通道从服务器 curl version.json 获取。输出到 stdout。
+
+---
 
 ## `real-provider-smoke.sh`
 

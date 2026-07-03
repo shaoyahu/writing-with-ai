@@ -303,7 +303,7 @@
       <div class="hero-icon" aria-hidden="true">札</div>
       <div class="hero-text">
         <h1>小札</h1>
-        <p>原生 Android 笔记 + AI 助手,自托管 APK 分发</p>
+        <p>原生 Android 笔记 + AI 助手,GitHub Releases 托管分发</p>
         <span class="hero-amber-pill">v0.2.0 双通道内测</span>
       </div>
     </div>
@@ -322,7 +322,7 @@
   </main>
 
   <footer>
-    <p>本应用走自托管 APK 分发,仅供内测使用 · 详见
+    <p>APK 托管于 GitHub Releases,仅供内测使用 · 详见
     <a href="https://github.com/shaoyahu/writing-with-ai">项目主页</a></p>
   </footer>
 
