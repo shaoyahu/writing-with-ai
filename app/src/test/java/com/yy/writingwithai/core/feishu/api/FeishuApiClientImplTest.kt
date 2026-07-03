@@ -95,7 +95,7 @@ class FeishuApiClientImplTest {
     fun `updateDocumentV2 throws NotFound when feishu code == 3380003 (doc deleted)`() = runTest {
         server.enqueue(
             MockResponse().setBody(
-                """{"code":3380003,"msg":"Document page has been deleted. This page can no longer be edited","data":{}}"""
+                """{"code":3380003,"msg":"Document page has been deleted","data":{}}"""
             )
         )
         val ex = assertThrows(FeishuError.NotFound::class.java) {

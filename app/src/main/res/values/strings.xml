@@ -653,4 +653,29 @@
     <string name="note_decompose_found_fmt">已发现 %1$d 个实体</string>
     <string name="note_decompose_entity_sheet_title">%1$s · %2$s</string>
     <string name="note_decompose_no_related">暂无关联笔记</string>
+    <!-- feishu-sync-feedback · 飞书同步反馈 UI 重构(v1.0) -->
+    <string name="feishu_sync_success_fmt">已同步到飞书：%1$s</string>
+    <string name="feishu_sync_action_copy">复制链接</string>
+    <string name="feishu_sync_copied">已复制链接</string>
+    <string name="feishu_sync_dialog_conflict_title">同步冲突</string>
+    <string name="feishu_sync_dialog_conflict_body">本地与飞书端都有修改，请选择保留哪一方</string>
+    <string name="feishu_sync_dialog_folder_migration_title">同步目标文件夹已变更</string>
+    <string name="feishu_sync_dialog_folder_migration_body">该笔记之前已同步到其他位置，当前文件夹设置已变更</string>
+    <string name="feishu_sync_dialog_remote_deleted_title">飞书文档已删除</string>
+    <string name="feishu_sync_dialog_remote_deleted_body">远端文档已被删除，是否重新同步为新文档？</string>
+    <string name="feishu_sync_dialog_remote_deleted_action_recreate">重新同步为新文档</string>
+    <string name="feishu_sync_dialog_empty_title">飞书端为空</string>
+    <string name="feishu_sync_dialog_empty_body">飞书端内容为空，不会覆盖本地笔记</string>
+    <string name="feishu_sync_dialog_network_title">网络异常</string>
+    <string name="feishu_sync_dialog_network_body">请检查网络连接后重试</string>
+    <string name="feishu_sync_dialog_server_title">飞书服务暂不可用</string>
+    <string name="feishu_sync_dialog_server_body">飞书服务暂时不可用，请稍后重试</string>
+    <string name="feishu_sync_dialog_rate_limited_title">操作过于频繁</string>
+    <string name="feishu_sync_dialog_rate_limited_body">请在 %1$d 秒后重试</string>
+    <string name="feishu_sync_dialog_unknown_title">同步失败</string>
+    <string name="feishu_sync_dialog_unknown_body">%1$s</string>
+    <string name="feishu_sync_action_retry">重试</string>
+    <string name="feishu_sync_action_close">关闭</string>
+    <string name="feishu_sync_action_copy_error">复制错误</string>
+    <string name="feishu_sync_action_ack">我知道了</string>
 </resources>

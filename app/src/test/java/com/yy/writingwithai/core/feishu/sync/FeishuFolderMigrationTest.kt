@@ -144,20 +144,18 @@ class FeishuFolderMigrationTest {
     }
 
     @Test
-    fun `push throws mismatch when ref has null but setting has value`() = runTest {
+    fun `push migrates legacy null ref when setting has new value (no dialog)`() = runTest {
         // 先在无 folder 下创建(ref.folderToken = null)
         currentFolderToken = null
         coEvery { notes.getNote("n1") } returns sampleNote("n1", content = "content")
         service.push("n1")
 
-        // 用户设置了 folder token
+        // 用户设置了 folder token — 旧数据视为"未知 → 已知"迁移,不应弹 FolderMigration Dialog
         currentFolderToken = "fldcnNewFolder"
 
-        val ex = assertThrows(FeishuError.FolderTokenMismatch::class.java) {
-            kotlinx.coroutines.runBlocking { service.push("n1") }
-        }
-        assertEquals("fldcnNewFolder", ex.currentFolderToken)
-        assertEquals(null, ex.refFolderToken)
+        // 不应抛 FolderTokenMismatch,直接走 updateDoc 成功路径
+        val ref = kotlinx.coroutines.runBlocking { service.push("n1") }
+        assertEquals("fldcnNewFolder", ref.folderToken)
     }
 
     @Test
@@ -194,7 +192,7 @@ class FeishuFolderMigrationTest {
 
         // 选择删除+新建
         val result = service.pushWithFolderMigration("n1", FolderMigrationChoice.DELETE_AND_RECREATE)
-        assertTrue(result.startsWith("同步完成"))
+        assertTrue(result.docUrl.isNotBlank())
 
         // 应调了 deleteFile
         assertEquals(1, api.deleteFileCalls)
@@ -221,7 +219,7 @@ class FeishuFolderMigrationTest {
         currentFolderToken = "fldcnFolderB"
 
         val result = service.pushWithFolderMigration("n1", FolderMigrationChoice.UPDATE_IN_PLACE)
-        assertTrue(result.startsWith("同步完成"))
+        assertTrue(result.docUrl.isNotBlank())
 
         // 不应调 deleteFile
         assertEquals(0, api.deleteFileCalls)
@@ -285,7 +283,7 @@ class FeishuFolderMigrationTest {
         // 6. 当远端恢复后,用户重试应能成功
         api.deleteFileShouldFail = false
         val result = service.pushWithFolderMigration("n1", FolderMigrationChoice.DELETE_AND_RECREATE)
-        assertTrue(result.startsWith("同步完成"))
+        assertTrue(result.docUrl.isNotBlank())
     }
 }
 

@@ -100,7 +100,7 @@ class FeishuSyncServiceTest {
         coEvery { notes.upsert(any(), any()) } returns Unit
 
         val result = service.push("n1")
-        assertTrue(result.startsWith("同步完成"))
+        assertTrue(result.docUrl.isNotBlank())
         val ref = refs.getByNoteId("n1")
         assertNotNull(ref)
         assertEquals("doc-v2-1", ref?.docId)

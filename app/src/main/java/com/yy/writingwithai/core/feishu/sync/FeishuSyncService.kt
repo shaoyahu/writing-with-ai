@@ -49,31 +49,71 @@ constructor(
      * feishu-folder-migration:有 ref 时，先检测当前 folder token 与 ref.folderToken 是否一致，
      * 不一致 → 抛 [FeishuError.FolderTokenMismatch] 让 UI 弹迁移对话框。
      */
-    suspend fun push(noteId: String): String = withContext(Dispatchers.IO) {
+    /**
+     * feishu-sync-feedback · 返回 ref entity(而不是 string 拼接),
+     * 让 VM 拿到结构化的 docUrl / folderToken 等字段,不再 startsWith("同步完成:") 解析。
+     */
+    suspend fun push(noteId: String): FeishuRefEntity = withContext(Dispatchers.IO) {
         val note = noteRepository.getNote(noteId) ?: throw FeishuError.NotFound("note $noteId")
         val existingRef = refDao.getByNoteId(noteId)
 
         if (existingRef == null) {
             val folderToken = authStore.getFolderTokenSnapshot()
-            val ref = docService.createDoc(note, folderToken)
-            "同步完成: ${ref.docUrl}"
+            docService.createDoc(note, folderToken)
         } else {
             // feishu-folder-migration:检测 folder token 变更
-            val currentFolderToken = authStore.getFolderTokenSnapshot()
-            if (currentFolderToken != existingRef.folderToken) {
+            // fix(folder-mismatch-false-positive):mismatch 检测必须用 resolve 后的 token 比较，
+            // 因为 ref.folderToken 是 resolved 值(createDoc 时 resolveFolderToken 结果)，
+            // 而 authStore.getFolderTokenSnapshot() 返回用户输入的原始值。
+            // 用户输入 wiki token 时，原始值 != resolved 值，但功能上指向同一文件夹，
+            // 不应触发迁移对话框。先 resolve 当前 token 再比较。
+            val currentRawToken = authStore.getFolderTokenSnapshot()
+            val currentResolvedToken = if (currentRawToken != null) {
+                docService.resolveFolderToken(currentRawToken)
+            } else {
+                null
+            }
+            // fix(folder-mismatch-legacy-null):existing ref 是该字段上线前的旧数据
+            // (folderToken == null,默认根目录)。现在用户设了 folder token,严格比较
+            // 会误报 mismatch。视为"未知 → 已知"的迁移:把当前 folderToken 写回 ref,
+            // 跳过对话框,走 updateDoc。后续 push 就有可比较的 ref 值。
+            val isLegacyNullRef = existingRef.folderToken == null && currentResolvedToken != null
+            val refForUpdate: FeishuRefEntity = if (isLegacyNullRef) {
+                val migrated = existingRef.copy(folderToken = currentResolvedToken)
+                refDao.upsert(migrated)
+                recordEventSafe(
+                    noteId,
+                    SyncDirection.PUSH,
+                    "LEGACY_FOLDER_TOKEN_MIGRATED",
+                    "null→$currentResolvedToken"
+                )
+                migrated
+            } else {
+                existingRef
+            }
+            if (!isLegacyNullRef && currentResolvedToken != existingRef.folderToken) {
                 recordEventSafe(
                     noteId,
                     SyncDirection.PUSH,
                     "FOLDER_MISMATCH",
-                    "current=$currentFolderToken ref=${existingRef.folderToken}"
+                    "current=$currentRawToken currentResolved=$currentResolvedToken ref=${existingRef.folderToken}"
                 )
                 throw FeishuError.FolderTokenMismatch(
                     noteId = noteId,
                     docId = existingRef.docId,
                     docUrl = existingRef.docUrl,
-                    currentFolderToken = currentFolderToken,
+                    currentFolderToken = currentRawToken,
                     refFolderToken = existingRef.folderToken
                 )
+            }
+
+            // fix(feishu-remote-deleted):远端文档已删除时,标记为 REMOTE_DELETED
+            // 并删除旧 ref 后重新创建文档(与用户删除文档后的期望一致)。
+            if (existingRef.status == FeishuRefStatus.REMOTE_DELETED) {
+                refDao.deleteByNoteId(noteId)
+                recordEventSafe(noteId, SyncDirection.PUSH, "RECREATE_AFTER_REMOTE_DELETED", null)
+                val folderToken = authStore.getFolderTokenSnapshot()
+                return@withContext docService.createDoc(note, folderToken)
             }
 
             // C2 修:远端 revision 若已变，不让 push 静默覆盖。
@@ -90,8 +130,19 @@ constructor(
                 recordEventSafe(noteId, SyncDirection.PUSH, "CONFLICT", "remote_changed_after_local_edit")
                 throw FeishuError.Conflict(noteId, existingRef.docId, existingRef.docUrl)
             }
-            val ref = docService.updateDoc(note, existingRef)
-            "同步完成: ${ref.docUrl}"
+
+            // fix(feishu-remote-deleted):updateDoc 返回 404 时,删除旧 ref 并重新创建
+            val ref = try {
+                docService.updateDoc(note, refForUpdate)
+            } catch (e: FeishuError.NotFound) {
+                // 远端文档已删除(可能在 readDoc 和 updateDoc 之间被删),
+                // 删除旧 ref 并重新创建文档
+                refDao.deleteByNoteId(noteId)
+                recordEventSafe(noteId, SyncDirection.PUSH, "RECREATE_AFTER_404", null)
+                val folderToken = authStore.getFolderTokenSnapshot()
+                docService.createDoc(note, folderToken)
+            }
+            ref
         }
     }
 
@@ -110,7 +161,7 @@ constructor(
      * 3. UPDATE_IN_PLACE 不涉及 ref 删除/重建,直接走 updateDoc;不通过 txExecutor
      *    (只在 DAO 层走单条 refDao.upsert,createDoc / updateDoc 自管)
      */
-    suspend fun pushWithFolderMigration(noteId: String, choice: FolderMigrationChoice): String =
+    suspend fun pushWithFolderMigration(noteId: String, choice: FolderMigrationChoice): FeishuRefEntity =
         withContext(Dispatchers.IO) {
             val note = noteRepository.getNote(noteId) ?: throw FeishuError.NotFound("note $noteId")
             val existingRef = refDao.getByNoteId(noteId)
@@ -133,16 +184,14 @@ constructor(
                     }
                     // 2+3. 本地 ref 删除 + 新建文档在同一事务内,保证本地 ref ↔ 远端 doc 一致性
                     val folderToken = authStore.getFolderTokenSnapshot()
-                    val ref = txExecutor.execute {
+                    txExecutor.execute {
                         refDao.deleteByNoteId(noteId)
                         docService.createDoc(note, folderToken)
                     }
-                    "同步完成: ${ref.docUrl}"
                 }
                 FolderMigrationChoice.UPDATE_IN_PLACE -> {
                     // 原地更新(不改变文件夹)
-                    val ref = docService.updateDoc(note, existingRef)
-                    "同步完成: ${ref.docUrl}"
+                    docService.updateDoc(note, existingRef)
                 }
             }
         }

@@ -37,21 +37,46 @@ constructor(
     private val eventDao: FeishuSyncEventDao
 ) {
 
+    /**
+     * feishu-folder-migration · 把用户输入的 folder token resolve 成真实 token。
+     *
+     * 用于 mismatch 检测时与 ref.folderToken 比较（两边都是 resolved 值）。
+     * 返回 resolved token 或 null（输入为 null 时）。
+     */
+    suspend fun resolveFolderToken(rawToken: String): String? = withContext(Dispatchers.IO) {
+        val resolved = feishuApi.resolveFolderToken(rawToken)
+        if (resolved.resolved && resolved.originalType != null && resolved.originalType != "folder") {
+            Log.i(TAG, "resolveFolderToken: $rawToken (type=${resolved.originalType}) → ${resolved.token}")
+        }
+        resolved.token
+    }
+
+    /**
+     * fix(feishu-title-sync):v2 docs_ai/v1 创建文档时无法设置标题,
+     * 改用 v1 API 创建空文档(带标题) → v2 API 覆盖内容。
+     *
+     * 步骤:
+     * 1. resolveFolderToken(处理 wiki token)
+     * 2. v1 createDocument(title, folderToken) 创建空文档,标题正确
+     * 3. v2 updateDocumentV2(xml) 覆盖内容,标题保留在元数据中
+     * 4. upsert ref + 记录事件
+     */
     suspend fun createDoc(note: Note, folderToken: String? = null): FeishuRefEntity = withContext(Dispatchers.IO) {
         val title = note.title.ifBlank { "未命名笔记" }
         val xml = xmlConverter.convert(note.content, title)
+
         // fix(feishu-folder-token):用户可能输入 wiki 类型的 token，需要先通过
         // drive/v1/metas/batch_query 解析为真实的 docx folder token。
         val resolvedFolderToken = if (folderToken != null) {
-            val resolved = feishuApi.resolveFolderToken(folderToken)
-            if (resolved.resolved && resolved.originalType != null && resolved.originalType != "folder") {
-                Log.i(TAG, "resolveFolderToken: $folderToken (type=${resolved.originalType}) → ${resolved.token}")
-            }
-            resolved.token
+            resolveFolderToken(folderToken)
         } else {
             null
         }
-        val created = feishuApi.createDocumentV2(xml, resolvedFolderToken)
+
+        // fix(feishu-title-sync):v1 创建文档(设置标题) + v2 覆盖内容(保留标题)
+        val created = feishuApi.createDocument(title, resolvedFolderToken)
+        val meta = feishuApi.updateDocumentV2(created.docId, xml)
+
         val now = System.currentTimeMillis()
         val ref = FeishuRefEntity(
             noteId = note.id,
@@ -60,7 +85,7 @@ constructor(
             lastSyncedAt = now,
             syncDirection = SyncDirection.PUSH,
             localRevision = note.updatedAt,
-            remoteRevision = created.revisionId,
+            remoteRevision = meta?.revisionId ?: "rev-1",
             status = FeishuRefStatus.SYNCED,
             // feishu-folder-migration:记录创建文档时使用的 folder token，
             // 用于后续 push 时检测 folder token 是否变更。
@@ -91,20 +116,31 @@ constructor(
     /**
      * 原子替换整篇文档(v2 overwrite)。
      * 不再调 batch_delete + append，避免 delete 成功 / append 失败导致空文档。
+     *
+     * fix(feishu-remote-deleted):远端文档已删除时 v2 update 返回 404,
+     * 需标记 ref 为 REMOTE_DELETED 并抛 NotFound 让调用方决定是否重新创建。
      */
     suspend fun updateDoc(note: Note, ref: FeishuRefEntity): FeishuRefEntity = withContext(Dispatchers.IO) {
-        val xml = xmlConverter.convert(note.content, note.title.ifBlank { "未命名笔记" })
-        val meta = feishuApi.updateDocumentV2(ref.docId, xml)
-        val now = System.currentTimeMillis()
-        val updated = ref.copy(
-            localRevision = note.updatedAt,
-            remoteRevision = meta?.revisionId ?: ref.remoteRevision,
-            lastSyncedAt = now,
-            status = FeishuRefStatus.SYNCED
-        )
-        refDao.upsert(updated)
-        recordEventSafe(note.id, SyncDirection.PUSH, "OK", null)
-        updated
+        val title = note.title.ifBlank { "未命名笔记" }
+        val xml = xmlConverter.convert(note.content, title)
+        try {
+            val meta = feishuApi.updateDocumentV2(ref.docId, xml)
+            val now = System.currentTimeMillis()
+            val updated = ref.copy(
+                localRevision = note.updatedAt,
+                remoteRevision = meta?.revisionId ?: ref.remoteRevision,
+                lastSyncedAt = now,
+                status = FeishuRefStatus.SYNCED
+            )
+            refDao.upsert(updated)
+            recordEventSafe(note.id, SyncDirection.PUSH, "OK", null)
+            updated
+        } catch (e: FeishuError.NotFound) {
+            // 远端文档已删除,标记 ref 并通知调用方
+            refDao.upsert(ref.copy(status = FeishuRefStatus.REMOTE_DELETED))
+            recordEventSafe(note.id, SyncDirection.PUSH, "REMOTE_DELETED", "doc ${ref.docId} not found")
+            throw e
+        }
     }
 
     suspend fun appendBlock(

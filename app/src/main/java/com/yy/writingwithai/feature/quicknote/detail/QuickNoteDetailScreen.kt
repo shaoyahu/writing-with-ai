@@ -193,7 +193,6 @@ fun QuickNoteDetailScreen(
 
     var showPullDialog by remember { mutableStateOf(false) }
     var pullUrlInput by remember { mutableStateOf("") }
-    var showSyncMessageDialog by remember { mutableStateOf(false) }
 
     val current = state as? NoteDetailUiState.Content
     val noteId = current?.note?.note?.id
@@ -950,63 +949,115 @@ fun QuickNoteDetailScreen(
 
     // feishu-bidir-sync:sync result message
     // CR-FIX-M6:消费 SyncMessage sealed 事件，不再 startsWith("同步完成:") 解析。
-    if (syncMessage != null && !showSyncMessageDialog) {
-        LaunchedEffect(syncMessage) { showSyncMessageDialog = true }
-    }
-    if (showSyncMessageDialog && syncMessage != null) {
-        val ctx = androidx.compose.ui.platform.LocalContext.current
-        val msg = syncMessage
-        val isSuccess = msg is SyncMessage.Success
-        val displayText: String = when (msg) {
-            is SyncMessage.Success -> msg.docUrl
-            is SyncMessage.Failure -> msg.reason
-            null -> ""
-        }
-        AlertDialog(
-            onDismissRequest = {
-                showSyncMessageDialog = false
-                viewModel.clearSyncMessage()
-            },
-            title = {
-                Text(
-                    if (isSuccess) {
-                        stringResource(
-                            R.string.quicknote_feishu_sync_success
-                        )
-                    } else {
-                        stringResource(R.string.quicknote_feishu_sync_fail)
-                    }
+    // feishu-sync-feedback · 成功 → Snackbar;失败 → 按 Failure 子类型渲染不同 Dialog。
+    val syncSuccessFmt = stringResource(R.string.feishu_sync_success_fmt)
+    val syncActionCopy = stringResource(R.string.feishu_sync_action_copy)
+    val syncCopied = stringResource(R.string.feishu_sync_copied)
+    var syncSnackbarJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    LaunchedEffect(syncMessage) {
+        val msg = syncMessage ?: return@LaunchedEffect
+        if (msg is SyncMessage.Success) {
+            // D3 · cancel 前一个 Snackbar 防排队
+            syncSnackbarJob?.cancel()
+            syncSnackbarJob = snackbarScope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = syncSuccessFmt.format(msg.noteTitle),
+                    actionLabel = syncActionCopy,
+                    duration = androidx.compose.material3.SnackbarDuration.Short
                 )
-            },
-            text = { Text(displayText) },
-            confirmButton = {
-                TextButton(onClick = {
-                    val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                if (result == SnackbarResult.ActionPerformed) {
+                    val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
                         as android.content.ClipboardManager
-                    // 成功时复制 URL(打开看文档);失败时复制错误消息
-                    val label = if (isSuccess) feishuClipUrlLabel else feishuClipErrorLabel
-                    cm.setPrimaryClip(android.content.ClipData.newPlainText(label, displayText))
-                    showSyncMessageDialog = false
-                    viewModel.clearSyncMessage()
-                }) {
-                    Text(
-                        if (isSuccess) {
-                            stringResource(
-                                R.string.quicknote_feishu_copy_link
-                            )
-                        } else {
-                            stringResource(R.string.quicknote_feishu_copy_error)
-                        }
+                    cm.setPrimaryClip(
+                        android.content.ClipData.newPlainText("Feishu doc URL", msg.docUrl)
+                    )
+                    snackbarHostState.showSnackbar(
+                        message = syncCopied,
+                        duration = androidx.compose.material3.SnackbarDuration.Short
                     )
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showSyncMessageDialog = false
-                    viewModel.clearSyncMessage()
-                }) { Text(stringResource(R.string.quicknote_feishu_close)) }
+                viewModel.clearSyncMessage()
             }
-        )
+        }
+        // Failure cases 由下方 when 直接渲染 AlertDialog,不需要 Snackbar 通道
+    }
+    syncMessage?.let { msg ->
+        if (msg is SyncMessage.Failure) {
+            when (msg) {
+                is SyncMessage.Failure.Conflict -> ConflictResolutionDialog(
+                    localPreview = (current?.note?.note?.content ?: "").take(120),
+                    remotePreview = (current?.note?.note?.content ?: "").take(120),
+                    onResolveKeepLocal = {
+                        viewModel.resolveConflictKeepLocal()
+                        viewModel.clearSyncMessage()
+                    },
+                    onResolveKeepRemote = {
+                        viewModel.resolveConflictKeepRemote()
+                        viewModel.clearSyncMessage()
+                    },
+                    onCancel = {
+                        viewModel.cancelConflictResolution()
+                        viewModel.clearSyncMessage()
+                    }
+                )
+                is SyncMessage.Failure.FolderMigration -> FolderMigrationDialog(
+                    oldLocation = describeFolderLocation(msg.refFolderToken),
+                    newLocation = describeFolderLocation(msg.currentFolderToken),
+                    onDeleteAndRecreate = {
+                        viewModel.resolveFolderMigrationDeleteAndRecreate()
+                        viewModel.clearSyncMessage()
+                    },
+                    onUpdateInPlace = {
+                        viewModel.resolveFolderMigrationUpdateInPlace()
+                        viewModel.clearSyncMessage()
+                    },
+                    onCancel = {
+                        viewModel.cancelFolderMigration()
+                        viewModel.clearSyncMessage()
+                    }
+                )
+                is SyncMessage.Failure.RemoteDeleted -> SyncFailureDialogs.RemoteDeleted(
+                    onRecreate = {
+                        viewModel.recreateFeishuDoc()
+                        viewModel.clearSyncMessage()
+                    },
+                    onDismiss = { viewModel.clearSyncMessage() }
+                )
+                is SyncMessage.Failure.Empty -> SyncFailureDialogs.Empty(
+                    onDismiss = { viewModel.clearSyncMessage() }
+                )
+                is SyncMessage.Failure.Network -> SyncFailureDialogs.Network(
+                    onRetry = {
+                        viewModel.retryLastSync()
+                        viewModel.clearSyncMessage()
+                    },
+                    onDismiss = { viewModel.clearSyncMessage() }
+                )
+                is SyncMessage.Failure.Server -> SyncFailureDialogs.Server(
+                    onRetry = {
+                        viewModel.retryLastSync()
+                        viewModel.clearSyncMessage()
+                    },
+                    onDismiss = { viewModel.clearSyncMessage() }
+                )
+                is SyncMessage.Failure.RateLimited -> SyncFailureDialogs.RateLimited(
+                    retryAfterSeconds = msg.retryAfterSeconds,
+                    onAck = { viewModel.clearSyncMessage() }
+                )
+                is SyncMessage.Failure.Unknown -> SyncFailureDialogs.Unknown(
+                    cause = msg.cause,
+                    onCopyError = {
+                        val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                            as android.content.ClipboardManager
+                        cm.setPrimaryClip(
+                            android.content.ClipData.newPlainText("同步错误", msg.cause)
+                        )
+                        viewModel.clearSyncMessage()
+                    },
+                    onDismiss = { viewModel.clearSyncMessage() }
+                )
+            }
+        }
     }
 }
 
