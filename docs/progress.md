@@ -2,6 +2,15 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log，单次评审查 `docs/reviews/`，规划查 `docs/plans/`。
 
+## 2026-07-03 · 13 个 OpenSpec change 全量 sync + archive（活动 change 清空）
+
+- **方式**:delta spec 经 review 后,逐个 sync 到 main spec + 归档到 `archive/2026-07-03-<name>/`。跟 `eadd994` (`fix(review-2026-06-29)`) 的同期批量 archive 模式不同,本次**先 sync 后 archive**,使 main spec 与代码实装一致
+- **12 个 A 档 change 已收口**(`unify-dropdown-menu-style` / `note-list-card-actions` / `app-tab-bar-redesign` / `note-decompose-highlight` / `animation-switch-redesign-followup` / `ai-model-selection-actually-used` / `custom-provider-api-format` / `feishu-sync-end-to-end` + 后补 `language-switcher` / `onboarding-consent-card-redesign` / `release-preflight-automation` / `v1-internal-testing`)
+- **1 个保留未归档**:`real-provider-integration`,因 §7 真机校准未跑(USER-OWNED,需用户在 3 家 provider 端点真机调用后写 `verification-report.md`)
+- **新增主规格**(7 个):`app-dropdown-menu` / `note-decompose-highlight` / `ai-model-selection-persistence` / `ai-model-selection-ui-transparency` / `custom-provider-config` / `language-switcher` / `release-preflight`
+- **modified 主规格**(6 个):`design-system-v2` / `quick-note` / `app-tab-bar` / `animation-system` / `ai-gateway` / `feishu-auth` / `feishu-bidir-sync` / `onboarding-consent`(`consent-page-redesign` 不需要改)
+- **特别注意**:release-preflight-automation 跟 publish-release.sh 实装路径选择 —— change 设计稿描述的 `:app:checkReleaseReadiness` Gradle Task 未实装,但 publish-release.sh 已达成等价 preflight(gh auth + JSON 校验 + assembleRelease/ktlintCheck 单测组合),KI-012 仍维持 `[open]`(v1.1 实现 Gradle Task)
+
 ## 2026-07-03 · 8 个 OpenSpec change 批量 sync + archive（首次全量同步）
 
 - **方式**:delta spec 经 review 后,逐个 sync 到 main spec + 归档到 `archive/2026-07-03-<name>/`。跟 `eadd994` (`fix(review-2026-06-29)`) 的同期批量 archive 模式不同,本次**先 sync 后 archive**,使 main spec 与代码实装一致
