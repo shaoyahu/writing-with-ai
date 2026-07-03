@@ -309,6 +309,8 @@
     <string name="note_association_signal_tag">标签</string>
     <string name="note_association_signal_content">内容相似</string>
     <string name="note_association_signal_ai">AI</string>
+    <string name="note_association_backlinks_title">反向链接</string>
+    <string name="note_association_signal_backlink">引用</string>
 
     <!-- ===== M6 custom-model · 自定义 Provider ===== -->
     <string name="custom_provider_new_title">新建自定义模型</string>
