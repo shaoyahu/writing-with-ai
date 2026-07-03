@@ -195,6 +195,13 @@ fun MyScreen(
                         onClick = { onNavigate(MeTabTarget.SettingsFeishu) }
                     )
                     HorizontalDivider()
+                    // entity-extraction-association · 实体别名管理入口
+                    MyListItem(
+                        title = stringResource(R.string.me_alias_title),
+                        icon = Icons.Filled.LocalOffer,
+                        onClick = { onNavigate(MeTabTarget.SettingsAliasManagement) }
+                    )
+                    HorizontalDivider()
                     // ux-2026-06-28 P6:笔记关联走专属路由 SettingsNoteAssociation
                     MyListItem(
                         title = stringResource(R.string.me_note_association_title),

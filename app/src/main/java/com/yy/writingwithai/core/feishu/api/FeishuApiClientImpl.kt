@@ -384,13 +384,23 @@ constructor(
      * API: `DELETE /open-apis/drive/v1/files/{file_token}`
      * 文件移入回收站，30 天内用户可在飞书恢复。
      *
+     * 飞书 OpenAPI 强制要求请求体带 `type` 字段(枚举:`doc` / `docx` / `sheet` /
+     * `bitable` / `mindnote` / `file` / `slides` / `wiki`),缺字段会返回 400 + 错误码
+     * 99992402 `field_violations: [{field: "type", description: "type is required"}]`。
+     * 本项目只创建 docx 文档(`createDocument` 走 `docx/v1/documents`),所以这里
+     * 硬编码 `"docx"` 即可,无需扩 FeishuRefEntity 加 docType 字段(避免 Room migration)。
+     *
      * DELETE 请求 RFC 7230 §4.3.5 不强制需要 body,但飞书服务端要求 Content-Type 必填
-     * 才校验请求(否则拒绝)。传空 body + JSON MediaType 占位是常见做法。
+     * 才校验请求(否则拒绝),所以 body 用 `buildJsonObject` 构造非空 JSON。
+     *
+     * 2026-07-03 fix:旧实现传 `"".toRequestBody(JSON_MEDIA_TYPE)`,body 为空 → 飞书
+     * 服务端直接 400,DELETE_FAILED 事件堆积(见同步日志)。
      */
     override suspend fun deleteFile(fileToken: String): Unit = withContext(Dispatchers.IO) {
+        val body = buildJsonObject { put("type", "docx") }.toString()
         val request = Request.Builder()
             .url(urlFor("drive/v1/files/$fileToken"))
-            .delete("".toRequestBody(JSON_MEDIA_TYPE))
+            .delete(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
         executeRequest(request)
         Unit

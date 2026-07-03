@@ -75,13 +75,11 @@ fun RelatedNotesSection(
     modifier: Modifier = Modifier
 ) {
     var related by remember { mutableStateOf<List<RelatedNote>>(emptyList()) }
-    var backlinks by remember { mutableStateOf<List<RelatedNote>>(emptyList()) }
     var aiState by remember { mutableStateOf<AiExtractState>(AiExtractState.Idle) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(noteId) {
         related = noteLinker.getRelated(noteId)
-        backlinks = noteLinker.getBacklinks(noteId)
     }
 
     // ui-redesign-v2 · 外层 Surface 卡片包裹 + 圆角
@@ -108,7 +106,7 @@ fun RelatedNotesSection(
             }
             Spacer(Modifier.height(12.dp))
 
-            if (related.isEmpty() && backlinks.isEmpty()) {
+            if (related.isEmpty()) {
                 // Capture Composable-dependent values outside coroutine scope
                 val errorUnknown = stringResource(R.string.note_association_ai_error_unknown)
                 EmptyState(
@@ -122,7 +120,6 @@ fun RelatedNotesSection(
                                 aiState = AiExtractState.Success(count)
                                 // Refresh the list after AI extraction
                                 related = noteLinker.getRelated(noteId)
-                                backlinks = noteLinker.getBacklinks(noteId)
                             } catch (e: Exception) {
                                 if (e is kotlinx.coroutines.CancellationException) throw e
                                 aiState = AiExtractState.Error(
@@ -141,16 +138,6 @@ fun RelatedNotesSection(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     related.forEach { r -> NoteLinkCard(r, onNavigate) }
-                    if (backlinks.isNotEmpty()) Spacer(Modifier.height(8.dp))
-                }
-                if (backlinks.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.note_association_backlinks_title),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                    )
-                    backlinks.forEach { r -> NoteLinkCard(r, onNavigate, isBacklink = true) }
                 }
             }
         }
@@ -159,7 +146,7 @@ fun RelatedNotesSection(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit, isBacklink: Boolean = false) {
+private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit) {
     Card(
         onClick = { onNavigate(note.noteId) },
         modifier = Modifier
@@ -192,10 +179,6 @@ private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit, isBack
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                if (isBacklink) {
-                    Spacer(Modifier.width(8.dp))
-                    SignalChip(text = stringResource(R.string.note_association_signal_backlink))
-                }
             }
             if (note.preview.isNotBlank()) {
                 Spacer(Modifier.height(6.dp))
@@ -225,12 +208,13 @@ private fun NoteLinkCard(note: RelatedNote, onNavigate: (String) -> Unit, isBack
                     SignalChip(text = stringResource(R.string.note_association_signal_ai))
                 }
             }
-            val sharedEntities = parseSharedEntities(note.evidence)
-            if (sharedEntities.isNotEmpty()) {
+            // 展示共享标签名(TAG_OVERLAP → sharedTags)和共享实体名(ENTITY_HIT → sharedEntities)
+            val sharedItems = parseSharedItems(note.evidence)
+            if (sharedItems.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    sharedEntities.take(6).forEach { entity ->
-                        SignalChip(text = entity)
+                    sharedItems.take(6).forEach { item ->
+                        SignalChip(text = item)
                     }
                 }
             }
@@ -342,11 +326,23 @@ private fun EmptyState(aiState: AiExtractState, showAiButton: Boolean, onAiTrigg
     }
 }
 
-private fun parseSharedEntities(evidence: String?): List<String> {
+/**
+ * 从 evidence JSON 中提取共享标签名(sharedTags)和共享实体名(sharedEntities)。
+ *
+ * TAG_OVERLAP evidence 格式: `{"sharedTags":["科研","AI"]}`
+ * ENTITY_HIT evidence 格式: `{"sharedEntities":["M3","Agent"]}`
+ * GROUP_CONCAT 拼接后可能同时包含两者，用正则分别提取后去重合并。
+ */
+private fun parseSharedItems(evidence: String?): List<String> {
     if (evidence.isNullOrBlank()) return emptyList()
-    val match = Regex(""""sharedEntities"\s*:\s*\[([^]]*)]""").find(evidence) ?: return emptyList()
-    return Regex(""""([^"\\]+)""")
-        .findAll(match.groupValues[1])
-        .map { it.groupValues[1] }
-        .toList()
+    val items = mutableSetOf<String>()
+    // 匹配 "sharedTags":[...] 和 "sharedEntities":[...]
+    val arrayPattern = Regex(""""shared(?:Tags|Entities)"\s*:\s*\[([^]]*)]""")
+    val stringPattern = Regex(""""([^"\\]+)""")
+    arrayPattern.findAll(evidence).forEach { match ->
+        stringPattern.findAll(match.groupValues[1]).forEach { s ->
+            items.add(s.groupValues[1])
+        }
+    }
+    return items.toList()
 }

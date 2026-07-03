@@ -17,7 +17,7 @@ import org.junit.Test
 class AnimationTokensTest {
 
     @Test
-    fun `tokens are non-null for all 4 styles`() {
+    fun `tokens are non-null for all 7 styles`() {
         AnimationStyle.entries.forEach { style ->
             val tokens = style.toTokens()
             assertNotNull("$style navEnter must be non-null", tokens.navEnter)
@@ -41,16 +41,16 @@ class AnimationTokensTest {
     }
 
     @Test
-    fun `4 styles produce at least 2 distinct navEnter`() {
+    fun `7 styles produce at least 2 distinct navEnter`() {
         val navEnters = AnimationStyle.entries.map { it.toTokens().navEnter }.toSet()
         assert(navEnters.size >= 2) {
-            "Expected at least 2 distinct navEnter values across 4 styles, got $navEnters"
+            "Expected at least 2 distinct navEnter values across 7 styles, got $navEnters"
         }
     }
 
     @Test
-    fun `MINIMAL and FLUID and IMMERSIVE have non-None navEnter`() {
-        listOf(AnimationStyle.MINIMAL, AnimationStyle.FLUID, AnimationStyle.IMMERSIVE).forEach { style ->
+    fun `all non-NONE styles have non-None navEnter`() {
+        AnimationStyle.entries.filter { it != AnimationStyle.NONE }.forEach { style ->
             val tokens = style.toTokens()
             assertNotEquals(
                 "$style navEnter must NOT be None (only NONE should be instant)",

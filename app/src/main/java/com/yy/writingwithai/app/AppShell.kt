@@ -2,6 +2,8 @@
 
 package com.yy.writingwithai.app
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,8 +19,8 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Notes
-import androidx.compose.material.icons.automirrored.outlined.Notes
+import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Person
@@ -30,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -156,15 +159,17 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
 }
 
 /**
- * app-tab-bar-redesign v4 · 底部 tab 栏(三槽内嵌布局，全宽铺满)。
+ * app-tab-bar-redesign v5 · 底部 tab 栏(微信风格，无背景色选中态)。
  *
- * 视觉对齐【我的】tab(MyScreen.kt)的 SectionCard 圆角 + primary tint icon + surfaceVariant
- * 容器:外层 1 个 surfaceVariant Surface(**全宽无圆角**，顶部 HorizontalDivider 1dp 分隔),
+ * 视觉对齐微信底部 tab:选中态无背景色，仅通过图标风格(Filled vs Outlined)+ 文字颜色
+ * (primary vs onSurfaceVariant)区分;未选中态同样无背景色。
+ *
+ * 外层 1 个 surfaceVariant Surface(**全宽无圆角**，顶部 HorizontalDivider 1dp 分隔),
  * 内部 `Row` 内嵌 3 个 16dp 圆角 Surface 子卡，均匀分布(spacedBy 8dp)，完全 inline 无凸起:
  *
- * - 槽位 1(笔记):`TabCard`,selected = primary 容器色
- * - 槽位 2(中央创建):`CenterCreateCard`,**始终** primaryContainer 高亮，含"+ 新建" label
- * - 槽位 3(我的):`TabCard`,selected = primary 容器色
+ * - 槽位 1(笔记):`TabCard`,selected = Filled icon + primary 文字，无背景色
+ * - 槽位 2(中央创建):`CenterCreateCard`,**始终** primaryContainer 高亮，仅加号图标
+ * - 槽位 3(我的):`TabCard`,selected = Filled icon + primary 文字，无背景色
  *
  * 全宽铺满避免圆角矩形在屏幕底部两侧露出底色(v4 修订:原 24dp 圆角在 MyScreen
  * surfaceVariant 背景下可见白色间隙)。
@@ -191,7 +196,7 @@ private fun AppTabBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -199,19 +204,19 @@ private fun AppTabBar(
                 TabCard(
                     selected = notesSelected,
                     icon = if (notesSelected) {
-                        Icons.AutoMirrored.Filled.Notes
+                        Icons.AutoMirrored.Filled.Article
                     } else {
-                        Icons.AutoMirrored.Outlined.Notes
+                        Icons.AutoMirrored.Outlined.Article
                     },
                     label = stringResource(R.string.tab_notes),
                     onClick = { onSelectTab(Notes) },
                     modifier = Modifier.weight(1f)
                 )
-                // ux-2026-06-30:CenterCreateCard 宽度收窄到 0.85，小于两侧 TabCard(weight 1f),
-                // 避免 primaryContainer 高亮 + "+ 新建" label 字数多造成视觉过重;两侧仍是主焦点。
+                // ux-2026-07-03:CenterCreateCard 去掉文字后进一步收窄到 0.6，
+                // 仅保留加号图标，更紧凑轻量，与微信中间 tab 风格一致。
                 CenterCreateCard(
                     onClick = onCenterFabClick,
-                    modifier = Modifier.weight(0.85f)
+                    modifier = Modifier.weight(0.6f)
                 )
                 val meSelected = currentDestination?.hasRoute<Me>() == true
                 TabCard(
@@ -231,8 +236,9 @@ private fun AppTabBar(
 }
 
 /**
- * app-bottom-tab-bar · 笔记 / 我的 tab 子卡(16dp 圆角 Surface)。
- * selected = primary 容器 + onPrimary 内容;unselected = 透明容器 + onSurfaceVariant 内容。
+ * app-bottom-tab-bar · 笔记 / 我的 tab 子卡(微信风格，无背景色)。
+ * selected = Filled icon + tertiary 文字(薄荷绿，更鲜艳);unselected = Outlined icon + onSurfaceVariant 文字。
+ * 无背景色，仅通过图标风格 + 文字颜色区分选中态，与微信底部 tab 一致。
  * 整卡 clickable，触控目标 ≥ 56dp(icon 24dp + 上下 padding 12dp × 2)。
  */
 @Composable
@@ -244,64 +250,57 @@ private fun TabCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = if (selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            Color.Transparent
-        },
+        color = Color.Transparent,
         contentColor = if (selected) {
-            MaterialTheme.colorScheme.onPrimary
+            MaterialTheme.colorScheme.tertiary
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
-        modifier = modifier
+        modifier = modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onClick
+        )
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 12.dp),
+            modifier = Modifier.padding(vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(imageVector = icon, contentDescription = null)
-            Spacer(Modifier.size(4.dp))
+            Spacer(Modifier.size(2.dp))
             Text(text = label, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
 
 /**
- * app-tab-bar-redesign v4 · 中央「+ 新建」创建入口子卡(16dp 圆角 Surface)。
+ * app-tab-bar-redesign v5 · 中央「+」创建入口子卡(微信风格，仅图标)。
  *
  * **始终** primaryContainer 高亮(无选中 / 未选中态切换)，作为常驻「创建」主焦点。
- * primaryContainer 色调比 primary 更柔和，视觉上不"笨重"，同时仍传达"可创建"。
- * 含 `Add` icon + "+ 新建" label，结构跟两侧 `TabCard` 对称(icon + spacer + label),
- * 让用户一眼看出"所有位置都可以新建"。
+ * 仅保留 Add icon，去掉文字标签，按钮更紧凑，与微信中间 tab 风格一致。
  * 无 elevation，无凸起，跟两侧 `TabCard` 同 baseline 完全 inline。
- * 表面高度 = icon 24dp + spacer 4dp + label ~16dp + 上下 padding 12dp × 2 = 68dp,
- * 跟 `TabCard` 等高，三 Surface 在 Row 内视觉基线对齐。
- * 触控高度 = Surface 整体高度 = 68dp ≥ M3 触控目标 56dp。
+ * 触控高度 = icon 24dp + 上下 padding 12dp × 2 = 48dp，配合 weight(0.6) 收窄宽度。
  */
 @Composable
 private fun CenterCreateCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
-        onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        modifier = modifier
+        color = MaterialTheme.colorScheme.tertiary,
+        contentColor = MaterialTheme.colorScheme.onTertiary,
+        modifier = modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onClick
+        )
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 12.dp),
+            modifier = Modifier.padding(vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = Icons.Filled.Add,
                 contentDescription = stringResource(R.string.tab_new_note_cd)
-            )
-            Spacer(Modifier.size(4.dp))
-            Text(
-                text = stringResource(R.string.tab_new_note),
-                style = MaterialTheme.typography.labelSmall
             )
         }
     }

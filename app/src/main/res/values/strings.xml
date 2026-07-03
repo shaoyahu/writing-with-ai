@@ -297,7 +297,6 @@
     <string name="note_association_section_title">关联</string>
     <string name="note_association_related_title">相关笔记</string>
     <string name="note_association_related_empty">暂无关联</string>
-    <string name="note_association_backlinks_title">反向链接</string>
     <string name="note_association_ai_find">用 AI 找关联</string>
     <string name="note_association_ai_loading">AI 正在分析笔记关联…</string>
     <string name="note_association_ai_success_found">已找到 %d 条关联</string>
@@ -310,7 +309,6 @@
     <string name="note_association_signal_tag">标签</string>
     <string name="note_association_signal_content">内容相似</string>
     <string name="note_association_signal_ai">AI</string>
-    <string name="note_association_signal_backlink">引用</string>
 
     <!-- ===== M6 custom-model · 自定义 Provider ===== -->
     <string name="custom_provider_new_title">新建自定义模型</string>
@@ -601,6 +599,12 @@
     <string name="anim_style_fluid_desc">Spring 物理动画，有机弹性，有过冲</string>
     <string name="anim_style_immersive">沉浸</string>
     <string name="anim_style_immersive_desc">大幅滑动，戏剧感，类 iOS push</string>
+    <string name="anim_style_crossfade">交叉淡入</string>
+    <string name="anim_style_crossfade_desc">新旧页面同时渐变，类幻灯片过渡</string>
+    <string name="anim_style_scale">缩放</string>
+    <string name="anim_style_scale_desc">页面从中心放大进入，类打开卡片</string>
+    <string name="anim_style_slide_up">上滑</string>
+    <string name="anim_style_slide_up_desc">新页面从底部上滑进入，类弹出面板</string>
     <string name="anim_style_none">无</string>
     <string name="anim_style_none_desc">即时切换，无动画(尊重系统无障碍)</string>
     <string name="anim_style_reduce_motion_banner">系统已开启「减少动画」，已自动切换到「无」</string>
@@ -638,4 +642,13 @@
     <string name="settings_language_option_en">English</string>
     <string name="settings_language_hint">切换后会重启 APP，导航栈会重置</string>
     <string name="settings_language_selected">已选</string>
+
+    <!-- note-decompose-highlight · 拆解功能 -->
+    <string name="note_decompose">拆解</string>
+    <string name="note_redecompose">重新拆解</string>
+    <string name="note_decomposing">正在拆解…</string>
+    <string name="note_decompose_no_entities">未发现实体</string>
+    <string name="note_decompose_found_fmt">已发现 %1$d 个实体</string>
+    <string name="note_decompose_entity_sheet_title">%1$s · %2$s</string>
+    <string name="note_decompose_no_related">暂无关联笔记</string>
 </resources>

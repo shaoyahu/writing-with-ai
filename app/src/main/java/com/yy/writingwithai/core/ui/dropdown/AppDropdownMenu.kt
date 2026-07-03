@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 
@@ -72,7 +73,10 @@ fun AppActionDropdown(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     items: List<AppActionItem>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // note-list-card-actions · 菜单弹出偏移(相对于锚点)，用于将菜单定位到长按触摸位置。
+    // 默认(0,0)为锚点左上角，与 Material3 DropdownMenu 默认行为一致。
+    offset: DpOffset = DpOffset(0.dp, 0.dp)
 ) {
     val cornerRadius = LocalCornerRadius.current
 
@@ -80,6 +84,7 @@ fun AppActionDropdown(
         expanded = expanded,
         onDismissRequest = onDismissRequest,
         modifier = modifier,
+        offset = offset,
         shape = RoundedCornerShape(cornerRadius.md),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         shadowElevation = 2.dp,

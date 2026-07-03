@@ -8,9 +8,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.ui.unit.IntSize
 
 /**
@@ -23,6 +27,9 @@ fun AnimationStyle.toTokens(): AnimationTokens = when (this) {
     AnimationStyle.MINIMAL -> minimalTokens
     AnimationStyle.FLUID -> fluidTokens
     AnimationStyle.IMMERSIVE -> immersiveTokens
+    AnimationStyle.CROSSFADE -> crossfadeTokens
+    AnimationStyle.SCALE -> scaleTokens
+    AnimationStyle.SLIDE_UP -> slideUpTokens
     AnimationStyle.NONE -> noneTokens
 }
 
@@ -112,6 +119,87 @@ private val immersiveTokens = AnimationTokens(
     listItemSpec = tween(250),
     dialogEnter = expandVertically(animationSpec = tween(250)) + fadeIn(tween(250)),
     dialogExit = fadeOut(tween(200)) + shrinkVertically(animationSpec = tween(200))
+)
+
+// === CROSSFADE ===
+// 交叉淡入淡出：新旧页面同时渐变，类幻灯片过渡。
+// enter/exit 同时进行(不等待对方完成)，视觉上两页面短暂叠加后切换。
+private val crossfadeTokens = AnimationTokens(
+    navEnter = fadeIn(tween(300)),
+    navExit = fadeOut(tween(300)),
+    navPopEnter = fadeIn(tween(300)),
+    navPopExit = fadeOut(tween(300)),
+    switchSpec = tween(250),
+    tabContentSpec = tween(300),
+    expandSpec = tween<IntSize>(250),
+    collapseSpec = tween<IntSize>(200),
+    listItemSpec = tween(200),
+    dialogEnter = fadeIn(tween(250)) + expandVertically(animationSpec = tween(250)),
+    dialogExit = fadeOut(tween(200)) + shrinkVertically(animationSpec = tween(200))
+)
+
+// === SCALE ===
+// 缩放进出：新页面从中心放大进入，旧页面缩小退出，类打开卡片。
+// enter: scaleIn(0.85→1) + fadeIn; exit: scaleOut(1→0.85) + fadeOut。
+private val scaleTokens = AnimationTokens(
+    navEnter = scaleIn(
+        animationSpec = tween(300),
+        initialScale = 0.85f
+    ) + fadeIn(tween(250)),
+    navExit = scaleOut(
+        animationSpec = tween(250),
+        targetScale = 0.85f
+    ) + fadeOut(tween(200)),
+    navPopEnter = scaleIn(
+        animationSpec = tween(300),
+        initialScale = 0.85f
+    ) + fadeIn(tween(250)),
+    navPopExit = scaleOut(
+        animationSpec = tween(250),
+        targetScale = 0.85f
+    ) + fadeOut(tween(200)),
+    switchSpec = tween(250),
+    tabContentSpec = tween(300),
+    expandSpec = tween<IntSize>(250),
+    collapseSpec = tween<IntSize>(200),
+    listItemSpec = tween(200),
+    dialogEnter = scaleIn(
+        animationSpec = tween(250),
+        initialScale = 0.9f
+    ) + fadeIn(tween(200)),
+    dialogExit = scaleOut(
+        animationSpec = tween(200),
+        targetScale = 0.9f
+    ) + fadeOut(tween(150))
+)
+
+// === SLIDE_UP ===
+// 上滑进入：新页面从底部上滑进入，类底部弹出面板。
+// enter: slideInVertically(全高→0); exit: slideOutVertically(0→全高)。
+private val slideUpTokens = AnimationTokens(
+    navEnter = slideInVertically(
+        animationSpec = tween(300),
+        initialOffsetY = { it }
+    ) + fadeIn(tween(200)),
+    navExit = fadeOut(tween(150)),
+    navPopEnter = fadeIn(tween(200)),
+    navPopExit = slideOutVertically(
+        animationSpec = tween(300),
+        targetOffsetY = { it }
+    ) + fadeOut(tween(200)),
+    switchSpec = tween(250),
+    tabContentSpec = tween(300),
+    expandSpec = tween<IntSize>(250),
+    collapseSpec = tween<IntSize>(200),
+    listItemSpec = tween(200),
+    dialogEnter = slideInVertically(
+        animationSpec = tween(250),
+        initialOffsetY = { it }
+    ) + fadeIn(tween(200)),
+    dialogExit = slideOutVertically(
+        animationSpec = tween(200),
+        targetOffsetY = { it }
+    ) + fadeOut(tween(150))
 )
 
 // === NONE ===

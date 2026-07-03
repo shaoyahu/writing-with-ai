@@ -61,12 +61,15 @@ fun ShimmerBox(modifier: Modifier = Modifier, widthFraction: Float = 1f, height:
 
 @Composable
 fun NoteListSkeleton(modifier: Modifier = Modifier) {
-    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        ShimmerBox(widthFraction = 0.6f, height = 20)
-        Spacer(modifier = Modifier.height(8.dp))
-        ShimmerBox(widthFraction = 1f, height = 14)
+    // note-list-card-im-style · 跟新 NoteRow(固定 88dp)节奏完全一致:
+    // 无水平 padding(卡片贴视窗),vertical 4dp 留 88dp 内部呼吸,
+    // metadata / 标题 / 标签 三段 4dp spacer 分隔,总高 ≈ 88dp
+    Column(modifier = modifier.padding(vertical = 4.dp)) {
+        ShimmerBox(widthFraction = 0.6f, height = 14) // 顶部 metadata 占位
         Spacer(modifier = Modifier.height(4.dp))
-        ShimmerBox(widthFraction = 0.8f, height = 14)
+        ShimmerBox(widthFraction = 0.85f, height = 20) // 标题占位
+        Spacer(modifier = Modifier.height(4.dp))
+        ShimmerBox(widthFraction = 0.5f, height = 12) // 标签占位
     }
 }
 

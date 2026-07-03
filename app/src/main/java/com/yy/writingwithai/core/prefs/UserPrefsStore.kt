@@ -87,7 +87,7 @@ constructor(
 
     override val animationStyleFlow: Flow<AnimationStyle> =
         store.data.map { prefs ->
-            parseAnimationStyleOrNull(prefs[KEY_ANIMATION_STYLE_V1]) ?: AnimationStyle.MINIMAL
+            parseAnimationStyleOrNull(prefs[KEY_ANIMATION_STYLE_V1]) ?: AnimationStyle.IMMERSIVE
         }
 
     override suspend fun setAnimationStyle(style: AnimationStyle) {
@@ -143,7 +143,7 @@ constructor(
 
         /**
          * 把 DataStore 存的 String 还原为 [AnimationStyle];未知 / null / 解析失败返回 null
-         * (由 caller 决定回退值，默认 [AnimationStyle.MINIMAL]，同时 LOG warn 一次性)。
+         * (由 caller 决定回退值，默认 [AnimationStyle.IMMERSIVE]，同时 LOG warn 一次性)。
          */
         internal fun parseAnimationStyleOrNull(raw: String?): AnimationStyle? {
             if (raw == null) return null
@@ -153,7 +153,7 @@ constructor(
                     if (BuildConfig.DEBUG) {
                         Log.w(
                             "UserPrefsStore",
-                            "Unknown animation_style_v1 value '$raw', falling back to MINIMAL"
+                            "Unknown animation_style_v1 value '$raw', falling back to IMMERSIVE"
                         )
                     }
                 }

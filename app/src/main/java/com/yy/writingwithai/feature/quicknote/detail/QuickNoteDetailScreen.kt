@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -69,7 +72,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -80,6 +87,7 @@ import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.note.NoteLinker
+import com.yy.writingwithai.core.note.RelatedNote
 import com.yy.writingwithai.core.prefs.ConsentState
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.prefs.SecureApiKeyStore
@@ -89,7 +97,9 @@ import com.yy.writingwithai.feature.aiwriting.AiActionUiState
 import com.yy.writingwithai.feature.aiwriting.AiActionViewModel
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
 import com.yy.writingwithai.feature.aiwriting.streaming.AiActionUiState.Idle
+import com.yy.writingwithai.feature.quicknote.model.EntityHighlight
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
+import com.yy.writingwithai.feature.quicknote.model.toHighlight
 import com.yy.writingwithai.feature.quicknote.share.shareNoteMarkdown
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -173,6 +183,13 @@ fun QuickNoteDetailScreen(
     val showConflictDialog by viewModel.showConflictDialog.collectAsStateWithLifecycle()
     val showFolderMigrationDialog by viewModel.showFolderMigrationDialog.collectAsStateWithLifecycle()
     val folderMigrationInfo by viewModel.folderMigrationInfo.collectAsStateWithLifecycle()
+    val decomposeState by viewModel.decomposeState.collectAsStateWithLifecycle()
+    val entityRows by viewModel.entityRows.collectAsStateWithLifecycle()
+
+    // note-decompose-highlight T3:是否已配置 AI 模型（驱动菜单项可见性）
+    val hasAiProvider by produceState(initialValue = false, key1 = secureApiKeyStore) {
+        secureApiKeyStore.observeConfiguredProviders().collect { value = it.isNotEmpty() }
+    }
 
     var showPullDialog by remember { mutableStateOf(false) }
     var pullUrlInput by remember { mutableStateOf("") }
@@ -180,6 +197,40 @@ fun QuickNoteDetailScreen(
 
     val current = state as? NoteDetailUiState.Content
     val noteId = current?.note?.note?.id
+
+    // note-decompose-highlight T6:缓存加载 — 进入详情页时查询已有实体
+    LaunchedEffect(noteId) {
+        noteId?.let { viewModel.loadCachedEntities() }
+    }
+
+    // note-decompose-highlight M1 fix:用 Job 取消前一个 Snackbar 防排队；M2 fix:用 context.getString 替代 String.format
+    var decomposeSnackbarJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    val decomposeFoundFmtResId = R.string.note_decompose_found_fmt
+    val decomposeNoEntities = stringResource(R.string.note_decompose_no_entities)
+    LaunchedEffect(decomposeState) {
+        if (decomposeState is DecomposeState.Idle || decomposeState is DecomposeState.Loading) return@LaunchedEffect
+        decomposeSnackbarJob?.cancel()
+        decomposeSnackbarJob = snackbarScope.launch {
+            when (val ds = decomposeState) {
+                is DecomposeState.Decomposed ->
+                    snackbarHostState.showSnackbar(
+                        if (ds.entityCount > 0) {
+                            context.getString(decomposeFoundFmtResId, ds.entityCount)
+                        } else {
+                            decomposeNoEntities
+                        }
+                    )
+                is DecomposeState.Error ->
+                    snackbarHostState.showSnackbar(ds.message)
+                else -> { /* Idle/Loading skipped */ }
+            }
+        }
+    }
+
+    // note-decompose-highlight T5:BottomSheet 状态 — M4 fix:用 EntityHighlight 替代 NoteEntityRow
+    var selectedEntity by remember { mutableStateOf<EntityHighlight?>(null) }
+    var relatedForEntity by remember { mutableStateOf<List<RelatedNote>>(emptyList()) }
+    val entitySheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // H2 修:noteId 真存在时才挂 AiActionViewModel，避免 NotFound / saved-state 缺失时残留 FAB/Sheet。
     val aiVm: AiActionViewModel? =
         if (noteId != null) {
@@ -404,6 +455,23 @@ fun QuickNoteDetailScreen(
                                         )
                                     )
                                 }
+                                // note-decompose-highlight T3:拆解菜单项（需 AI 已配置）
+                                if (hasAiProvider && decomposeState !is DecomposeState.Loading) {
+                                    add(
+                                        AppActionItem(
+                                            text = if (entityRows.isNotEmpty()) {
+                                                stringResource(R.string.note_redecompose)
+                                            } else {
+                                                stringResource(R.string.note_decompose)
+                                            },
+                                            onClick = {
+                                                menuExpanded = false
+                                                viewModel.decompose()
+                                            },
+                                            leadingIcon = Icons.Outlined.Hub
+                                        )
+                                    )
+                                }
                             }
                         )
                     }
@@ -561,20 +629,59 @@ fun QuickNoteDetailScreen(
                             modifier = Modifier.padding(vertical = LocalSpacing.current.sm)
                         )
                     }
-                    // M3:SelectionContainer 改为 BasicTextField(readOnly),selection 推回 ViewModel
-                    BasicTextField(
-                        value = textFieldValue,
-                        onValueChange = { newValue ->
-                            textFieldValue = newValue
-                            viewModel.onSelectionChange(newValue.selection)
-                        },
-                        readOnly = true,
-                        textStyle = MaterialTheme.typography.bodyLarge,
-                        modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = LocalSpacing.current.sm)
-                    )
+                    // note-decompose-highlight T4:实体下划线渲染 — M4 fix:用 EntityHighlight 替代 NoteEntityRow
+                    val currentNoteId = s.note.note.id
+                    val contentText = s.note.note.content
+                    val titleLen = s.note.note.title.length + 1 // +1 for "\n"
+                    val contentLen = contentText.length
+                    val primaryColor = MaterialTheme.colorScheme.primary
+                    val entityHighlights = remember(entityRows, titleLen, contentLen) {
+                        entityRows.mapNotNull { it.toHighlight(titleLen, contentLen) }
+                    }
+                    val annotatedContent = remember(contentText, entityHighlights) {
+                        buildEntityAnnotatedString(contentText, entityHighlights, primaryColor)
+                    }
+                    if (entityHighlights.isNotEmpty()) {
+                        ClickableText(
+                            text = annotatedContent,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = LocalSpacing.current.sm),
+                            onClick = { offset ->
+                                val annotations = annotatedContent.getStringAnnotations(
+                                    tag = "entity",
+                                    start = offset,
+                                    end = offset
+                                )
+                                val entityKey = annotations.firstOrNull()?.item
+                                    ?: return@ClickableText
+                                val highlight = entityHighlights.find { it.entityKey == entityKey }
+                                    ?: return@ClickableText
+                                // note-decompose-highlight:状态在协程内顺序设置，确保 sheet 展示时数据已就绪
+                                snackbarScope.launch {
+                                    relatedForEntity = viewModel.getRelatedByEntity(entityKey)
+                                    selectedEntity = highlight
+                                    entitySheetState.show()
+                                }
+                            }
+                        )
+                    } else {
+                        BasicTextField(
+                            value = textFieldValue,
+                            onValueChange = { newValue ->
+                                textFieldValue = newValue
+                                viewModel.onSelectionChange(newValue.selection)
+                            },
+                            readOnly = true,
+                            textStyle = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = LocalSpacing.current.sm)
+                        )
+                    }
                     // 字数 / 阅读时间 — 放在关联笔记上方，作为正文元数据贴近主体
                     Text(
                         text =
@@ -585,11 +692,6 @@ fun QuickNoteDetailScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     // note-association: 关联笔记
-                    val currentNoteId = s.note.note.id
-                    Spacer(Modifier.height(LocalSpacing.current.lg))
-                    androidx.compose.material3.HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
                     Spacer(Modifier.height(LocalSpacing.current.md))
                     // media-attachment-infrastructure · 附件图片 LazyRow
                     // ux-2026-06-28 #8:之前用 ColorPainter 当 placeholder 显示空白方块;
@@ -690,6 +792,83 @@ fun QuickNoteDetailScreen(
         )
     }
 
+    // note-decompose-highlight T5:实体详情 BottomSheet
+    val entity = selectedEntity
+    if (entity != null && entitySheetState.isVisible) {
+        ModalBottomSheet(
+            onDismissRequest = { selectedEntity = null },
+            sheetState = entitySheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = LocalSpacing.current.lg, vertical = LocalSpacing.current.md)
+            ) {
+                // 标题行：实体名 · 类型
+                Text(
+                    text = stringResource(
+                        R.string.note_decompose_entity_sheet_title,
+                        entity.surfaceForm,
+                        entity.entityType
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(LocalSpacing.current.md))
+                if (relatedForEntity.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.note_decompose_no_related),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    relatedForEntity.forEach { related ->
+                        androidx.compose.material3.Card(
+                            onClick = {
+                                // note-decompose-highlight H2 fix:不同步清 selectedEntity，让 sheet 走完关闭动画
+                                snackbarScope.launch { entitySheetState.hide() }
+                                onNavigateToNote(related.noteId)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = androidx.compose.material3.CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            elevation = androidx.compose.material3.CardDefaults.cardElevation(
+                                defaultElevation = 0.dp
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = related.title.ifBlank {
+                                        stringResource(R.string.quicknote_untitled)
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                if (related.preview.isNotBlank()) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = related.preview,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(LocalSpacing.current.lg))
+            }
+        }
+    }
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
@@ -854,4 +1033,45 @@ private fun opKeyToRes(opKey: String): Int = when (opKey) {
     "summarize" -> R.string.aiwriting_action_summarize
     "translate" -> R.string.aiwriting_action_translate
     else -> R.string.aiwriting_action_expand
+}
+
+/**
+ * note-decompose-highlight T4:构建带实体下划线的 AnnotatedString。
+ *
+ * - [highlights] 已是纯 content 偏移（ViewModel 层完成 titleLen 映射）
+ * - 重叠实体按 span 长度降序处理（最长优先），短 span 的 annotation 会被长 span 覆盖
+ */
+private fun buildEntityAnnotatedString(
+    content: String,
+    highlights: List<EntityHighlight>,
+    primaryColor: androidx.compose.ui.graphics.Color
+): AnnotatedString = buildAnnotatedString {
+    append(content)
+    // 按 span 长度降序排列（最长优先）
+    val sorted = highlights.sortedByDescending { it.contentEnd - it.contentStart }
+    // M3 fix:记录已被更长 span 占据的 offset 区间，避免重叠实体 annotation 歧义
+    val claimed = mutableListOf<IntRange>()
+    for (h in sorted) {
+        val start = h.contentStart.coerceIn(0, content.length)
+        val end = h.contentEnd.coerceIn(start, content.length)
+        if (start >= end) continue
+        addStyle(
+            style = SpanStyle(
+                textDecoration = TextDecoration.Underline,
+                color = primaryColor
+            ),
+            start = start,
+            end = end
+        )
+        // 只给未被更长 span 完全覆盖的区间添加 annotation
+        if (claimed.none { it.first <= start && it.last >= end }) {
+            addStringAnnotation(
+                tag = "entity",
+                annotation = h.entityKey,
+                start = start,
+                end = end
+            )
+            claimed.add(start until end)
+        }
+    }
 }

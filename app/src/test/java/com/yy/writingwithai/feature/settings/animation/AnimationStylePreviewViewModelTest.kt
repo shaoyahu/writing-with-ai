@@ -57,12 +57,12 @@ class AnimationStylePreviewViewModelTest {
 
     @Test
     fun `onStyleSelected writes the new style to prefs`() = runTest {
-        // 初值 MINIMAL(FakeUserPrefsStore 默认)
-        assertEquals(AnimationStyle.MINIMAL, viewModel.animationStyle.value)
-
-        // 切到 IMMERSIVE
-        viewModel.onStyleSelected(AnimationStyle.IMMERSIVE)
+        // 初值 IMMERSIVE(FakeUserPrefsStore 默认)
         assertEquals(AnimationStyle.IMMERSIVE, viewModel.animationStyle.value)
+
+        // 切到 FLUID
+        viewModel.onStyleSelected(AnimationStyle.FLUID)
+        assertEquals(AnimationStyle.FLUID, viewModel.animationStyle.value)
     }
 
     @Test

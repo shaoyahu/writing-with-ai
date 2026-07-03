@@ -4,12 +4,19 @@ import androidx.compose.ui.text.TextRange
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yy.writingwithai.core.common.mapToUserMessage
+import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
+import com.yy.writingwithai.core.data.db.entity.LinkType
+import com.yy.writingwithai.core.data.db.entity.entity.NoteEntityRow
 import com.yy.writingwithai.core.data.repo.NoteRepository
 import com.yy.writingwithai.core.feishu.api.FeishuError
 import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
 import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
 import com.yy.writingwithai.core.feishu.sync.FolderMigrationChoice
+import com.yy.writingwithai.core.note.NoteLinker
+import com.yy.writingwithai.core.note.RelatedNote
+import com.yy.writingwithai.core.note.entity.EntityExtractor
 import com.yy.writingwithai.core.ui.AiActionFabState
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
 import com.yy.writingwithai.feature.quicknote.model.ReadingTime
@@ -39,7 +46,10 @@ constructor(
     private val refDao: com.yy.writingwithai.core.feishu.sync.FeishuRefDao,
     private val noteAttachmentDao: com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao,
     private val attachmentStore: com.yy.writingwithai.core.media.AttachmentStore,
-    private val imageCompressor: com.yy.writingwithai.core.media.ImageCompressor
+    private val imageCompressor: com.yy.writingwithai.core.media.ImageCompressor,
+    private val entityExtractor: EntityExtractor,
+    private val noteLinker: NoteLinker,
+    private val entityDao: NoteEntityDao
 ) : ViewModel() {
     // H3 修:`requireNotNull` 在 process-death / 深链 / saved state 跨版本场景会 IAE crash。
     // 改为可空，缺失时直接进入 NotFound，避免进程崩溃。
@@ -166,11 +176,11 @@ constructor(
                 _showFolderMigrationDialog.value = true
                 _syncMessage.value = SyncMessage.Failure("同步目标文件夹已变更")
             } catch (e: FeishuError) {
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             } finally {
                 _syncLoading.value = false
             }
@@ -191,11 +201,11 @@ constructor(
                 _showConflictDialog.value = true
                 _syncMessage.value = SyncMessage.Failure("同步冲突:请选择保留本地或远端")
             } catch (e: FeishuError) {
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             } finally {
                 _syncLoading.value = false
             }
@@ -226,12 +236,12 @@ constructor(
                 _feishuRef.value = feishuSyncService.getRef(ref.noteId)
             } catch (e: FeishuError) {
                 _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
                 _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             } finally {
                 _syncLoading.value = false
             }
@@ -251,12 +261,12 @@ constructor(
             } catch (e: FeishuError) {
                 // fix-2026-06-26-review-r3 H20:catch 块也要关 dialog，避免解决失败时 dialog 仍开。
                 _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             }
         }
     }
@@ -300,12 +310,12 @@ constructor(
                 _showFolderMigrationDialog.value = false
             } catch (e: FeishuError) {
                 _showFolderMigrationDialog.value = false
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
                 _showFolderMigrationDialog.value = false
-                _syncMessage.value = SyncMessage.Failure(e.message ?: "未知错误")
+                _syncMessage.value = SyncMessage.Failure(mapToUserMessage(e))
             } finally {
                 _syncLoading.value = false
             }
@@ -395,6 +405,62 @@ constructor(
             }
         }
     }
+
+    // note-decompose-highlight · 拆解状态
+    private val _decomposeState = MutableStateFlow<DecomposeState>(DecomposeState.Idle)
+    val decomposeState: StateFlow<DecomposeState> = _decomposeState.asStateFlow()
+
+    private val _entityRows = MutableStateFlow<List<NoteEntityRow>>(emptyList())
+    val entityRows: StateFlow<List<NoteEntityRow>> = _entityRows.asStateFlow()
+
+    /** M4 fix:获取指定实体的关联笔记（过滤 ENTITY_HIT + evidence 含 entityKey）。 */
+    suspend fun getRelatedByEntity(entityKey: String): List<RelatedNote> {
+        val id = noteId ?: return emptyList()
+        return noteLinker.getBacklinks(id).filter {
+            it.signals.contains(LinkType.ENTITY_HIT) &&
+                it.evidence?.contains(entityKey) == true
+        }
+    }
+
+    /** 加载已缓存的实体（进入详情页时调用）。 */
+    fun loadCachedEntities() {
+        val id = noteId ?: return
+        viewModelScope.launch {
+            val rows = entityDao.getByNoteId(id)
+            // M5 fix:合并为单次更新，避免 _entityRows 和 _decomposeState 间出现不一致中间态
+            _entityRows.value = rows
+            _decomposeState.value = if (rows.isNotEmpty()) {
+                DecomposeState.Decomposed(rows.size)
+            } else {
+                _decomposeState.value // 保持当前状态（Idle 或其他）
+            }
+        }
+    }
+
+    /** 触发拆解：AI 抽取实体 → 重算关联 → 刷新实体列表。 */
+    fun decompose() {
+        val id = noteId ?: return
+        if (_decomposeState.value is DecomposeState.Loading) return
+        viewModelScope.launch {
+            _decomposeState.value = DecomposeState.Loading
+            try {
+                val count = entityExtractor.extractAndPersist(id)
+                noteLinker.recomputeForNote(id)
+                // M5 fix:合并为单次更新，避免 _entityRows 和 _decomposeState 间出现不一致中间态
+                val rows = entityDao.getByNoteId(id)
+                _entityRows.value = rows
+                _decomposeState.value = if (count > 0) {
+                    DecomposeState.Decomposed(count)
+                } else {
+                    DecomposeState.Idle
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _decomposeState.value = DecomposeState.Error(mapToUserMessage(e))
+            }
+        }
+    }
 }
 
 /** M3:详情屏顶部"上次 AI 操作"行投影 — `opKey` 是 aiwriting op 名("expand"/"polish"/"organize"),UI 层 `stringResource` 翻译。 */
@@ -436,4 +502,12 @@ private fun safeLocale(): Locale {
 sealed interface SyncMessage {
     data class Success(val docUrl: String) : SyncMessage
     data class Failure(val reason: String) : SyncMessage
+}
+
+/** note-decompose-highlight · 拆解状态。 */
+sealed interface DecomposeState {
+    data object Idle : DecomposeState
+    data object Loading : DecomposeState
+    data class Decomposed(val entityCount: Int) : DecomposeState
+    data class Error(val message: String) : DecomposeState
 }

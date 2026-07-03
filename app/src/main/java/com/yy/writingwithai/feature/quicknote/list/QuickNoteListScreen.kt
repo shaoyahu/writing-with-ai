@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -44,6 +46,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +69,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -73,7 +77,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
-import com.yy.writingwithai.core.feishu.sync.FeishuRefStatus
 import com.yy.writingwithai.core.prefs.SearchHistoryStore
 import com.yy.writingwithai.core.ui.NoteListSkeleton
 import com.yy.writingwithai.core.ui.dropdown.AppActionDropdown
@@ -100,6 +103,7 @@ fun QuickNoteListScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val spacing = LocalSpacing.current
+    val density = LocalDensity.current
     val allTags: List<String> = (state as? NoteListUiState.Content)?.allTags ?: emptyList()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -114,6 +118,8 @@ fun QuickNoteListScreen(
 
     // note-list-card-actions · 屏级 3 state:同屏只能显示 1 个菜单 / 1 个 dialog,用 noteId 区分。
     var menuExpandedFor by remember { mutableStateOf<String?>(null) }
+    // note-list-card-actions · 长按触摸偏移(px → dp),用于菜单锚定触摸位置
+    var menuTouchOffset by remember { mutableStateOf<DpOffset>(DpOffset(0.dp, 0.dp)) }
     var confirmDeleteFor by remember { mutableStateOf<String?>(null) }
     var showAddTagFor by remember { mutableStateOf<String?>(null) }
 
@@ -234,29 +240,18 @@ fun QuickNoteListScreen(
                 is NoteListUiState.Content -> {
                     // H1 fix: feishuRefsMap 提升到 LazyColumn 外部,避免每 item 创建独立 Flow 订阅
                     val feishuRefsMap by viewModel.feishuRefs.collectAsStateWithLifecycle()
-                    // H2 fix: 预解析 FeishuRefStatus→string 资源(Composable scope 内)
-                    val statusSynced = stringResource(R.string.quicknote_feishu_status_synced)
-                    val statusDirty = stringResource(R.string.quicknote_feishu_status_dirty)
-                    val statusConflict = stringResource(R.string.quicknote_feishu_status_conflict)
-                    val statusRemoteDeleted = stringResource(R.string.quicknote_feishu_status_remote_deleted)
-                    // L4 fix: 加 horizontal 边距和 item 间距,卡片不贴屏幕边缘
+                    // note-list-card-im-style · IM 风格列表:零外间距,卡片完全相邻,
+                    // 只靠 1dp 灰线作分界。horizontal 0(贴视窗边)、vertical 0
+                    // (贴搜索框下沿到 tab 栏上沿)、spacedBy 0(卡片间无空隙)。
                     LazyColumn(
-                        contentPadding = PaddingValues(
-                            horizontal = spacing.md,
-                            vertical = spacing.sm
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(spacing.sm),
+                        contentPadding = PaddingValues(0.dp),
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(items = s.notes, key = { it.note.id }) { item ->
-                            val syncLabel = feishuRefsMap[item.note.id]?.status?.let { status ->
-                                when (status) {
-                                    FeishuRefStatus.SYNCED -> statusSynced
-                                    FeishuRefStatus.DIRTY -> statusDirty
-                                    FeishuRefStatus.CONFLICT -> statusConflict
-                                    FeishuRefStatus.REMOTE_DELETED -> statusRemoteDeleted
-                                }
-                            }
+                            // note-list-card-redesign · syncStatus 改传 FeishuRefStatus?(原 String?),
+                            // 由 NoteRow 内部 stringResource 解析文案 + 配 chip 颜色
+                            val syncStatusEnum = feishuRefsMap[item.note.id]?.status
                             // note-list-card-actions · 自管 AnchoredDraggable 露背景按钮
                             // (2026-06-30 真机反馈:SwipeToDismissBox 的 settle 距离 = 整张卡片宽,
                             // 过远;改 Revealed anchor = -buttonWidthPx,只露按钮区)。
@@ -282,10 +277,14 @@ fun QuickNoteListScreen(
                             // stringResource 必须在 @Composable 上下文里求值,所以提前提到外面。
                             val pinCd = stringResource(R.string.quicknote_list_swipe_pin_cd)
                             val deleteCd = stringResource(R.string.quicknote_list_swipe_delete_cd)
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                // 背景层:surfaceVariant + 2 个 SwipeActionButton。
-                                // start padding = buttonWidth,把内容推到右 buttonWidth 区,
-                                // 卡片左移 buttonWidth 时正好露在右 buttonWidth 区。
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    // note-list-card-im-style · 固定 88dp(非 min),跟 NoteRow
+                                    // 高度硬一致,matchParentSize 才能给 swipe 背景按钮传确定高度,
+                                    // 左滑按钮底边跟 Divider 零误差对齐
+                                    .height(88.dp)
+                            ) {
                                 Row(
                                     modifier = Modifier
                                         .matchParentSize()
@@ -367,18 +366,29 @@ fun QuickNoteListScreen(
                                         },
                                         content = item.note.content,
                                         tags = item.tags,
-                                        syncStatus = syncLabel,
+                                        syncStatus = syncStatusEnum,
                                         onClick = { onNoteClick(item.note.id) },
                                         isPinned = item.note.isPinned,
                                         updatedAt = com.yy.writingwithai.feature.quicknote.list.formatUpdatedAt(
                                             item.note.updatedAt
                                         ),
-                                        onLongClick = { menuExpandedFor = item.note.id }
+                                        onLongClick = { touchOffset ->
+                                            menuExpandedFor = item.note.id
+                                            // px → dp，用于 DropdownMenu offset
+                                            menuTouchOffset = DpOffset(
+                                                x = with(density) { touchOffset.x.toDp() },
+                                                y = with(density) { touchOffset.y.toDp() }
+                                            )
+                                        },
+                                        // note-list-thumbnail · 列表首张图片路径,NoteRow
+                                        // 内部按 null 决定是否渲染 72dp 缩略图。
+                                        firstImagePath = item.firstImagePath
                                     )
-                                    // note-list-card-actions · 长按菜单锚在卡片右下角
+                                    // note-list-card-actions · 长按菜单锚定触摸位置
                                     AppActionDropdown(
                                         expanded = menuExpandedFor == item.note.id,
                                         onDismissRequest = { menuExpandedFor = null },
+                                        offset = menuTouchOffset,
                                         items = listOf(
                                             AppActionItem(
                                                 text = if (item.note.isPinned) {
@@ -412,6 +422,22 @@ fun QuickNoteListScreen(
                                         )
                                     )
                                 }
+                                // note-list-card-divider-out · 卡片底部分割线从 NoteRow 内部
+                                // 移到这里(BoxScope.align BottomCenter)。原因:Card 传 children
+                                // 的 maxHeight=Infinity,内部 Box(fillMaxSize).fillMaxHeight 在
+                                // Infinity 约束下退化为 wrap content → Divider 永远落在 content
+                                // 自然末尾(短卡片 ~80dp),跟 heightIn(min=88dp) 兜底的 Card
+                                // 实际底部差 8dp,左滑按钮底边停在 Divider 之上(用户最初反馈)。
+                                // 外层 Box 有 heightIn 兜底 + 实际高度确定(等于 Card 实际高度),
+                                // BoxScope.align(BottomCenter) 把 Divider 锁在 Box 实际底 1dp,
+                                // 跟 SwipeActionButton 底边零误差对齐。
+                                HorizontalDivider(
+                                    thickness = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .align(Alignment.BottomCenter)
+                                )
                             }
                         }
                     }
@@ -514,7 +540,8 @@ private fun TagFilterRow(allTags: List<String>, selectedTag: String?, onTagSelec
 
 /**
  * note-list-card-actions · SwipeToDismissBox 背景按钮(置顶 / 删除)。
- * 64dp 高 + 64dp 宽 + 主色 / 错误色区分(置顶 primary,删除 error)。
+ * 72dp 宽 + fillMaxHeight 跟卡片同高(注:NoteRow 现在 heightIn(min=88dp),
+ * 按钮高度自然等于卡片高度,不再写死 88dp,避免短卡片时按钮上下空隙)。
  */
 @Composable
 private fun SwipeActionButton(
@@ -526,7 +553,9 @@ private fun SwipeActionButton(
     androidx.compose.material3.Surface(
         onClick = onClick,
         color = tint.copy(alpha = 0.15f),
-        modifier = Modifier.size(width = 72.dp, height = 88.dp)
+        // note-list-card-redesign · 高度由外层 Box(matchParentSize) 提供,
+        // 这里 width(72.dp) + fillMaxHeight 让按钮贴满卡片高度
+        modifier = Modifier.width(72.dp).fillMaxHeight()
     ) {
         Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
             Icon(

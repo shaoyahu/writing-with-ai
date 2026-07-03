@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -90,6 +92,13 @@ constructor(
      * - `query` 为空或 null → 无搜索条件
      * - `tag` 为空或 null → 无 tag 筛选
      */
+    // note-list-thumbnail · `flatMapLatest` 在 kotlinx-coroutines 是 preview API,
+    // 需要 `@OptIn(FlowPreview)` + `@OptIn(ExperimentalCoroutinesApi)` 才能编译过。
+    // 见 coroutines 1.7.x changelog,1.8+ 才会转正。
+    @OptIn(
+        kotlinx.coroutines.FlowPreview::class,
+        kotlinx.coroutines.ExperimentalCoroutinesApi::class
+    )
     fun observeNotesWithTags(query: String?, tag: String?): Flow<List<NoteWithTags>> {
         val notesFlow: Flow<List<Note>> =
             when {
@@ -106,9 +115,34 @@ constructor(
                 }
                 else -> noteDao.observeAll().map { list -> list.map { it.toModel() } }
             }
-        return combine(notesFlow, noteTagDao.observeAllCrossRefs()) { notes, crossRefs ->
-            val byNote = crossRefs.groupBy({ it.noteId }, { it.tag })
-            notes.map { NoteWithTags(it, byNote[it.id].orEmpty()) }
+        // note-list-thumbnail · 列表缩略图需求:把每条 note 的首张图片路径一并 join 进来。
+        // M6 fix:将 notesFlow 从 combine + flatMapLatest 双订阅重构为单一 flatMapLatest，
+        // notesFlow 只订阅一次，内部 combine crossRefs + firstImages。
+        return notesFlow.flatMapLatest { notes ->
+            if (notes.isEmpty()) {
+                flowOf(
+                    notes.map { note ->
+                        NoteWithTags(note = note, tags = emptyList(), firstImagePath = null)
+                    }
+                )
+            } else {
+                // M8 fix:防御性 cap，避免 IN 子句超过 SQLITE_MAX_VARIABLE_NUMBER(旧版 SQLite 999)
+                val noteIds = notes.map { it.id }.take(500)
+                combine(
+                    noteTagDao.observeAllCrossRefs(),
+                    noteAttachmentDao.observeFirstImageForNotes(noteIds)
+                ) { crossRefs, firstImages ->
+                    val byNote = crossRefs.groupBy({ it.noteId }, { it.tag })
+                    val firstImageByNote = firstImages.associate { it.noteId to it.localPath }
+                    notes.map { note ->
+                        NoteWithTags(
+                            note = note,
+                            tags = byNote[note.id].orEmpty(),
+                            firstImagePath = firstImageByNote[note.id]
+                        )
+                    }
+                }
+            }
         }.distinctUntilChanged()
     }
 

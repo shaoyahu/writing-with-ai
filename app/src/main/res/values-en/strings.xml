@@ -539,6 +539,12 @@
     <string name="anim_style_fluid_desc">Spring physics with organic overshoot</string>
     <string name="anim_style_immersive">Immersive</string>
     <string name="anim_style_immersive_desc">Large slide, dramatic; iOS-style push</string>
+    <string name="anim_style_crossfade">Crossfade</string>
+    <string name="anim_style_crossfade_desc">Old and new pages fade simultaneously, slideshow-style</string>
+    <string name="anim_style_scale">Scale</string>
+    <string name="anim_style_scale_desc">Page zooms in from center, card-opening style</string>
+    <string name="anim_style_slide_up">Slide Up</string>
+    <string name="anim_style_slide_up_desc">New page slides up from bottom, panel-style</string>
     <string name="anim_style_none">None</string>
     <string name="anim_style_none_desc">Instant switch, no animation (system reduce-motion)</string>
     <string name="anim_style_reduce_motion_banner">System \"reduce motion\" is on — switched to None automatically</string>
@@ -581,4 +587,13 @@
     <string name="custom_provider_helper_anthropic">Anthropic Messages API protocol: body includes top-level system field + messages array; SSE event content_block_delta. baseUrl is the manufacturer-documented base URL (path excluded); the /v1/messages path is auto-appended by the protocol. Examples: DeepSeek = https://api.deepseek.com/anthropic, Minimax = https://api.minimaxi.com/anthropic.</string>
     <string name="custom_provider_helper_openai">OpenAI Chat Completions protocol: body includes messages array (no top-level system); SSE event data: {choices: [...]}. baseUrl is the manufacturer-documented base URL (path excluded); the /chat/completions path is auto-appended by the protocol. Examples: DeepSeek = https://api.deepseek.com, Moonshot = https://api.moonshot.cn/v1.</string>
     <string name="tab_new_note">+ New</string>
+
+    <!-- note-decompose-highlight · Decompose feature -->
+    <string name="note_decompose">Decompose</string>
+    <string name="note_redecompose">Re-decompose</string>
+    <string name="note_decomposing">Decomposing…</string>
+    <string name="note_decompose_no_entities">No entities found</string>
+    <string name="note_decompose_found_fmt">%1$d entities found</string>
+    <string name="note_decompose_entity_sheet_title">%1$s · %2$s</string>
+    <string name="note_decompose_no_related">No related notes</string>
 </resources>

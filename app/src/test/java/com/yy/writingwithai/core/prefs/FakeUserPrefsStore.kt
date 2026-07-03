@@ -18,7 +18,7 @@ class FakeUserPrefsStore
 @Inject
 constructor() : UserPrefsStore {
     private val ackState = MutableStateFlow(false)
-    private val animStyleState = MutableStateFlow(AnimationStyle.MINIMAL)
+    private val animStyleState = MutableStateFlow(AnimationStyle.IMMERSIVE)
     private val navEnabledState = MutableStateFlow(true)
     private val tabEnabledState = MutableStateFlow(true)
 
@@ -59,13 +59,13 @@ constructor() : UserPrefsStore {
 
     /**
      * 测试 hook:用 String 种入 animationStyle(模拟 DataStore 读取未知值场景)。
-     * null → MINIMAL;未知 String → MINIMAL;合法 enum 名 → 对应风格。
+     * null → IMMERSIVE;未知 String → IMMERSIVE;合法 enum 名 → 对应风格。
      */
     fun seedAnimationStyle(raw: String?) {
         animStyleState.value = if (raw == null) {
-            AnimationStyle.MINIMAL
+            AnimationStyle.IMMERSIVE
         } else {
-            runCatching { AnimationStyle.valueOf(raw) }.getOrDefault(AnimationStyle.MINIMAL)
+            runCatching { AnimationStyle.valueOf(raw) }.getOrDefault(AnimationStyle.IMMERSIVE)
         }
     }
 }

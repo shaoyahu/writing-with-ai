@@ -153,6 +153,9 @@ private fun AnimationStyle.displayNameRes(): Int = when (this) {
     AnimationStyle.MINIMAL -> R.string.anim_style_minimal
     AnimationStyle.FLUID -> R.string.anim_style_fluid
     AnimationStyle.IMMERSIVE -> R.string.anim_style_immersive
+    AnimationStyle.CROSSFADE -> R.string.anim_style_crossfade
+    AnimationStyle.SCALE -> R.string.anim_style_scale
+    AnimationStyle.SLIDE_UP -> R.string.anim_style_slide_up
     AnimationStyle.NONE -> R.string.anim_style_none
 }
 
@@ -160,5 +163,8 @@ private fun AnimationStyle.descriptionRes(): Int = when (this) {
     AnimationStyle.MINIMAL -> R.string.anim_style_minimal_desc
     AnimationStyle.FLUID -> R.string.anim_style_fluid_desc
     AnimationStyle.IMMERSIVE -> R.string.anim_style_immersive_desc
+    AnimationStyle.CROSSFADE -> R.string.anim_style_crossfade_desc
+    AnimationStyle.SCALE -> R.string.anim_style_scale_desc
+    AnimationStyle.SLIDE_UP -> R.string.anim_style_slide_up_desc
     AnimationStyle.NONE -> R.string.anim_style_none_desc
 }

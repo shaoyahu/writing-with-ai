@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
+import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.data.model.NoteWithTags
 import com.yy.writingwithai.core.data.repo.NoteRepository
@@ -11,6 +12,8 @@ import com.yy.writingwithai.core.feishu.sync.FeishuRefDao
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
 import com.yy.writingwithai.core.media.AttachmentStore
 import com.yy.writingwithai.core.media.ImageCompressor
+import com.yy.writingwithai.core.note.NoteLinker
+import com.yy.writingwithai.core.note.entity.EntityExtractor
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -46,6 +49,9 @@ class QuickNoteDetailViewModelTest {
     private lateinit var noteAttachmentDao: NoteAttachmentDao
     private lateinit var attachmentStore: AttachmentStore
     private lateinit var imageCompressor: ImageCompressor
+    private lateinit var entityExtractor: EntityExtractor
+    private lateinit var noteLinker: NoteLinker
+    private lateinit var entityDao: NoteEntityDao
 
     private val testNote = Note(
         id = "note-1",
@@ -77,6 +83,9 @@ class QuickNoteDetailViewModelTest {
         noteAttachmentDao = mockk(relaxed = true)
         attachmentStore = mockk(relaxed = true)
         imageCompressor = mockk(relaxed = true)
+        entityExtractor = mockk(relaxed = true)
+        noteLinker = mockk(relaxed = true)
+        entityDao = mockk(relaxed = true)
 
         coEvery { feishuSyncService.getRef(any()) } returns null
     }
@@ -213,6 +222,9 @@ class QuickNoteDetailViewModelTest {
             refDao = refDao,
             noteAttachmentDao = noteAttachmentDao,
             attachmentStore = attachmentStore,
-            imageCompressor = imageCompressor
+            imageCompressor = imageCompressor,
+            entityExtractor = entityExtractor,
+            noteLinker = noteLinker,
+            entityDao = entityDao
         )
 }
