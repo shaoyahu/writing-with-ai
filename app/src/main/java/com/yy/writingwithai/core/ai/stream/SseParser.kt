@@ -21,8 +21,9 @@ internal object SseParser {
     // M4 修:per-event 长度上限 1MB，避免恶意 / 误配置 provider 发 multi-GB 单事件 OOM crash。
     private const val MAX_EVENT_LEN = 1_048_576
 
-    // r2 修:用  转义取代字面量 BOM，避免 lint ByteOrderMark 报错。
+    // r2 修:用 ﻿ 转义取代字面量 BOM，避免 lint ByteOrderMark 报错。
     // hardening C-1 fix:ktlint 11.x 会把字面量 BOM 转成空字符串，改用 unicode escape 防回退。
+    // fix-2026-07-05-review-r4 Lint:使用 Unicode escape 避免文件中间出现 BOM 字符
     private const val UTF8_BOM = "﻿"
 
     // hardening C-1:截断时 emit 的错误消息。

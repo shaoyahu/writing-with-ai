@@ -13,10 +13,7 @@ import com.yy.writingwithai.core.ai.stream.SseParser
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Named
@@ -248,7 +245,10 @@ constructor(
             // ConnectException 等"环境错"retry 也不会自愈，只会拖慢 1.5s+ 后把 Network 抛给 UI。
             // retry 仅限"瞬时"网络错(EOF / connection reset / read timeout 等),ssl/dns/connect 失败
             // 直接 fallthrough 给 .catch。
+            // fix-2026-07-05-review-r4 CRITICAL C2:retry predicate 必须显式检查并 rethrow CancellationException
+            // 避免 retry 操作符延迟协程取消信号传播
             .retry(1) { cause ->
+                if (cause is kotlinx.coroutines.CancellationException) throw cause
                 cause is IOException && cause !is SocketTimeoutException && !emittedDelta.get() && cause.isRetryable()
             }
             .catch { e ->
@@ -438,13 +438,11 @@ constructor(
     }
 
     private fun parseHttpDate(s: String): Date? {
-        // RFC 7231 三种 HTTP-date 格式(RFC 1123 / RFC 850 / asctime)，只解析最常见的 RFC 1123
-        // 形式(其他罕见形式浏览器 / okhttp 也多数忽略)。strict=false 容错(provider 时区偶尔省略 GMT)。
+        // fix-2026-07-05-review-r4 MEDIUM M4:使用线程安全的 DateTimeFormatter 替代 SimpleDateFormat
+        // RFC 7231 HTTP-date 格式，使用 RFC_1123_DATE_TIME (thread-safe)
         return try {
-            val fmt = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US)
-            fmt.timeZone = TimeZone.getTimeZone("GMT")
-            fmt.isLenient = false
-            fmt.parse(s)
+            val instant = java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME.parse(s, java.time.Instant::from)
+            Date.from(instant)
         } catch (e: Exception) {
             null
         }

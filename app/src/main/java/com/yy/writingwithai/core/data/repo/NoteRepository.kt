@@ -66,6 +66,10 @@ constructor(
     val noteUpdateEvents = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 32)
 
     init {
+        // fix-2026-07-05-review-r4 MEDIUM M3:协程生命周期说明
+        // 此协程由 @ApplicationScope 提供，生命周期与应用进程绑定。
+        // NoteRepository 是 @Singleton，进程存活期间不会被重新创建，
+        // 因此协程不会泄漏。进程退出时协程自动取消。
         scope.launch {
             recomputeFlow
                 .debounce(DEBOUNCE_MS)
