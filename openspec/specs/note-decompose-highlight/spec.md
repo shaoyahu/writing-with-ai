@@ -9,15 +9,15 @@ Synced from OpenSpec change `note-decompose-highlight`(2026-07-03)。
 ## Requirements
 
 ### Requirement: Decompose menu entry
-系统 SHALL 在笔记详情页右上角下拉菜单中提供"拆解"菜单项，当且仅当用户已配置至少一个 AI 模型时显示。
+系统 SHALL 在笔记详情页右上角下拉菜单中始终提供"拆解"菜单项。当用户未配置任何 AI 模型时，菜单项显示为淡灰色且不可点击；当用户已配置至少一个 AI 模型时，菜单项可正常点击。
 
 #### Scenario: AI model configured shows decompose menu
 - **WHEN** 用户已配置至少一个 AI 模型 apikey，且用户打开笔记详情页下拉菜单
-- **THEN** 菜单中显示"拆解"菜单项，图标为 `Icons.Outlined.Hub`
+- **THEN** 菜单中显示"拆解"菜单项，图标为 `Icons.Outlined.Hub`，菜单项可点击
 
-#### Scenario: No AI model hides decompose menu
+#### Scenario: No AI model shows disabled decompose menu
 - **WHEN** 用户未配置任何 AI 模型 apikey，且用户打开笔记详情页下拉菜单
-- **THEN** 菜单中不显示"拆解"菜单项
+- **THEN** 菜单中显示"拆解"菜单项，但文字和图标呈淡灰色（`onSurface.copy(alpha = 0.38f)`），菜单项不可点击
 
 #### Scenario: Already decomposed note shows re-decompose
 - **WHEN** 当前笔记已有实体抽取记录（`note_entities` 表中存在该 noteId 的行），且用户打开下拉菜单

@@ -19,6 +19,7 @@ import com.yy.writingwithai.core.prefs.UserPrefsStore
 import com.yy.writingwithai.core.widget.QuickNoteWidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -113,8 +114,9 @@ constructor(
     // fix-2026-06-26-review-r3 M6:`streamJob?.cancel()` 之后旧协程可能还在 `_state.update`
     // 调用栈上(cancel 是异步)，新协程已置 Streaming → 旧协程在取消检查点前最后 emit
     // 一条 Delta / Failed 覆盖新状态。加一个 generation 计数器，emit 前比对，不一致就丢。
-    @Volatile
-    private var streamGeneration: Int = 0
+    // fix-2026-07-05-review-r4 MEDIUM M11:使用 AtomicInteger 保证 generation 原子递增
+    // 避免快速连点时多个协程拿到相同 generation
+    private val streamGeneration = AtomicInteger(0)
     private var lastOp: WritingOp? = null
     private var lastSourceText: String? = null
     private var lastNoteId: String? = null
@@ -124,8 +126,7 @@ constructor(
     fun start(op: WritingOp, sourceText: String, noteId: String) {
         streamJob?.cancel()
         // M6 fix:bump generation，旧协程(若仍在跑)将被 generation 比对拒绝写状态。
-        val currentGeneration = streamGeneration + 1
-        streamGeneration = currentGeneration
+        val currentGeneration = streamGeneration.incrementAndGet()
         lastOp = op
         lastSourceText = sourceText
         lastNoteId = noteId
@@ -137,14 +138,14 @@ constructor(
             viewModelScope.launch {
                 val consented = consentStore.isConsented(com.yy.writingwithai.BuildConfig.CONSENT_VERSION)
                 if (!consented) {
-                    if (streamGeneration == currentGeneration) {
+                    if (streamGeneration.get() == currentGeneration) {
                         _state.value = AiActionUiState.Failed(op = op, error = AiError.UserConsentRequired)
                     }
                     return@launch
                 }
                 val acked = userPrefsStore.isApikeyPromptAcked()
                 if (!acked) {
-                    if (streamGeneration == currentGeneration) {
+                    if (streamGeneration.get() == currentGeneration) {
                         _state.value = AiActionUiState.Failed(op = op, error = AiError.ApikeyPromptNotAcked)
                     }
                     return@launch
@@ -153,7 +154,7 @@ constructor(
                 val providerId = providerPrefsStore.getSelectedProviderId()
                 // fix-2026-06-24-review-r1-critical:null = 未配置 provider → 走 ProviderNotConfigured
                 if (providerId == null) {
-                    if (streamGeneration == currentGeneration) {
+                    if (streamGeneration.get() == currentGeneration) {
                         _state.value = AiActionUiState.Failed(op = op, error = AiError.ProviderNotConfigured)
                     }
                     return@launch
@@ -161,7 +162,7 @@ constructor(
                 val apikey = secureApiKeyStore.get(providerId)
                 val apiFormatOverride = providerPrefsStore.getApiFormat(providerId)
                 if (providerId != PROVIDER_ID_FAKE && apikey == null) {
-                    if (streamGeneration == currentGeneration) {
+                    if (streamGeneration.get() == currentGeneration) {
                         _state.value = AiActionUiState.Failed(op = op, error = AiError.ProviderNotConfigured)
                     }
                     return@launch
@@ -184,7 +185,7 @@ constructor(
                         .orEmpty()
                 }
                 val actualModel = resolveActualModel(selectedModel, defaultModel)
-                if (streamGeneration == currentGeneration) {
+                if (streamGeneration.get() == currentGeneration) {
                     _state.value = AiActionUiState.Streaming(op = op, actualModel = actualModel)
                 }
                 val systemPrompt =
@@ -201,7 +202,7 @@ constructor(
                         apiFormatOverride = apiFormatOverride
                     ).collect { event ->
                         // M6 fix:emit 前比对 generation;旧协程 race emit 直接丢弃。
-                        if (streamGeneration != currentGeneration) {
+                        if (streamGeneration.get() != currentGeneration) {
                             return@collect
                         }
                         when (event) {
@@ -354,14 +355,14 @@ constructor(
         if (_state.value !is AiActionUiState.Streaming) return
         // fix-2026-06-30-full-review-r1 HIGH H2:bump generation，旧协程在 cancel window
         // 期间残余的 Delta/Failed/Done 事件被 generation 检查过滤掉，不再覆盖 Idle。
-        streamGeneration++
+        streamGeneration.incrementAndGet()
         streamJob?.cancel()
         _state.value = AiActionUiState.Idle
     }
 
     fun dismiss() {
         // fix-2026-06-30-full-review-r1 HIGH H2:同 cancel，旧协程残余事件不能覆盖 Idle。
-        streamGeneration++
+        streamGeneration.incrementAndGet()
         streamJob?.cancel()
         lastOriginalContent = null
         _state.value = AiActionUiState.Idle

@@ -11,14 +11,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -28,7 +31,6 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
@@ -54,7 +56,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -67,6 +68,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
@@ -75,7 +78,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -143,6 +145,8 @@ fun QuickNoteDetailScreen(
     // feishu clip labels 提升到 Composable 顶部 scope，供 onClick lambda 使用
     val feishuClipUrlLabel = stringResource(R.string.feishu_clip_label_url)
     val feishuClipErrorLabel = stringResource(R.string.feishu_clip_label_error)
+    android.util.Log.d("DetailToolbar", "QuickNoteDetailScreen compose enter")
+    val keyboardCtrl = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     // M4-4:详情屏 consent 闸门(UI 层二次防御，与 ViewModel.start() 一致)
     val context = androidx.compose.ui.platform.LocalContext.current
     val consentStore =
@@ -291,12 +295,11 @@ fun QuickNoteDetailScreen(
             Toast.makeText(context, context.getString(R.string.quicknote_export_error), Toast.LENGTH_SHORT).show()
         }
     }
-    // H3 修:TextFieldValue 仅在 noteId 变化时重建，避免 content / wordCount / tags 任一变化重置选区。
-    // selection 不从 ViewModel 反向同步回 BasicTextField(单向 BasicTextField → ViewModel)。
-    // AI replace 刷新:LaunchedEffect 同步 content 变化到 textFieldValue(keep selection)。
-    var textFieldValue by remember(noteId) {
-        mutableStateOf(
-            TextFieldValue(text = current?.note?.note?.content.orEmpty())
+    // note-detail-polish: 用旧 API BasicTextField(TextFieldValue, readOnly=false) +
+    // onValueChange 立即 hide IME —— 长按选中正常工作 + IME 不弹。
+    var textFieldValue by androidx.compose.runtime.remember(noteId) {
+        androidx.compose.runtime.mutableStateOf(
+            androidx.compose.ui.text.input.TextFieldValue(text = current?.note?.note?.content.orEmpty())
         )
     }
     val syncContent = (state as? NoteDetailUiState.Content)?.note?.note?.content
@@ -304,6 +307,16 @@ fun QuickNoteDetailScreen(
         val newText = syncContent ?: return@LaunchedEffect
         if (textFieldValue.text != newText) {
             textFieldValue = textFieldValue.copy(text = newText)
+        }
+    }
+    // note-detail-polish: 直接用 uiSelection 驱动 UI;SelectionContainer.onSelectionChange 更新它
+    var uiSelection by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(androidx.compose.ui.text.TextRange.Zero)
+    }
+    android.util.Log.d("DetailToolbar", "render check: uiSelection=$uiSelection current!=null=${current != null}")
+    LaunchedEffect(Unit) {
+        viewModel.selection.collect { sel ->
+            android.util.Log.d("DetailToolbar", "viewModel.selection collect: $sel")
         }
     }
 
@@ -454,23 +467,24 @@ fun QuickNoteDetailScreen(
                                         )
                                     )
                                 }
-                                // note-decompose-highlight T3:拆解菜单项（需 AI 已配置）
-                                if (hasAiProvider && decomposeState !is DecomposeState.Loading) {
-                                    add(
-                                        AppActionItem(
-                                            text = if (entityRows.isNotEmpty()) {
-                                                stringResource(R.string.note_redecompose)
-                                            } else {
-                                                stringResource(R.string.note_decompose)
-                                            },
-                                            onClick = {
-                                                menuExpanded = false
-                                                viewModel.decompose()
-                                            },
-                                            leadingIcon = Icons.Outlined.Hub
-                                        )
+                                // note-decompose-highlight T3:拆解菜单项
+                                // note-detail-polish: Loading 时不隐藏菜单项,改为禁用+显示进度文案
+                                val isDecomposing = decomposeState is DecomposeState.Loading
+                                add(
+                                    AppActionItem(
+                                        text = when {
+                                            isDecomposing -> stringResource(R.string.note_decomposing)
+                                            entityRows.isNotEmpty() -> stringResource(R.string.note_redecompose)
+                                            else -> stringResource(R.string.note_decompose)
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.decompose()
+                                        },
+                                        leadingIcon = Icons.Outlined.Hub,
+                                        enabled = hasAiProvider && !isDecomposing
                                     )
-                                }
+                                )
                             }
                         )
                     }
@@ -480,80 +494,7 @@ fun QuickNoteDetailScreen(
         floatingActionButton = {
             // ui-redesign-v2: FAB 已移除，操作走底部栏
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        bottomBar = {
-            // ui-redesign-v2 · 固定底部操作栏:Share + AI 两个常驻图标
-            if (current != null && noteId != null) {
-                Surface(shadowElevation = 2.dp, tonalElevation = 0.dp) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = LocalSpacing.current.lg, vertical = LocalSpacing.current.sm),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        IconButton(onClick = { context.shareNoteMarkdown(current.note.note) }) {
-                            Icon(
-                                Icons.Filled.Share,
-                                contentDescription = stringResource(R.string.quicknote_detail_share),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        if (aiVm != null) {
-                            Box {
-                                IconButton(
-                                    onClick = {
-                                        if (consentFlow.accepted) {
-                                            // real-provider-integration §4:apikey 未配置 → Snackbar 早返回
-                                            // 不弹 sheet / 不发请求 / 不让用户走到 AiActionViewModel.start()
-                                            snackbarScope.launch {
-                                                val configured =
-                                                    secureApiKeyStore.observeConfiguredProviders().first()
-                                                if (configured.isEmpty()) {
-                                                    val result =
-                                                        snackbarHostState.showSnackbar(
-                                                            message = apikeyMissingMessage,
-                                                            actionLabel = apikeyMissingAction
-                                                        )
-                                                    if (result == SnackbarResult.ActionPerformed) {
-                                                        onNavigateToModelManagement()
-                                                    }
-                                                    return@launch
-                                                }
-                                                actionMenuOpen = true
-                                            }
-                                        } else {
-                                            onRequestConsent()
-                                        }
-                                    }
-                                ) {
-                                    Icon(
-                                        Icons.Filled.AutoAwesome,
-                                        contentDescription = stringResource(R.string.aiwriting_action_menu),
-                                        tint = MaterialTheme.colorScheme.secondary
-                                    )
-                                }
-                                val sourceText =
-                                    if (selection.collapsed) {
-                                        current.note.note.content
-                                    } else {
-                                        current.note.note.content.substring(selection.min, selection.max)
-                                    }
-                                AiwritingEntry.ActionSheetRoute(
-                                    expanded = actionMenuOpen,
-                                    onDismiss = { actionMenuOpen = false },
-                                    onExpand = { aiVm.start(WritingOp.EXPAND, sourceText, noteId) },
-                                    onPolish = { aiVm.start(WritingOp.POLISH, sourceText, noteId) },
-                                    onOrganize = { aiVm.start(WritingOp.ORGANIZE, sourceText, noteId) },
-                                    onSummarize = { aiVm.start(WritingOp.SUMMARIZE, sourceText, noteId) },
-                                    onTranslate = { aiVm.start(WritingOp.TRANSLATE, sourceText, noteId) },
-                                    onCopy = { AiwritingEntry.copyToClipboard(context, sourceText) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         val attachmentPicker = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia()
@@ -565,6 +506,11 @@ fun QuickNoteDetailScreen(
         // 避免后台持续 collect 浪费资源。
         val attachments by viewModel.observeAttachments()
             .collectAsStateWithLifecycle(initialValue = emptyList())
+
+        // note-detail-polish: 拆解 Loading 时在 TopAppBar 下方显示进度条
+        if (decomposeState is DecomposeState.Loading) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
 
         when (val s = state) {
             NoteDetailUiState.Loading -> Unit
@@ -578,294 +524,365 @@ fun QuickNoteDetailScreen(
                         .padding(LocalSpacing.current.lg)
                 )
             is NoteDetailUiState.Content ->
-                Column(
-                    modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(LocalSpacing.current.md)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = s.note.note.title.ifBlank { s.note.note.content.take(Note.TITLE_FALLBACK_LEN) },
-                        style = MaterialTheme.typography.headlineLarge
-                    )
-                    aiMeta?.let { meta ->
+                // note-detail-polish: Box 包裹内容 + 浮动选中工具栏
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .padding(LocalSpacing.current.md)
+                            .verticalScroll(rememberScrollState())
+                    ) {
                         Text(
-                            text = stringResource(
-                                R.string.quicknote_meta_ai_fmt,
-                                stringResource(opKeyToRes(meta.opKey)),
-                                meta.opAt
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = LocalSpacing.current.sm / 2)
+                            text = s.note.note.title.ifBlank { s.note.note.content.take(Note.TITLE_FALLBACK_LEN) },
+                            style = MaterialTheme.typography.headlineLarge
                         )
-                    }
-                    if (s.note.tags.isNotEmpty()) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(LocalSpacing.current.sm / 2),
-                            modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = LocalSpacing.current.sm)
-                        ) {
-                            s.note.tags.forEach { tag ->
-                                SuggestionChip(
-                                    onClick = {},
-                                    label = { Text("#$tag") },
-                                    colors = SuggestionChipDefaults.suggestionChipColors(
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                                    )
-                                )
-                            }
+                        aiMeta?.let { meta ->
+                            Text(
+                                text = stringResource(
+                                    R.string.quicknote_meta_ai_fmt,
+                                    stringResource(opKeyToRes(meta.opKey)),
+                                    meta.opAt
+                                ),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = LocalSpacing.current.sm / 2)
+                            )
                         }
-                    } else {
-                        Text(
-                            text = stringResource(R.string.quicknote_detail_no_tags),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = LocalSpacing.current.sm)
-                        )
-                    }
-                    // note-decompose-highlight T4:实体下划线渲染 — M4 fix:用 EntityHighlight 替代 NoteEntityRow
-                    val currentNoteId = s.note.note.id
-                    val contentText = s.note.note.content
-                    val titleLen = s.note.note.title.length + 1 // +1 for "\n"
-                    val contentLen = contentText.length
-                    val primaryColor = MaterialTheme.colorScheme.primary
-                    val entityHighlights = remember(entityRows, titleLen, contentLen) {
-                        entityRows.mapNotNull { it.toHighlight(titleLen, contentLen) }
-                    }
-                    val annotatedContent = remember(contentText, entityHighlights) {
-                        buildEntityAnnotatedString(contentText, entityHighlights, primaryColor)
-                    }
-                    if (entityHighlights.isNotEmpty()) {
-                        ClickableText(
-                            text = annotatedContent,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = LocalSpacing.current.sm),
-                            onClick = { offset ->
-                                val annotations = annotatedContent.getStringAnnotations(
-                                    tag = "entity",
-                                    start = offset,
-                                    end = offset
-                                )
-                                val entityKey = annotations.firstOrNull()?.item
-                                    ?: return@ClickableText
-                                val highlight = entityHighlights.find { it.entityKey == entityKey }
-                                    ?: return@ClickableText
-                                // note-decompose-highlight:状态在协程内顺序设置，确保 sheet 展示时数据已就绪
-                                snackbarScope.launch {
-                                    relatedForEntity = viewModel.getRelatedByEntity(entityKey)
-                                    selectedEntity = highlight
-                                    entitySheetState.show()
+                        if (s.note.tags.isNotEmpty()) {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(LocalSpacing.current.sm / 2),
+                                modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = LocalSpacing.current.sm)
+                            ) {
+                                s.note.tags.forEach { tag ->
+                                    SuggestionChip(
+                                        onClick = {},
+                                        label = { Text("#$tag") },
+                                        colors = SuggestionChipDefaults.suggestionChipColors(
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                        )
+                                    )
                                 }
                             }
-                        )
-                    } else {
-                        BasicTextField(
-                            value = textFieldValue,
-                            onValueChange = { newValue ->
-                                textFieldValue = newValue
-                                viewModel.onSelectionChange(newValue.selection)
-                            },
-                            readOnly = true,
-                            textStyle = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = LocalSpacing.current.sm)
-                        )
-                    }
-                    // 字数 / 阅读时间 — 放在关联笔记上方，作为正文元数据贴近主体
-                    Text(
-                        text =
-                        "${context.getString(R.string.quicknote_detail_word_count_fmt, s.wordCount)}" +
-                            context.getString(R.string.quicknote_detail_word_time_separator) +
-                            context.getString(R.string.quicknote_detail_read_time_fmt, s.readMinutes),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    // note-association: 关联笔记
-                    Spacer(Modifier.height(LocalSpacing.current.md))
-                    // media-attachment-infrastructure · 附件图片 LazyRow
-                    // ux-2026-06-28 #8:之前用 ColorPainter 当 placeholder 显示空白方块;
-                    // 改为 produceState 在 IO 线程 decodeFile → ImageBitmap，失败回退占位色。
-                    if (attachments.isNotEmpty()) {
-                        Spacer(Modifier.height(LocalSpacing.current.md))
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(LocalSpacing.current.sm)) {
-                            items(attachments, key = { it.id }) { att ->
-                                val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(
-                                    initialValue = null,
-                                    key1 = att.localPath
-                                ) {
-                                    value = withContext(Dispatchers.IO) {
-                                        runCatching {
-                                            // 80dp 缩略:目标 160px(inSampleSize 取 2^n)，省内存
-                                            BitmapFactory.Options().apply {
-                                                inJustDecodeBounds = true
-                                            }.let { bounds ->
-                                                BitmapFactory.decodeFile(att.localPath, bounds)
-                                                BitmapFactory.Options().apply {
-                                                    inSampleSize = calculateThumbSample(
-                                                        bounds.outWidth,
-                                                        bounds.outHeight,
-                                                        160
-                                                    )
-                                                    inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
-                                                }
-                                            }.let { opts ->
-                                                BitmapFactory.decodeFile(att.localPath, opts)
-                                            }
-                                        }.getOrNull()?.asImageBitmap()
+                        } else {
+                            Text(
+                                text = stringResource(R.string.quicknote_detail_no_tags),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = LocalSpacing.current.sm)
+                            )
+                        }
+                        // note-decompose-highlight T4:实体下划线渲染 — M4 fix:用 EntityHighlight 替代 NoteEntityRow
+                        val currentNoteId = s.note.note.id
+                        val contentText = s.note.note.content
+                        val titleLen = s.note.note.title.length + 1 // +1 for "\n"
+                        val contentLen = contentText.length
+                        val primaryColor = MaterialTheme.colorScheme.primary
+                        val entityHighlights = remember(entityRows, titleLen, contentLen) {
+                            entityRows.mapNotNull { it.toHighlight(titleLen, contentLen) }
+                        }
+                        val annotatedContent = remember(contentText, entityHighlights) {
+                            buildEntityAnnotatedString(contentText, entityHighlights, primaryColor)
+                        }
+                        if (entityHighlights.isNotEmpty()) {
+                            ClickableText(
+                                text = annotatedContent,
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = LocalSpacing.current.sm),
+                                onClick = { offset ->
+                                    val annotations = annotatedContent.getStringAnnotations(
+                                        tag = "entity",
+                                        start = offset,
+                                        end = offset
+                                    )
+                                    val entityKey = annotations.firstOrNull()?.item
+                                        ?: return@ClickableText
+                                    val highlight = entityHighlights.find { it.entityKey == entityKey }
+                                        ?: return@ClickableText
+                                    // note-decompose-highlight:状态在协程内顺序设置，确保 sheet 展示时数据已就绪
+                                    snackbarScope.launch {
+                                        relatedForEntity = viewModel.getRelatedByEntity(entityKey)
+                                        selectedEntity = highlight
+                                        entitySheetState.show()
                                     }
                                 }
-                                val placeholderColor = MaterialTheme.colorScheme.surfaceVariant
-                                if (bitmap != null) {
-                                    Image(
-                                        bitmap = bitmap!!,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(80.dp)
-                                            .clip(RoundedCornerShape(LocalCornerRadius.current.sm))
-                                            .background(placeholderColor)
+                            )
+                        } else {
+                            // note-detail-polish: 旧 API BasicTextField(value, onValueChange, readOnly=false)
+                            // readOnly=false 让 selection handles 触发 onValueChange 更新 textFieldValue + uiSelection
+                            // onValueChange 后立即 hide IME,阻止键盘弹出
+                            BasicTextField(
+                                value = textFieldValue,
+                                onValueChange = { newValue ->
+                                    textFieldValue = newValue
+                                    uiSelection = newValue.selection
+                                    viewModel.onSelectionChange(newValue.selection)
+                                    keyboardCtrl?.hide()
+                                    android.util.Log.d(
+                                        "DetailToolbar",
+                                        "onValueChange sel=${newValue.selection} collapsed=${newValue.selection.collapsed}"
                                     )
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(80.dp)
-                                            .clip(RoundedCornerShape(LocalCornerRadius.current.sm))
-                                            .background(placeholderColor)
-                                    )
+                                },
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = LocalSpacing.current.sm)
+                            )
+                        }
+                        // 字数 / 阅读时间 — 放在关联笔记上方，作为正文元数据贴近主体
+                        Text(
+                            text =
+                            "${context.getString(R.string.quicknote_detail_word_count_fmt, s.wordCount)}" +
+                                context.getString(R.string.quicknote_detail_word_time_separator) +
+                                context.getString(R.string.quicknote_detail_read_time_fmt, s.readMinutes),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        // note-association: 关联笔记
+                        Spacer(Modifier.height(LocalSpacing.current.md))
+                        // media-attachment-infrastructure · 附件图片 LazyRow
+                        // ux-2026-06-28 #8:之前用 ColorPainter 当 placeholder 显示空白方块;
+                        // 改为 produceState 在 IO 线程 decodeFile → ImageBitmap，失败回退占位色。
+                        if (attachments.isNotEmpty()) {
+                            Spacer(Modifier.height(LocalSpacing.current.md))
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(LocalSpacing.current.sm)) {
+                                items(attachments, key = { it.id }) { att ->
+                                    val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+                                        initialValue = null,
+                                        key1 = att.localPath
+                                    ) {
+                                        value = withContext(Dispatchers.IO) {
+                                            runCatching {
+                                                // 80dp 缩略:目标 160px(inSampleSize 取 2^n)，省内存
+                                                BitmapFactory.Options().apply {
+                                                    inJustDecodeBounds = true
+                                                }.let { bounds ->
+                                                    BitmapFactory.decodeFile(att.localPath, bounds)
+                                                    BitmapFactory.Options().apply {
+                                                        inSampleSize = calculateThumbSample(
+                                                            bounds.outWidth,
+                                                            bounds.outHeight,
+                                                            160
+                                                        )
+                                                        inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+                                                    }
+                                                }.let { opts ->
+                                                    BitmapFactory.decodeFile(att.localPath, opts)
+                                                }
+                                            }.getOrNull()?.asImageBitmap()
+                                        }
+                                    }
+                                    val placeholderColor = MaterialTheme.colorScheme.surfaceVariant
+                                    if (bitmap != null) {
+                                        Image(
+                                            bitmap = bitmap!!,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(80.dp)
+                                                .clip(RoundedCornerShape(LocalCornerRadius.current.sm))
+                                                .background(placeholderColor)
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(80.dp)
+                                                .clip(RoundedCornerShape(LocalCornerRadius.current.sm))
+                                                .background(placeholderColor)
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
-                    androidx.compose.material3.TextButton(
-                        onClick = {
-                            attachmentPicker.launch(
-                                androidx.activity.result.PickVisualMediaRequest(
-                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                attachmentPicker.launch(
+                                    androidx.activity.result.PickVisualMediaRequest(
+                                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                                    )
                                 )
-                            )
+                            }
+                        ) {
+                            Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(LocalSpacing.current.xs))
+                            Text(stringResource(R.string.quicknote_detail_add_image))
                         }
-                    ) {
-                        Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(LocalSpacing.current.xs))
-                        Text(stringResource(R.string.quicknote_detail_add_image))
+                        Spacer(Modifier.height(LocalSpacing.current.md))
+                        RelatedNotesSection(
+                            noteId = currentNoteId,
+                            related = viewModel.related.collectAsStateWithLifecycle(initialValue = emptyList()).value,
+                            noteLinker = noteLinker,
+                            onNavigate = onNavigateToNote,
+                            onAiTrigger = {
+                                detailEntry.llmExtractor()?.extractAndPersist(
+                                    currentNoteId,
+                                    bypassRateLimit = true
+                                ) ?: 0
+                            },
+                            showAiButton = showAiButton
+                        )
                     }
-                    Spacer(Modifier.height(LocalSpacing.current.md))
-                    RelatedNotesSection(
-                        noteId = currentNoteId,
-                        noteLinker = noteLinker,
-                        onNavigate = onNavigateToNote,
-                        onAiTrigger = {
-                            detailEntry.llmExtractor()?.extractAndPersist(
-                                currentNoteId,
-                                bypassRateLimit = true
-                            ) ?: 0
-                        },
-                        showAiButton = showAiButton
-                    )
                 }
         }
-    }
 
-    if (aiVm != null) {
-        AiwritingEntry.StreamingPanelRoute(
-            state = aiState,
-            onAccept = { aiVm.acceptReplace() },
-            onReject = { aiVm.reject() },
-            onCancel = { aiVm.cancel() },
-            onRegenerate = { aiVm.regenerate() },
-            onClose = { aiVm.dismiss() },
-            onRetry = { aiVm.retry() },
-            onNavigateToSettings = onNavigateToSettings,
-            onDismiss = { aiVm.dismiss() },
-            onUndo = { aiVm.undo() },
-            onDismissReplace = { aiVm.dismiss() }
-        )
-    }
+        if (aiVm != null) {
+            AiwritingEntry.StreamingPanelRoute(
+                state = aiState,
+                onAccept = { aiVm.acceptReplace() },
+                onReject = { aiVm.reject() },
+                onCancel = { aiVm.cancel() },
+                onRegenerate = { aiVm.regenerate() },
+                onClose = { aiVm.dismiss() },
+                onRetry = { aiVm.retry() },
+                onNavigateToSettings = onNavigateToSettings,
+                onDismiss = { aiVm.dismiss() },
+                onUndo = { aiVm.undo() },
+                onDismissReplace = { aiVm.dismiss() }
+            )
+        }
 
-    // note-decompose-highlight T5:实体详情 BottomSheet
-    val entity = selectedEntity
-    if (entity != null && entitySheetState.isVisible) {
-        ModalBottomSheet(
-            onDismissRequest = { selectedEntity = null },
-            sheetState = entitySheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = LocalSpacing.current.lg, vertical = LocalSpacing.current.md)
+        // note-decompose-highlight T5:实体详情 BottomSheet
+        val entity = selectedEntity
+        if (entity != null && entitySheetState.isVisible) {
+            ModalBottomSheet(
+                onDismissRequest = { selectedEntity = null },
+                sheetState = entitySheetState,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                // 标题行：实体名 · 类型
-                Text(
-                    text = stringResource(
-                        R.string.note_decompose_entity_sheet_title,
-                        entity.surfaceForm,
-                        entity.entityType
-                    ),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(LocalSpacing.current.md))
-                if (relatedForEntity.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LocalSpacing.current.lg, vertical = LocalSpacing.current.md)
+                ) {
+                    // 标题行：实体名 · 类型
                     Text(
-                        text = stringResource(R.string.note_decompose_no_related),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = stringResource(
+                            R.string.note_decompose_entity_sheet_title,
+                            entity.surfaceForm,
+                            entity.entityType
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                } else {
-                    relatedForEntity.forEach { related ->
-                        androidx.compose.material3.Card(
-                            onClick = {
-                                // note-decompose-highlight H2 fix:不同步清 selectedEntity，让 sheet 走完关闭动画
-                                snackbarScope.launch { entitySheetState.hide() }
-                                onNavigateToNote(related.noteId)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 3.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = androidx.compose.material3.CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            elevation = androidx.compose.material3.CardDefaults.cardElevation(
-                                defaultElevation = 0.dp
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = related.title.ifBlank {
-                                        stringResource(R.string.quicknote_untitled)
-                                    },
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    Spacer(Modifier.height(LocalSpacing.current.md))
+                    if (relatedForEntity.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.note_decompose_no_related),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        relatedForEntity.forEach { related ->
+                            androidx.compose.material3.Card(
+                                onClick = {
+                                    // note-decompose-highlight H2 fix:不同步清 selectedEntity，让 sheet 走完关闭动画
+                                    snackbarScope.launch { entitySheetState.hide() }
+                                    onNavigateToNote(related.noteId)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = androidx.compose.material3.CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                elevation = androidx.compose.material3.CardDefaults.cardElevation(
+                                    defaultElevation = 0.dp
                                 )
-                                if (related.preview.isNotBlank()) {
-                                    Spacer(Modifier.height(4.dp))
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
                                     Text(
-                                        text = related.preview,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 2,
+                                        text = related.title.ifBlank {
+                                            stringResource(R.string.quicknote_untitled)
+                                        },
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        maxLines = 1,
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
+                                    if (related.preview.isNotBlank()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            text = related.preview,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                    Spacer(Modifier.height(LocalSpacing.current.lg))
                 }
-                Spacer(Modifier.height(LocalSpacing.current.lg))
             }
+        } // Box
+    }
+    // note-detail-polish: 选中文字时浮出快捷工具栏 — 放在 Scaffold 顶层(避免被 when/Column 嵌套吞掉)
+    if (!uiSelection.collapsed && current != null) {
+        android.util.Log.d("DetailToolbar", "TOOLBAR rendering now (top-level)")
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars)
+                .padding(bottom = LocalSpacing.current.md),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            SelectionFloatingToolbar(
+                isAiEnabled = hasAiProvider,
+                onAddEntity = {
+                    viewModel.addEntityFromSelection(
+                        surface = "content",
+                        spanStart = uiSelection.min,
+                        spanEnd = uiSelection.max
+                    )
+                },
+                onAiExpand = {
+                    aiVm?.start(
+                        WritingOp.EXPAND,
+                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        noteId!!
+                    )
+                },
+                onAiPolish = {
+                    aiVm?.start(
+                        WritingOp.POLISH,
+                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        noteId!!
+                    )
+                },
+                onAiOrganize = {
+                    aiVm?.start(
+                        WritingOp.ORGANIZE,
+                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        noteId!!
+                    )
+                },
+                onAiSummarize = {
+                    aiVm?.start(
+                        WritingOp.SUMMARIZE,
+                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        noteId!!
+                    )
+                },
+                onAiTranslate = {
+                    aiVm?.start(
+                        WritingOp.TRANSLATE,
+                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        noteId!!
+                    )
+                }
+            )
         }
     }
     if (confirmDelete) {

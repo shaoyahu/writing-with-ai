@@ -531,6 +531,52 @@ constructor(
         }
     }
 
+    /** 删除附件（删除数据库记录 + 本地文件）。 */
+    fun deleteAttachment(attachmentId: String) {
+        val id = noteId ?: return
+        viewModelScope.launch {
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val attachment = noteAttachmentDao.getForNote(id).find { it.id == attachmentId }
+                    if (attachment != null) {
+                        // 删除本地文件
+                        java.io.File(attachment.localPath).takeIf { it.exists() }?.delete()
+                        // 删除数据库记录
+                        noteAttachmentDao.delete(attachment)
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (com.yy.writingwithai.BuildConfig.DEBUG) {
+                        android.util.Log.e("DetailVM", "deleteAttachment failed", e)
+                    }
+                }
+            }
+        }
+    }
+
+    /** 把用户选中的文字手动加入 note_entities。 */
+    fun addEntityFromSelection(surface: String, spanStart: Int, spanEnd: Int) {
+        val id = noteId ?: return
+        if (surface.isBlank()) return
+        viewModelScope.launch {
+            val entityKey = surface.trim().lowercase()
+            val row = NoteEntityRow(
+                noteId = id,
+                entityType = com.yy.writingwithai.core.note.entity.EntityType.CONCEPT,
+                entityKey = entityKey,
+                surfaceForm = surface,
+                spanStart = spanStart,
+                spanEnd = spanEnd,
+                lastExtractedAt = System.currentTimeMillis()
+            )
+            entityDao.upsertAll(listOf(row))
+            // 刷新本地 entity 列表
+            _entityRows.value = entityDao.getByNoteId(id)
+            // 撤回：不再在 callback 后清选区，用户手动清除 selection 时 toolbar 自然消失
+        }
+    }
+
     // note-decompose-highlight · 拆解状态
     private val _decomposeState = MutableStateFlow<DecomposeState>(DecomposeState.Idle)
     val decomposeState: StateFlow<DecomposeState> = _decomposeState.asStateFlow()
@@ -538,10 +584,22 @@ constructor(
     private val _entityRows = MutableStateFlow<List<NoteEntityRow>>(emptyList())
     val entityRows: StateFlow<List<NoteEntityRow>> = _entityRows.asStateFlow()
 
+    // note-detail-polish: 关联笔记全量缓存,UI 层(详情页 + 实体卡片)复用同一份数据,
+    // 避免 NoteLinker 多次 IO 查询。
+    private val _related = MutableStateFlow<List<RelatedNote>>(emptyList())
+    val related: StateFlow<List<RelatedNote>> = _related.asStateFlow()
+
+    /** 加载关联笔记缓存（详情屏 + 实体卡片共享）。 */
+    fun loadRelated() {
+        val id = noteId ?: return
+        viewModelScope.launch {
+            _related.value = noteLinker.getRelated(id)
+        }
+    }
+
     /** M4 fix:获取指定实体的关联笔记（过滤 ENTITY_HIT + evidence 含 entityKey）。 */
-    suspend fun getRelatedByEntity(entityKey: String): List<RelatedNote> {
-        val id = noteId ?: return emptyList()
-        return noteLinker.getBacklinks(id).filter {
+    fun getRelatedByEntity(entityKey: String): List<RelatedNote> {
+        return _related.value.filter {
             it.signals.contains(LinkType.ENTITY_HIT) &&
                 it.evidence?.contains(entityKey) == true
         }
@@ -559,6 +617,8 @@ constructor(
             } else {
                 _decomposeState.value // 保持当前状态（Idle 或其他）
             }
+            // note-detail-polish: 关联笔记同步加载,供详情页 + 实体卡片共用
+            _related.value = noteLinker.getRelated(id)
         }
     }
 
@@ -574,6 +634,8 @@ constructor(
                 // M5 fix:合并为单次更新，避免 _entityRows 和 _decomposeState 间出现不一致中间态
                 val rows = entityDao.getByNoteId(id)
                 _entityRows.value = rows
+                // note-detail-polish: 拆解完刷新关联笔记缓存(新实体可能产生新 ENTITY_HIT 链接)
+                _related.value = noteLinker.getRelated(id)
                 _decomposeState.value = if (count > 0) {
                     DecomposeState.Decomposed(count)
                 } else {

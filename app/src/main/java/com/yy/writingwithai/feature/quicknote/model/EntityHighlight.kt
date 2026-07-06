@@ -16,10 +16,13 @@ data class EntityHighlight(
     val contentEnd: Int
 )
 
-/** 从 NoteEntityRow 映射到 UI 投影，titleLen = title.length + 1。 */
+/** 从 NoteEntityRow 映射到 UI 投影。 */
 fun NoteEntityRow.toHighlight(titleLen: Int, contentLen: Int): EntityHighlight? {
-    val start = (spanStart - titleLen).coerceIn(0, contentLen)
-    val end = (spanEnd - titleLen).coerceIn(start, contentLen)
+    // fix-2026-07-06: spanStart/spanEnd 一直是纯 content 偏移(用户 addEntityFromSelection
+    // 和 LlmEntityExtractor 都用 content 的 indexOf/substring,不再是全文偏移),
+    // 所以 toHighlight 不再减 titleLen。titleLen 参数保留给后续可能的全文→content 转换预留。
+    val start = spanStart.coerceIn(0, contentLen)
+    val end = spanEnd.coerceIn(start, contentLen)
     if (start >= end) return null
     return EntityHighlight(
         surfaceForm = surfaceForm,

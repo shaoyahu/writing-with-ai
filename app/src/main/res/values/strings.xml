@@ -121,6 +121,16 @@
     <string name="aiwriting_action_summarize">摘要</string>
     <string name="aiwriting_action_translate">翻译</string>
 
+    <!-- floating-selection-toolbar · 选中时浮动工具栏 -->
+    <string name="selection_toolbar_add_entity">加入实体</string>
+    <string name="selection_toolbar_ai">AI</string>
+    <string name="selection_toolbar_ai_expand">扩写</string>
+    <string name="selection_toolbar_ai_polish">润色</string>
+    <string name="selection_toolbar_ai_organize">整理</string>
+    <string name="selection_toolbar_ai_summarize">摘要</string>
+    <string name="selection_toolbar_ai_translate">翻译</string>
+    <string name="selection_toolbar_entity_added_fmt">已加入实体:%1$s</string>
+
     <!-- StreamingPanel 顶部标题(按 op 分) -->
     <string name="aiwriting_panel_title_expand">扩写</string>
     <string name="aiwriting_panel_title_polish">润色</string>
@@ -430,6 +440,7 @@
     <string name="entity_type_task">任务</string>
     <string name="entity_type_number">数字</string>
     <string name="quicknote_detail_add_image">添加图片</string>
+    <string name="quicknote_detail_delete_image">删除图片</string>
 
     <!-- ===== app-bottom-tab-bar · 底部 tab 栏 + 我的 ===== -->
     <string name="tab_notes">笔记</string>

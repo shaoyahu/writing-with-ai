@@ -32,7 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,19 +68,21 @@ sealed interface AiExtractState {
 @Suppress("ExperimentalMaterial3Api")
 fun RelatedNotesSection(
     noteId: String,
+    related: List<RelatedNote>,
     noteLinker: NoteLinker,
     onNavigate: (String) -> Unit,
     onAiTrigger: suspend () -> Int,
     showAiButton: Boolean,
     modifier: Modifier = Modifier
 ) {
-    var related by remember { mutableStateOf<List<RelatedNote>>(emptyList()) }
+    // note-detail-polish: 详情页底部"关联笔记"区只展示内容相近的笔记,
+    // 不展示相同实体的笔记(后者是实体卡片的职责)。
+    // 过滤规则:剔除 signals 含 ENTITY_HIT 的项,保留 WIKILINK / TAG_OVERLAP / CONTENT_SIM / LLM_EXTRACT。
+    val visibleRelated = remember(related) {
+        related.filter { !it.signals.contains(LinkType.ENTITY_HIT) }
+    }
     var aiState by remember { mutableStateOf<AiExtractState>(AiExtractState.Idle) }
     val scope = rememberCoroutineScope()
-
-    LaunchedEffect(noteId) {
-        related = noteLinker.getRelated(noteId)
-    }
 
     // ui-redesign-v2 · 外层 Surface 卡片包裹 + 圆角
     Surface(
@@ -107,7 +108,7 @@ fun RelatedNotesSection(
             }
             Spacer(Modifier.height(12.dp))
 
-            if (related.isEmpty()) {
+            if (visibleRelated.isEmpty()) {
                 // Capture Composable-dependent values outside coroutine scope
                 val errorUnknown = stringResource(R.string.note_association_ai_error_unknown)
                 EmptyState(
@@ -120,7 +121,7 @@ fun RelatedNotesSection(
                                 val count = onAiTrigger()
                                 aiState = AiExtractState.Success(count)
                                 // Refresh the list after AI extraction
-                                related = noteLinker.getRelated(noteId)
+                                visibleRelated // no-op, list provided by ViewModel via Flow
                             } catch (e: Exception) {
                                 if (e is kotlinx.coroutines.CancellationException) throw e
                                 aiState = AiExtractState.Error(
@@ -131,14 +132,14 @@ fun RelatedNotesSection(
                     }
                 )
             } else {
-                if (related.isNotEmpty()) {
+                if (visibleRelated.isNotEmpty()) {
                     Text(
                         text = stringResource(R.string.note_association_related_title),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    related.forEach { r -> NoteLinkCard(r, onNavigate) }
+                    visibleRelated.forEach { r -> NoteLinkCard(r, onNavigate) }
                 }
             }
         }

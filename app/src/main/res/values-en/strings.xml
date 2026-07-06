@@ -82,6 +82,16 @@
     <string name="aiwriting_action_summarize">Summarize</string>
     <string name="aiwriting_action_translate">Translate</string>
 
+    <!-- floating-selection-toolbar · selection-based floating toolbar -->
+    <string name="selection_toolbar_add_entity">Add entity</string>
+    <string name="selection_toolbar_ai">AI</string>
+    <string name="selection_toolbar_ai_expand">Expand</string>
+    <string name="selection_toolbar_ai_polish">Polish</string>
+    <string name="selection_toolbar_ai_organize">Organize</string>
+    <string name="selection_toolbar_ai_summarize">Summarize</string>
+    <string name="selection_toolbar_ai_translate">Translate</string>
+    <string name="selection_toolbar_entity_added_fmt">Entity added: %1$s</string>
+
     <string name="aiwriting_panel_title_expand">Expand</string>
     <string name="aiwriting_panel_title_polish">Polish</string>
     <string name="aiwriting_panel_title_organize">Organize</string>
@@ -310,6 +320,7 @@
     <string name="entity_type_task">Task</string>
     <string name="entity_type_number">Number</string>
     <string name="quicknote_detail_add_image">Add image</string>
+    <string name="quicknote_detail_delete_image">Delete image</string>
 
     <string name="tab_notes">Notes</string>
     <string name="tab_my">Me</string>
