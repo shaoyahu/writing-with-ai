@@ -188,11 +188,90 @@
 
 > 注意: 按**索引范围**删除，不是按 block_id。索引从 0 开始。
 
+### 2.6 插入图片 Block (image block)
+
+- **URL**: `POST /open-apis/docx/v1/documents/{document_id}/blocks/{parent_block_id}/children`
+- **官方文档**: https://open.feishu.cn/document/server-docs/docs/docs/docx-v1/document-block-children/create
+- **FAQ 参考**: https://open.feishu.cn/document/docs/docs/faq#1908ddf0
+- **认证**: user_access_token
+
+#### 三步法插入图片（正确流程）
+
+> **历史踩坑(2026-07-05)**: 原实现使用 POST 方法调用 batch_update，导致图片 token 无法绑定，
+> 图片块一直转圈后失败。**正确做法是使用 PATCH 方法**。
+
+飞书官方推荐的三步法流程：
+
+1. **创建空的 image block**
+   - 调用 `POST /open-apis/docx/v1/documents/{doc_id}/blocks/{parent_block_id}/children`
+   - 请求体: `{"children":[{"block_type":27,"image":{}}]}`
+   - 返回: 新创建的 image block 的 `block_id`
+
+2. **上传图片素材**
+   - 调用 `POST /open-apis/drive/v1/medias/upload_all` (multipart/form-data)
+   - **关键参数**:
+     - `parent_type`: `"docx_image"`
+     - `parent_node`: **步骤1返回的 block_id**（不是 document_id！）
+     - `extra`: `{"drive_route_token":"document_id"}`
+   - 返回: `file_token` (`boxcn...`)
+
+3. **绑定图片 token**
+   - 调用 `PATCH /open-apis/docx/v1/documents/{doc_id}/blocks/batch_update`
+   - **注意**: 必须用 **PATCH** 方法，不能用 POST
+   - 请求体:
+     ```json
+     {
+       "requests": [
+         {
+           "block_id": "步骤1返回的block_id",
+           "replace_image": {
+             "token": "步骤2返回的file_token"
+           }
+         }
+       ]
+     }
+     ```
+
+#### 本项目实现要点
+
+- **代码位置**: `FeishuDocService.syncAttachments()` + `FeishuApiClientImpl`
+- **创建空 block**: `createBlock(docId, parentBlockId, 27, "\"image\":{}")`
+- **上传素材**: `uploadMedia(docId, blockId, file, mimeType)` - parent_node 传 block_id
+- **绑定 token**: `replaceImageBlock(docId, blockId, fileToken)` - 使用 PATCH 方法
+- **失败降级**: 任一步骤失败 → 全部转 `[图片:id]` 占位符 + IMAGE_FAIL_PARTIAL event
+
+#### batch_update vs 单个 PATCH
+
+飞书提供两种方式绑定图片 token：
+
+| 方式 | URL | Method | 适用场景 |
+|---|---|---|---|
+| 单个 PATCH | `PATCH .../blocks/{block_id}` | PATCH | 单张图片 |
+| batch_update | `PATCH .../blocks/batch_update` | PATCH | 多张图片批量绑定（最多200个） |
+
+> ⚠️ **重要**: batch_update 必须用 **PATCH** 方法！飞书文档明确说明 HTTP Method 是 PATCH。
+> 使用 POST会导致请求被拒绝或图片 token 无法绑定。
+
+- **请求体 children 数组中 image block 的字段**:
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `block_type` | int | 是 | 固定 `27` (= 27 表示 image block) |
+| `image` | object | 是 | 图片对象 |
+| `image.token` | string | 是 | 上传素材返回的 `file_token` (`boxcn...`) |
+| `image.align` | int | 否 | 对齐: 1=左 2=居中 3=右 (本项目固定 `2` 居中) |
+| `image.caption` | object | 否 | 标题(本项目不填) |
+
+- **响应**: 跟 §2.4 一致。
+
+> ⚠️ 单次 appendChildren 最多 50 个 children,超出需分批循环调。
+> 本项目 `FeishuDocService.syncAttachments` 内部按附件顺序串行处理（符合飞书 5 QPS 限制）。
+
 ---
 
 ## 3. v2 docs_ai/v1 文档接口
 
-> 官方文档: 参考 larksuite/cli 实现，飞书官方文档较分散。
+> 官方文档: <https://open.feishu.cn/document/server-docs> (server-docs 文档站是真理来源)
 >
 > v2 接口支持 **XML 格式内容**，可一步创建含内容的文档。
 > 本项目同步流程**主力使用 v2**。
@@ -337,6 +416,31 @@
 > ⚠️ 文件不会立即永久删除，而是**移到回收站**，30 天内用户可在飞书恢复。
 > 本项目用于 folder token 变更后"删除旧文档 + 在新文件夹新建"场景。
 
+### 4.3 上传素材 (upload_all) — 用于插入图片
+
+- **URL**: `POST /open-apis/drive/v1/medias/upload_all`
+- **官方文档**: https://open.feishu.cn/document/server-docs/docs/drive-v1/media/upload_all
+- **认证**: user_access_token
+- **请求**: `multipart/form-data`
+
+| 字段(form part) | 必填 | 说明 |
+|---|---|---|
+| `file_name` | 是 | 上传文件名(本项目用 `noteAttachment.localPath` 的 basename) |
+| `parent_type` | 是 | 固定 `"docx_image"` (插入 docx 图片) |
+| `parent_node` | 是 | 关联的 docx 文档 token(本项目用 `ref.docId`) |
+| `size` | 是 | 文件字节数 |
+| `checksum` | 否 | SHA-1 校验和(本项目计算但不严格校验) |
+| `file` | 是 | 文件二进制 |
+
+- **限制**: 单文件 ≤ 20 MB, 5 QPS, 单用户 1 万 / 天。**v1 不支持分片上传**,超过 20 MB 会直接报错。
+- **响应** `data`:
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `file_token` | string | 素材 token (`boxcn...`),后续 image block `image.token` 字段用 |
+
+> 本项目 `FeishuApiClient.uploadMedia` 在 `file.length() > 20 MB` 时直接抛 `FeishuError.BadRequest(0, "file > 20 MB, v1 不支持分片")` —— 上传不发出。
+
 ---
 
 ## 5. Token 类型速查
@@ -416,9 +520,11 @@
 | 10001 | 参数错误 |
 | 10002 | 权限不足(缺少 `drive:drive` scope) |
 | 10003 | 文件不存在 |
-| 10007 | 请求频率超限 |
+| 10007 | 请求频率超限(对 upload_all 即 5 QPS / 1 万/天) |
 | 1061002 | 文件已被删除 |
 | 1061003 | 文件已归档 |
+
+> feishu-sync-image-support:upload_all 超过 20 MB 飞书返回 `1061001 文件大小超过限制`(OQ 已记入 design.md followup)。
 
 ### 6.5 HTTP 状态码映射 (FeishuError)
 
@@ -449,8 +555,9 @@
 | v1 createDocument | `createDocument()` | — | *(保留兼容，未使用)* |
 | v1 getDocument | `getDocument()` | `readDoc()` | 读取文档元数据(title/revision) |
 | v1 getBlocks | `getBlocks()` | — | *(保留兼容，未使用)* |
-| v1 appendChildren | `appendChildren()` | — | *(保留兼容，未使用)* |
+| v1 appendChildren | `appendChildren()` | `FeishuDocService.syncAttachments()` (image block 路径) | **新增**: 图片 block 追加到飞书 doc 末尾 |
 | v1 batchDeleteChildren | `batchDeleteChildren()` | — | *(保留兼容，未使用)* |
+| drive upload_all (image) | `uploadMedia()` | `FeishuDocService.syncAttachments()` | **新增**: 图片附件上传到飞书素材库 |
 | v2 createDocumentV2 | `createDocumentV2()` | `createDoc()` | **主流程**: 创建飞书文档 |
 | v2 updateDocumentV2 | `updateDocumentV2()` | `updateDoc()` | **主流程**: 更新飞书文档 |
 | v2 fetchDocumentV2 | `fetchDocumentV2()` | `readDoc()` | **主流程**: 读取文档内容 |

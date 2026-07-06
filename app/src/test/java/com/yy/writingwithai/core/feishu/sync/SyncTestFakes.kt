@@ -1,11 +1,16 @@
 package com.yy.writingwithai.core.feishu.sync
 
+import com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
+import com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity
 import com.yy.writingwithai.core.feishu.api.DocCreateResult
 import com.yy.writingwithai.core.feishu.api.DocMetadata
 import com.yy.writingwithai.core.feishu.api.FeishuApiClient
 import com.yy.writingwithai.core.feishu.api.FeishuError
+import com.yy.writingwithai.core.feishu.api.MediaUploadResult
 import com.yy.writingwithai.core.feishu.api.ResolvedFolderToken
 import com.yy.writingwithai.core.feishu.converter.MarkdownToXmlConverter
+import java.io.File
+import kotlinx.coroutines.flow.Flow
 
 /** feishu-bidir-sync · 测试共享 fake 集合(internal 跨文件可见)。 */
 internal class FakeFeishuApiClient : FeishuApiClient {
@@ -14,7 +19,9 @@ internal class FakeFeishuApiClient : FeishuApiClient {
     var v1CreateCalls = 0
     var v1BatchDeleteCalls = 0
     val createdDocs = mutableListOf<String>()
-    var blocksToReturn: String = "[]"
+
+    // fix: getBlocks 返回正确的 JSON 结构(data.items 数组)
+    var blocksToReturn: String = """{"data":{"items":[{"block_id":"root-block-1"}]}}"""
 
     // ---- v2 ----
     var v2CreateCalls = 0
@@ -24,21 +31,87 @@ internal class FakeFeishuApiClient : FeishuApiClient {
     val appendedDocIds = mutableListOf<String>()
     val v2Created = mutableListOf<String>()
 
+    // ---- feishu-sync-image-support(图片附件上传 + image block append) ----
+    /** 上传 + 追加次数计数器与已上传文件名,断言用。 */
+    val uploadMediaCalls = mutableListOf<Triple<String, String, String>>() // (docId, parentNode, mimeType)
+    var uploadedFileTokenCounter = 0
+
+    /** 模拟 uploadMedia 抛 ServerError(给 Case C/D 用)。默认 false。 */
+    var uploadMediaShouldFail: Boolean = false
+
+    /** 模拟 createBlock 抛 ServerError(给 Case D 用)。默认 false。 */
+    var createBlockShouldFail: Boolean = false
+
+    /** 模拟 appendChildren 抛 ServerError(给 Case D 用)。默认 false。 */
+    var appendChildrenShouldFail: Boolean = false
+
     override suspend fun createDocument(title: String, folderToken: String?): DocCreateResult {
         v1CreateCalls++
         val id = "doc-v1-${createdDocs.size + 1}"
         createdDocs += id
+        // fix(feishu-title-sync):v1 创建文档时标题已设置,无需再调 updateDocumentTitle
         return DocCreateResult(docId = id, docUrl = "https://f.cn/$id")
     }
     override suspend fun getDocument(docId: String): DocMetadata =
         DocMetadata(docId = docId, revisionId = "rev-1", title = "title-$docId")
     override suspend fun getBlocks(docId: String): String = blocksToReturn
     override suspend fun appendChildren(docId: String, parentBlockId: String, childrenJson: String): String {
+        if (appendChildrenShouldFail) {
+            throw FeishuError.ServerError(500)
+        }
         appendedDocIds += docId
         return ""
     }
     override suspend fun batchDeleteChildren(docId: String, parentBlockId: String, startIndex: Int, endIndex: Int) {
         v1BatchDeleteCalls++
+    }
+
+    // feishu-sync-image-support: 新增 createBlock 实现(简化流程)
+    var createBlockCalls = mutableListOf<Triple<String, String, Int>>() // (docId, parentBlockId, blockType)
+    override suspend fun createBlock(
+        docId: String,
+        parentBlockId: String,
+        blockType: Int,
+        blockContentJson: String
+    ): String {
+        if (createBlockShouldFail) {
+            throw FeishuError.ServerError(500)
+        }
+        createBlockCalls += Triple(docId, parentBlockId, blockType)
+        return "block-${createBlockCalls.size}"
+    }
+
+    override suspend fun patchBlock(docId: String, blockId: String, patchJson: String) {
+        // 不再需要,保留空实现
+    }
+
+    // fix-2026-07-05:添加 replaceImageBlock 实现
+    override suspend fun replaceImageBlock(
+        docId: String,
+        blockId: String,
+        fileToken: String,
+        width: Int?,
+        height: Int?
+    ) {
+        // 测试 fake 不实际调用 API，只记录调用即可
+    }
+
+    // feishu-sync-image-support: 测试 fake 不实际构造 multipart body(那部分单测应该在
+    // FeishuApiClientImplTest),这里仅记录调用 + 可选抛错 + 返回递增 file_token。
+    // fix-2026-07-05:修正签名，添加 parentNode 参数（应为 image block id）
+    override suspend fun uploadMedia(
+        docId: String,
+        parentNode: String,
+        file: File,
+        mimeType: String
+    ): MediaUploadResult {
+        if (uploadMediaShouldFail) {
+            throw FeishuError.ServerError(500)
+        }
+        uploadedFileTokenCounter++
+        val size = if (file.exists()) file.length() else 0L
+        uploadMediaCalls += Triple(docId, parentNode, mimeType)
+        return MediaUploadResult(fileToken = "test-token-$uploadedFileTokenCounter", bytes = size)
     }
 
     // v2
@@ -197,4 +270,40 @@ internal class FakeXmlConverter : MarkdownToXmlConverter() {
         lastTitle = title
         return xmlToReturn
     }
+}
+
+/**
+ * feishu-sync-image-support · 测试用 attachment DAO fake。
+ *
+ * 真实 [NoteAttachmentDao] 有 5 个方法(observe / get / insert / delete / deleteForNote /
+ * observeFirstImageForNotes),测试只关心 `getForNote` 返回哪些 entity,其他 no-op。
+ */
+internal class FakeNoteAttachmentDao : NoteAttachmentDao {
+    /** key = noteId,value = 该 note 的附件列表。测试在 arrange 阶段预填。 */
+    val store = mutableMapOf<String, List<NoteAttachmentEntity>>()
+
+    override fun observeForNote(noteId: String): Flow<List<NoteAttachmentEntity>> =
+        kotlinx.coroutines.flow.flowOf(store[noteId].orEmpty())
+
+    override suspend fun getForNote(noteId: String): List<NoteAttachmentEntity> = store[noteId].orEmpty()
+
+    override suspend fun insert(entity: NoteAttachmentEntity) {
+        val list = store[entity.noteId].orEmpty().toMutableList()
+        list += entity
+        store[entity.noteId] = list
+    }
+
+    override suspend fun delete(entity: NoteAttachmentEntity) {
+        val list = store[entity.noteId].orEmpty().toMutableList()
+        list.removeAll { it.id == entity.id }
+        store[entity.noteId] = list
+    }
+
+    override suspend fun deleteForNote(noteId: String) {
+        store.remove(noteId)
+    }
+
+    override fun observeFirstImageForNotes(
+        noteIds: List<String>
+    ): Flow<List<com.yy.writingwithai.core.data.db.dao.FirstImageRow>> = kotlinx.coroutines.flow.flowOf(emptyList())
 }

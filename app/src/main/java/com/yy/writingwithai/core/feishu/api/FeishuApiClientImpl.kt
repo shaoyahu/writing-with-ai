@@ -1,6 +1,7 @@
 package com.yy.writingwithai.core.feishu.api
 
 import android.util.Log
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
@@ -18,8 +19,10 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.use
 
@@ -92,6 +95,95 @@ constructor(
             executeRequest(request).rawBody
         }
 
+    override suspend fun createBlock(
+        docId: String,
+        parentBlockId: String,
+        blockType: Int,
+        blockContentJson: String
+    ): String = withContext(Dispatchers.IO) {
+        // fix-2026-07-05-feishu-image:创建 block 的 JSON 生成逻辑
+        // 正确生成 JSON，避免无效格式：
+        // - 空/空白 → {"block_type":27}（飞书允许不传 image 字段）
+        // - 有内容 → {"block_type":27,"image":{"token":"xxx"}}
+        // - 特别处理："image":{} → {"block_type":27,"image":{}}
+        val trimmed = blockContentJson.trim()
+        val childrenJson = if (trimmed.isEmpty() || trimmed == "{}") {
+            // 完全空 → 只传 block_type
+            """{"block_type":$blockType}"""
+        } else if (trimmed == "\"image\":{}") {
+            // 特殊情况：传空 image 对象 → 保留 block_type 和空 image
+            """{"block_type":$blockType,"image":{}}"""
+        } else {
+            // 其他内容不带外层 {}，直接拼接，如 "image":{"token":"xxx"}
+            """{"block_type":$blockType,$trimmed}"""
+        }
+        // fix-2026-07-05:图片放在文档末尾，index=-1 表示追加到最后
+        val body = """{"index":-1,"children":[$childrenJson]}"""
+        Log.d("FeishuApi", "createBlock body: $body")
+        val request = Request.Builder()
+            .url(urlFor("docx/v1/documents/$docId/blocks/$parentBlockId/children"))
+            .post(body.toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        val rawBody = executeRequest(request).rawBody
+        // 解析响应获取创建的 block_id
+        val respObj = Json.parseToJsonElement(rawBody).jsonObject
+        val dataObj = respObj["data"]?.jsonObject
+        val childrenArr = dataObj?.get("children")?.jsonArray
+        if (childrenArr == null || childrenArr.isEmpty()) {
+            throw FeishuError.BadRequest(0, "createBlock response missing children")
+        }
+        val blockId = childrenArr[0].jsonObject["block_id"]?.jsonPrimitive?.content
+            ?: throw FeishuError.BadRequest(0, "createBlock response missing block_id")
+        blockId
+    }
+
+    override suspend fun patchBlock(docId: String, blockId: String, patchJson: String): Unit =
+        withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url(urlFor("docx/v1/documents/$docId/blocks/$blockId"))
+                .patch(patchJson.toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            executeRequest(request)
+            Unit
+        }
+
+    override suspend fun replaceImageBlock(
+        docId: String,
+        blockId: String,
+        fileToken: String,
+        width: Int?,
+        height: Int?
+    ): Unit = withContext(Dispatchers.IO) {
+        // fix-2026-07-05-feishu-image:使用 batch_update 的 replace_image 绑定图片 token
+        // 参考 https://open.feishu.cn/document/server-docs/docs/docs/docx-v1/document-block/batch_update
+        val body = buildJsonObject {
+            put(
+                "requests",
+                buildJsonArray {
+                    add(
+                        buildJsonObject {
+                            put("block_id", blockId)
+                            put(
+                                "replace_image",
+                                buildJsonObject {
+                                    put("token", fileToken)
+                                    if (width != null) put("width", width)
+                                    if (height != null) put("height", height)
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        }.toString()
+        val request = Request.Builder()
+            .url(urlFor("docx/v1/documents/$docId/blocks/batch_update"))
+            .patch(body.toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        executeRequest(request)
+        Unit
+    }
+
     override suspend fun batchDeleteChildren(docId: String, parentBlockId: String, startIndex: Int, endIndex: Int) {
         withContext(Dispatchers.IO) {
             // 飞书 docx v1 batch_delete 用 DELETE + start_index/end_index(按索引范围，非 block_id)。
@@ -137,17 +229,18 @@ constructor(
                     // 之前 `source.request(Long.MAX_VALUE)` 把整段 body 拉进 heap buffer 再判断截断，
                     // 已经把恶意/异常 endpoint 的 MB 级 body 吃进内存了。改用 readByteArray(maxBytes)
                     // 让 okio 在拉到上限时停止从 socket 读;body 短于上限属于正常情况，不算错。
-                    val bytes = try {
-                        source.readByteArray(MAX_BODY)
-                    } catch (e: java.io.EOFException) {
-                        // body 短于 MAX_BODY:返回已读字节，标记为截断(无，本来就短)
-                        source.readByteArray()
-                    }
-                    if (!source.exhausted()) {
+                    // fix-2026-07-05-review-r4 CRITICAL C1:使用 Okio 标准模式处理流式截断
+                    // readByteArray(max) 在 EOF 时抛异常,catch 中再次 readByteArray() 会读已消费的流
+                    // 改用 request + buffer 模式,避免数据丢失
+                    source.request(Long.MAX_VALUE)
+                    val bytes = if (source.buffer.size > MAX_BODY) {
                         Log.w(
                             "FeishuApi",
-                            "response body exceeded ${MAX_BODY} bytes for ${request.url.encodedPath}, truncating"
+                            "response body exceeded ${MAX_BODY} bytes, truncating"
                         )
+                        source.buffer.readByteArray(MAX_BODY)
+                    } else {
+                        source.buffer.readByteArray()
                     }
                     String(bytes, Charsets.UTF_8)
                 }.orEmpty()
@@ -314,6 +407,62 @@ constructor(
         }
     }
 
+    /**
+     * feishu-sync-image-support · 上传素材到飞书云空间。
+     *
+     * API: `POST /open-apis/drive/v1/medias/upload_all`(multipart/form-data)
+     * 官方文档: https://open.feishu.cn/document/server-docs/docs/drive-v1/media/upload_all
+     *
+     * 三步法第二步:parent_node 应传**image block ID**(第一步 createBlock 返回的),
+     * 不是 document_id!
+     *
+     * 必填字段:`file_name` / `parent_type=docx_image` / `parent_node=blockId` /
+     * `size` / `file`(二进制)。`checksum`(SHA1)选填但服务端建议带,失败重传更快。
+     *
+     * 文件大小限制:单文件 ≤ 20 MB(v1 不支持分片,本方法在入口直接拒绝超过 20 MB 的文件)。
+     * 限流:5 QPS、10k/天(由 caller 串行调用自然满足)。
+     */
+    override suspend fun uploadMedia(
+        docId: String,
+        parentNode: String,
+        file: File,
+        mimeType: String
+    ): MediaUploadResult = withContext(Dispatchers.IO) {
+        // task 1.3:入口校验 20 MB,超限直接 BadRequest,避免无效上传浪费服务端配额。
+        val size = file.length()
+        if (size > MAX_UPLOAD_BYTES) {
+            throw FeishuError.BadRequest(
+                0,
+                "file > 20 MB (got $size bytes), v1 不支持分片上传"
+            )
+        }
+        // fix-2026-07-05:checksum 选填，不传让飞书服务端自行计算
+        val body = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("file_name", file.name)
+            .addFormDataPart("parent_type", "docx_image")
+            .addFormDataPart("parent_node", parentNode)
+            .addFormDataPart("size", size.toString())
+            .addFormDataPart("extra", "{\"drive_route_token\":\"$docId\"}")
+            .addFormDataPart(
+                "file",
+                file.name,
+                file.asRequestBody(mimeType.toMediaType())
+            )
+            .build()
+        val request = Request.Builder()
+            .url(urlFor("drive/v1/medias/upload_all"))
+            .post(body)
+            .build()
+        val resp = executeRequest(request)
+        val fileToken = resp.data["file_token"]?.jsonPrimitive?.contentOrNull
+            ?: throw FeishuError.BadRequest(
+                0,
+                "missing data.file_token in upload response, keys: ${resp.data.keys}"
+            )
+        MediaUploadResult(fileToken = fileToken, bytes = size)
+    }
+
     override suspend fun resolveFolderToken(rawToken: String): ResolvedFolderToken = withContext(Dispatchers.IO) {
         // 根据飞书 token 前缀推断 doc_type:
         // - fldcn* → folder, wikcn* → wiki, doccn* → doc, docx* → docx
@@ -457,5 +606,8 @@ constructor(
         // 让 FeishuDocService.updateDoc 已有的 catch NotFound 链路自动接管(标记
         // REMOTE_DELETED → 上层 push catch NotFound → 删旧 ref + createDoc 重建)。
         private const val FEISHU_DOC_DELETED_CODE = 3380003
+
+        // feishu-sync-image-support:upload_all 单文件上限 20 MB(v1 不支持分片)。
+        private const val MAX_UPLOAD_BYTES: Long = 20L * 1024 * 1024
     }
 }

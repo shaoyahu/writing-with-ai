@@ -38,7 +38,7 @@ class FeishuSyncServiceTest {
     private val refs = FakeFeishuRefDao()
     private val events = FakeFeishuSyncEventDao()
     private val xml = FakeXmlConverter()
-    private val docService = FeishuDocService(api, xml, refs, events)
+    private val docService = FeishuDocService(api, xml, refs, events, FakeNoteAttachmentDao())
     private val fakeAuthStore = object : FeishuAuthStore {
         override val appId: Flow<String?> = flowOf(null)
         override val folderToken: Flow<String?> = flowOf(null)

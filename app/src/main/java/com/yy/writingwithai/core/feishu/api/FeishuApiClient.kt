@@ -1,5 +1,7 @@
 package com.yy.writingwithai.core.feishu.api
 
+import java.io.File
+
 /**
  * feishu-oauth-flow · 飞书 Open API 抽象层(v1 docx + v2 docs_ai)。
  *
@@ -12,6 +14,71 @@ interface FeishuApiClient {
     suspend fun getDocument(docId: String): DocMetadata
     suspend fun getBlocks(docId: String): String
     suspend fun appendChildren(docId: String, parentBlockId: String, childrenJson: String): String
+
+    /**
+     * feishu-sync-image-support · 创建单个 block(带完整内容)。
+     *
+     * 赴 [创建块接口](https://open.feishu.cn/document/server-docs/docs/docs/docx-v1/document-block/create)
+     * `POST /open-apis/docx/v1/documents/{document_id}/blocks/{block_id}/children`
+     *
+     * @param docId 文档 ID
+     * @param parentBlockId 父 block ID (文档根 block)
+     * @param blockType block 类型 (27 = image)
+     * @param blockContentJson block 内容 JSON (如 image block 的 `{"token": "boxcn..."}`)
+     * @return 创建的 block 的 ID
+     */
+    suspend fun createBlock(
+        docId: String,
+        parentBlockId: String,
+        blockType: Int,
+        blockContentJson: String = "{}"
+    ): String
+
+    /**
+     * feishu-sync-image-support · PATCH 更新 block 内容。
+     *
+     * 赴 [更新块接口](https://open.feishu.cn/document/server-docs/docs/docs/docx-v1/document-block/patch)
+     * `PATCH /open-apis/docx/v1/documents/{document_id}/blocks/{block_id}`
+     *
+     * @param docId 文档 ID
+     * @param blockId 要更新的 block ID
+     * @param patchJson PATCH 操作 JSON (如 replace_image)
+     */
+    suspend fun patchBlock(docId: String, blockId: String, patchJson: String)
+
+    /**
+     * feishu-sync-image-support · 上传素材到飞书云空间。
+     *
+     * 走 [开放平台官方接口](https://open.feishu.cn/document/server-docs/docs/drive-v1/media/upload_all)
+     * `POST /open-apis/drive/v1/medias/upload_all`,parent_type 固定为 `docx_image`,
+     * parent_node 传 image block ID (不是 doc_id!),返回 file_token 给后续 replaceImageBlock 用。
+     *
+     * fix-2026-07-05:添加 docId 参数，用于 extra.drive_route_token（飞书要求必填）
+     *
+     * 限制:单文件 ≤ 20 MB、5 QPS、10k/天(本实现不检查 QPS,串行 caller 自然满足)。
+     * 超过 20 MB 直接抛 [FeishuError.BadRequest](v1 不支持分片上传)。
+     */
+    suspend fun uploadMedia(docId: String, parentNode: String, file: File, mimeType: String): MediaUploadResult
+
+    /**
+     * feishu-sync-image-support · 批量更新 block（用于 replace_image 绑定图片 token）。
+     *
+     * 走 [批量更新块接口](https://open.feishu.cn/document/server-docs/docs/docs/docx-v1/document-block/batch_update)
+     * `POST /open-apis/docx/v1/documents/{document_id}/blocks/batch_update`
+     *
+     * @param docId 文档 ID
+     * @param blockId 要更新的 image block ID
+     * @param fileToken 上传素材返回的 file_token
+     * @param width 图片宽度（可选，不传时飞书自动检测）
+     * @param height 图片高度（可选，不传时飞书自动检测）
+     */
+    suspend fun replaceImageBlock(
+        docId: String,
+        blockId: String,
+        fileToken: String,
+        width: Int? = null,
+        height: Int? = null
+    )
     suspend fun batchDeleteChildren(docId: String, parentBlockId: String, startIndex: Int, endIndex: Int)
 
     // ---- v2 docs_ai/v1(XML format，参考 larksuite/cli) ----
@@ -65,4 +132,15 @@ data class ResolvedFolderToken(
     val token: String,
     val originalType: String?,
     val resolved: Boolean
+)
+
+/**
+ * feishu-sync-image-support · uploadMedia 的返回值。
+ *
+ * @param fileToken 飞书素材 token(`boxcn...`),后续插入 image block 时塞进 `image.token`
+ * @param bytes 上传的字节数(等于入参 file.length())
+ */
+data class MediaUploadResult(
+    val fileToken: String,
+    val bytes: Long
 )

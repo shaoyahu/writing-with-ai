@@ -35,7 +35,7 @@ class FeishuFolderMigrationTest {
     // 控制 fake deleteFile 是否抛错,验证 DELETE_FAILED 路径
     private var deleteFileShouldFail: Boolean = false
 
-    private val docService = FeishuDocService(api, xml, refs, events)
+    private val docService = FeishuDocService(api, xml, refs, events, FakeNoteAttachmentDao())
     private val authStore = FakeFeishuAuthStore(folderTokenSnapshot = { currentFolderToken })
     private val noteDao = mockk<com.yy.writingwithai.core.data.db.NoteDao>(relaxed = true)
     private val passthroughTx = object : TransactionExecutor {

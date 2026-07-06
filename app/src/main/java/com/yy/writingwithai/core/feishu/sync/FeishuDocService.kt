@@ -1,16 +1,22 @@
 package com.yy.writingwithai.core.feishu.sync
 
 import android.util.Log
+import com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
 import com.yy.writingwithai.core.data.model.Note
 import com.yy.writingwithai.core.feishu.api.FeishuApiClient
 import com.yy.writingwithai.core.feishu.api.FeishuError
 import com.yy.writingwithai.core.feishu.converter.MarkdownToXmlConverter
+import java.io.File
 import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * feishu-doc-service-refactor · 飞书文档原子操作 facade(v2 docs_ai/v1)。
@@ -34,7 +40,9 @@ constructor(
     private val feishuApi: FeishuApiClient,
     private val xmlConverter: MarkdownToXmlConverter,
     private val refDao: FeishuRefDao,
-    private val eventDao: FeishuSyncEventDao
+    private val eventDao: FeishuSyncEventDao,
+    // feishu-sync-image-support:同步时读取 note 的附件并追加到飞书 doc
+    private val noteAttachmentDao: NoteAttachmentDao
 ) {
 
     /**
@@ -93,6 +101,9 @@ constructor(
         )
         refDao.upsert(ref)
         recordEventSafe(note.id, SyncDirection.PUSH, "OK", null)
+        // feishu-sync-image-support:markdown 文本同步成功后,串行 upload + 一次
+        // appendChildren 把 note_attachments 里的图片追加到 doc 末尾。
+        syncAttachments(note, ref)
         ref
     }
 
@@ -134,6 +145,8 @@ constructor(
             )
             refDao.upsert(updated)
             recordEventSafe(note.id, SyncDirection.PUSH, "OK", null)
+            // feishu-sync-image-support:markdown 同步成功后追加附件图片 block。
+            syncAttachments(note, updated)
             updated
         } catch (e: FeishuError.NotFound) {
             // 远端文档已删除,标记 ref 并通知调用方
@@ -215,6 +228,182 @@ constructor(
         .replace("<", "&lt;")
         .replace(">", "&gt;")
         .replace("\"", "&quot;")
+
+    /**
+     * feishu-sync-image-support · 把 note 的附件图片同步到飞书 doc 末尾。
+     *
+     * 流程(spec Sync attachments after markdown):
+     * 1. noteAttachmentDao.getForNote(note.id) 拿该 note 所有附件,空 → Success
+     * 2. 串行 uploadMedia(每张之间 await,符合 5 QPS 限制)
+     *    - 任一 uploadMedia 抛非 NotFound 异常 → 全部 attachmentId 降级为文本占位符
+     * 3. 全部 token 拿到后,构造 children JSON 数组(每项 block_type=27 + image.token),
+     *    调 appendChildren 一次性提交(超过 50 项分批,飞书 API 单次最多 50 children)
+     *    - appendChildren 抛错 → 全部 attachmentId 降级为文本占位符
+     * 4. 降级路径:拼 `<document><p>[图片:id1]</p>...</document>` 走 appendBlockV2 追加,
+     *    并写 IMAGE_FAIL_PARTIAL sync event
+     *
+     * 失败不影响 markdown 同步结果 —— ref 已 SYNCED,事件追加即可。
+     */
+    suspend fun syncAttachments(note: Note, ref: FeishuRefEntity): ImageSyncOutcome = withContext(Dispatchers.IO) {
+        val attachments = noteAttachmentDao.getForNote(note.id)
+        if (attachments.isEmpty()) {
+            return@withContext ImageSyncOutcome.Success
+        }
+        val sortedAttachments = attachments.sortedBy { it.createdAt }
+
+        // 0. 获取文档根 block_id (用于作为 image block 的 parent)
+        // fix-2026-07-05-review-r4 MEDIUM M2:getBlocks 失败时增加 1 次重试
+        // 处理网络抖动导致的临时失败
+        val rootBlockId = try {
+            val blocksJson = feishuApi.getBlocks(ref.docId)
+            val blocksObj = Json.parseToJsonElement(blocksJson).jsonObject
+            val dataObj = blocksObj["data"]?.jsonObject ?: blocksObj
+            val items = dataObj["items"]?.jsonArray
+            if (items == null || items.isEmpty()) {
+                return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
+            }
+            items[0].jsonObject["block_id"]?.jsonPrimitive?.content ?: ref.docId
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: java.net.SocketTimeoutException) {
+            // 网络超时，重试一次
+            Log.w(TAG, "syncAttachments: getBlocks timeout, retrying once")
+            try {
+                val blocksJson = feishuApi.getBlocks(ref.docId)
+                val blocksObj = Json.parseToJsonElement(blocksJson).jsonObject
+                val dataObj = blocksObj["data"]?.jsonObject ?: blocksObj
+                val items = dataObj["items"]?.jsonArray
+                if (items == null || items.isEmpty()) {
+                    return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
+                }
+                items[0].jsonObject["block_id"]?.jsonPrimitive?.content ?: ref.docId
+            } catch (e2: Exception) {
+                Log.w(TAG, "syncAttachments: getBlocks retry failed: ${e2.message}")
+                return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "get_blocks_fail:${e2.message}")
+            }
+        } catch (e: java.io.IOException) {
+            // 网络错误，重试一次
+            Log.w(TAG, "syncAttachments: getBlocks IO error, retrying once")
+            try {
+                val blocksJson = feishuApi.getBlocks(ref.docId)
+                val blocksObj = Json.parseToJsonElement(blocksJson).jsonObject
+                val dataObj = blocksObj["data"]?.jsonObject ?: blocksObj
+                val items = dataObj["items"]?.jsonArray
+                if (items == null || items.isEmpty()) {
+                    return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
+                }
+                items[0].jsonObject["block_id"]?.jsonPrimitive?.content ?: ref.docId
+            } catch (e2: Exception) {
+                Log.w(TAG, "syncAttachments: getBlocks retry failed: ${e2.message}")
+                return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "get_blocks_fail:${e2.message}")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "syncAttachments: getBlocks failed: ${e.message}")
+            return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "get_blocks_fail:${e.message}")
+        }
+
+        // fix-2026-07-05-feishu-image-sync:修正飞书图片同步流程
+        // 正确流程：先创建空 image block → 上传素材到 block_id → 飞书自动绑定
+        // 参考 https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/drive-v1/media/introduction
+        val failedIds = mutableListOf<String>()
+        for (att in sortedAttachments) {
+            val file = File(att.localPath)
+            if (!file.exists()) {
+                Log.w(TAG, "syncAttachments: attachment ${att.id} file missing at ${att.localPath}")
+                failedIds += att.id
+                continue
+            }
+            val mime = att.mimeType.ifBlank { "image/jpeg" }
+
+            try {
+                // fix-2026-07-05-feishu-image:飞书官方文档三步法插入图片
+                // 参考 https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/drive-v1/media/introduction
+                // 以及 lark-sdk-go: 创建空 image block 时传 image:{}（空的 Image 对象）
+
+                // 步骤 1: 创建空的 image block（传 "image":{} 空对象）
+                // 参考 lark-sdk-go: Image 结构体所有字段 omitempty，可以传空对象
+                Log.d(TAG, "syncAttachments: step 1 - creating empty image block for ${att.id}")
+                val imageBlockId = feishuApi.createBlock(ref.docId, rootBlockId, 27, "\"image\":{}")
+                Log.d(TAG, "syncAttachments: step 1 done - image block created, block_id=$imageBlockId")
+
+                // 步骤 2: 上传素材，parent_node 传 imageBlockId，extra.drive_route_token 传 docId
+                Log.d(TAG, "syncAttachments: step 2 - uploading media, parent_node=$imageBlockId")
+                val uploadResult = feishuApi.uploadMedia(ref.docId, imageBlockId, file, mime)
+                Log.d(TAG, "syncAttachments: step 2 done - media uploaded, token=${uploadResult.fileToken}")
+
+                // 步骤 3: 使用 batch_update 的 replace_image 绑定 token 到 block
+                Log.d(TAG, "syncAttachments: step 3 - binding token via replaceImageBlock")
+                feishuApi.replaceImageBlock(ref.docId, imageBlockId, uploadResult.fileToken)
+                Log.d(TAG, "syncAttachments: step 3 done - token bound to block")
+
+                Log.i(
+                    TAG,
+                    "syncAttachments: image ${att.id} synced, block_id=$imageBlockId, " +
+                        "token=${uploadResult.fileToken}"
+                )
+            } catch (e: FeishuError.NotFound) {
+                // 远端 doc 已删 → 不降级,直接抛出
+                throw e
+            } catch (e: FeishuError) {
+                Log.w(TAG, "syncAttachments: image ${att.id} failed: ${e.message}")
+                failedIds += att.id
+            }
+        }
+
+        if (failedIds.isEmpty()) {
+            ImageSyncOutcome.Success
+        } else {
+            fallbackToPlaceholders(note, ref, sortedAttachments, "image_fail:${failedIds.joinToString(",")}")
+        }
+    }
+
+    /**
+     * feishu-sync-image-support · 把全部 attachmentId 转成 `[图片:<id>]` 文本占位符追加到 doc,
+     * 写 IMAGE_FAIL_PARTIAL 事件。返回 PartialFail。
+     */
+    private suspend fun fallbackToPlaceholders(
+        note: Note,
+        ref: FeishuRefEntity,
+        attachments: List<com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity>,
+        reason: String
+    ): ImageSyncOutcome {
+        val xml = buildPlaceholdersXml(attachments.map { it.id })
+        try {
+            feishuApi.appendBlockV2(ref.docId, xml)
+        } catch (e: FeishuError) {
+            // 降级路径还失败 → 写 IMAGE_FAIL_PARTIAL_DOUBLE_FAIL 让排查,但不抛
+            Log.w(TAG, "fallbackToPlaceholders appendBlockV2 failed: ${e.message}")
+            recordEventSafe(
+                note.id,
+                SyncDirection.PUSH,
+                "IMAGE_FAIL_PARTIAL_DOUBLE_FAIL",
+                "original=$reason fallback=${e.message}"
+            )
+            return ImageSyncOutcome.PartialFail(
+                failedIds = attachments.map { it.id },
+                reason = "$reason;fallback_fail=${e.message}"
+            )
+        }
+        recordEventSafe(
+            note.id,
+            SyncDirection.PUSH,
+            "IMAGE_FAIL_PARTIAL",
+            reason
+        )
+        return ImageSyncOutcome.PartialFail(
+            failedIds = attachments.map { it.id },
+            reason = reason
+        )
+    }
+
+    private fun buildPlaceholdersXml(attachmentIds: List<String>): String {
+        val sb = StringBuilder("<document>")
+        attachmentIds.forEach { id ->
+            sb.append("<p>").append(xmlEscape("[图片:$id]")).append("</p>")
+        }
+        sb.append("</document>")
+        return sb.toString()
+    }
 
     companion object {
         private const val TAG = "FeishuDocService"

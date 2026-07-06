@@ -24,7 +24,14 @@ class ExtractDocIdFromUrlTest {
             com.yy.writingwithai.core.feishu.api.DocMetadata("d-abc", "rev1", "t")
         coEvery { api.fetchDocumentV2("d-abc") } returns "ok"
 
-        val svc = FeishuDocService(api, FakeXmlConverterExt(), FakeFeishuRefDao(), FakeFeishuSyncEventDao())
+        val svc =
+            FeishuDocService(
+                api,
+                FakeXmlConverterExt(),
+                FakeFeishuRefDao(),
+                FakeFeishuSyncEventDao(),
+                FakeNoteAttachmentDao()
+            )
         val content = svc.readDoc("https://bytedance.feishu.cn/docx/d-abc?from=copy")
 
         assertEquals("d-abc", content.docId)
@@ -38,7 +45,14 @@ class ExtractDocIdFromUrlTest {
             com.yy.writingwithai.core.feishu.api.DocMetadata("dxyz", "rev1", "t")
         coEvery { api.fetchDocumentV2("dxyz") } returns "body"
 
-        val svc = FeishuDocService(api, FakeXmlConverterExt(), FakeFeishuRefDao(), FakeFeishuSyncEventDao())
+        val svc =
+            FeishuDocService(
+                api,
+                FakeXmlConverterExt(),
+                FakeFeishuRefDao(),
+                FakeFeishuSyncEventDao(),
+                FakeNoteAttachmentDao()
+            )
         val content = svc.readDoc("https://bytedance.feishu.cn/docx/dxyz#anchor")
 
         assertEquals("dxyz", content.docId)
@@ -51,7 +65,14 @@ class ExtractDocIdFromUrlTest {
             com.yy.writingwithai.core.feishu.api.DocMetadata("plain", "rev1", "t")
         coEvery { api.fetchDocumentV2("plain") } returns "x"
 
-        val svc = FeishuDocService(api, FakeXmlConverterExt(), FakeFeishuRefDao(), FakeFeishuSyncEventDao())
+        val svc =
+            FeishuDocService(
+                api,
+                FakeXmlConverterExt(),
+                FakeFeishuRefDao(),
+                FakeFeishuSyncEventDao(),
+                FakeNoteAttachmentDao()
+            )
         val content = svc.readDoc("https://bytedance.feishu.cn/docx/plain")
         assertEquals("plain", content.docId)
     }
@@ -63,7 +84,14 @@ class ExtractDocIdFromUrlTest {
             com.yy.writingwithai.core.feishu.api.DocMetadata("trail", "rev1", "t")
         coEvery { api.fetchDocumentV2("trail") } returns "x"
 
-        val svc = FeishuDocService(api, FakeXmlConverterExt(), FakeFeishuRefDao(), FakeFeishuSyncEventDao())
+        val svc =
+            FeishuDocService(
+                api,
+                FakeXmlConverterExt(),
+                FakeFeishuRefDao(),
+                FakeFeishuSyncEventDao(),
+                FakeNoteAttachmentDao()
+            )
         val content = svc.readDoc("https://bytedance.feishu.cn/docx/trail/")
         assertEquals("trail", content.docId)
     }
@@ -75,7 +103,14 @@ class ExtractDocIdFromUrlTest {
             com.yy.writingwithai.core.feishu.api.DocMetadata("combo", "rev1", "t")
         coEvery { api.fetchDocumentV2("combo") } returns "x"
 
-        val svc = FeishuDocService(api, FakeXmlConverterExt(), FakeFeishuRefDao(), FakeFeishuSyncEventDao())
+        val svc =
+            FeishuDocService(
+                api,
+                FakeXmlConverterExt(),
+                FakeFeishuRefDao(),
+                FakeFeishuSyncEventDao(),
+                FakeNoteAttachmentDao()
+            )
         val content = svc.readDoc("https://bytedance.feishu.cn/docx/combo?from=copy#h1")
         assertEquals("combo", content.docId)
     }
@@ -83,7 +118,14 @@ class ExtractDocIdFromUrlTest {
     @Test
     fun `H14 empty input throws BadRequest`() = runTest {
         val api = mockk<FeishuApiClient>()
-        val svc = FeishuDocService(api, FakeXmlConverterExt(), FakeFeishuRefDao(), FakeFeishuSyncEventDao())
+        val svc =
+            FeishuDocService(
+                api,
+                FakeXmlConverterExt(),
+                FakeFeishuRefDao(),
+                FakeFeishuSyncEventDao(),
+                FakeNoteAttachmentDao()
+            )
         val ex = assertThrows(FeishuError.BadRequest::class.java) {
             kotlinx.coroutines.runBlocking { svc.readDoc("") }
         }
