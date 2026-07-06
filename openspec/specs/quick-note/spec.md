@@ -681,3 +681,40 @@ QuickNoteEditorScreen SHALL use BasicTextField for title (headlineMedium, no bor
 - **WHEN** dialog 打开，用户点击 dialog 外区域或点"关闭"
 - **THEN** dialog 关闭，无任何数据写入
 
+### Requirement: Detail screen shows floating selection toolbar (M5+ floating-selection-toolbar,替换原固定底部 Share+AI 栏)
+
+详情屏 MUST 在用户长按文本选中局部选区(非空 `TextRange`)时,浮出 `SelectionFloatingToolbar`,提供 "加入实体" 和 "AI" 两个入口;选区为空时工具栏隐藏。工具栏 MUST 浮在 Scaffold 顶层(避免被 `verticalScroll` Column / when 分支吞掉),固定在屏幕底部、避开系统导航栏(`WindowInsets.navigationBars`),不弹系统 IME。
+
+#### Scenario: 长按文字出现局部选区 + 浮动工具栏
+- **WHEN** 详情屏用户长按笔记正文中一个词,拖动 selection handle 选中非空范围
+- **THEN** UI 显示 selection handles + 屏幕底部浮出橙色 `SelectionFloatingToolbar`,包含 ⭐加入实体 按钮(始终 enabled)和 ✨AI 按钮(展开后是扩写/润色/整理/摘要/翻译 5 项 dropdown)
+- **AND** 系统 IME MUST NOT 弹出(`LocalSoftwareKeyboardController.hide()` 在 `onValueChange` 触发)
+
+#### Scenario: 无选区时工具栏隐藏
+- **WHEN** 详情屏无文本选区(`selection.collapsed == true`)
+- **THEN** `SelectionFloatingToolbar` MUST NOT 渲染(早返回);Screen 底部不留空白占位
+
+#### Scenario: 选区变化后工具栏 UI 同步
+- **WHEN** 用户拖动 selection handle 调整选区起点 / 终点
+- **THEN** `BasicTextField.onValueChange` 触发,UI 层 `uiSelection: TextRange` 同步更新,工具栏按钮回调(`onAddEntity` / `onAiExpand` 等)使用最新选区 `uiSelection.min` / `uiSelection.max`
+
+#### Scenario: 工具栏位置避开导航栏
+- **WHEN** 详情屏在带底部导航栏 / gesture handle 的设备上显示
+- **THEN** `SelectionFloatingToolbar` 通过 `Modifier.windowInsetsPadding(WindowInsets.navigationBars)` 上推,MUST 完全可见不被裁剪
+
+#### Scenario: 加入实体按钮不受 AI 配置影响
+- **WHEN** 用户未配置任何 AI provider apikey
+- **THEN** ⭐加入实体 按钮 MUST 保持 enabled(本地功能,无 AI 依赖);✨AI 按钮 MUST 处于 disabled 灰色态(`isAiEnabled == false`),点击不展开 dropdown
+
+### Requirement: Detail screen selection state lives in UI layer mutableStateOf (floating-selection-toolbar 改)
+
+详情屏 MUST 把"非空选区时显示工具栏"的判断建立在 UI 层 `mutableStateOf<TextRange>(TextRange.Zero)`(变量名 `uiSelection`)之上,MUST NOT 仅依赖 `viewModel.selection: StateFlow<TextRange>`。`BasicTextField.onValueChange` 回调里同步更新 `uiSelection` 与 `viewModel.onSelectionChange(...)`;后者保留是因为 AI 操作(`AiActionViewModel.start(WritingOp, sourceText, noteId)`)需要 ViewModel 侧 context。
+
+#### Scenario: uiSelection 跟随 onValueChange 同步
+- **WHEN** `BasicTextField` `onValueChange` 被 selection handles 拖动触发,`newValue.selection = TextRange(80, 90)`
+- **THEN** `uiSelection = newValue.selection` + `viewModel.onSelectionChange(TextRange(80, 90))` 同步执行;父 Composable 重组,`if (!uiSelection.collapsed && current != null)` 进入,工具栏渲染
+
+#### Scenario: snapshotFlow 不可单独依赖 (Compose 1.7.5 已知行为)
+- **WHEN** 想用 `snapshotFlow { textFieldValue.selection }` 替代手动同步
+- **THEN** 该方案 MUST NOT 通过验收 — Compose 1.7.5 下 `TextFieldValue.selection` 的 snapshot 订阅在 `BasicTextField` 内部修改时不触发外部 collect(已知 bug 或 API 限制);改用 `onValueChange` 直接同步是唯一可靠路径
+

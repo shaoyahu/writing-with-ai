@@ -2,6 +2,26 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log，单次评审查 `docs/reviews/`，规划查 `docs/plans/`。
 
+## 2026-07-06 · floating-selection-toolbar change 归档 + spec 同步
+
+- **实现**:`QuickNoteDetailScreen` 移除原 fixed `bottomBar`(Share + AI 常驻按钮),改用选中时浮出的 `SelectionFloatingToolbar`(`app/.../feature/quicknote/detail/SelectionFloatingToolbar.kt`)。长按文字 → `BasicTextField.onValueChange` 拿到 `TextRange` → UI 层 `mutableStateOf<TextRange>(uiSelection)` 同步 + `viewModel.onSelectionChange(...)` 同步推给 ViewModel(给 AI 操作 `AiActionViewModel.start(WritingOp, sourceText, noteId)` 用)→ `if (!uiSelection.collapsed && current != null)` 在 Scaffold 顶层渲染工具栏
+- **关键决策**(踩坑总结):
+  1. **不弹 IME**:`BasicTextField` 用旧 API `value/onValueChange` + `readOnly=false`(selection handles 触发 onValueChange),`onValueChange` 里调 `keyboardCtrl.hide()`
+  2. **toolbar 必须放 Scaffold 顶层**(not 在 `is Content -> Box { Column { ... } if(toolbar) {...} }` 嵌套里),否则 Compose 重组时 Box 子组件 subcomposition 吞掉 if 块,工具栏永不渲染
+  3. **避开 nav bar**:外层 `Modifier.windowInsetsPadding(WindowInsets.navigationBars)`,否则工具栏被裁
+  4. **`snapshotFlow { textFieldValue.selection }` 不工作**:Compose 1.7.5 下 `TextFieldValue.selection` 在 `BasicTextField` 内部修改时外部 collect 不触发(已知行为),**必须**用 `onValueChange` 手动同步
+  5. **`SelectionContainer` 不可用**:`Selection` / 5-arg 重载都是 internal,public API 不暴露 selection callback
+- **spec 同步**:`openspec/specs/quick-note/spec.md` 追加 2 个新 Requirement(`Detail screen shows floating selection toolbar` / `Detail screen selection state lives in UI layer mutableStateOf`)+ 7 个 scenario(覆盖长按出现工具栏 / 无选区隐藏 / 选区同步 / 导航栏 padding / 加入实体不受 AI 配置影响 / uiSelection 同步 / snapshotFlow 失败原因)
+- **归档**:`openspec/changes/floating-selection-toolbar/` → `archive/2026-07-06-floating-selection-toolbar/`(无 main spec 对应项,delta spec 内容已合并进 `quick-note/spec.md`)
+- **已知遗留**:detail 屏的 entity 分支仍用 `ClickableText`(entity 点击生效但无选区);后续 change 用 `BasicTextField` + entity annotation + tap 坐标定位统一两路
+
+## 2026-07-04 · feishu-sync-image-support change(图片附件同步到飞书 doc)
+
+- **能力**:markdown 同步成功后,串行调 `drive/v1/medias/upload_all`(parent_type=`docx_image`,≤20 MB)上传笔记附件,然后走 `docx/v1 appendChildren` 用 `block_type=27` 把 image block 追加到 doc 末尾;**image-text 不交叉**(图片统一放最后)
+- **降级**:upload / appendChildren 任一失败 → 转 `[图片:<attachmentId>]` 文本占位符 + 记 `IMAGE_FAIL_PARTIAL` event,ref 仍标 SYNCED
+- **改动**:`FeishuApiClient.uploadMedia()` + `FeishuApiClientImpl` OkHttp MultipartBody;`FeishuDocService.syncAttachments()` + 新增 `ImageSyncOutcome` sealed class;`docs/usage/api-feishu.md` §3 入口由"参考 larksuite/cli"改为指明 [server-docs 文档站](https://open.feishu.cn/document/server-docs)(用户原话:"我们只用开放平台的接口")
+- **验证**:5.x 编译/lint/单测全绿(ImageSyncTest 5 case A-E);6.x 真机验证 + docs_ai/v1 vs docx/v1 兼容性 first-touch 留给用户(OQ1/OQ2)
+
 ## 2026-07-03 · 13 个 OpenSpec change 全量 sync + archive（活动 change 清空）
 
 - **方式**:delta spec 经 review 后,逐个 sync 到 main spec + 归档到 `archive/2026-07-03-<name>/`。跟 `eadd994` (`fix(review-2026-06-29)`) 的同期批量 archive 模式不同,本次**先 sync 后 archive**,使 main spec 与代码实装一致
