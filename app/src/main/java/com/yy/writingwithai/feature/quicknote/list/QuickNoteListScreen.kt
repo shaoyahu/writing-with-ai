@@ -35,7 +35,11 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
@@ -50,11 +54,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +69,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -77,6 +85,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
+import com.yy.writingwithai.core.feishu.sync.FeishuImportService
 import com.yy.writingwithai.core.prefs.SearchHistoryStore
 import com.yy.writingwithai.core.ui.NoteListSkeleton
 import com.yy.writingwithai.core.ui.dropdown.AppActionDropdown
@@ -99,6 +108,10 @@ import kotlinx.coroutines.launch
 fun QuickNoteListScreen(
     onNoteClick: (id: String) -> Unit,
     onCreateClick: () -> Unit,
+    // feishu-import-from-folder:从文件夹导入 sub-screen 跳转
+    onNavigateToFolderImport: () -> Unit = {},
+    // feishu-import-from-folder:未授权时跳"我的"tab
+    onNavigateToFeishuAuth: () -> Unit = {},
     viewModel: QuickNoteListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -123,6 +136,49 @@ fun QuickNoteListScreen(
     var confirmDeleteFor by remember { mutableStateOf<String?>(null) }
     var showAddTagFor by remember { mutableStateOf<String?>(null) }
 
+    // feishu-import-from-folder:导入菜单 / 对话框 state
+    var importMenuExpanded by remember { mutableStateOf(false) }
+    var showImportDocDialog by remember { mutableStateOf(false) }
+    var showUnauthorizedDialog by remember { mutableStateOf(false) }
+    var importInput by remember { mutableStateOf("") }
+    var importToast by remember { mutableStateOf<String?>(null) }
+
+    // feishu-import-from-folder:监听 VM 的导入结果 / 授权检查事件
+    // 用 collectAsStateWithLifecycle 替代 onClick 内 coroutineScope.launch,
+    // 避免屏幕旋转 / Composable 重组导致回调丢失。
+    val importResultEvent by viewModel.importResultEvents.collectAsStateWithLifecycle(
+        initialValue = null as FeishuImportService.ImportResult?
+    )
+    val authCheckEvent by viewModel.authCheckEvents.collectAsStateWithLifecycle(
+        initialValue = null as QuickNoteListViewModel.AuthCheckResult?
+    )
+    importResultEvent?.let { evt ->
+        LaunchedEffect(evt) {
+            importToast = when (evt) {
+                is FeishuImportService.ImportResult.Success -> "导入成功"
+                is FeishuImportService.ImportResult.Failure -> evt.reason
+            }
+        }
+    }
+    // 收到授权检查结果时弹相应 dialog / 跳 sub-screen(用 lastHandledAuthCheck 防重复触发)
+    var lastHandledAuthCheck by remember { mutableStateOf<QuickNoteListViewModel.AuthCheckResult?>(null) }
+    var pendingAuthTarget by remember { mutableStateOf<String?>(null) }
+    val currentAuth = authCheckEvent
+    if (currentAuth != null && currentAuth != lastHandledAuthCheck) {
+        lastHandledAuthCheck = currentAuth
+        when (currentAuth) {
+            QuickNoteListViewModel.AuthCheckResult.Authorized -> {
+                if (pendingAuthTarget == "folder") {
+                    pendingAuthTarget = null
+                    onNavigateToFolderImport()
+                } else {
+                    showImportDocDialog = true
+                }
+            }
+            QuickNoteListViewModel.AuthCheckResult.Unauthorized -> showUnauthorizedDialog = true
+        }
+    }
+
     Scaffold(
         // app-bottom-tab-bar · 跟【我的】tab 一致:AppShell 外层 Scaffold 已用 innerPadding
         // 扣掉 bottomBar(tab 栏)占位,这里不应再吃 bottom inset(默认 systemBars 含 bottom),
@@ -136,6 +192,39 @@ fun QuickNoteListScreen(
                         stringResource(R.string.quicknote_list_title),
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
+                    )
+                },
+                // feishu-import-from-folder:右上角加 dropdown 入口
+                actions = {
+                    IconButton(onClick = { importMenuExpanded = true }) {
+                        Icon(
+                            Icons.Filled.CloudDownload,
+                            contentDescription = stringResource(R.string.quicknote_list_import_cd)
+                        )
+                    }
+                    AppActionDropdown(
+                        expanded = importMenuExpanded,
+                        onDismissRequest = { importMenuExpanded = false },
+                        items = listOf(
+                            AppActionItem(
+                                text = stringResource(R.string.quicknote_list_import_from_doc),
+                                leadingIcon = Icons.Filled.Description,
+                                onClick = {
+                                    importMenuExpanded = false
+                                    pendingAuthTarget = null
+                                    viewModel.requestFeishuAuthCheck()
+                                }
+                            ),
+                            AppActionItem(
+                                text = stringResource(R.string.quicknote_list_import_from_folder),
+                                leadingIcon = Icons.Filled.Folder,
+                                onClick = {
+                                    importMenuExpanded = false
+                                    pendingAuthTarget = "folder"
+                                    viewModel.requestFeishuAuthCheck()
+                                }
+                            )
+                        )
                     )
                 }
             )
@@ -479,6 +568,109 @@ fun QuickNoteListScreen(
                     onTagSelected = { tag -> viewModel.addExistingTag(noteId, tag) },
                     onDismiss = { showAddTagFor = null }
                 )
+            }
+
+            // feishu-import-from-folder · 未授权 dialog
+            if (showUnauthorizedDialog) {
+                AlertDialog(
+                    onDismissRequest = { showUnauthorizedDialog = false },
+                    title = { Text(stringResource(R.string.quicknote_list_import_unauthorized_title)) },
+                    text = { Text(stringResource(R.string.quicknote_list_import_unauthorized_msg)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showUnauthorizedDialog = false
+                            onNavigateToFeishuAuth()
+                        }) {
+                            Text(stringResource(R.string.quicknote_list_import_unauthorized_go_auth))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showUnauthorizedDialog = false }) {
+                            Text(stringResource(R.string.quicknote_list_import_unauthorized_cancel))
+                        }
+                    }
+                )
+            }
+
+            // feishu-import-from-folder · 单文档导入 dialog
+            if (showImportDocDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showImportDocDialog = false
+                        importInput = ""
+                    },
+                    title = { Text(stringResource(R.string.quicknote_list_import_dialog_title)) },
+                    text = {
+                        val clipboard = LocalClipboardManager.current
+                        OutlinedTextField(
+                            value = importInput,
+                            onValueChange = { importInput = it },
+                            label = { Text(stringResource(R.string.quicknote_list_import_dialog_hint)) },
+                            singleLine = true,
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    val clip = clipboard.getText()?.text.orEmpty()
+                                    if (clip.isNotBlank()) importInput = clip
+                                }) {
+                                    Icon(
+                                        Icons.Filled.ContentPaste,
+                                        contentDescription = stringResource(
+                                            R.string.quicknote_list_import_dialog_paste
+                                        )
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                val input = importInput.trim()
+                                showImportDocDialog = false
+                                importInput = ""
+                                if (input.isNotBlank()) viewModel.importSingleDoc(input)
+                            },
+                            enabled = importInput.isNotBlank()
+                        ) {
+                            Text(stringResource(R.string.quicknote_list_import_dialog_ok))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showImportDocDialog = false
+                            importInput = ""
+                        }) {
+                            Text("取消")
+                        }
+                    }
+                )
+            }
+
+            // feishu-import-from-folder · 导入结果轻提示
+            importToast?.let { msg ->
+                LaunchedEffect(msg) {
+                    kotlinx.coroutines.delay(2500)
+                    importToast = null
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(spacing.md),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.inverseSurface,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = msg,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.inverseOnSurface,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
             }
         }
     }

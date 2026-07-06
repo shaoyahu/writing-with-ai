@@ -22,5 +22,8 @@ enum class SyncStatus {
     LOCAL,
     SYNCED,
     DIRTY,
-    CONFLICT
+    CONFLICT,
+
+    // feishu-import-from-folder:从飞书导入时,markdown 写入成功但部分图片下载失败
+    PARTIAL_IMPORT_FAIL
 }

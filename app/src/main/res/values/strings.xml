@@ -689,4 +689,38 @@
     <string name="feishu_sync_action_close">关闭</string>
     <string name="feishu_sync_action_copy_error">复制错误</string>
     <string name="feishu_sync_action_ack">我知道了</string>
+    <!-- feishu-import-from-folder · 笔记卡片同步状态 chip:部分失败 -->
+    <string name="quicknote_list_sync_status_partial_import_fail">部分失败</string>
+
+    <!-- feishu-import-from-folder · 列表页 dropdown 入口 -->
+    <string name="quicknote_list_import_cd">从飞书导入</string>
+    <string name="quicknote_list_import_from_doc">从文档导入</string>
+    <string name="quicknote_list_import_from_folder">从文件夹导入</string>
+    <string name="quicknote_list_import_dialog_title">从飞书导入文档</string>
+    <string name="quicknote_list_import_dialog_hint">粘贴飞书文档链接或 token</string>
+    <string name="quicknote_list_import_dialog_ok">导入</string>
+    <string name="quicknote_list_import_dialog_paste">粘贴</string>
+    <string name="quicknote_list_import_unauthorized_title">未授权飞书账号</string>
+    <string name="quicknote_list_import_unauthorized_msg">需要先在【我的】tab 完成飞书授权才能导入</string>
+    <string name="quicknote_list_import_unauthorized_go_auth">去授权</string>
+    <string name="quicknote_list_import_unauthorized_cancel">取消</string>
+
+    <!-- feishu-import-from-folder · 批量导入 dialog -->
+    <string name="quicknote_list_import_batch_loading_fmt">正在导入 %1$d/%2$d</string>
+    <string name="quicknote_list_import_batch_result_fmt">成功 %1$d / 部分失败 %2$d / 失败 %3$d</string>
+    <string name="quicknote_list_import_batch_result_ok">知道了</string>
+
+    <!-- feishu-import-from-folder · FolderImportScreen -->
+    <string name="folder_import_screen_title">从文件夹导入</string>
+    <string name="folder_import_input_hint">粘贴文件夹链接或 token</string>
+    <string name="folder_import_parse_button">解析</string>
+    <string name="folder_import_paste">粘贴</string>
+    <string name="folder_import_chip_docx_only">仅显示 docx 类型(共 %1$d 篇)</string>
+    <string name="folder_import_empty_no_docx">未找到 docx 文档</string>
+    <string name="folder_import_import_button_fmt">导入(已选 %1$d)</string>
+    <string name="folder_import_select_all">全选</string>
+    <string name="folder_import_deselect_all">取消全选</string>
+    <string name="folder_import_retry_folder">重新选择文件夹</string>
+    <string name="folder_import_loading">正在解析文件夹…</string>
+    <string name="folder_import_no_title">(无标题)</string>
 </resources>

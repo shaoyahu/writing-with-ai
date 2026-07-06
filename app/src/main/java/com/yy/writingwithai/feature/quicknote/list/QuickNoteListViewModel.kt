@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.data.repo.NoteRepository
+import com.yy.writingwithai.core.feishu.sync.FeishuImportService
 import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
 import com.yy.writingwithai.core.prefs.SearchHistoryStore
@@ -15,8 +16,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -38,7 +41,9 @@ class QuickNoteListViewModel
 constructor(
     @ApplicationContext private val appContext: Context,
     private val repository: NoteRepository,
-    private val feishuSyncService: FeishuSyncService
+    private val feishuSyncService: FeishuSyncService,
+    // feishu-import-from-folder:列表页导入入口用
+    private val feishuImportService: FeishuImportService
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val selectedTag = MutableStateFlow<String?>(null)
@@ -186,6 +191,68 @@ constructor(
                         feishuSyncService.getRefsForNotes(idSet.toList())
                     }
                 }
+        }
+    }
+
+    // ---- feishu-import-from-folder:列表页导入入口 ----
+
+    /**
+     * feishu-import-from-folder:授权状态请求结果。
+     *
+     * 用户点击 dropdown item 时 Screen 调 [requestFeishuAuthCheck],授权结果
+     * 通过本事件回给 Screen(`Authorized` → 弹 dialog / 跳 sub-screen;
+     * `Unauthorized` → 弹未授权 dialog)。改 fire-and-forget 而非 suspend:
+     * Screen 端不持有 coroutine scope,屏幕旋转不会丢回调。
+     */
+    sealed class AuthCheckResult {
+        data object Authorized : AuthCheckResult()
+        data object Unauthorized : AuthCheckResult()
+    }
+
+    private val _importResultEvents = kotlinx.coroutines.flow.MutableSharedFlow<FeishuImportService.ImportResult>(
+        replay = 0,
+        extraBufferCapacity = 8
+    )
+    val importResultEvents: SharedFlow<FeishuImportService.ImportResult> = _importResultEvents.asSharedFlow()
+
+    private val _authCheckEvents = kotlinx.coroutines.flow.MutableSharedFlow<AuthCheckResult>(
+        replay = 0,
+        extraBufferCapacity = 4
+    )
+    val authCheckEvents: kotlinx.coroutines.flow.SharedFlow<AuthCheckResult> = _authCheckEvents.asSharedFlow()
+
+    /**
+     * feishu-import-from-folder:用户点 dropdown item 触发授权检查。
+     * 异步返回结果通过 [authCheckEvents] 通知 Screen。
+     */
+    fun requestFeishuAuthCheck() {
+        viewModelScope.launch {
+            val result = try {
+                feishuImportService.ensureAuthorized()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                false
+            }
+            _authCheckEvents.tryEmit(
+                if (result) AuthCheckResult.Authorized else AuthCheckResult.Unauthorized
+            )
+        }
+    }
+
+    /**
+     * 单文档导入。fire-and-forget,结果通过 [importResultEvents] 通知。
+     */
+    fun importSingleDoc(input: String) {
+        viewModelScope.launch {
+            val result = try {
+                feishuImportService.importSingleDoc(input)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                FeishuImportService.ImportResult.Failure("导入失败: ${e.javaClass.simpleName}")
+            }
+            _importResultEvents.tryEmit(result)
         }
     }
 

@@ -318,6 +318,12 @@ fun AppNav(
                 onBack = { navController.popBackStack() }
             )
         }
+        // feishu-import-from-folder:从文件夹导入 sub-screen
+        composable<FeishuFolderImport> {
+            com.yy.writingwithai.feature.feishuimport.FolderImportScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable(OnboardingEntry.ROUTE_CONSENT) {
             OnboardingRoute(
                 onExitApp = { /* OnboardingRoute 内部已 finishAffinity() */ }
@@ -396,6 +402,12 @@ data object SettingsAliasManagement
 /**
  * entity-extraction-polish §5.1:笔记关联设置 route(关联阈值 + 暂停 + 立即重跑 + 进度)。
  */
+/**
+ * feishu-import-from-folder:从文件夹导入 sub-screen route(纯 data object,无参数)。
+ */
+@Serializable
+data object FeishuFolderImport
+
 @Serializable
 data object SettingsNoteAssociation
 

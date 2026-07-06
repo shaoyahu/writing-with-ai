@@ -282,6 +282,9 @@ private fun SyncStatusChip(status: FeishuRefStatus, isDark: Boolean) {
         FeishuRefStatus.DIRTY -> stringResource(R.string.quicknote_feishu_status_dirty)
         FeishuRefStatus.CONFLICT -> stringResource(R.string.quicknote_feishu_status_conflict)
         FeishuRefStatus.REMOTE_DELETED -> stringResource(R.string.quicknote_feishu_status_remote_deleted)
+        // feishu-import-from-folder:导入部分图片失败的笔记
+        FeishuRefStatus.PARTIAL_IMPORT_FAIL ->
+            stringResource(R.string.quicknote_list_sync_status_partial_import_fail)
     }
     val (bg, fg) = syncStatusChipColors(status, isDark)
     Text(
@@ -318,6 +321,9 @@ private fun syncStatusChipColors(status: FeishuRefStatus, isDark: Boolean): Pair
         FeishuRefStatus.REMOTE_DELETED ->
             // 中性灰:低饱和,接近 surfaceVariant
             Color.hsl(220f, 0.08f, bgLightness) to Color.hsl(220f, 0.10f, fgLightness)
+        // feishu-import-from-folder:琥珀偏红,警告色,跟 DIRTY(35°) 区分但比 CONFLICT 弱
+        FeishuRefStatus.PARTIAL_IMPORT_FAIL ->
+            Color.hsl(20f, 0.55f, bgLightness) to Color.hsl(20f, 0.60f, fgLightness)
     }
 }
 

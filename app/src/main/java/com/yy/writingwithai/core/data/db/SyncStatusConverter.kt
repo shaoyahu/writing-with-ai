@@ -23,6 +23,8 @@ class SyncStatusConverter {
         "synced" -> SyncStatus.SYNCED
         "dirty" -> SyncStatus.DIRTY
         "conflict" -> SyncStatus.CONFLICT
+        // feishu-import-from-folder:从飞书导入部分图片失败的笔记
+        "partial_import_fail" -> SyncStatus.PARTIAL_IMPORT_FAIL
         else -> throw IllegalArgumentException("Unknown SyncStatus string in DB: $value")
     }
 }

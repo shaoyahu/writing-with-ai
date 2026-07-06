@@ -114,11 +114,57 @@ interface FeishuApiClient {
      * @param fileToken 文件 token(即 FeishuRefEntity.docId)
      */
     suspend fun deleteFile(fileToken: String)
+
+    // ---- feishu-import-from-folder:列文件夹文件清单 ----
+
+    /**
+     * 列文件夹下的文件清单(分页)。
+     *
+     * feishu-import-from-folder:`GET /open-apis/drive/v1/files?folder_token=...`
+     * 用于"从文件夹导入"批量入口。返回 `type` 字段原始字符串,业务层按 `type == "docx"` 过滤。
+     *
+     * @param folderToken 文件夹 token(必须是 fldcn* 类型,wiki token 走 [resolveFolderToken] 解析)
+     * @param pageSize 分页大小(默认 50,飞书最大 200)
+     * @param pageToken 分页游标(首次为 null)
+     */
+    suspend fun listFolder(folderToken: String, pageSize: Int = 50, pageToken: String? = null): ListFolderResponse
 }
 
 data class DocCreateResult(val docId: String, val docUrl: String)
 data class DocMetadata(val docId: String, val revisionId: String, val title: String)
 data class DocCreateResultV2(val docId: String, val docUrl: String, val revisionId: String)
+
+/**
+ * feishu-import-from-folder:listFolder 返回值。
+ *
+ * @param files 文件条目列表(`type` 字段原样返回,业务层自行过滤 docx)
+ * @param nextPageToken 下一页游标(hasMore=true 时携带,下次调用传入)
+ * @param hasMore 是否还有下一页
+ */
+data class ListFolderResponse(
+    val files: List<FolderFileEntry>,
+    val nextPageToken: String?,
+    val hasMore: Boolean
+)
+
+/**
+ * feishu-import-from-folder:listFolder 单个文件条目。
+ *
+ * 字段名严格对齐飞书响应(snake_case)。`type` 字段业务层需自己判定:
+ * - `docx` 新版文档
+ * - `doc` 旧版文档
+ * - `sheet` / `bitable` / `mindnote` / `file` / `slides` / `wiki` / `folder` / `shortcut` 等
+ */
+data class FolderFileEntry(
+    val name: String,
+    val token: String,
+    val type: String,
+    val url: String?,
+    val createdTime: String?,
+    val modifiedTime: String?,
+    val ownerId: String?,
+    val parentToken: String?
+)
 
 /**
  * resolveFolderToken 的返回值。

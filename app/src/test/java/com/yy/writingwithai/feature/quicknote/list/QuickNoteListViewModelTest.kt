@@ -42,10 +42,12 @@ class QuickNoteListViewModelTest {
         Dispatchers.setMain(testDispatcher)
         repository = mockk(relaxed = true)
         syncService = mockk(relaxed = true)
+        val importService = mockk<com.yy.writingwithai.core.feishu.sync.FeishuImportService>(relaxed = true)
         viewModel = QuickNoteListViewModel(
             appContext = ApplicationProvider.getApplicationContext<Context>(),
             repository = repository,
-            feishuSyncService = syncService
+            feishuSyncService = syncService,
+            feishuImportService = importService
         )
     }
 

@@ -562,6 +562,63 @@ constructor(
     }
 
     /**
+     * feishu-import-from-folder · 列文件夹下的文件清单(分页)。
+     *
+     * API: `GET /open-apis/drive/v1/files?folder_token={t}&page_size={n}&page_token={p}`
+     * 官方文档: https://open.feishu.cn/document/server-docs/docs/drive-v1/folder/list
+     *
+     * 响应 data.files: 文件条目数组,每条带 `type` 字段(docx / doc / sheet /
+     * bitable / folder / file / shortcut 等)。本方法不预过滤,业务层按
+     * `entry.type == "docx"` 自己挑。
+     *
+     * 分页:hasMore=true 时业务层循环调 nextPageToken 直到 hasMore=false。
+     */
+    override suspend fun listFolder(folderToken: String, pageSize: Int, pageToken: String?): ListFolderResponse =
+        withContext(Dispatchers.IO) {
+            val urlBuilder = HttpUrl.Builder()
+                .scheme("https")
+                .host(BASE_HOST)
+                .addPathSegments("open-apis/drive/v1/files")
+                .addQueryParameter("folder_token", folderToken)
+                .addQueryParameter("page_size", pageSize.toString())
+            if (!pageToken.isNullOrBlank()) {
+                urlBuilder.addQueryParameter("page_token", pageToken)
+            }
+            val request = Request.Builder()
+                .url(urlBuilder.build())
+                .get()
+                .build()
+            val resp = executeRequest(request)
+            val filesArray = resp.data["files"]?.jsonArray
+            val entries = filesArray?.mapNotNull { el ->
+                try {
+                    el.jsonObject.let { obj ->
+                        FolderFileEntry(
+                            name = obj.optionalString("name") ?: "",
+                            token = obj.optionalString("token") ?: return@mapNotNull null,
+                            type = obj.optionalString("type") ?: "",
+                            url = obj.optionalString("url"),
+                            createdTime = obj.optionalString("created_time"),
+                            modifiedTime = obj.optionalString("modified_time"),
+                            ownerId = obj.optionalString("owner_id"),
+                            parentToken = obj.optionalString("parent_token")
+                        )
+                    }
+                } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
+                } catch (_: Throwable) {
+                    // 单条 entry 解析失败不阻塞整体,跳过
+                    null
+                }
+            }.orEmpty()
+            ListFolderResponse(
+                files = entries,
+                nextPageToken = resp.data.optionalString("next_page_token"),
+                hasMore = resp.data["has_more"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false
+            )
+        }
+
+    /**
      * 构造飞书 API URL。
      *
      * 飞书所有 Open API 基地址为 `https://open.feishu.cn/open-apis/`,

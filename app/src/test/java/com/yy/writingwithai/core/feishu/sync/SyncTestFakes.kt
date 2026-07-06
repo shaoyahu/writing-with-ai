@@ -6,6 +6,7 @@ import com.yy.writingwithai.core.feishu.api.DocCreateResult
 import com.yy.writingwithai.core.feishu.api.DocMetadata
 import com.yy.writingwithai.core.feishu.api.FeishuApiClient
 import com.yy.writingwithai.core.feishu.api.FeishuError
+import com.yy.writingwithai.core.feishu.api.ListFolderResponse
 import com.yy.writingwithai.core.feishu.api.MediaUploadResult
 import com.yy.writingwithai.core.feishu.api.ResolvedFolderToken
 import com.yy.writingwithai.core.feishu.converter.MarkdownToXmlConverter
@@ -156,6 +157,10 @@ internal class FakeFeishuApiClient : FeishuApiClient {
         }
         deletedFileTokens += fileToken
     }
+
+    // feishu-import-from-folder:fake 不列文件夹
+    override suspend fun listFolder(folderToken: String, pageSize: Int, pageToken: String?): ListFolderResponse =
+        ListFolderResponse(files = emptyList(), nextPageToken = null, hasMore = false)
 }
 
 internal class FakeFeishuRefDao : FeishuRefDao {

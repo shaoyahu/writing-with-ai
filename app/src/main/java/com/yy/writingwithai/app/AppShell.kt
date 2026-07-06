@@ -125,7 +125,11 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
             composable<Notes> {
                 QuickNoteListScreen(
                     onNoteClick = { id -> rootNavController.navigate(QuicknoteDetail(id)) },
-                    onCreateClick = onCreateClick
+                    onCreateClick = onCreateClick,
+                    // feishu-import-from-folder:从文件夹导入 sub-screen 跳转
+                    onNavigateToFolderImport = { rootNavController.navigate(FeishuFolderImport) },
+                    // feishu-import-from-folder:未授权时跳飞书授权页
+                    onNavigateToFeishuAuth = { rootNavController.navigate(SettingsFeishu) }
                 )
             }
             composable<Me> {
