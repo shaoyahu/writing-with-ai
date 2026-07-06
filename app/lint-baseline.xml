@@ -13,6 +13,50 @@
     </issue>
 
     <issue
+        id="ApplySharedPref"
+        message="Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+        errorLine1="        prefs.edit().putString(KEY_SELECTION, selection.key).commit()"
+        errorLine2="                                                             ~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/core/i18n/LocaleStore.kt"
+            line="50"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="ApplySharedPref"
+        message="Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+        errorLine1="            p.edit().remove(keyFor(providerId)).commit()"
+        errorLine2="                                                ~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/core/prefs/SecureApiKeyStore.kt"
+            line="162"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="ApplySharedPref"
+        message="Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+        errorLine1="            p.edit().clear().commit()"
+        errorLine2="                             ~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/core/prefs/SecureApiKeyStore.kt"
+            line="170"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="ExifInterface"
+        message="Avoid using `android.media.ExifInterface`; use `androidx.exifinterface.media.ExifInterface` instead"
+        errorLine1="import android.media.ExifInterface"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/core/media/ImageCompressor.kt"
+            line="6"
+            column="8"/>
+    </issue>
+
+    <issue
         id="UnusedAttribute"
         message="Attribute `enableOnBackInvokedCallback` is only used in API level 33 and higher (current min is 26)"
         errorLine1="        android:enableOnBackInvokedCallback=&quot;true&quot;"
@@ -70,6 +114,28 @@
     <issue
         id="UnusedAttribute"
         message="Attribute `targetCellWidth` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellWidth=&quot;1&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/widget_info_1x1.xml"
+            line="6"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellHeight` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellHeight=&quot;1&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/widget_info_1x1.xml"
+            line="7"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellWidth` is only used in API level 31 and higher (current min is 26)"
         errorLine1="    android:targetCellWidth=&quot;4&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -101,6 +167,17 @@
     </issue>
 
     <issue
+        id="AppBundleLocaleChanges"
+        message="Found dynamic locale changes, but did not find corresponding Play Core library calls for downloading languages and splitting by language is not disabled in the `bundle` configuration"
+        errorLine1="        config.setLocale(locale)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/core/i18n/LocaleHelper.kt"
+            line="42"
+            column="9"/>
+    </issue>
+
+    <issue
         id="AndroidGradlePluginVersion"
         message="A newer version of com.android.application than 8.7.3 is available: 9.2.1"
         errorLine1="agp = &quot;8.7.3&quot;"
@@ -366,7 +443,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.06.00"
+        message="A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.06.01"
         errorLine1="compose-bom = &quot;2024.10.01&quot;"
         errorLine2="              ~~~~~~~~~~~~">
         <location
@@ -377,7 +454,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.06.00"
+        message="A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.06.01"
         errorLine1="compose-bom = &quot;2024.10.01&quot;"
         errorLine2="              ~~~~~~~~~~~~">
         <location
@@ -388,7 +465,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.06.00"
+        message="A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.06.01"
         errorLine1="compose-bom = &quot;2024.10.01&quot;"
         errorLine2="              ~~~~~~~~~~~~">
         <location
@@ -498,13 +575,35 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.datastore:datastore-preferences than 1.1.1 is available: 1.2.1"
-        errorLine1="datastore = &quot;1.1.1&quot;"
-        errorLine2="            ~~~~~~~">
+        message="A newer version of androidx.room:room-testing than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
         <location
             file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
-            line="23"
-            column="13"/>
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-testing than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.room:room-testing than 2.6.1 is available: 2.8.4"
+        errorLine1="room = &quot;2.6.1&quot;"
+        errorLine2="       ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="22"
+            column="8"/>
     </issue>
 
     <issue
@@ -531,7 +630,18 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.3.0"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.1.1 is available: 1.2.1"
+        errorLine1="datastore = &quot;1.1.1&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="23"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.4.0"
         errorLine1="hilt-navigation-compose = &quot;1.2.0&quot;"
         errorLine2="                          ~~~~~~~">
         <location
@@ -542,7 +652,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.3.0"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.4.0"
         errorLine1="hilt-navigation-compose = &quot;1.2.0&quot;"
         errorLine2="                          ~~~~~~~">
         <location
@@ -553,7 +663,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.3.0"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.2.0 is available: 1.4.0"
         errorLine1="hilt-navigation-compose = &quot;1.2.0&quot;"
         errorLine2="                          ~~~~~~~">
         <location
@@ -729,12 +839,45 @@
 
     <issue
         id="GradleDependency"
+        message="A newer version of androidx.browser:browser than 1.7.0 is available: 1.10.0"
+        errorLine1="browser = &quot;1.7.0&quot;"
+        errorLine2="          ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="57"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.browser:browser than 1.7.0 is available: 1.10.0"
+        errorLine1="browser = &quot;1.7.0&quot;"
+        errorLine2="          ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="57"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.browser:browser than 1.7.0 is available: 1.10.0"
+        errorLine1="browser = &quot;1.7.0&quot;"
+        errorLine2="          ~~~~~~~">
+        <location
+            file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
+            line="57"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
         message="A newer version of androidx.test:core-ktx than 1.6.1 is available: 1.7.0"
         errorLine1="androidx-test-core = { module = &quot;androidx.test:core-ktx&quot;, version = &quot;1.6.1&quot; }"
         errorLine2="                                                                    ~~~~~~~">
         <location
             file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
-            line="114"
+            line="120"
             column="69"/>
     </issue>
 
@@ -745,7 +888,7 @@
         errorLine2="                                                                    ~~~~~~~">
         <location
             file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
-            line="114"
+            line="120"
             column="69"/>
     </issue>
 
@@ -756,19 +899,8 @@
         errorLine2="                                                                    ~~~~~~~">
         <location
             file="$HOME/code/writing-with-ai/gradle/libs.versions.toml"
-            line="114"
+            line="120"
             column="69"/>
-    </issue>
-
-    <issue
-        id="ModifierParameter"
-        message="Modifier parameter should be the first optional parameter"
-        errorLine1="    modifier: Modifier = Modifier"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/com/yy/writingwithai/feature/quicknote/list/NoteRow.kt"
-            line="55"
-            column="5"/>
     </issue>
 
     <issue
@@ -778,7 +910,7 @@
         errorLine2="        ~~~~~~~~">
         <location
             file="src/main/java/com/yy/writingwithai/feature/settings/SettingsEntry.kt"
-            line="29"
+            line="28"
             column="9"/>
     </issue>
 
@@ -789,7 +921,73 @@
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/java/com/yy/writingwithai/feature/settings/SettingsScreen.kt"
-            line="46"
+            line="48"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ProduceStateDoesNotAssignValue"
+        message="produceState calls should assign `value` inside the producer lambda"
+        errorLine1="                val bitmap by produceState&lt;androidx.compose.ui.graphics.ImageBitmap?>("
+        errorLine2="                              ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/feature/quicknote/list/NoteRow.kt"
+            line="227"
+            column="31"/>
+    </issue>
+
+    <issue
+        id="ProduceStateDoesNotAssignValue"
+        message="produceState calls should assign `value` inside the producer lambda"
+        errorLine1="    val hasAiProvider by produceState(initialValue = false, key1 = secureApiKeyStore) {"
+        errorLine2="                         ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailScreen.kt"
+            line="187"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="ProduceStateDoesNotAssignValue"
+        message="produceState calls should assign `value` inside the producer lambda"
+        errorLine1="                                val bitmap by produceState&lt;androidx.compose.ui.graphics.ImageBitmap?>("
+        errorLine2="                                              ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailScreen.kt"
+            line="708"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;words&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;quicknote_detail_word_count_fmt&quot;>%1$d words&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="31"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;notes&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;settings_data_done&quot;>Done, %1$d notes&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="163"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;succeeded&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;import_report_summary&quot;>Import complete: %1$d succeeded / %2$d skipped / %3$d failed. See import_report.md for details.&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="170"
             column="5"/>
     </issue>
 
@@ -800,134 +998,87 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-en/strings.xml"
-            line="213"
+            line="257"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;models&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;model_management_models_summary_selected_fmt&quot;>%1$d models · Selected %2$s&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="500"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;models&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;model_management_models_summary_default_fmt&quot;>%1$d models&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="501"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;entities&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;note_decompose_found_fmt&quot;>%1$d entities found&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="605"
             column="5"/>
     </issue>
 
     <issue
         id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `aiwriting_panel_usage_fmt`; found both 0 here and 2 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;aiwriting_panel_usage_fmt&quot;>TODO(en): aiwriting_panel_usage_fmt&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="Inconsistent number of arguments in formatting string `feishu_sync_success_fmt`; found both 0 here and 1 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;feishu_sync_success_fmt&quot;>TODO(en): feishu_sync_success_fmt&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-en/strings.xml"
-            line="79"
+            line="609"
             column="5"/>
         <location
             file="src/main/res/values/strings.xml"
-            line="105"
-            column="5"
-            message="Conflicting number of arguments (2) here"/>
-    </issue>
-
-    <issue
-        id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `widget_open_note_cd`; found both 0 here and 1 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;widget_open_note_cd&quot;>TODO(en): widget_open_note_cd&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-en/strings.xml"
-            line="99"
-            column="5"/>
-        <location
-            file="src/main/res/values/strings.xml"
-            line="126"
-            column="5"
-            message="Conflicting number of arguments (1) here"/>
-    </issue>
-
-    <issue
-        id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `settings_data_done`; found both 0 here and 1 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;settings_data_done&quot;>TODO(en): settings_data_done&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-en/strings.xml"
-            line="112"
-            column="5"/>
-        <location
-            file="src/main/res/values/strings.xml"
-            line="139"
-            column="5"
-            message="Conflicting number of arguments (1) here"/>
-    </issue>
-
-    <issue
-        id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `settings_data_failed`; found both 0 here and 1 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;settings_data_failed&quot;>TODO(en): settings_data_failed&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-en/strings.xml"
-            line="113"
-            column="5"/>
-        <location
-            file="src/main/res/values/strings.xml"
-            line="140"
+            line="666"
             column="5"
             message="Conflicting number of arguments (1) here"/>
     </issue>
 
     <issue
         id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `settings_data_save_failed`; found both 0 here and 1 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;settings_data_save_failed&quot;>TODO(en): settings_data_save_failed&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="Inconsistent number of arguments in formatting string `feishu_sync_dialog_rate_limited_body`; found both 0 here and 1 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;feishu_sync_dialog_rate_limited_body&quot;>TODO(en): feishu_sync_dialog_rate_limited_body&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-en/strings.xml"
-            line="119"
+            line="626"
             column="5"/>
         <location
             file="src/main/res/values/strings.xml"
-            line="146"
+            line="683"
             column="5"
             message="Conflicting number of arguments (1) here"/>
     </issue>
 
     <issue
         id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `import_report_summary`; found both 0 here and 3 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;import_report_summary&quot;>TODO(en): import_report_summary&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="Inconsistent number of arguments in formatting string `feishu_sync_dialog_unknown_body`; found both 0 here and 1 in values/strings.xml"
+        errorLine1="    &lt;string name=&quot;feishu_sync_dialog_unknown_body&quot;>TODO(en): feishu_sync_dialog_unknown_body&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-en/strings.xml"
-            line="120"
+            line="628"
             column="5"/>
         <location
             file="src/main/res/values/strings.xml"
-            line="147"
-            column="5"
-            message="Conflicting number of arguments (3) here"/>
-    </issue>
-
-    <issue
-        id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `model_management_ping_success`; found both 0 here and 1 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;model_management_ping_success&quot;>TODO(en): model_management_ping_success&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-en/strings.xml"
-            line="163"
-            column="5"/>
-        <location
-            file="src/main/res/values/strings.xml"
-            line="194"
-            column="5"
-            message="Conflicting number of arguments (1) here"/>
-    </issue>
-
-    <issue
-        id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `model_management_ping_failed`; found both 0 here and 1 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;model_management_ping_failed&quot;>TODO(en): model_management_ping_failed&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-en/strings.xml"
-            line="164"
-            column="5"/>
-        <location
-            file="src/main/res/values/strings.xml"
-            line="195"
+            line="685"
             column="5"
             message="Conflicting number of arguments (1) here"/>
     </issue>
@@ -974,12 +1125,166 @@
 
     <issue
         id="UnusedResources"
+        message="The resource `R.string.quicknote_search_sort_time` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_search_sort_time&quot;>按时间&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="42"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_search_sort_relevance` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_search_sort_relevance&quot;>按相关性&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="43"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_search_history_clear` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_search_history_clear&quot;>清除搜索历史&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="45"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_list_select_mode_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_list_select_mode_title&quot;>已选 %1$d 篇&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="46"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_cloud_sync` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_cloud_sync&quot;>云同步&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="47"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_cloud_sync_status` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_cloud_sync_status&quot;>未配置&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="48"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_cloud_sync_connect` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_cloud_sync_connect&quot;>连接&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="49"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_list_export_selected` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_list_export_selected&quot;>导出选中&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="50"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
         message="The resource `R.string.quicknote_feishu_syncing` appears to be unused"
         errorLine1="    &lt;string name=&quot;quicknote_feishu_syncing&quot;>同步中…&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="38"
+            line="65"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_feishu_sync_success` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_feishu_sync_success&quot;>飞书同步成功&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="68"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_feishu_sync_fail` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_feishu_sync_fail&quot;>飞书同步失败&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="69"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_feishu_copy_link` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_feishu_copy_link&quot;>复制链接&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="70"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_feishu_copy_error` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_feishu_copy_error&quot;>复制错误&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="71"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.quicknote_feishu_close` appears to be unused"
+        errorLine1="    &lt;string name=&quot;quicknote_feishu_close&quot;>关闭&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="72"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.aiwriting_action_menu` appears to be unused"
+        errorLine1="    &lt;string name=&quot;aiwriting_action_menu&quot;>AI 操作&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="116"
             column="13"/>
     </issue>
 
@@ -990,7 +1295,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="125"
+            line="199"
             column="13"/>
     </issue>
 
@@ -1001,7 +1306,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="126"
+            line="200"
             column="13"/>
     </issue>
 
@@ -1012,7 +1317,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="127"
+            line="201"
             column="13"/>
     </issue>
 
@@ -1023,7 +1328,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="128"
+            line="202"
             column="13"/>
     </issue>
 
@@ -1034,7 +1339,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="129"
+            line="203"
             column="13"/>
     </issue>
 
@@ -1045,7 +1350,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="130"
+            line="204"
             column="13"/>
     </issue>
 
@@ -1056,29 +1361,40 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="131"
+            line="205"
             column="13"/>
     </issue>
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.settings_data_report_saved` appears to be unused"
-        errorLine1="    &lt;string name=&quot;settings_data_report_saved&quot;>报告已保存到所选位置&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="The resource `R.string.onboarding_accept` appears to be unused"
+        errorLine1="    &lt;string name=&quot;onboarding_accept&quot;>同意并继续&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="144"
+            line="226"
             column="13"/>
     </issue>
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.settings_data_save_failed` appears to be unused"
-        errorLine1="    &lt;string name=&quot;settings_data_save_failed&quot;>保存失败:%1$s&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="The resource `R.string.onboarding_reject` appears to be unused"
+        errorLine1="    &lt;string name=&quot;onboarding_reject&quot;>拒绝并退出&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="146"
+            line="227"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.onboarding_scroll_hint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;onboarding_scroll_hint&quot;>请滚动到底部以继续&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="228"
             column="13"/>
     </issue>
 
@@ -1089,7 +1405,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="171"
+            line="244"
             column="13"/>
     </issue>
 
@@ -1100,7 +1416,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="172"
+            line="245"
             column="13"/>
     </issue>
 
@@ -1111,7 +1427,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="173"
+            line="246"
             column="13"/>
     </issue>
 
@@ -1122,7 +1438,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="174"
+            line="247"
             column="13"/>
     </issue>
 
@@ -1133,7 +1449,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="175"
+            line="248"
             column="13"/>
     </issue>
 
@@ -1144,7 +1460,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="178"
+            line="251"
             column="13"/>
     </issue>
 
@@ -1155,7 +1471,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="179"
+            line="252"
             column="13"/>
     </issue>
 
@@ -1166,7 +1482,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="180"
+            line="253"
             column="13"/>
     </issue>
 
@@ -1177,7 +1493,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="181"
+            line="254"
             column="13"/>
     </issue>
 
@@ -1188,7 +1504,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="189"
+            line="262"
             column="13"/>
     </issue>
 
@@ -1199,7 +1515,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="190"
+            line="263"
             column="13"/>
     </issue>
 
@@ -1210,7 +1526,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="191"
+            line="264"
             column="13"/>
     </issue>
 
@@ -1221,7 +1537,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="196"
+            line="269"
             column="13"/>
     </issue>
 
@@ -1232,7 +1548,106 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="204"
+            line="277"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.note_association_signal_tag` appears to be unused"
+        errorLine1="    &lt;string name=&quot;note_association_signal_tag&quot;>标签&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="318"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.note_association_backlinks_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;note_association_backlinks_title&quot;>反向链接&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="321"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.note_association_signal_backlink` appears to be unused"
+        errorLine1="    &lt;string name=&quot;note_association_signal_backlink&quot;>引用&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="322"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.custom_provider_tag_custom` appears to be unused"
+        errorLine1="    &lt;string name=&quot;custom_provider_tag_custom&quot;>自定义&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="327"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.custom_provider_section_advanced` appears to be unused"
+        errorLine1="    &lt;string name=&quot;custom_provider_section_advanced&quot;>高级设置&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="332"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.custom_provider_base_url_helper` appears to be unused"
+        errorLine1="    &lt;string name=&quot;custom_provider_base_url_helper&quot;>Anthropic 兼容协议，需填入含 /v1/messages 路径的完整接口地址&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="340"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.custom_provider_endpoint_path_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;custom_provider_endpoint_path_label&quot;>Endpoint Path&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="361"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.custom_provider_endpoint_path_hint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;custom_provider_endpoint_path_hint&quot;>如:/chat/completions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="362"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.model_management_actual_call_using` appears to be unused"
+        errorLine1="    &lt;string name=&quot;model_management_actual_call_using&quot;>实际将使用: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="392"
             column="13"/>
     </issue>
 
@@ -1243,7 +1658,18 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="309"
+            line="400"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.model_provider_detail_api_format_openai` appears to be unused"
+        errorLine1="    &lt;string name=&quot;model_provider_detail_api_format_openai&quot;>OpenAI 兼容&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="405"
             column="13"/>
     </issue>
 
@@ -1254,29 +1680,18 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="317"
+            line="408"
             column="13"/>
     </issue>
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.entity_alias_merged_toast` appears to be unused"
-        errorLine1="    &lt;string name=&quot;entity_alias_merged_toast&quot;>已合并别名&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="The resource `R.string.entity_alias_management_desc` appears to be unused"
+        errorLine1="    &lt;string name=&quot;entity_alias_management_desc&quot;>合并小明 / 小名 / XiaoMing 等同一实体&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="326"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.entity_alias_unmerged_toast` appears to be unused"
-        errorLine1="    &lt;string name=&quot;entity_alias_unmerged_toast&quot;>已取消别名&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="327"
+            line="418"
             column="13"/>
     </issue>
 
@@ -1287,7 +1702,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="328"
+            line="425"
             column="13"/>
     </issue>
 
@@ -1298,7 +1713,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="329"
+            line="426"
             column="13"/>
     </issue>
 
@@ -1309,7 +1724,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="330"
+            line="427"
             column="13"/>
     </issue>
 
@@ -1320,7 +1735,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="331"
+            line="428"
             column="13"/>
     </issue>
 
@@ -1331,7 +1746,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="332"
+            line="429"
             column="13"/>
     </issue>
 
@@ -1342,7 +1757,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="333"
+            line="430"
             column="13"/>
     </issue>
 
@@ -1353,7 +1768,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="334"
+            line="431"
             column="13"/>
     </issue>
 
@@ -1364,7 +1779,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="335"
+            line="432"
             column="13"/>
     </issue>
 
@@ -1375,7 +1790,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="336"
+            line="433"
             column="13"/>
     </issue>
 
@@ -1386,7 +1801,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="337"
+            line="434"
             column="13"/>
     </issue>
 
@@ -1397,7 +1812,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="338"
+            line="435"
             column="13"/>
     </issue>
 
@@ -1408,7 +1823,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="339"
+            line="436"
             column="13"/>
     </issue>
 
@@ -1419,7 +1834,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="340"
+            line="437"
             column="13"/>
     </issue>
 
@@ -1430,7 +1845,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="341"
+            line="438"
             column="13"/>
     </issue>
 
@@ -1441,7 +1856,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="342"
+            line="439"
             column="13"/>
     </issue>
 
@@ -1452,8 +1867,393 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="343"
+            line="440"
             column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.tab_new_note` appears to be unused"
+        errorLine1="    &lt;string name=&quot;tab_new_note&quot;>+ 新建&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="446"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.me_settings_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;me_settings_title&quot;>设置&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="460"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feishu_auth_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feishu_auth_title&quot;>飞书授权&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="461"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feishu_command_prompt_intro` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feishu_command_prompt_intro&quot;>可用飞书操作:create_doc / read_doc / update_doc / append_block&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="462"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_title&quot;>v1 内测&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="581"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_howto` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_howto&quot;>本次为 5 人内测构建(自用 + 朋友)，仅 debug 通道分发，有意参与请联系作者本人。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="582"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_scope_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_scope_title&quot;>测试范围&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="583"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_scope_body` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_scope_body&quot;>5 名内测人员覆盖 5 类设备角色:小米 MIUI / 华为 HarmonyOS / OPPO ColorOS / vivo OriginOS / 其它，每人覆盖自己设备的 widget、预测式返回、AI 操作等差异。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="584"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_feedback_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_feedback_title&quot;>反馈渠道&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="585"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_feedback_body` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_feedback_body&quot;>请通过配置好的渠道反馈 bug，详见 docs/usage/feedback-channel.md。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="586"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_known_issues_hint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_known_issues_hint&quot;>反馈前请先查阅 docs/usage/known-issues.md，问题可能已被记录并附临时方案。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="587"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_apk_location` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_apk_location&quot;>从 nananxue.cn/app/debug/ 下载 APK&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="588"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_duration` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_duration&quot;>内测期为首版 APK 发布起 4 周，期满且无阻塞 bug 则出 release candidate。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="589"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_release_gate` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_release_gate&quot;>所有已知问题状态为 [resolved] / [won\&apos;t fix] / [deferred-accepted] 且反馈流 0 阻塞 bug，才打开 release 通道。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="590"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_provider_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_provider_label&quot;>真 provider 验证(DeepSeek)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="591"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.internal_testing_provider_body` appears to be unused"
+        errorLine1="    &lt;string name=&quot;internal_testing_provider_body&quot;>反馈 AI 操作 bug 前，请先按 docs/usage/real-provider-integration.md 的 DeepSeek 清单跑一遍。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="592"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.provider_step_1_install` appears to be unused"
+        errorLine1="    &lt;string name=&quot;provider_step_1_install&quot;>步骤 1:安装 debug APK，启动器显示小札图标。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="595"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.provider_step_2_consent` appears to be unused"
+        errorLine1="    &lt;string name=&quot;provider_step_2_consent&quot;>步骤 2:首次启动，滑到条款页底部，点击「同意并继续」。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="596"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.provider_step_3_apikey_intro` appears to be unused"
+        errorLine1="    &lt;string name=&quot;provider_step_3_apikey_intro&quot;>步骤 3:API Key 说明页，阅读后点击「知道了」。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="597"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.provider_step_4_note_and_ai` appears to be unused"
+        errorLine1="    &lt;string name=&quot;provider_step_4_note_and_ai&quot;>步骤 4:进入笔记，写一条笔记，打开详情，选中文字，点击 AI 按钮，弹出操作面板。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="598"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.provider_step_5_open_model_mgmt` appears to be unused"
+        errorLine1="    &lt;string name=&quot;provider_step_5_open_model_mgmt&quot;>步骤 5:进入「我的」→「设置」→「AI 模型管理」，确认有 4 张卡:DeepSeek / Minimax / MiMo / 自定义。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="599"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.provider_step_6_configure_deepseek` appears to be unused"
+        errorLine1="    &lt;string name=&quot;provider_step_6_configure_deepseek&quot;>步骤 6:点 DeepSeek 卡，API Key 栏为空，默认模型为 deepseek-v4-flash，粘贴 DeepSeek apikey 并保存，Toast 显示「已保存」。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="600"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.provider_step_7_trigger_expand` appears to be unused"
+        errorLine1="    &lt;string name=&quot;provider_step_7_trigger_expand&quot;>步骤 7:返回笔记详情，再次点 AI 按钮，选「扩写」，流式面板在秒级展示生成内容。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="601"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.provider_step_8_verify_history` appears to be unused"
+        errorLine1="    &lt;string name=&quot;provider_step_8_verify_history&quot;>步骤 8:可选 — 查看 ai_history 表或 logcat，确认 token 用量与耗时已落库。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="602"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.anim_style_preview_nav` appears to be unused"
+        errorLine1="    &lt;string name=&quot;anim_style_preview_nav&quot;>导航&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="622"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.anim_style_preview_tab` appears to be unused"
+        errorLine1="    &lt;string name=&quot;anim_style_preview_tab&quot;>标签&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="623"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_language_selected` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_language_selected&quot;>已选&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="655"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.note_decomposing` appears to be unused"
+        errorLine1="    &lt;string name=&quot;note_decomposing&quot;>正在拆解…&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="660"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feishu_sync_dialog_conflict_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feishu_sync_dialog_conflict_title&quot;>同步冲突&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="669"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feishu_sync_dialog_conflict_body` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feishu_sync_dialog_conflict_body&quot;>本地与飞书端都有修改，请选择保留哪一方&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="670"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feishu_sync_dialog_folder_migration_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feishu_sync_dialog_folder_migration_title&quot;>同步目标文件夹已变更&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="671"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feishu_sync_dialog_folder_migration_body` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feishu_sync_dialog_folder_migration_body&quot;>该笔记之前已同步到其他位置，当前文件夹设置已变更&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="672"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;quicknote_feishu_pull_url_label&quot;>https://bytedance.feishu.cn/docx/...&lt;/string>"
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="73"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;settings_data_exporting&quot;>Exporting...&lt;/string>"
+        errorLine2="                                           ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="161"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;settings_data_importing&quot;>Importing...&lt;/string>"
+        errorLine2="                                           ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="162"
+            column="44"/>
     </issue>
 
     <issue
@@ -1463,7 +2263,7 @@
         errorLine2="                                           ~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="137"
+            line="210"
             column="44"/>
     </issue>
 
@@ -1474,19 +2274,63 @@
         errorLine2="                                           ~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="138"
+            line="211"
             column="44"/>
     </issue>
 
     <issue
-        id="ConstantLocale"
-        message="Assigning `Locale.getDefault()` to a final static field is suspicious; this code will not work correctly if the user changes locale while the app is running"
-        errorLine1="private val DATE_TIME_FORMAT = SimpleDateFormat(&quot;yyyy-MM-dd HH:mm&quot;, Locale.getDefault())"
-        errorLine2="                                                                    ~~~~~~~~~~~~~~~~~~~">
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;quicknote_feishu_pull_url_label&quot;>https://bytedance.feishu.cn/docx/...&lt;/string>"
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailViewModel.kt"
-            line="240"
-            column="69"/>
+            file="src/main/res/values-en/strings.xml"
+            line="285"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;custom_provider_helper_openai&quot;>OpenAI Chat Completions 协议:body 含 messages 数组(无 system 顶层);SSE 事件 data: {choices: [...]}。baseUrl 填厂家文档的 base URL(不含 path),path `/chat/completions` 由协议自动拼。示例:DeepSeek = https://api.deepseek.com,Moonshot = https://api.moonshot.cn/v1。&lt;/string>"
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="346"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;custom_provider_helper_openai&quot;>OpenAI Chat Completions protocol: body includes messages array (no top-level system); SSE event data: {choices: [...]}. baseUrl is the manufacturer-documented base URL (path excluded); the /chat/completions path is auto-appended by the protocol. Examples: DeepSeek = https://api.deepseek.com, Moonshot = https://api.moonshot.cn/v1.&lt;/string>"
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en/strings.xml"
+            line="597"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="ByteOrderMark"
+        message="Found byte-order-mark in the middle of a file"
+        errorLine1="    // r2 修:用 ﻿ 转义取代字面量 BOM，避免 lint ByteOrderMark 报错。"
+        errorLine2="              ~">
+        <location
+            file="src/main/java/com/yy/writingwithai/core/ai/stream/SseParser.kt"
+            line="24"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="ByteOrderMark"
+        message="Found byte-order-mark in the middle of a file"
+        errorLine1="    private const val UTF8_BOM = &quot;﻿&quot;"
+        errorLine2="                                  ~">
+        <location
+            file="src/main/java/com/yy/writingwithai/core/ai/stream/SseParser.kt"
+            line="27"
+            column="35"/>
     </issue>
 
 </issues>
