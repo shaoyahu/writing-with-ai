@@ -154,6 +154,9 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
                             // ux-2026-06-28 P6:笔记关联设置专属路由
                             MeTabTarget.SettingsNoteAssociation -> rootNavController.navigate(SettingsNoteAssociation)
                             MeTabTarget.SettingsLanguage -> rootNavController.navigate(SettingsLanguage)
+                            // entity-management-and-ai-decompose §7.1 + §7.3
+                            MeTabTarget.EntityManagement -> rootNavController.navigate(EntityManagement)
+                            MeTabTarget.DeveloperOptions -> rootNavController.navigate(DeveloperOptions)
                         }
                     }
                 )

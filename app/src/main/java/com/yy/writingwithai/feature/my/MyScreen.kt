@@ -2,9 +2,11 @@
 
 package com.yy.writingwithai.feature.my
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,8 +43,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -54,6 +62,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.WritingAppTheme
+import com.yy.writingwithai.feature.my.devmode.DeveloperModeViewModel
+import com.yy.writingwithai.feature.my.entity.EntityManagementViewModel
+import kotlin.random.Random
+import kotlinx.coroutines.launch
 
 /**
  * app-bottom-tab-bar · "我的" tab 根屏:
@@ -81,14 +93,22 @@ fun MyScreen(
     onNavigate: (MeTabTarget) -> Unit,
     modifier: Modifier = Modifier,
     // ux-2026-06-28 #7:关于页「检查更新」VM。Hilt 默认注入，无外部依赖。
-    viewModel: CheckUpdateViewModel = hiltViewModel()
+    viewModel: CheckUpdateViewModel = hiltViewModel(),
+    // entity-management-and-ai-decompose §4.2:复用 EntityManagement VM 读 totalCount
+    entityMgmtVm: EntityManagementViewModel = hiltViewModel(),
+    // entity-management-and-ai-decompose §5.2:版本号点击开启开发者模式
+    devModeVm: DeveloperModeViewModel = hiltViewModel()
 ) {
     val cornerRadius = LocalCornerRadius.current
     val updateState by viewModel.state.collectAsStateWithLifecycle()
+    val entityState by entityMgmtVm.uiState.collectAsStateWithLifecycle()
+    val devModeEnabled by devModeVm.isEnabled.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     // ux-2026-06-28 #7:resolve 文案在 Composable 作用域，LaunchedEffect 内只消费已就绪字符串。
     val upToDateTemplate = stringResource(R.string.me_check_update_up_to_date_fmt)
     val failedText = stringResource(R.string.me_check_update_failed)
+    val devModeActivatedText = stringResource(R.string.dev_mode_activated)
     // ux-2026-06-28 #7:UpToDate / Failed → Snackbar 提示 + consume 回 Idle，避免重组再触发。
     LaunchedEffect(updateState) {
         when (val s = updateState) {
@@ -188,21 +208,12 @@ fun MyScreen(
                         onClick = { onNavigate(MeTabTarget.SettingsData) }
                     )
                     HorizontalDivider()
-                    // ux-2026-06-28 P6:飞书走专属路由 SettingsFeishu(不再走 Settings hub)
                     MyListItem(
                         title = stringResource(R.string.me_feishu_title),
                         icon = Icons.Filled.Cloud,
                         onClick = { onNavigate(MeTabTarget.SettingsFeishu) }
                     )
                     HorizontalDivider()
-                    // entity-extraction-association · 实体别名管理入口
-                    MyListItem(
-                        title = stringResource(R.string.me_alias_title),
-                        icon = Icons.Filled.LocalOffer,
-                        onClick = { onNavigate(MeTabTarget.SettingsAliasManagement) }
-                    )
-                    HorizontalDivider()
-                    // ux-2026-06-28 P6:笔记关联走专属路由 SettingsNoteAssociation
                     MyListItem(
                         title = stringResource(R.string.me_note_association_title),
                         icon = Icons.Filled.LocalOffer,
@@ -210,7 +221,35 @@ fun MyScreen(
                     )
                 }
             }
-            // Section 4 · 关于
+            // Section 4 · 进阶
+            item {
+                SectionHeader(stringResource(R.string.me_section_advanced))
+            }
+            item {
+                SectionCard(cornerRadius = cornerRadius.md) {
+                    MyListItem(
+                        title = stringResource(R.string.me_alias_title),
+                        icon = Icons.Filled.LocalOffer,
+                        onClick = { onNavigate(MeTabTarget.SettingsAliasManagement) }
+                    )
+                    HorizontalDivider()
+                    MyListItemWithBadge(
+                        title = stringResource(R.string.entity_management_title),
+                        icon = Icons.Filled.LocalOffer,
+                        badgeCount = entityState.totalCount,
+                        onClick = { onNavigate(MeTabTarget.EntityManagement) }
+                    )
+                    if (devModeEnabled) {
+                        HorizontalDivider()
+                        MyListItem(
+                            title = stringResource(R.string.dev_options_title),
+                            icon = Icons.Filled.SmartToy,
+                            onClick = { onNavigate(MeTabTarget.DeveloperOptions) }
+                        )
+                    }
+                }
+            }
+            // Section 5 · 关于
             item {
                 SectionHeader(stringResource(R.string.me_section_about))
             }
@@ -229,9 +268,14 @@ fun MyScreen(
                         onClick = { viewModel.check() }
                     )
                     HorizontalDivider()
-                    // 关于(版本号)纯展示，spec 明确不 navigate
-                    MyAboutItem(
-                        title = stringResource(R.string.me_about_title)
+                    // entity-management-and-ai-decompose §5.2:开发者模式 — 连续点击版本号随机 5-12 次开启
+                    MyVersionTapItem(
+                        onDeveloperModeActivated = {
+                            devModeVm.setEnabled(true)
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(message = devModeActivatedText)
+                            }
+                        }
                     )
                 }
             }
@@ -365,6 +409,100 @@ private fun MyAboutItem(title: String) {
                 tint = MaterialTheme.colorScheme.primary
             )
         }
+    )
+}
+
+/** entity-management-and-ai-decompose §4.2:带数字 badge 的列表项。 */
+@Composable
+private fun MyListItemWithBadge(title: String, icon: ImageVector, badgeCount: Int, onClick: () -> Unit) {
+    ListItem(
+        headlineContent = { Text(title) },
+        leadingContent = {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (badgeCount > 0) {
+                    Text(
+                        text = badgeCount.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
+
+/**
+ * entity-management-and-ai-decompose §5.2:点击版本号 N 次(5-12 随机)开启开发者模式。
+ *
+ * 每次点击:抖动 + 计数 +1,达随机目标 → 触发 onDeveloperModeActivated。
+ * Shake 用 [graphicsLayer] translationX 简单震荡实现(无第三方依赖)。
+ */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun MyVersionTapItem(onDeveloperModeActivated: () -> Unit) {
+    var tapCount by remember { mutableIntStateOf(0) }
+    var target by remember { mutableIntStateOf(Random.nextInt(5, 13)) }
+    var shakeSeed by remember { mutableIntStateOf(0) }
+    val coroutineScope = rememberCoroutineScope()
+    var offsetX by remember { mutableStateOf(0f) }
+    // 简化 shake:每次点击播一次 60ms 短动画
+    LaunchedEffect(shakeSeed) {
+        if (shakeSeed == 0) return@LaunchedEffect
+        val steps = 6
+        for (i in 0 until steps) {
+            offsetX = if (i % 2 == 0) 4f else -4f
+            kotlinx.coroutines.delay(10)
+        }
+        offsetX = 0f
+    }
+    val title = stringResource(R.string.me_about_title)
+    val version = "v" + com.yy.writingwithai.BuildConfig.VERSION_NAME
+    ListItem(
+        headlineContent = {
+            Text(
+                text = title,
+                modifier = Modifier.graphicsLayer { translationX = offsetX }
+            )
+        },
+        supportingContent = {
+            Text(
+                text = version,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.graphicsLayer { translationX = offsetX }
+            )
+        },
+        leadingContent = {
+            Icon(
+                Icons.Filled.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.graphicsLayer { translationX = offsetX }
+            )
+        },
+        modifier = Modifier
+            .clickable {
+                tapCount += 1
+                shakeSeed += 1
+                if (tapCount >= target) {
+                    tapCount = 0
+                    target = Random.nextInt(5, 13)
+                    onDeveloperModeActivated()
+                }
+            }
     )
 }
 

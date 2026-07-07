@@ -14,6 +14,8 @@ import com.yy.writingwithai.core.media.AttachmentStore
 import com.yy.writingwithai.core.media.ImageCompressor
 import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.note.entity.EntityExtractor
+import com.yy.writingwithai.core.note.entity.NoteEntityMatcher
+import com.yy.writingwithai.core.prefs.SecureApiKeyStore
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -52,6 +54,8 @@ class QuickNoteDetailViewModelTest {
     private lateinit var entityExtractor: EntityExtractor
     private lateinit var noteLinker: NoteLinker
     private lateinit var entityDao: NoteEntityDao
+    private lateinit var entityMatcher: NoteEntityMatcher
+    private lateinit var secureApiKeyStore: SecureApiKeyStore
 
     private val testNote = Note(
         id = "note-1",
@@ -86,6 +90,8 @@ class QuickNoteDetailViewModelTest {
         entityExtractor = mockk(relaxed = true)
         noteLinker = mockk(relaxed = true)
         entityDao = mockk(relaxed = true)
+        entityMatcher = mockk(relaxed = true)
+        secureApiKeyStore = mockk(relaxed = true)
 
         coEvery { feishuSyncService.getRef(any()) } returns null
     }
@@ -225,6 +231,8 @@ class QuickNoteDetailViewModelTest {
             imageCompressor = imageCompressor,
             entityExtractor = entityExtractor,
             noteLinker = noteLinker,
-            entityDao = entityDao
+            entityDao = entityDao,
+            entityMatcher = entityMatcher,
+            secureApiKeyStore = secureApiKeyStore
         )
 }

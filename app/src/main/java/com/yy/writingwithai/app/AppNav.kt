@@ -22,6 +22,10 @@ import com.yy.writingwithai.core.prefs.UserPrefsStore
 import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
 import com.yy.writingwithai.core.widget.WidgetLaunchRoute
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
+import com.yy.writingwithai.feature.my.devmode.DeveloperModeScreen
+import com.yy.writingwithai.feature.my.devmode.PromptEditorScreen
+import com.yy.writingwithai.feature.my.entity.EntityDetailScreen
+import com.yy.writingwithai.feature.my.entity.EntityManagementScreen
 import com.yy.writingwithai.feature.onboarding.ApikeyPromptRoute
 import com.yy.writingwithai.feature.onboarding.OnboardingEntry
 import com.yy.writingwithai.feature.onboarding.OnboardingRoute
@@ -324,6 +328,33 @@ fun AppNav(
                 onBack = { navController.popBackStack() }
             )
         }
+        // entity-management-and-ai-decompose §7.1:实体管理 list
+        composable<EntityManagement> {
+            EntityManagementScreen(
+                onBack = { navController.popBackStack() },
+                onEntityClick = { key -> navController.navigate(EntityDetail(key)) }
+            )
+        }
+        // §7.2:实体详情
+        composable<EntityDetail> { backStackEntry ->
+            val args = backStackEntry.toRoute<EntityDetail>()
+            EntityDetailScreen(
+                entityKey = args.entityKey,
+                onBack = { navController.popBackStack() },
+                onNavigateToNote = { id -> navController.navigate(QuicknoteDetail(id)) }
+            )
+        }
+        // §7.3:开发者选项
+        composable<DeveloperOptions> {
+            DeveloperModeScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToPromptEditor = { navController.navigate(PromptEditor) }
+            )
+        }
+        // §7.4:提示词编辑
+        composable<PromptEditor> {
+            PromptEditorScreen(onBack = { navController.popBackStack() })
+        }
         composable(OnboardingEntry.ROUTE_CONSENT) {
             OnboardingRoute(
                 onExitApp = { /* OnboardingRoute 内部已 finishAffinity() */ }
@@ -439,3 +470,19 @@ data object SettingsAnimationDetail
 /** ux-2026-06-28 P6:飞书授权页专属 route(不再走 Settings hub)。 */
 @Serializable
 data object SettingsFeishu
+
+/** entity-management-and-ai-decompose §7.1:实体管理 list route。 */
+@Serializable
+data object EntityManagement
+
+/** entity-management-and-ai-decompose §7.2:实体详情 route。 */
+@Serializable
+data class EntityDetail(val entityKey: String)
+
+/** entity-management-and-ai-decompose §7.3:开发者选项 route。 */
+@Serializable
+data object DeveloperOptions
+
+/** entity-management-and-ai-decompose §7.4:提示词编辑 route。 */
+@Serializable
+data object PromptEditor

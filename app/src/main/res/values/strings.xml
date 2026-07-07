@@ -452,6 +452,7 @@
     <string name="me_section_ai_config">AI 配置</string>
     <string name="me_section_display">显示</string>
     <string name="me_section_data">数据管理</string>
+    <string name="me_section_advanced">进阶</string>
     <string name="me_section_about">关于</string>
     <string name="me_data_title">数据导入导出</string>
     <string name="me_model_title">AI 模型管理</string>
@@ -729,4 +730,55 @@
 
     <!-- ===== entity-source-tagging · 实体来源标签 ===== -->
     <string name="entity_source_user_added">自定义</string>
+
+    <!-- ===== entity-management-and-ai-decompose ===== -->
+    <string name="entity_source_ai_extracted">AI 自动提取</string>
+    <string name="entity_management_title">实体管理</string>
+    <string name="entity_search_hint">搜索实体…</string>
+    <string name="entity_sort_cd">排序</string>
+    <string name="entity_sort_name">按名称排序</string>
+    <string name="entity_sort_note_count">按关联笔记数</string>
+    <string name="entity_sort_last_extracted">按最近出现</string>
+    <string name="entity_filter_all">全部</string>
+    <string name="entity_empty_state">暂无实体</string>
+    <string name="entity_delete_cd">删除</string>
+    <string name="entity_exit_selection_cd">退出选择</string>
+    <string name="entity_delete_confirm_ok">删除</string>
+    <string name="entity_delete_confirm_cancel">取消</string>
+    <string name="entity_batch_delete_title">批量删除</string>
+    <string name="entity_batch_delete_body_fmt">确定要删除选中的 %1$d 个实体吗？删除后所有关联笔记中的高亮将消失。</string>
+    <string name="entity_detail_title">实体详情</string>
+    <string name="entity_detail_no_associated">暂无关联笔记</string>
+    <string name="entity_detail_delete_title">删除实体</string>
+    <string name="entity_detail_delete_body_fmt">确定要删除实体「%1$s」吗？删除后所有关联笔记中的高亮将消失。</string>
+
+    <!-- §2.5 重新拆解确认 -->
+    <string name="entity_redecompose_confirm_title">重新拆解</string>
+    <string name="entity_redecompose_confirm_body">重新拆解将覆盖现有实体，确定吗？</string>
+    <string name="entity_redecompose_confirm_ok">重新拆解</string>
+    <string name="entity_redecompose_confirm_cancel">取消</string>
+
+    <!-- §2.6 全屏 loading 覆盖层 -->
+    <string name="entity_decomposing">正在拆解…</string>
+
+    <!-- §2.7 API key 缺失 -->
+    <string name="entity_apikey_missing_title">未配置 AI 模型</string>
+    <string name="entity_apikey_missing_body">拆解功能需要先配置 AI 模型 API key。</string>
+    <string name="entity_apikey_missing_go_settings">去设置</string>
+    <string name="entity_apikey_missing_cancel">取消</string>
+
+    <!-- §5 开发者模式 -->
+    <string name="dev_options_title">开发者选项</string>
+    <string name="dev_mode_activated">开发者模式已激活</string>
+    <string name="dev_options_enable_label">启用开发者模式</string>
+    <string name="dev_options_prompt_editor_title">编辑拆解提示词</string>
+    <string name="dev_options_prompt_editor_desc">自定义 AI 用于实体抽取的 system prompt</string>
+    <string name="dev_options_prompt_editor_open">编辑</string>
+
+    <string name="prompt_editor_title">提示词编辑</string>
+    <string name="prompt_editor_desc">该提示词将作为 AI 实体抽取的 system prompt</string>
+    <string name="prompt_editor_placeholder">请输入提示词…</string>
+    <string name="prompt_editor_save">保存</string>
+    <string name="prompt_editor_reset">恢复默认</string>
+    <string name="prompt_editor_saved">已保存</string>
 </resources>

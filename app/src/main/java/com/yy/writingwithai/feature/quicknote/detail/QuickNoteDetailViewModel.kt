@@ -17,6 +17,8 @@ import com.yy.writingwithai.core.feishu.sync.FolderMigrationChoice
 import com.yy.writingwithai.core.note.NoteLinker
 import com.yy.writingwithai.core.note.RelatedNote
 import com.yy.writingwithai.core.note.entity.EntityExtractor
+import com.yy.writingwithai.core.note.entity.NoteEntityMatcher
+import com.yy.writingwithai.core.prefs.SecureApiKeyStore
 import com.yy.writingwithai.core.ui.AiActionFabState
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
 import com.yy.writingwithai.feature.quicknote.model.ReadingTime
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -49,7 +52,11 @@ constructor(
     private val imageCompressor: com.yy.writingwithai.core.media.ImageCompressor,
     private val entityExtractor: EntityExtractor,
     private val noteLinker: NoteLinker,
-    private val entityDao: NoteEntityDao
+    private val entityDao: NoteEntityDao,
+    // entity-management-and-ai-decompose §2.4:打开笔记时自动匹配已有实体
+    private val entityMatcher: NoteEntityMatcher,
+    // entity-management-and-ai-decompose §2.7:拆解前 API key 检查
+    private val secureApiKeyStore: SecureApiKeyStore
 ) : ViewModel() {
     // H3 修:`requireNotNull` 在 process-death / 深链 / saved state 跨版本场景会 IAE crash。
     // 改为可空，缺失时直接进入 NotFound，避免进程崩溃。
@@ -610,6 +617,10 @@ constructor(
     fun loadCachedEntities() {
         val id = noteId ?: return
         viewModelScope.launch {
+            // entity-management-and-ai-decompose §2.4:打开笔记时先做一次本地已有实体匹配
+            // 不调 AI,纯 SQL LIKE/索引查询,影响忽略不计
+            val current = repository.observeNoteWithTags(id).first()?.note ?: return@launch
+            entityMatcher.matchAndPersist(id, current.content)
             val rows = entityDao.getByNoteId(id)
             // M5 fix:合并为单次更新，避免 _entityRows 和 _decomposeState 间出现不一致中间态
             _entityRows.value = rows
@@ -623,13 +634,33 @@ constructor(
         }
     }
 
-    /** 触发拆解：AI 抽取实体 → 重算关联 → 刷新实体列表。 */
-    fun decompose() {
+    /** 把 DecomposeState 重置回 Idle(用于 ApiKeyMissing 弹窗关闭后)。 */
+    fun resetDecomposeState() {
+        if (_decomposeState.value is DecomposeState.ApiKeyMissing ||
+            _decomposeState.value is DecomposeState.Error
+        ) {
+            _decomposeState.value = DecomposeState.Idle
+        }
+    }
+
+    /** 触发拆解：先检查 API key 配置,再 AI 抽取实体 → 重算关联 → 刷新实体列表。 */
+    fun decompose(forceReExtract: Boolean = false) {
         val id = noteId ?: return
         if (_decomposeState.value is DecomposeState.Loading) return
         viewModelScope.launch {
+            // entity-management-and-ai-decompose §2.7:拆解前检查 API key
+            val providers = secureApiKeyStore.observeConfiguredProviders().first()
+            val hasProvider = providers.isNotEmpty() || com.yy.writingwithai.BuildConfig.DEBUG
+            if (!hasProvider) {
+                _decomposeState.value = DecomposeState.ApiKeyMissing
+                return@launch
+            }
             _decomposeState.value = DecomposeState.Loading
             try {
+                // entity-management-and-ai-decompose §2.5:重新拆解先清掉旧实体
+                if (forceReExtract) {
+                    entityDao.deleteByNoteId(id)
+                }
                 val count = entityExtractor.extractAndPersist(id)
                 noteLinker.recomputeForNote(id)
                 // M5 fix:合并为单次更新，避免 _entityRows 和 _decomposeState 间出现不一致中间态
@@ -725,6 +756,9 @@ sealed interface SyncAction {
 sealed interface DecomposeState {
     data object Idle : DecomposeState
     data object Loading : DecomposeState
+
+    // entity-management-and-ai-decompose §2.7:未配置 API key 时进入此态,UI 弹错误对话框
+    data object ApiKeyMissing : DecomposeState
     data class Decomposed(val entityCount: Int) : DecomposeState
     data class Error(val message: String) : DecomposeState
 }

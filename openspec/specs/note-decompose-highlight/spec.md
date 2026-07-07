@@ -66,7 +66,10 @@ Synced from OpenSpec change `note-decompose-highlight`(2026-07-03)。
 
 #### Scenario: Click entity shows related notes
 - **WHEN** 用户点击正文中带下划线的实体文本
-- **THEN** 系统弹出 ModalBottomSheet，标题显示实体 surfaceForm + 实体类型，列表展示所有通过该实体关联的其他笔记
+- **THEN** 系统弹出 ModalBottomSheet，标题根据实体来源显示：
+  - 用户自定义实体（`source = USER_ADDED`）：`surfaceForm · 自定义`（中文）/ `surfaceForm · Custom`（英文）
+  - AI 提取实体（`source = AI_EXTRACTED`）：`surfaceForm · 本地化类型名`（如 `强化学习 · 概念`）
+  列表展示所有通过该实体关联的其他笔记
 
 #### Scenario: Related notes are ENTITY_HIT filtered
 - **WHEN** BottomSheet 展示关联笔记

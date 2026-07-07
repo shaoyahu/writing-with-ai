@@ -632,4 +632,45 @@
     <string name="feishu_sync_action_close">TODO(en): feishu_sync_action_close</string>
     <string name="feishu_sync_action_copy_error">TODO(en): feishu_sync_action_copy_error</string>
     <string name="feishu_sync_action_ack">TODO(en): feishu_sync_action_ack</string>
+
+    <!-- entity-management-and-ai-decompose -->
+    <string name="entity_source_ai_extracted">AI extracted</string>
+    <string name="entity_management_title">Entities</string>
+    <string name="entity_search_hint">Search entities…</string>
+    <string name="entity_sort_cd">Sort</string>
+    <string name="entity_sort_name">By name</string>
+    <string name="entity_sort_note_count">By note count</string>
+    <string name="entity_sort_last_extracted">By last seen</string>
+    <string name="entity_filter_all">All</string>
+    <string name="entity_empty_state">No entities yet</string>
+    <string name="entity_delete_cd">Delete</string>
+    <string name="entity_exit_selection_cd">Exit selection</string>
+    <string name="entity_delete_confirm_ok">Delete</string>
+    <string name="entity_delete_confirm_cancel">Cancel</string>
+    <string name="entity_batch_delete_title">Batch delete</string>
+    <string name="entity_batch_delete_body_fmt">Delete %1$d selected entities? Their highlights in linked notes will be removed.</string>
+    <string name="entity_detail_title">Entity details</string>
+    <string name="entity_detail_no_associated">No linked notes</string>
+    <string name="entity_detail_delete_title">Delete entity</string>
+    <string name="entity_detail_delete_body_fmt">Delete entity "%1$s"? Their highlights in linked notes will be removed.</string>
+    <string name="entity_redecompose_confirm_title">Re-decompose</string>
+    <string name="entity_redecompose_confirm_body">Re-decomposing will overwrite existing entities. Continue?</string>
+    <string name="entity_redecompose_confirm_ok">Re-decompose</string>
+    <string name="entity_redecompose_confirm_cancel">Cancel</string>
+    <string name="entity_decomposing">Decomposing…</string>
+    <string name="entity_apikey_missing_title">AI model not configured</string>
+    <string name="entity_apikey_missing_body">Decompose requires an AI model API key.</string>
+    <string name="entity_apikey_missing_go_settings">Go to settings</string>
+    <string name="entity_apikey_missing_cancel">Cancel</string>
+    <string name="dev_options_title">Developer options</string>
+    <string name="dev_options_enable_label">Enable developer mode</string>
+    <string name="dev_options_prompt_editor_title">Edit decompose prompt</string>
+    <string name="dev_options_prompt_editor_desc">Customize the AI system prompt used for entity extraction</string>
+    <string name="dev_options_prompt_editor_open">Edit</string>
+    <string name="prompt_editor_title">Prompt editor</string>
+    <string name="prompt_editor_desc">This prompt is used as the AI system prompt for entity extraction</string>
+    <string name="prompt_editor_placeholder">Enter prompt…</string>
+    <string name="prompt_editor_save">Save</string>
+    <string name="prompt_editor_reset">Reset to default</string>
+    <string name="prompt_editor_saved">Saved</string>
 </resources>

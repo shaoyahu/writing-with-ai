@@ -37,5 +37,11 @@ enum class MeTabTarget {
     SettingsNoteAssociation,
 
     /** language-switcher:APP 内语言切换入口 */
-    SettingsLanguage
+    SettingsLanguage,
+
+    /** entity-management-and-ai-decompose §4.2:实体管理入口 */
+    EntityManagement,
+
+    /** entity-management-and-ai-decompose §5.3:开发者选项入口(仅开发者模式启用时显示) */
+    DeveloperOptions
 }

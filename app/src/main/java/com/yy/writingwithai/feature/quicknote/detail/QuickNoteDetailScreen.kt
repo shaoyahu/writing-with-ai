@@ -70,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -78,7 +79,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -197,6 +197,8 @@ fun QuickNoteDetailScreen(
 
     var showPullDialog by remember { mutableStateOf(false) }
     var pullUrlInput by remember { mutableStateOf("") }
+    // entity-management-and-ai-decompose §2.5:重新拆解确认对话框
+    var showReDecomposeConfirm by rememberSaveable { mutableStateOf(false) }
 
     val current = state as? NoteDetailUiState.Content
     val noteId = current?.note?.note?.id
@@ -576,7 +578,9 @@ fun QuickNoteDetailScreen(
                                 modifier = Modifier.padding(vertical = LocalSpacing.current.sm)
                             )
                         }
-                        // note-decompose-highlight T4:实体下划线渲染 — M4 fix:用 EntityHighlight 替代 NoteEntityRow
+                        // entity-management-and-ai-decompose §3:蓝色字体 + 右上角 ✦ 十字星星
+                        // 用 SpanStyle(color = primaryColor) 标记实体文本,不再用 Underline。
+                        // 实体文本末尾直接追加 ✦ 字符(作为 AnnotatedString 的一部分)。
                         val currentNoteId = s.note.note.id
                         val contentText = s.note.note.content
                         val titleLen = s.note.note.title.length + 1 // +1 for "\n"
@@ -585,7 +589,7 @@ fun QuickNoteDetailScreen(
                         val entityHighlights = remember(entityRows, titleLen, contentLen) {
                             entityRows.mapNotNull { it.toHighlight(titleLen, contentLen) }
                         }
-                        val annotatedContent = remember(contentText, entityHighlights) {
+                        val annotatedContent = remember(contentText, entityHighlights, primaryColor) {
                             buildEntityAnnotatedString(contentText, entityHighlights, primaryColor)
                         }
                         // note-detail-polish:统一用 BasicTextField 渲染正文，无论有无实体。
@@ -1007,6 +1011,76 @@ fun QuickNoteDetailScreen(
         )
     }
 
+    // entity-management-and-ai-decompose §2.5:重新拆解确认对话框
+    if (showReDecomposeConfirm) {
+        AlertDialog(
+            onDismissRequest = { showReDecomposeConfirm = false },
+            title = { Text(stringResource(R.string.entity_redecompose_confirm_title)) },
+            text = { Text(stringResource(R.string.entity_redecompose_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showReDecomposeConfirm = false
+                    viewModel.decompose(forceReExtract = true)
+                }) { Text(stringResource(R.string.entity_redecompose_confirm_ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReDecomposeConfirm = false }) {
+                    Text(stringResource(R.string.entity_redecompose_confirm_cancel))
+                }
+            }
+        )
+    }
+
+    // entity-management-and-ai-decompose §2.7:API key 未配置时弹错误对话框
+    if (decomposeState is DecomposeState.ApiKeyMissing) {
+        AlertDialog(
+            onDismissRequest = { viewModel.resetDecomposeState() },
+            title = { Text(stringResource(R.string.entity_apikey_missing_title)) },
+            text = { Text(stringResource(R.string.entity_apikey_missing_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.resetDecomposeState()
+                    onNavigateToModelManagement()
+                }) { Text(stringResource(R.string.entity_apikey_missing_go_settings)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.resetDecomposeState() }) {
+                    Text(stringResource(R.string.entity_apikey_missing_cancel))
+                }
+            }
+        )
+    }
+
+    // entity-management-and-ai-decompose §2.6:全屏 loading 覆盖层
+    if (decomposeState is DecomposeState.Loading) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { /* 不允许点击外部关闭 */ },
+            properties = androidx.compose.ui.window.DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        ) {
+            androidx.compose.material3.Surface(
+                modifier = Modifier.size(160.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.entity_decomposing),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+
     // feishu-bidir-sync:sync result message
     // CR-FIX-M6:消费 SyncMessage sealed 事件，不再 startsWith("同步完成:") 解析。
     // feishu-sync-feedback · 成功 → Snackbar;失败 → 按 Failure 子类型渲染不同 Dialog。
@@ -1147,10 +1221,11 @@ private fun opKeyToRes(opKey: String): Int = when (opKey) {
 }
 
 /**
- * note-decompose-highlight T4:构建带实体下划线的 AnnotatedString。
+ * entity-management-and-ai-decompose §3:构建带实体高亮的 AnnotatedString。
  *
- * - [highlights] 已是纯 content 偏移（ViewModel 层完成 titleLen 映射）
- * - 重叠实体按 span 长度降序处理（最长优先），短 span 的 annotation 会被长 span 覆盖
+ * - 蓝色字体:`SpanStyle(color = primaryColor)`,不再用 Underline。
+ * - 实体文本末尾追加 ✦ 字符(作为普通文本的一部分)。
+ * - 重叠实体按 span 长度降序处理(最长优先),短 span 的 annotation 会被长 span 覆盖。
  */
 private fun buildEntityAnnotatedString(
     content: String,
@@ -1158,23 +1233,18 @@ private fun buildEntityAnnotatedString(
     primaryColor: androidx.compose.ui.graphics.Color
 ): AnnotatedString = buildAnnotatedString {
     append(content)
-    // 按 span 长度降序排列（最长优先）
     val sorted = highlights.sortedByDescending { it.contentEnd - it.contentStart }
-    // M3 fix:记录已被更长 span 占据的 offset 区间，避免重叠实体 annotation 歧义
     val claimed = mutableListOf<IntRange>()
     for (h in sorted) {
         val start = h.contentStart.coerceIn(0, content.length)
         val end = h.contentEnd.coerceIn(start, content.length)
         if (start >= end) continue
         addStyle(
-            style = SpanStyle(
-                textDecoration = TextDecoration.Underline,
-                color = primaryColor
-            ),
+            style = SpanStyle(color = primaryColor),
             start = start,
             end = end
         )
-        // 只给未被更长 span 完全覆盖的区间添加 annotation
+        // 完全未被更长 span 占据的区间才追加 StringAnnotation + ✦
         if (claimed.none { it.first <= start && it.last >= end }) {
             addStringAnnotation(
                 tag = "entity",
@@ -1182,7 +1252,17 @@ private fun buildEntityAnnotatedString(
                 start = start,
                 end = end
             )
+            // 在 entity 文本末尾追加 ✦(作为普通文本,用 SpanStyle 着色)
+            val starIndex = content.length
+            append(EntityCrossStarChar)
+            addStyle(
+                style = SpanStyle(color = primaryColor),
+                start = starIndex,
+                end = starIndex + EntityCrossStarChar.length
+            )
             claimed.add(start until end)
         }
     }
 }
+
+private const val EntityCrossStarChar: String = "✦"

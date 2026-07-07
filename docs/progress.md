@@ -2,6 +2,13 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log，单次评审查 `docs/reviews/`，规划查 `docs/plans/`。
 
+## 2026-07-07 · entity-source-tagging + feishu-sync-result-feedback-redesign 双 change sync + archive
+
+- **entity-source-tagging**:tasks 17/17 全勾,tasks 在 `git pull` 之前就完成。sync 1 个 MODIFIED scenario 进 `note-decompose-highlight/spec.md`(`Click entity shows related notes` 改按 `source` 分支显示标题)+ 新建 `entity-source-tagging/spec.md`(3 Requirement 涵盖 source 字段 + 本地化 + sheet title 格式);archive 到 `archive/2026-07-07-entity-source-tagging/`
+- **feishu-sync-result-feedback-redesign**:tasks 34/34 全勾,同样 `git pull` 前完成。sync 1 个 MODIFIED Requirement 进 `feishu-bidir-sync/spec.md`(`SyncMessage sealed interface expanded to typed Failure subtypes` + 2 scenario + 8-row FeishuError→Failure 映射表);新建 `feishu-sync-feedback/spec.md`(3 Requirement:成功 Snackbar + 失败 Dialog 分类 + 24 个 i18n key 列表);archive 到 `archive/2026-07-07-feishu-sync-result-feedback-redesign/`
+- **REMOVED 段评估**:delta 的 `REMOVED Requirements` 列了 3 条旧 Requirement(Push/Pull success 用 showSyncMessageDialog AlertDialog / Failure 用 single reason text) —— 但 main spec `feishu-bidir-sync/spec.md` 从未含这些旧条款(同步反馈流程一直没单独 spec 化,只在代码里),所以 REMOVED 是 no-op,无需删除
+- **build**:`:app:ktlintCheck :app:assembleDebug :app:testDebugUnitTest` BUILD SUCCESSFUL 27s,ktlint 0 violation,2 个 warning(`ClickableText` deprecation + `FeishuSyncLogSection` DateFormat safe call)都是已有 baseline 非本次引入
+
 ## 2026-07-07 · feishu-import-from-folder change 收口 + 归档
 
 - **能力**:列表页 TopAppBar 新增"飞书导入"dropdown ——「从文档导入」(单 doc link/token,弹 AlertDialog) + 「从文件夹导入」(全屏 sub-screen,列 docx 多选批量);每篇落本地笔记 + tag=`feishu` + 末尾"来源飞书"脚注 + 建 `feishu_ref` 行(为详情页后续 push/pull 留入口)

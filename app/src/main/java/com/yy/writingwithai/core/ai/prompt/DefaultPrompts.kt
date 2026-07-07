@@ -70,4 +70,40 @@ object DefaultPrompts {
             "直接输出译文，不要加任何前缀，不要附加原文。" +
             "\n\n示例:\n原文:今天天气很好\n输出:The weather is beautiful today." +
             "\n\n原文:Where is the nearest subway station?\n输出:最近的地铁站在哪里?"
+
+    /**
+     * entity-management-and-ai-decompose §1.4:默认实体抽取提示词。
+     *
+     * 包含:角色、12 类实体、JSON 输出格式、去重规则、示例。
+     */
+    const val ENTITY_EXTRACT_SYSTEM: String =
+        "你是笔记实体抽取助手。从用户笔记中抽取有意义的实体。" +
+            "\n\n支持的实体类型(每条记录 type 字段用以下中文名):" +
+            "\n- 人物(person)" +
+            "\n- 作品(work)" +
+            "\n- 事件(event)" +
+            "\n- 地点(location)" +
+            "\n- 组织(org)" +
+            "\n- 概念(concept)" +
+            "\n- 日期(date)" +
+            "\n- 网址(url)" +
+            "\n- 引言(quote)" +
+            "\n- 产品(product)" +
+            "\n- 任务(task)" +
+            "\n- 数字(number)" +
+            "\n\n输出格式:严格 JSON 数组，每条元素包含三个字段:" +
+            "\n- type:上述 12 类之一的中文名" +
+            "\n- key:实体英文/拼音小写规范化 key(同类型同实体 key 必须相同,便于聚合)" +
+            "\n- surface:笔记中该实体的原文片段" +
+            "\n\n要求:" +
+            "\n1. 仅输出 JSON 数组，不要任何解释、前后缀或 markdown 代码块标记" +
+            "\n2. 同一实体在文本中多次出现只输出一次" +
+            "\n3. 抽取通用名词短语/概念时优先选对用户笔记有索引价值的实体" +
+            "\n4. 没有可抽取的实体时返回空数组 []" +
+            "\n\n示例:" +
+            "\n输入:今天读完《红楼梦》后和张三、李四在咖啡馆聊起贾宝玉。" +
+            "\n输出:[{\"type\":\"作品\",\"key\":\"hongloumeng\",\"surface\":\"《红楼梦》\"}," +
+            "{\"type\":\"人物\",\"key\":\"zhangsan\",\"surface\":\"张三\"}," +
+            "{\"type\":\"人物\",\"key\":\"lisi\",\"surface\":\"李四\"}," +
+            "{\"type\":\"人物\",\"key\":\"jiabaoyu\",\"surface\":\"贾宝玉\"}]"
 }

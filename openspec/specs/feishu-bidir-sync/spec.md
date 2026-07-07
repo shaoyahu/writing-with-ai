@@ -172,3 +172,59 @@ QuickNote 详情 / 列表 UI MUST 把 `core/feishu/sync/FeishuSyncService` 的 p
 - **WHEN** `FeishuShareViewModel.pull` returns `SyncResult.Conflict`
 - **THEN** `FeishuConflictDialog` MUST show with 3 options:"保留本地"/"保留远端"/"取消";no option preselected;user MUST tap one to dismiss
 - **AND** "保留本地" overwrites remote with local;"保留远端" overwrites local with remote;"取消" leaves both sides unchanged
+
+### Requirement: SyncMessage sealed interface expanded to typed Failure subtypes
+
+The previous `SyncMessage` shape was:
+```kotlin
+sealed interface SyncMessage {
+    data class Success(val docUrl: String) : SyncMessage
+    data class Failure(val reason: String) : SyncMessage
+}
+```
+
+After this change, the shape MUST be:
+```kotlin
+sealed interface SyncMessage {
+    data class Success(val noteTitle: String, val docUrl: String) : SyncMessage
+    sealed interface Failure : SyncMessage {
+        data class Conflict(val noteId: String, val docId: String, val docUrl: String) : Failure
+        data class FolderMigration(
+            val noteId: String,
+            val docId: String,
+            val docUrl: String,
+            val currentFolderToken: String?,
+            val refFolderToken: String?
+        ) : Failure
+        data class RemoteDeleted(val noteId: String, val docId: String, val docUrl: String) : Failure
+        data object Empty : Failure
+        data class Network(val detail: String) : Failure
+        data class Server(val code: Int) : Failure
+        data class RateLimited(val retryAfterSeconds: Int) : Failure
+        data class Unknown(val cause: String) : Failure
+    }
+}
+```
+
+`QuickNoteDetailViewModel` catch blocks MUST map `FeishuError` subtypes 1:1 to `SyncMessage.Failure` subtypes:
+
+| FeishuError catch | SyncMessage.Failure |
+| --- | --- |
+| `FeishuError.Conflict` | `Failure.Conflict` |
+| `FeishuError.FolderTokenMismatch` | `Failure.FolderMigration` |
+| `FeishuError.NotFound` (from `updateDoc`) | `Failure.RemoteDeleted` |
+| `FeishuError.BadRequest` with msg "飞书端为空" | `Failure.Empty` |
+| `FeishuError.NetworkError` | `Failure.Network(detail)` |
+| `FeishuError.ServerError` | `Failure.Server(code)` |
+| `FeishuError.RateLimited` | `Failure.RateLimited(retryAfterSeconds)` |
+| any other `Throwable` (not CancellationException) | `Failure.Unknown(cause.toString())` |
+
+The previous `Failure(reason: String)` flat form is removed. Callers MUST switch on the typed subtype.
+
+#### Scenario: all FeishuError subtypes map 1:1
+- **WHEN** the new `QuickNoteDetailViewModel` is compiled
+- **THEN** each catch block above assigns to exactly the listed `Failure` subtype with no String-typed `Failure(reason)` call sites remaining
+
+#### Scenario: typed when is exhaustive
+- **WHEN** `QuickNoteDetailScreen` writes `when (val msg = syncMessage) { ... }`
+- **THEN** all 9 `SyncMessage` cases (1 Success + 8 Failure) are covered with no `else ->` fallback

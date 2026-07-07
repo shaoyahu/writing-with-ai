@@ -7,6 +7,7 @@ import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.db.entity.entity.NoteEntityRow
+import com.yy.writingwithai.core.data.repo.CustomPromptRepository
 import com.yy.writingwithai.core.prefs.SecureApiKeyStore
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,6 +28,9 @@ import kotlinx.serialization.json.jsonPrimitive
  *
  * 安全:用户 content 包含 `ignore previous instructions` / `忽略之前指令` 时跳过抽取，
  * 防止 prompt 注入(spec §8.2)。
+ *
+ * entity-management-and-ai-decompose §2.2:system prompt 改为从 [CustomPromptRepository]
+ * 读取(用户自定义 → 默认 → 内置 fallback)。
  */
 @Singleton
 class LlmEntityExtractor
@@ -35,7 +39,8 @@ constructor(
     private val noteDao: NoteDao,
     private val entityDao: NoteEntityDao,
     private val aiGateway: AiGateway,
-    private val secureApiKeyStore: SecureApiKeyStore
+    private val secureApiKeyStore: SecureApiKeyStore,
+    private val customPromptRepository: CustomPromptRepository
 ) : EntityExtractor {
 
     override suspend fun extractAndPersist(noteId: String, bypassRateLimit: Boolean): Int =
@@ -51,6 +56,9 @@ constructor(
                 ?: if (com.yy.writingwithai.BuildConfig.DEBUG) "fake" else return@withContext 0
             val apikey = if (providerId == "fake") "" else secureApiKeyStore.get(providerId) ?: return@withContext 0
 
+            // entity-management-and-ai-decompose §2.2:用 custom_prompts 表里的提示词
+            val systemPrompt = customPromptRepository.getEffectiveContent()
+
             // fix-2026-06-24-review-r1-critical:fence 用户内容防 prompt 注入
             val fencedContent = com.yy.writingwithai.core.ai.prompt.SafePromptTemplate
                 .fenceUserContent(content)
@@ -62,7 +70,7 @@ constructor(
                     providerId = providerId,
                     apikey = apikey,
                     modelName = null,
-                    systemPrompt = ENTITY_EXTRACT_SYSTEM_ZH
+                    systemPrompt = systemPrompt
                 ).collectText(MAX_CHARS)
             } catch (e: TokenLimitExceeded) {
                 android.util.Log.w("LlmEntityExtractor", "LLM output exceeded $MAX_CHARS chars; cap triggered")
@@ -117,6 +125,8 @@ constructor(
     }
 
     companion object {
+        // entity-management-and-ai-decompose §1.4:默认提示词作为内置 fallback
+        // 实际生效值由 [CustomPromptRepository.getEffectiveContent] 提供。
         const val ENTITY_EXTRACT_SYSTEM_ZH: String =
             "你是笔记实体抽取助手。从文本中抽取 PERSON / WORK / LOCATION 三类实体。" +
                 "每条输出 JSON 对象 {type,key,surface}，仅返回 JSON 数组，key 用小写英文。"
