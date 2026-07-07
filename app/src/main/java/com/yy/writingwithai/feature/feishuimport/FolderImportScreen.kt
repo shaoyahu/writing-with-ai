@@ -184,18 +184,20 @@ fun FolderImportScreen(onBack: () -> Unit, viewModel: FolderImportViewModel = hi
             }
 
             // feishu-import-from-folder:结果 dialog(仅显示失败数量)
+            // review 2026-07-07 Finding #11:原硬编码中文 → 走 strings.xml
             batchSummary?.let { summary ->
-                val okCount = summary.successCount + summary.partialCount
                 androidx.compose.material3.AlertDialog(
                     onDismissRequest = { batchSummary = null },
-                    title = { Text("导入完成") },
+                    title = { Text(stringResource(R.string.quicknote_list_import_batch_result_title)) },
                     text = {
                         Text(
-                            if (summary.failureCount == 0) {
-                                "成功导入 $okCount 篇笔记"
-                            } else {
-                                "成功 $okCount / 失败 ${summary.failureCount}"
-                            }
+                            // 三段格式(成功 X / 部分失败 Y / 失败 Z)直接复用已有 batch_result_fmt
+                            stringResource(
+                                R.string.quicknote_list_import_batch_result_fmt,
+                                summary.successCount,
+                                summary.partialCount,
+                                summary.failureCount
+                            )
                         )
                     },
                     confirmButton = {

@@ -699,6 +699,7 @@
     <string name="quicknote_list_import_dialog_title">从飞书导入文档</string>
     <string name="quicknote_list_import_dialog_hint">粘贴飞书文档链接或 token</string>
     <string name="quicknote_list_import_dialog_ok">导入</string>
+    <string name="quicknote_list_import_dialog_cancel">取消</string>
     <string name="quicknote_list_import_dialog_paste">粘贴</string>
     <string name="quicknote_list_import_unauthorized_title">未授权飞书账号</string>
     <string name="quicknote_list_import_unauthorized_msg">需要先在【我的】tab 完成飞书授权才能导入</string>
@@ -709,6 +710,8 @@
     <string name="quicknote_list_import_batch_loading_fmt">正在导入 %1$d/%2$d</string>
     <string name="quicknote_list_import_batch_result_fmt">成功 %1$d / 部分失败 %2$d / 失败 %3$d</string>
     <string name="quicknote_list_import_batch_result_ok">知道了</string>
+    <!-- review 2026-07-07 Finding #11:FolderImportScreen 结果 dialog 标题(原硬编码"导入完成") -->
+    <string name="quicknote_list_import_batch_result_title">导入完成</string>
 
     <!-- feishu-import-from-folder · FolderImportScreen -->
     <string name="folder_import_screen_title">从文件夹导入</string>

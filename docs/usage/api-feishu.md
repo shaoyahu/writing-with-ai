@@ -441,6 +441,45 @@
 
 > 本项目 `FeishuApiClient.uploadMedia` 在 `file.length() > 20 MB` 时直接抛 `FeishuError.BadRequest(0, "file > 20 MB, v1 不支持分片")` —— 上传不发出。
 
+### 4.4 列文件夹文件清单 (listFolder)
+
+- **URL**: `GET /open-apis/drive/v1/files?folder_token={t}&page_size={n}&page_token={p}`
+- **官方文档**: https://open.feishu.cn/document/server-docs/docs/drive-v1/folder/list
+- **认证**: user_access_token
+- **用途**: 本项目 `feishu-import-from-folder` 用 —— "从文件夹导入"批量入口先列 docx 清单,用户多选后再逐篇拉。
+
+| Query 参数 | 必填 | 说明 |
+|---|---|---|
+| `folder_token` | 是 | 文件夹 token(`fldcn...`);`wikcn...` 需先 `resolveFolderToken` 解析 |
+| `page_size` | 否 | 分页大小,默认 50,飞书最大 200 |
+| `page_token` | 否 | 分页游标,首次 `null`,`has_more=true` 时下次调用传入 `next_page_token` |
+
+- **响应** `data`:
+
+```json
+{
+  "files": [
+    {
+      "name": "标题",
+      "token": "doccnXXX 或 docxXXX 或 fldcnXXX",
+      "type": "docx | doc | sheet | bitable | folder | file | shortcut | ...",
+      "url": "https://my.feishu.cn/docx/doccnXXX",
+      "created_time": "1700000000",
+      "modified_time": "1700000000",
+      "owner_id": "ou_xxx",
+      "parent_token": "fldcnXXX"
+    }
+  ],
+  "next_page_token": "xxx",
+  "has_more": false
+}
+```
+
+- **本项目实现**: `FeishuApiClient.listFolder(folderToken, pageSize=50, pageToken=null)`,返回 `ListFolderResponse(files, nextPageToken, hasMore)`。
+- **字段名策略**: snake_case 跟飞书响应严格一致,**不**做驼峰转换(项目内统一在 `FolderFileEntry` data class 上做手工 `@SerialName` 映射)。
+- **过滤责任**: 本方法不预过滤 docx。`FeishuImportService.listFolderDocs` 调完后按 `entry.type == "docx"` 过滤再返回 `List<DocSummary>` 给 UI。
+- **错误码**: 走通用 `drive/v1` 错误码(见 §6.4)。典型: 10003 文件不存在、10006 文件夹无权限、99991xxxx 频率限制(本项目无重试,失败转 `Failure` 给 UI)。
+
 ---
 
 ## 5. Token 类型速查

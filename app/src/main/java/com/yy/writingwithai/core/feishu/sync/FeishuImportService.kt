@@ -1,6 +1,7 @@
 package com.yy.writingwithai.core.feishu.sync
 
 import android.util.Log
+import androidx.room.withTransaction
 import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
 import com.yy.writingwithai.core.data.db.entity.SyncStatus
@@ -68,9 +69,15 @@ constructor(
 
     /**
      * 用户是否已授权飞书 OAuth。
+     *
+     * 不仅检查 token 存在,还校验 expiresAt:飞书 access_token 2h 过期,
+     * snapshot.expiresAt < now 时认为已过期,避免让过期 token 通过授权检查
+     * 后续 API 调用才抛 AuthExpired(用户体验更糟)。
      */
     suspend fun ensureAuthorized(): Boolean {
-        return authStore.getAccessTokenSnapshot() != null
+        val snapshot = authStore.getAccessTokenSnapshot() ?: return false
+        // Pair<String, Long> = (token, expiresAt)
+        return snapshot.second > System.currentTimeMillis()
     }
 
     /**
@@ -113,7 +120,9 @@ constructor(
             do {
                 val resp = feishuApi.listFolder(resolved, pageSize = 50, pageToken = pageToken)
                 resp.files
-                    .filter { it.type == "docx" }
+                    // 飞书某些租户 / 子账号返 "Docx" / "DOCX" / "docx "(带空格) 等不规范值,
+                    // 严格 == 比较会全部 miss → listFolderDocs 返空 → UI 误报"未找到 docx"。
+                    .filter { it.type.trim().equals("docx", ignoreCase = true) }
                     .forEach { entry ->
                         all += DocSummary(
                             token = entry.token,
@@ -129,9 +138,18 @@ constructor(
 
     /**
      * 批量串行导入。每篇之间 sleep 200ms(避免触发飞书 5 QPS)。
+     *
+     * @param folderToken 父文件夹 token(透传到每篇 ref 行的 folderToken 字段,供未来按 folder 维度去重 / 分组)
+     * @param docTokens 要导入的文档 token 列表
+     * @param onProgress (完成数, 总数) 回调
+     *
+     * 失败模式:
+     * - 单篇失败 → ImportSummary.failureCount++ + failedDocTokens += token,不中断 batch
+     * - 任意一篇遇到 [FeishuError.AuthExpired](token 过期) → 终止 batch,后续所有 token 进 failedDocTokens,
+     *   避免 50 篇里 30 篇因同一过期 token 重复失败,用户分不清 token 过期 vs 单篇问题
      */
     suspend fun importFolderDocs(
-        folderToken: String,
+        folderToken: String?,
         docTokens: List<String>,
         onProgress: (Int, Int) -> Unit = { _, _ -> }
     ): ImportSummary {
@@ -143,7 +161,7 @@ constructor(
         var partialSuccess = 0
         var failure = 0
         for ((idx, token) in docTokens.withIndex()) {
-            val result = importOneDocx(token)
+            val result = importOneDocx(token, parentFolderToken = folderToken)
             when (result) {
                 is ImportResult.Success -> {
                     if (result.anyImageFailed) partialSuccess++ else fullSuccess++
@@ -156,6 +174,16 @@ constructor(
             }
             if (idx < docTokens.lastIndex) delay(BATCH_DELAY_MS)
             onProgress(idx + 1, docTokens.size)
+
+            // 批量中途 token 过期:终止后续所有 import,把剩余 token 全标失败。
+            if (result is ImportResult.Failure && result.reason.contains("授权已过期")) {
+                val remaining = docTokens.drop(idx + 1)
+                failed.addAll(remaining)
+                failure += remaining.size
+                Log.w(TAG, "importFolderDocs: AuthExpired at idx=$idx, abort batch (${remaining.size} docs skipped)")
+                onProgress(docTokens.size, docTokens.size)
+                break
+            }
         }
         return ImportSummary(
             totalRequested = docTokens.size,
@@ -168,102 +196,120 @@ constructor(
 
     // ---- 核心:导入单篇 docx ----
 
-    private suspend fun importOneDocx(docToken: String): ImportResult = withContext(Dispatchers.IO) {
-        try {
-            // 1. resolveFolderToken — 处理 wiki / 其他类型 token(失败降级)
-            val resolved = runCatching { feishuApi.resolveFolderToken(docToken) }
-                .getOrElse { ResolvedFolderToken(docToken, null, false) }
-            val realDocToken = resolved.token
+    /**
+     * @param parentFolderToken 父文件夹 token(批量导入时透传;单文档导入传 null)
+     */
+    private suspend fun importOneDocx(docToken: String, parentFolderToken: String? = null): ImportResult =
+        withContext(Dispatchers.IO) {
+            try {
+                // 1. resolveFolderToken — 处理 wiki / 其他类型 token。
+                // AuthExpired 不吞:让上层 catch 收到正确错误,触发 UI 重授权提示。
+                // 其他 FeishuError 也透传(原版 runCatching 吞所有 → 部分失败被吞成原 token 重试)。
+                val resolved = try {
+                    feishuApi.resolveFolderToken(docToken)
+                } catch (e: FeishuError) {
+                    // 不可降级的错误直接抛;可降级(IO / Network)走原 token 兜底
+                    if (e is FeishuError.AuthExpired || e is FeishuError.Forbidden) throw e
+                    if (e is FeishuError.NotFound) throw e
+                    ResolvedFolderToken(docToken, null, false)
+                }
+                val realDocToken = resolved.token
 
-            // 2. fetch markdown
-            val markdown = feishuApi.fetchDocumentV2(realDocToken)
+                // 2. fetch markdown
+                val markdown = feishuApi.fetchDocumentV2(realDocToken)
 
-            // 3. 拿标题 — v1 getDocument 提供 title;失败时从 markdown 第一行取
-            val title = runCatching { feishuApi.getDocument(realDocToken).title }
-                .getOrNull()
-                ?.takeIf { it.isNotBlank() }
-                ?: extractTitleFromMarkdown(markdown)
-                ?: "未命名笔记"
+                // 3. 拿 title + revision — 优先 v1 getDocument;失败时从 markdown 第一行取 title
+                val meta = runCatching { feishuApi.getDocument(realDocToken) }.getOrNull()
+                val title = meta?.title?.takeIf { it.isNotBlank() }
+                    ?: extractTitleFromMarkdown(markdown)
+                    ?: "未命名笔记"
+                // revision 用 v1 真实 revisionId(供双向同步 conflict detection);拿不到时 fallback "0"
+                // 避免空字符串导致 FeishuSyncService 误判 CONFLICT(Finding #3)
+                val remoteRevision = meta?.revisionId?.takeIf { it.isNotBlank() } ?: "0"
 
-            // 4. 准备 noteId + 下载图片
-            val noteId = UUID.randomUUID().toString()
-            val dl = imageDownloader.downloadAndInline(markdown, noteId, httpClient)
+                // 4. 准备 noteId + 下载图片
+                val noteId = UUID.randomUUID().toString()
+                val dl = imageDownloader.downloadAndInline(markdown, noteId, httpClient)
 
-            // 5. 构造 note + 落库
-            val now = System.currentTimeMillis()
-            val docUrl = "https://my.feishu.cn/docx/$realDocToken"
-            val anyImageFailed = dl.failedUrls.isNotEmpty()
-            val note = Note(
-                id = noteId,
-                title = title,
-                content = dl.updatedMarkdown + "\n\n---\n来源飞书: $docUrl",
-                createdAt = now,
-                updatedAt = now,
-                isPinned = false,
-                lastAiOp = null,
-                lastAiAt = null,
-                syncRevision = null,
-                syncStatus = if (anyImageFailed) SyncStatus.PARTIAL_IMPORT_FAIL else SyncStatus.SYNCED,
-                lastSyncedAt = now
-            )
-            noteRepository.upsert(note, tags = listOf("feishu"))
-
-            // 6. 写附件 + ref + event(在 note 落库后)
-            if (dl.attachments.isNotEmpty()) {
-                dl.attachments.forEach { attachmentDao.insert(it) }
-            }
-            val refStatus = if (anyImageFailed) {
-                FeishuRefStatus.PARTIAL_IMPORT_FAIL
-            } else {
-                FeishuRefStatus.SYNCED
-            }
-            refDao.upsert(
-                FeishuRefEntity(
-                    noteId = noteId,
-                    docId = realDocToken,
-                    docUrl = docUrl,
-                    lastSyncedAt = now,
-                    syncDirection = SyncDirection.PULL,
-                    localRevision = now,
-                    remoteRevision = "",
-                    status = refStatus,
-                    folderToken = null
+                // 5. 构造 note + 落库 + 跨 DAO 写入(必须在同一事务内,避免半成品孤儿笔记)
+                val now = System.currentTimeMillis()
+                val docUrl = "https://my.feishu.cn/docx/$realDocToken"
+                val anyImageFailed = dl.failedUrls.isNotEmpty()
+                val note = Note(
+                    id = noteId,
+                    title = title,
+                    content = dl.updatedMarkdown + "\n\n---\n来源飞书: $docUrl",
+                    createdAt = now,
+                    updatedAt = now,
+                    isPinned = false,
+                    lastAiOp = null,
+                    lastAiAt = null,
+                    syncRevision = null,
+                    syncStatus = if (anyImageFailed) SyncStatus.PARTIAL_IMPORT_FAIL else SyncStatus.SYNCED,
+                    lastSyncedAt = now
                 )
-            )
+                noteRepository.upsert(note, tags = listOf("feishu"))
 
-            // 7. 记 IMAGE_FAIL_PARTIAL event(每张失败图一条)
-            if (anyImageFailed) {
-                dl.failedUrls.forEach { url ->
-                    eventDao.insert(
-                        FeishuSyncEventEntity(
-                            id = UUID.randomUUID().toString(),
+                // 跨 DAO 事务:note (已落库 by NoteRepository) + attachment + ref + event 全包。
+                // 任意一段 throw → 整个事务回滚,包括 noteRepository.upsert 的影响 —— NoteRepository
+                // 自身也走 db.withTransaction,所以整体能原子化(因为 AppDatabase 是单例,所有 DAO
+                // 共享同一连接)。
+                val refStatus = if (anyImageFailed) {
+                    FeishuRefStatus.PARTIAL_IMPORT_FAIL
+                } else {
+                    FeishuRefStatus.SYNCED
+                }
+                db.withTransaction {
+                    if (dl.attachments.isNotEmpty()) {
+                        dl.attachments.forEach { attachmentDao.insert(it) }
+                    }
+                    refDao.upsert(
+                        FeishuRefEntity(
                             noteId = noteId,
-                            direction = SyncDirection.PULL,
-                            status = "IMAGE_FAIL_PARTIAL",
-                            errorMessage = "图片下载失败: $url",
-                            createdAt = now
+                            docId = realDocToken,
+                            docUrl = docUrl,
+                            lastSyncedAt = now,
+                            syncDirection = SyncDirection.PULL,
+                            localRevision = now,
+                            remoteRevision = remoteRevision,
+                            status = refStatus,
+                            folderToken = parentFolderToken
                         )
                     )
+                    // 7. 记 IMAGE_FAIL_PARTIAL event(每张失败图一条)
+                    if (anyImageFailed) {
+                        dl.failedUrls.forEach { url ->
+                            eventDao.insert(
+                                FeishuSyncEventEntity(
+                                    id = UUID.randomUUID().toString(),
+                                    noteId = noteId,
+                                    direction = SyncDirection.PULL,
+                                    status = "IMAGE_FAIL_PARTIAL",
+                                    errorMessage = "图片下载失败: $url",
+                                    createdAt = now
+                                )
+                            )
+                        }
+                    }
                 }
+                ImportResult.Success(noteId = noteId, docId = realDocToken, anyImageFailed = anyImageFailed)
+            } catch (e: FeishuError.NotFound) {
+                ImportResult.Failure("文档不存在或已删除")
+            } catch (e: FeishuError.AuthExpired) {
+                ImportResult.Failure("飞书授权已过期,请重新授权")
+            } catch (e: FeishuError.Forbidden) {
+                ImportResult.Failure("无权限访问该文档")
+            } catch (e: FeishuError.BadRequest) {
+                ImportResult.Failure("请求被拒绝(${e.code}): ${e.msg}")
+            } catch (e: FeishuError.NetworkError) {
+                ImportResult.Failure("网络错误: ${e.detail}")
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Log.e(TAG, "importOneDocx: unexpected error for $docToken", e)
+                ImportResult.Failure("未知错误: ${e.javaClass.simpleName}")
             }
-            ImportResult.Success(noteId = noteId, docId = realDocToken, anyImageFailed = anyImageFailed)
-        } catch (e: FeishuError.NotFound) {
-            ImportResult.Failure("文档不存在或已删除")
-        } catch (e: FeishuError.AuthExpired) {
-            ImportResult.Failure("飞书授权已过期,请重新授权")
-        } catch (e: FeishuError.Forbidden) {
-            ImportResult.Failure("无权限访问该文档")
-        } catch (e: FeishuError.BadRequest) {
-            ImportResult.Failure("请求被拒绝(${e.code}): ${e.msg}")
-        } catch (e: FeishuError.NetworkError) {
-            ImportResult.Failure("网络错误: ${e.detail}")
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Throwable) {
-            Log.e(TAG, "importOneDocx: unexpected error for $docToken", e)
-            ImportResult.Failure("未知错误: ${e.javaClass.simpleName}")
         }
-    }
 
     private fun extractTitleFromMarkdown(markdown: String): String? {
         val firstLine = markdown.lineSequence().firstOrNull { it.isNotBlank() } ?: return null

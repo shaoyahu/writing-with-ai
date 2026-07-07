@@ -9,6 +9,7 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 
 /**
@@ -143,6 +144,25 @@ constructor(
                 docService.createDoc(note, folderToken)
             }
             ref
+        }.also {
+            // review 2026-07-07 Finding #13:push 成功后重置 Note.syncStatus。
+            // Note 表的 syncStatus 决定 NoteRow chip 颜色;PARTIAL_IMPORT_FAIL 笔记 push 成功后
+            // ref 已被 docService.updateDoc 内部 reset 为 SYNCED,但 Note 行仍是 PARTIAL_IMPORT_FAIL,
+            // chip 颜色与 ref 真实状态不一致。pull 路径(SyncService.pull)已统一重置;push 路径补齐。
+            // 注意 upsert 内部走 removeAllForNote + add* —— 必须先取现有 tags,否则会清空。
+            // review 2026-07-07 Finding #13
+            val partialImportFail = com.yy.writingwithai.core.data.db.entity.SyncStatus.PARTIAL_IMPORT_FAIL
+            // firstOrNull:Flow 可能是空(单测 Fake Repository / 边界情况),不能用 first() 否则抛 NoSuchElementException。
+            val currentNoteWithTags = noteRepository.observeNoteWithTags(noteId).firstOrNull()
+            if (currentNoteWithTags != null && currentNoteWithTags.note.syncStatus == partialImportFail) {
+                noteRepository.upsert(
+                    note = currentNoteWithTags.note.copy(
+                        syncStatus = com.yy.writingwithai.core.data.db.entity.SyncStatus.SYNCED,
+                        lastSyncedAt = System.currentTimeMillis()
+                    ),
+                    tags = currentNoteWithTags.tags
+                )
+            }
         }
     }
 

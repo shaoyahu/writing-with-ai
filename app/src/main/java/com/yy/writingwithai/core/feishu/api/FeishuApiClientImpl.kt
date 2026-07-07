@@ -313,6 +313,21 @@ constructor(
 
     private fun JsonObject.optionalString(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
 
+    /**
+     * 飞书不同租户 / 子账号 / 不同 SDK 版本可能返 `"true"`/`"false"`(标准 JSON)
+     * 或 `"1"`/`"0"`(部分 web 协议兼容形态),用 [String.toBooleanStrict] 严格解析会
+     * 把 `"1"`/`"0"` 误为 null → 走默认值 → 分页截断(bug fix 2026-07-07 Finding #5)。
+     * 此 helper 兼容两种形态;空白 / 未知值走 [default]。
+     */
+    private fun JsonObject.optionalBoolean(key: String, default: Boolean = false): Boolean {
+        val raw = this[key]?.jsonPrimitive?.contentOrNull?.trim()?.lowercase() ?: return default
+        return when (raw) {
+            "true", "1" -> true
+            "false", "0" -> false
+            else -> default
+        }
+    }
+
     private fun emptyJsonObject(): JsonObject = buildJsonObject { }
 
     // ---- v2 docs_ai/v1(XML format，参考 larksuite/cli) ----
@@ -614,7 +629,7 @@ constructor(
             ListFolderResponse(
                 files = entries,
                 nextPageToken = resp.data.optionalString("next_page_token"),
-                hasMore = resp.data["has_more"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false
+                hasMore = resp.data.optionalBoolean("has_more", default = false)
             )
         }
 

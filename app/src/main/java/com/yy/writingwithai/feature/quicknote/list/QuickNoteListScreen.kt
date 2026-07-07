@@ -66,6 +66,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -160,12 +161,17 @@ fun QuickNoteListScreen(
             }
         }
     }
-    // 收到授权检查结果时弹相应 dialog / 跳 sub-screen(用 lastHandledAuthCheck 防重复触发)
-    var lastHandledAuthCheck by remember { mutableStateOf<QuickNoteListViewModel.AuthCheckResult?>(null) }
-    var pendingAuthTarget by remember { mutableStateOf<String?>(null) }
+    // 收到授权检查结果时弹相应 dialog / 跳 sub-screen(用 lastHandledAuthName 防重复触发)
+    // review 2026-07-07 Finding #12:改用 rememberSaveable + AuthCheckResult 子类 simpleName
+    // (String 是 Saveable 默认支持类型),避免屏幕旋转后状态丢失 → 配合 SharedFlow(replay=0)
+    // 不重发 → 首次授权请求事件丢失。sealed class 没 ordinal,改用类名比对。
+    // pendingAuthTarget 同理。
+    var lastHandledAuthName by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingAuthTarget by rememberSaveable { mutableStateOf<String?>(null) }
     val currentAuth = authCheckEvent
-    if (currentAuth != null && currentAuth != lastHandledAuthCheck) {
-        lastHandledAuthCheck = currentAuth
+    val currentAuthName = currentAuth?.let { it::class.simpleName }
+    if (currentAuth != null && currentAuthName != lastHandledAuthName) {
+        lastHandledAuthName = currentAuthName
         when (currentAuth) {
             QuickNoteListViewModel.AuthCheckResult.Authorized -> {
                 if (pendingAuthTarget == "folder") {
@@ -641,7 +647,7 @@ fun QuickNoteListScreen(
                             showImportDocDialog = false
                             importInput = ""
                         }) {
-                            Text("取消")
+                            Text(stringResource(R.string.quicknote_list_import_dialog_cancel))
                         }
                     }
                 )

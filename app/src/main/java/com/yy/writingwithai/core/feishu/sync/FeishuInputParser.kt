@@ -59,18 +59,47 @@ object FeishuInputParser {
             return ParsedToken.UnsupportedHost(host)
         }
 
-        // path 取 scheme 后到 query/fragment 前
+        // path 取 scheme 后到 query/fragment 前(无前导 `/`)
+        // 例如 https://my.feishu.cn/drive/folder/ABC → path = "drive/folder/ABC"
         val path = afterScheme.substringAfter("/").substringBefore("?").substringBefore("#")
-        val lastSegment = path.trim('/').substringAfterLast('/')
-        if (lastSegment.isEmpty()) {
-            return ParsedToken.Malformed("url missing token segment")
+        if (path.isBlank()) {
+            return ParsedToken.Malformed("url missing path")
         }
 
+        // 按段解析:每种 path 形态取 token 段(防 `wiki/TOKEN/comments/123` 取到尾段 `123`)
         return when {
-            path.contains("/drive/folder/", ignoreCase = true) -> ParsedToken.Folder(lastSegment)
-            path.contains("/wiki/", ignoreCase = true) -> ParsedToken.Folder(lastSegment)
-            path.contains("/docx/", ignoreCase = true) -> ParsedToken.Doc(lastSegment)
-            path.contains("/docs/", ignoreCase = true) -> ParsedToken.Doc(lastSegment)
+            path.startsWith("drive/folder/", ignoreCase = true) -> {
+                val token = path.removePrefix("drive/folder/").substringBefore("/")
+                if (token.isBlank()) {
+                    ParsedToken.Malformed("folder token missing")
+                } else {
+                    ParsedToken.Folder(token)
+                }
+            }
+            path.startsWith("wiki/", ignoreCase = true) -> {
+                val token = path.removePrefix("wiki/").substringBefore("/")
+                if (token.isBlank()) {
+                    ParsedToken.Malformed("wiki token missing")
+                } else {
+                    ParsedToken.Folder(token)
+                }
+            }
+            path.startsWith("docx/", ignoreCase = true) -> {
+                val token = path.removePrefix("docx/").substringBefore("/")
+                if (token.isBlank()) {
+                    ParsedToken.Malformed("docx token missing")
+                } else {
+                    ParsedToken.Doc(token)
+                }
+            }
+            path.startsWith("docs/", ignoreCase = true) -> {
+                val token = path.removePrefix("docs/").substringBefore("/")
+                if (token.isBlank()) {
+                    ParsedToken.Malformed("docs token missing")
+                } else {
+                    ParsedToken.Doc(token)
+                }
+            }
             else -> ParsedToken.Malformed("unrecognized feishu url path: /$path")
         }
     }

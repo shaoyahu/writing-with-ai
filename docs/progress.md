@@ -2,6 +2,17 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log，单次评审查 `docs/reviews/`，规划查 `docs/plans/`。
 
+## 2026-07-07 · feishu-import-from-folder change 收口 + 归档
+
+- **能力**:列表页 TopAppBar 新增"飞书导入"dropdown ——「从文档导入」(单 doc link/token,弹 AlertDialog) + 「从文件夹导入」(全屏 sub-screen,列 docx 多选批量);每篇落本地笔记 + tag=`feishu` + 末尾"来源飞书"脚注 + 建 `feishu_ref` 行(为详情页后续 push/pull 留入口)
+- **新文件**:`core/feishu/api/FeishuApiClient.listFolder` + `core/feishu/sync/{FeishuImportService, FeishuImageDownloader, FeishuInputParser}` + `feature/feishuimport/{FolderImportScreen, FolderImportViewModel}`;`FeishuRefStatus.PARTIAL_IMPORT_FAIL` 新增,合并到 `FeishuSyncModel.kt` 同模块 enum 集中
+- **图片下载设计**:`FeishuImageDownloader` 解析 `![alt](url)` + `<img src>` 双语法;走 `@Named("feishu") OkHttpClient` + `X-No-Auth-Retry: 1` request header 跳过 Auth 注入(CDN 临时签名无需 Bearer);20MB 上限 + 单图失败 → 占位符 `[图片下载失败]` + `IMAGE_FAIL_PARTIAL` event
+- **设计偏离**(归档前 review 暴露):(1) proposal 点名"新建 FeishuRefStatus.kt" → 实际合并到 `FeishuSyncModel.kt`;(2) proposal 点名"新建无 Auth OkHttpClient" → 实际走 header 方案 + 调用方传 client,更轻;(3) `docs/usage/api-feishu.md` §4.4 listFolder 章节实施时漏 → 归档前补回
+- **commit 自报 5 个 bug fix**(tasks.md 全部勾完后才发现,tasks 没记录):`coroutineScope → viewModelScope` / `FeishuInputParser` 收紧(任意 path 误判 Folder) / `partialCount` 双计数 / 全选空边界 / `MD_IMG` url 加长度上限防 backtracking。tasks.md 末尾新增"实施偏离 + bug fix 补记"章节永久记录
+- **归档**:`openspec/changes/feishu-import-from-folder/` → `archive/2026-07-07-feishu-import-from-folder/`(无 delta spec,按 OpenSpec 流程直接归档)
+- **验证**:`./gradlew :app:assembleDebug` BUILD SUCCESSFUL 37s + `:app:ktlintCheck` 0 violations(2 个 ClickableText deprecation warning 跨 change baseline)
+- **吸取教训**:tasks.md 全 `[x]` 不代表实施完美;commit message 里的"含 N 个 bug fix"是 tasks 真实完整度的反指标 → tasks 起草阶段应把这些边界列成 acceptance criteria
+
 ## 2026-07-06 · floating-selection-toolbar change 归档 + spec 同步
 
 - **实现**:`QuickNoteDetailScreen` 移除原 fixed `bottomBar`(Share + AI 常驻按钮),改用选中时浮出的 `SelectionFloatingToolbar`(`app/.../feature/quicknote/detail/SelectionFloatingToolbar.kt`)。长按文字 → `BasicTextField.onValueChange` 拿到 `TextRange` → UI 层 `mutableStateOf<TextRange>(uiSelection)` 同步 + `viewModel.onSelectionChange(...)` 同步推给 ViewModel(给 AI 操作 `AiActionViewModel.start(WritingOp, sourceText, noteId)` 用)→ `if (!uiSelection.collapsed && current != null)` 在 Scaffold 顶层渲染工具栏

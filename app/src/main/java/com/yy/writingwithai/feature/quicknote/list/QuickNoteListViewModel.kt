@@ -1,6 +1,7 @@
 package com.yy.writingwithai.feature.quicknote.list
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.data.repo.NoteRepository
@@ -242,6 +243,10 @@ constructor(
 
     /**
      * 单文档导入。fire-and-forget,结果通过 [importResultEvents] 通知。
+     *
+     * catch 兜底:Throwable → Failure 但保留 e.message 给用户,同时 Log.w 写堆栈到 logcat
+     * (review 2026-07-07 Finding #10:原版只用 javaClass.simpleName,丢 e.message 和堆栈)。
+     * 与既有 togglePinned / deleteNote 约定对齐:`Log.w` 写日志,UI 显示可读错误。
      */
     fun importSingleDoc(input: String) {
         viewModelScope.launch {
@@ -250,7 +255,9 @@ constructor(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                FeishuImportService.ImportResult.Failure("导入失败: ${e.javaClass.simpleName}")
+                Log.w(TAG, "importSingleDoc failed for input=$input", e)
+                val msg = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
+                FeishuImportService.ImportResult.Failure("导入失败: $msg")
             }
             _importResultEvents.tryEmit(result)
         }
@@ -259,5 +266,8 @@ constructor(
     private companion object {
         // 搜索抖动期间聚合多次 query 变化，只在用户停手 300ms 后才查 ref 表。
         const val REFS_DEBOUNCE_MS = 300L
+
+        // review 2026-07-07 Finding #10:catch Throwable 时 logcat tag,排查导入失败用
+        const val TAG = "QuickNoteListVM"
     }
 }

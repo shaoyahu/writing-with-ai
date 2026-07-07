@@ -202,6 +202,33 @@
 
 ---
 
+## 实施偏离 + bug fix 补记
+
+> 以下在 `git show 8ed3142` commit message 和 review 中识别,作为 change 完成态的真实记录。
+> 原 tasks.md 全部勾完是基于"达成"语义;此处记录**实施过程中**对原计划的偏离与首次实现未踩到的坑。
+
+### 设计偏离(proposal / design → 实际产物)
+
+| 原计划 | 实际产物 | 偏离原因 |
+|---|---|---|
+| `proposal.md §影响面`:`新建 FeishuRefStatus.kt` 加 `PARTIAL_IMPORT_FAIL` | 枚举集中到 `core/feishu/sync/FeishuSyncModel.kt`(原文件已含 `FeishuRefStatus`,新增 1 行枚举值) | 既有 `FeishuSyncModel.kt` 已是 enum 集中地,新建文件违背"同模块 enum 集中"原则 |
+| `proposal.md §影响面`:`core/feishu/di/FeishuModule.kt` 提供无 Auth OkHttp client | 不新建 client;`FeishuImageDownloader` 改为"调用方传入 client",`FeishuImportService` 注入 `@Named("feishu") OkHttpClient` 后传入;鉴权语义靠 `X-No-Auth-Retry: 1` request header 区分 | 复用既有 client 更轻;header 方案足以区分语义,无需新建 client 注入 |
+| `docs/usage/api-feishu.md` §4.4 listFolder 章节(proposal 影响面已点名) | **实施时遗漏** → 归档前补回(见 `docs/usage/api-feishu.md` §4.4) | review 时盘点 git diff 发现 |
+
+### Bug fix 补记(commit 8ed3142 自陈 5 个)
+
+| # | Bug | 修复 | 文件 |
+|---|---|---|---|
+| 1 | `coroutineScope` 用在导入流程,无法跟随 ViewModel 生命周期;ViewModel onCleared 后仍跑 → 内存泄漏/状态错乱 | 改为 `viewModelScope` | `feature/quicknote/list/QuickNoteListViewModel.kt` |
+| 2 | `FeishuInputParser.parse()` 边界过宽:`https://my.feishu.cn/anything` 任意 path 都被当 Folder 解析 | 收紧:仅匹配 `/drive/folder/{token}` 形态,其他 path 落 `Malformed` | `core/feishu/sync/FeishuInputParser.kt` |
+| 3 | `ImportSummary.partialCount` 在 `importSingleDoc` 内既被赋值一次,又在汇总循环里 ++ → 同一篇文档部分图片失败会被算两次 | 汇总循环改用 `if (result is Success && result.partial) partialCount++`,移除单篇内重复赋值 | `core/feishu/sync/FeishuImportService.kt` |
+| 4 | FolderImportScreen "全选" 按钮在 `docs.isEmpty()` 时仍可点 → 空转 | `docs.isEmpty()` 时 disable 全选按钮 + 隐藏底部导入按钮 | `feature/feishuimport/FolderImportScreen.kt` |
+| 5 | `MD_IMG` 正则 `![alt](url)` 的 url group 无长度上限 → 极长 URL(签名串)可能 backtracking | 给 url group 加合理长度上限(200 字符),超长直接跳过替换 | `core/feishu/sync/FeishuImageDownloader.kt` |
+
+> 这 5 项是**首次实现**就发现并修复的。下次 change 应在 tasks.md 起草阶段就把这些边界列出来当 acceptance criteria。
+
+---
+
 ## 不做
 
 (留作 followup,本期不做)

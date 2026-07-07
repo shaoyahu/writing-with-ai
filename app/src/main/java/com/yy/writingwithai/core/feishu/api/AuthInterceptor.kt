@@ -15,7 +15,36 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Interceptor
+import okhttp3.Request
 import okhttp3.Response
+
+/**
+ * feishu-api:跳过 AuthInterceptor 的 request header 约定。
+ *
+ * 飞书 CDN / SSE / 图片下载走临时签名 query,不需要 Bearer token,但会被 AuthInterceptor
+ * 自动注入 → 401。约定:`X-No-Auth-Retry: 1` 表示本请求跳过 AuthInterceptor。
+ *
+ * review 2026-07-07 Finding #15:把 header 字面量集中到 internal const 跨包共享,
+ * 避免调用方(FeishuImageDownloader 等)硬编码同一字符串 → AuthInterceptor 改名后
+ * 下载器静默失效。
+ *
+ * 使用方式:
+ * ```
+ * val req = Request.Builder()
+ *     .url(imageUrl)
+ *     .skipFeishuAuth()      // ← 走 [AuthInterceptor.NO_AUTH_HEADER] 扩展
+ *     .get()
+ *     .build()
+ * ```
+ */
+internal const val NO_AUTH_HEADER = "X-No-Auth-Retry"
+internal const val NO_AUTH_HEADER_VALUE = "1"
+
+/**
+ * feishu-api:给 OkHttp Request 标记 "跳过 AuthInterceptor"。本扩展函数是 [AuthInterceptor]
+ * 与外部调用方(图片下载 / SSE)之间唯一约定的入口。
+ */
+fun Request.Builder.skipFeishuAuth(): Request.Builder = header(NO_AUTH_HEADER, NO_AUTH_HEADER_VALUE)
 
 /**
  * feishu-user-oauth · OkHttp 拦截器(user_access_token)。
@@ -33,14 +62,14 @@ constructor(
     private val tokenProvider: UserTokenProvider
 ) : Interceptor {
 
-    private val noAuthKey = "X-No-Auth-Retry"
+    private val NO_AUTH_HEADER = "X-No-Auth-Retry"
     private val interceptorScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val refreshMutex = Mutex()
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        if (request.header(noAuthKey) != null) {
-            return chain.proceed(request.newBuilder().removeHeader(noAuthKey).build())
+        if (request.header(NO_AUTH_HEADER) != null) {
+            return chain.proceed(request.newBuilder().removeHeader(NO_AUTH_HEADER).build())
         }
 
         // OkHttp Interceptor 是同步契约;`runBlocking` 是桥接 suspend → 同步的唯一官方做法。
@@ -57,13 +86,13 @@ constructor(
         if (firstToken == null) {
             val noAuthReq = request.newBuilder()
                 .removeHeader("Authorization")
-                .header(noAuthKey, "1")
+                .header(NO_AUTH_HEADER, NO_AUTH_HEADER_VALUE)
                 .build()
             // 立即剥掉标记头，避免发到飞书服务端。拦截器对调一次后，
-            // noAuthReq 不会再进入本拦截器(它的 noAuthKey 已被链上一步剥掉)，所以
+            // noAuthReq 不会再进入本拦截器(它的 NO_AUTH_HEADER 已被链上一步剥掉)，所以
             // 也不会"再取 token 再 401"的死循环。
             return chain.proceed(
-                noAuthReq.newBuilder().removeHeader(noAuthKey).build()
+                noAuthReq.newBuilder().removeHeader(NO_AUTH_HEADER).build()
             )
         }
         val response = chain.proceed(
@@ -86,10 +115,10 @@ constructor(
         if (secondToken == null) {
             val noAuthReq = request.newBuilder()
                 .removeHeader("Authorization")
-                .header(noAuthKey, "1")
+                .header(NO_AUTH_HEADER, NO_AUTH_HEADER_VALUE)
                 .build()
             return chain.proceed(
-                noAuthReq.newBuilder().removeHeader(noAuthKey).build()
+                noAuthReq.newBuilder().removeHeader(NO_AUTH_HEADER).build()
             )
         }
         return chain.proceed(
