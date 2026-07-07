@@ -35,3 +35,27 @@ The system SHALL perform full AI decompose when user clicks "拆解" or confirms
 #### Scenario: Decompose fails
 - **WHEN** AI call fails
 - **THEN** loading dismisses and Snackbar shows error message
+
+### Requirement: Entity highlight rendering
+
+The system SHALL render entity text with **blue font color** and a **blue cross-star mark** (十字星星) in the **upper-right corner** of the entity text in the note detail content.
+
+#### Scenario: Entities shown with blue font and cross-star
+- **WHEN** current note has entity extraction records
+- **THEN** each entity text range is rendered with `color = colorScheme.primary` (blue) and a small cross-star icon (`✦` or custom drawable) positioned at the upper-right corner of the last character
+
+#### Scenario: Cross-star occupies fixed width
+- **WHEN** entity text is rendered
+- **THEN** the cross-star mark occupies approximately 8-12dp width and does not overlap adjacent text
+
+#### Scenario: Title entities not highlighted
+- **WHEN** entity's spanStart is within title range (spanStart < title.length + 1)
+- **THEN** the entity is not highlighted in the content
+
+#### Scenario: Overlapping entities use longest match
+- **WHEN** two entity spans overlap (e.g., "小明" and "小明家")
+- **THEN** keep the highlight and click annotation for the entity with the longer span range
+
+#### Scenario: Cached entities shown on re-entry
+- **WHEN** user re-opens a previously decomposed note
+- **THEN** system loads entities directly from `note_entities` table and immediately renders blue font + cross-star highlights without re-triggering AI

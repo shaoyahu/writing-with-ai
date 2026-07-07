@@ -26,7 +26,7 @@ The system SHALL match note content against existing entities in the database (c
 
 #### Scenario: Multiple occurrences of same entity
 - **WHEN** note content contains "张三" three times
-- **THEN** system creates only ONE `note_entities` record but renders all three occurrences with underline highlight
+- **THEN** system creates only ONE `note_entities` record but renders all three occurrences with blue font + cross-star highlight
 
 ### Requirement: Re-decompose confirmation
 
@@ -50,7 +50,7 @@ The system SHALL show a full-screen loading indicator during AI decompose that b
 
 #### Scenario: Decompose completes
 - **WHEN** AI call completes successfully
-- **THEN** loading dismisses and entity highlights appear immediately
+- **THEN** loading dismisses and entity highlights (blue font + cross-star) appear immediately
 
 ### Requirement: Auto-refresh existing entities on open
 
@@ -58,7 +58,7 @@ The system SHALL automatically match existing entities when opening a note detai
 
 #### Scenario: Open note with existing entity mentions
 - **WHEN** user opens a note containing "张三" and database has matching entity
-- **THEN** system creates `note_entities` association and renders underline highlight
+- **THEN** system creates `note_entities` association and renders blue font + cross-star highlight
 
 #### Scenario: Open note with no entity mentions
 - **WHEN** user opens a note with no matching existing entities

@@ -14,7 +14,7 @@ The system SHALL display entity details including `surfaceForm`, type, source, a
 
 #### Scenario: Context snippet with ellipsis
 - **WHEN** note content is "...今天遇到了张三，他..."
-- **THEN** snippet shows "...今天遇到了张三，他..." with entity text highlighted
+- **THEN** snippet shows "...今天遇到了张三，他..." with entity text rendered in blue font + cross-star highlight
 
 ### Requirement: Navigate to note from entity detail
 

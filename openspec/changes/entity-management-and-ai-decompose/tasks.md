@@ -15,47 +15,54 @@
 - [ ] 2.6 Add full-screen loading overlay during decompose
 - [ ] 2.7 Add API key check with error dialog + navigate to settings
 
-## 3. Entity Management UI
+## 3. Entity Highlight Style Update
 
-- [ ] 3.1 Create `EntityManagementScreen` with list display
-- [ ] 3.2 Add entity count badge to "我的" tab "实体管理" entry
-- [ ] 3.3 Implement search by `surfaceForm`
-- [ ] 3.4 Implement filter by entity type (chips/dropdown)
-- [ ] 3.5 Implement sort options (name, note count, last extracted)
-- [ ] 3.6 Implement multi-select mode (long-press) and batch delete
-- [ ] 3.7 Add empty state illustration
-- [ ] 3.8 Create `EntityDetailScreen` with entity info + associated notes list
-- [ ] 3.9 Implement context snippet with ellipsis for associated notes
-- [ ] 3.10 Add single entity delete with confirmation dialog
+- [ ] 3.1 Replace `TextDecoration.Underline` with `colorScheme.primary` font color in entity span style
+- [ ] 3.2 Implement cross-star mark (`✦`) overlay at upper-right corner of entity text last character
+- [ ] 3.3 Ensure cross-star occupies fixed width (8-12dp) and does not overlap adjacent text
+- [ ] 3.4 Update entity click area to include cross-star mark
 
-## 4. Developer Mode
+## 4. Entity Management UI
 
-- [ ] 4.1 Add `DeveloperModeStore` (DataStore) to persist enabled state
-- [ ] 4.2 Add version tap counter with random target (5-12) and shake animation
-- [ ] 4.3 Add "开发者选项" entry to "我的" tab (visible only when enabled)
-- [ ] 4.4 Create `DeveloperModeScreen` with toggle to disable
-- [ ] 4.5 Create `PromptEditorScreen` with multi-line text input, save, and reset buttons
-- [ ] 4.6 Add default entity extraction prompt content (Chinese, with role, types, format, example)
+- [ ] 4.1 Create `EntityManagementScreen` with list display
+- [ ] 4.2 Add entity count badge to "我的" tab "实体管理" entry
+- [ ] 4.3 Implement search by `surfaceForm`
+- [ ] 4.4 Implement filter by entity type (chips/dropdown)
+- [ ] 4.5 Implement sort options (name, note count, last extracted)
+- [ ] 4.6 Implement multi-select mode (long-press) and batch delete
+- [ ] 4.7 Add empty state illustration
+- [ ] 4.8 Create `EntityDetailScreen` with entity info + associated notes list
+- [ ] 4.9 Implement context snippet with ellipsis for associated notes
+- [ ] 4.10 Add single entity delete with confirmation dialog
 
-## 5. Localization
+## 5. Developer Mode
 
-- [ ] 5.1 Add Chinese strings for all new UI elements (实体管理, 拆解, 重新拆解, 开发者选项, etc.)
-- [ ] 5.2 Add English strings for all new UI elements
+- [ ] 5.1 Add `DeveloperModeStore` (DataStore) to persist enabled state
+- [ ] 5.2 Add version tap counter with random target (5-12) and shake animation
+- [ ] 5.3 Add "开发者选项" entry to "我的" tab (visible only when enabled)
+- [ ] 5.4 Create `DeveloperModeScreen` with toggle to disable
+- [ ] 5.5 Create `PromptEditorScreen` with multi-line text input, save, and reset buttons
+- [ ] 5.6 Add default entity extraction prompt content (Chinese, with role, types, format, example)
 
-## 6. Navigation
+## 6. Localization
 
-- [ ] 6.1 Add "实体管理" route to AppNav
-- [ ] 6.2 Add "实体详情" route to AppNav
-- [ ] 6.3 Add "开发者选项" route to AppNav
-- [ ] 6.4 Add "提示词编辑" route to AppNav
+- [ ] 6.1 Add Chinese strings for all new UI elements (实体管理, 拆解, 重新拆解, 开发者选项, etc.)
+- [ ] 6.2 Add English strings for all new UI elements
 
-## 7. Testing & Verification
+## 7. Navigation
 
-- [ ] 7.1 Compile and ktlint check
-- [ ] 7.2 Run unit tests
-- [ ] 7.3 Verify on emulator: AI decompose extracts entities and shows highlights
-- [ ] 7.4 Verify on emulator: Auto-match existing entities on note open
-- [ ] 7.5 Verify on emulator: Entity management list/search/filter/sort/delete
-- [ ] 7.6 Verify on emulator: Entity detail shows associated notes with context
-- [ ] 7.7 Verify on emulator: Developer mode activation (version tap) and prompt editing
-- [ ] 7.8 Verify on emulator: API key check shows error dialog when not configured
+- [ ] 7.1 Add "实体管理" route to AppNav
+- [ ] 7.2 Add "实体详情" route to AppNav
+- [ ] 7.3 Add "开发者选项" route to AppNav
+- [ ] 7.4 Add "提示词编辑" route to AppNav
+
+## 8. Testing & Verification
+
+- [ ] 8.1 Compile and ktlint check
+- [ ] 8.2 Run unit tests
+- [ ] 8.3 Verify on emulator: AI decompose extracts entities and shows blue font + cross-star highlights
+- [ ] 8.4 Verify on emulator: Auto-match existing entities on note open
+- [ ] 8.5 Verify on emulator: Entity management list/search/filter/sort/delete
+- [ ] 8.6 Verify on emulator: Entity detail shows associated notes with context
+- [ ] 8.7 Verify on emulator: Developer mode activation (version tap) and prompt editing
+- [ ] 8.8 Verify on emulator: API key check shows error dialog when not configured
