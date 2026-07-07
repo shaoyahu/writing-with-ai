@@ -726,4 +726,7 @@
     <string name="folder_import_retry_folder">重新选择文件夹</string>
     <string name="folder_import_loading">正在解析文件夹…</string>
     <string name="folder_import_no_title">(无标题)</string>
+
+    <!-- ===== entity-source-tagging · 实体来源标签 ===== -->
+    <string name="entity_source_user_added">自定义</string>
 </resources>

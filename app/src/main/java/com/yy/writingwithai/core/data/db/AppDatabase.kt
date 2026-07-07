@@ -51,7 +51,7 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         SyncMetaEntity::class,
         NoteAttachmentEntity::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -69,7 +69,9 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         AutoMigration(from = 9, to = 10),
         // feishu-folder-migration:feishu_ref 加 folderToken 可空列，
         // 记录创建文档时使用的文件夹 token，用于检测 folder token 变更。
-        AutoMigration(from = 10, to = 11)
+        AutoMigration(from = 10, to = 11),
+        // entity-source-tagging:note_entities 加 source 列，默认 AI_EXTRACTED
+        AutoMigration(from = 11, to = 12)
     ]
 )
 @TypeConverters(SyncStatusConverter::class)

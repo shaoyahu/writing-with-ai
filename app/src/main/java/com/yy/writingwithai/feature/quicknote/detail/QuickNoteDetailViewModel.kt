@@ -568,7 +568,8 @@ constructor(
                 surfaceForm = surface,
                 spanStart = spanStart,
                 spanEnd = spanEnd,
-                lastExtractedAt = System.currentTimeMillis()
+                lastExtractedAt = System.currentTimeMillis(),
+                source = "USER_ADDED"
             )
             entityDao.upsertAll(listOf(row))
             // 刷新本地 entity 列表

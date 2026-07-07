@@ -83,7 +83,8 @@ constructor(
                     surfaceForm = surface.take(80),
                     spanStart = spanStart,
                     spanEnd = spanEnd,
-                    lastExtractedAt = now
+                    lastExtractedAt = now,
+                    source = "AI_EXTRACTED"
                 )
             }
             entityDao.deleteByNoteId(noteId)

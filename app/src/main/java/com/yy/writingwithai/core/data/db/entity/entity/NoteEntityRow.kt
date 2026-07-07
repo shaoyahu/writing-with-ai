@@ -1,5 +1,6 @@
 package com.yy.writingwithai.core.data.db.entity.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -27,7 +28,10 @@ data class NoteEntityRow(
     val surfaceForm: String,
     val spanStart: Int,
     val spanEnd: Int,
-    val lastExtractedAt: Long
+    val lastExtractedAt: Long,
+    // entity-source-tagging: 实体来源，USER_ADDED = 用户手动添加，AI_EXTRACTED = AI 自动提取
+    @ColumnInfo(defaultValue = "AI_EXTRACTED")
+    val source: String = "AI_EXTRACTED"
 )
 
 /** entity-extraction-association · entity_aliases 表。 */

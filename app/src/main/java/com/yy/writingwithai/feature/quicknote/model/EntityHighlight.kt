@@ -13,7 +13,9 @@ data class EntityHighlight(
     val entityType: String,
     val entityKey: String,
     val contentStart: Int,
-    val contentEnd: Int
+    val contentEnd: Int,
+    // entity-source-tagging: 实体来源
+    val source: String = "AI_EXTRACTED"
 )
 
 /** 从 NoteEntityRow 映射到 UI 投影。 */
@@ -29,6 +31,7 @@ fun NoteEntityRow.toHighlight(titleLen: Int, contentLen: Int): EntityHighlight? 
         entityType = entityType.name.lowercase(),
         entityKey = entityKey,
         contentStart = start,
-        contentEnd = end
+        contentEnd = end,
+        source = source
     )
 }

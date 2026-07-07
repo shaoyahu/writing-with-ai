@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,7 +27,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -75,7 +75,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -295,9 +297,9 @@ fun QuickNoteDetailScreen(
     }
     // note-detail-polish: 用旧 API BasicTextField(TextFieldValue, readOnly=false) +
     // onValueChange 立即 hide IME —— 长按选中正常工作 + IME 不弹。
-    var textFieldValue by androidx.compose.runtime.remember(noteId) {
-        androidx.compose.runtime.mutableStateOf(
-            androidx.compose.ui.text.input.TextFieldValue(text = current?.note?.note?.content.orEmpty())
+    var textFieldValue by remember(noteId) {
+        mutableStateOf(
+            TextFieldValue(text = current?.note?.note?.content.orEmpty())
         )
     }
     val syncContent = (state as? NoteDetailUiState.Content)?.note?.note?.content
@@ -586,58 +588,59 @@ fun QuickNoteDetailScreen(
                         val annotatedContent = remember(contentText, entityHighlights) {
                             buildEntityAnnotatedString(contentText, entityHighlights, primaryColor)
                         }
-                        if (entityHighlights.isNotEmpty()) {
-                            ClickableText(
-                                text = annotatedContent,
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    color = MaterialTheme.colorScheme.onSurface
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = LocalSpacing.current.sm),
-                                onClick = { offset ->
+                        // note-detail-polish:统一用 BasicTextField 渲染正文，无论有无实体。
+                        // 有实体时 annotatedContent 带 SpanStyle(下划线/颜色)+StringAnnotation(entity)，
+                        // BasicTextField 正确渲染样式;同时支持文本选择(唤出浮选工具栏)。
+                        // 点击实体高亮时通过 onValueChange 检测 collapsed selection 位置，
+                        // 弹出 entity sheet —— 替代原来的 ClickableText。
+                        BasicTextField(
+                            value = TextFieldValue(
+                                annotatedString = annotatedContent,
+                                selection = uiSelection
+                            ),
+                            onValueChange = { newValue ->
+                                val selection = newValue.selection
+                                if (!selection.collapsed) {
+                                    // 用户选择了文本 → 更新 uiSelection 驱动浮选工具栏
+                                    uiSelection = selection
+                                    viewModel.onSelectionChange(selection)
+                                } else {
+                                    // 用户点击了某个位置(collapsed) → 检测是否命中实体
+                                    val offset = selection.start
                                     val annotations = annotatedContent.getStringAnnotations(
                                         tag = "entity",
                                         start = offset,
                                         end = offset
                                     )
                                     val entityKey = annotations.firstOrNull()?.item
-                                        ?: return@ClickableText
-                                    val highlight = entityHighlights.find { it.entityKey == entityKey }
-                                        ?: return@ClickableText
-                                    // note-decompose-highlight:状态在协程内顺序设置，确保 sheet 展示时数据已就绪
-                                    snackbarScope.launch {
-                                        relatedForEntity = viewModel.getRelatedByEntity(entityKey)
-                                        selectedEntity = highlight
-                                        entitySheetState.show()
+                                    if (entityKey != null) {
+                                        val highlight = entityHighlights.find {
+                                            it.entityKey == entityKey
+                                        }
+                                        if (highlight != null) {
+                                            snackbarScope.launch {
+                                                relatedForEntity = viewModel.getRelatedByEntity(entityKey)
+                                                selectedEntity = highlight
+                                                entitySheetState.show()
+                                            }
+                                        }
                                     }
-                                }
-                            )
-                        } else {
-                            // note-detail-polish: 旧 API BasicTextField(value, onValueChange, readOnly=false)
-                            // readOnly=false 让 selection handles 触发 onValueChange 更新 textFieldValue + uiSelection
-                            // onValueChange 后立即 hide IME,阻止键盘弹出
-                            BasicTextField(
-                                value = textFieldValue,
-                                onValueChange = { newValue ->
-                                    textFieldValue = newValue
-                                    uiSelection = newValue.selection
-                                    viewModel.onSelectionChange(newValue.selection)
-                                    keyboardCtrl?.hide()
-                                    android.util.Log.d(
-                                        "DetailToolbar",
-                                        "onValueChange sel=${newValue.selection} " +
-                                            "collapsed=${newValue.selection.collapsed}"
+                                    // 点击后重置 selection，隐藏浮选工具栏
+                                    uiSelection = androidx.compose.ui.text.TextRange.Zero
+                                    viewModel.onSelectionChange(
+                                        androidx.compose.ui.text.TextRange.Zero
                                     )
-                                },
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    color = MaterialTheme.colorScheme.onSurface
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = LocalSpacing.current.sm)
-                            )
-                        }
+                                }
+                                keyboardCtrl?.hide()
+                            },
+                            readOnly = true,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = LocalSpacing.current.sm)
+                        )
                         // 字数 / 阅读时间 — 放在关联笔记上方，作为正文元数据贴近主体
                         Text(
                             text =
@@ -751,6 +754,31 @@ fun QuickNoteDetailScreen(
 
         // note-decompose-highlight T5:实体详情 BottomSheet
         val entity = selectedEntity
+        val entityTagText = if (entity != null) {
+            if (entity.source == "USER_ADDED") {
+                stringResource(R.string.entity_source_user_added)
+            } else {
+                stringResource(
+                    when (entity.entityType) {
+                        "person" -> R.string.entity_type_person
+                        "work" -> R.string.entity_type_work
+                        "event" -> R.string.entity_type_event
+                        "location" -> R.string.entity_type_location
+                        "org" -> R.string.entity_type_org
+                        "concept" -> R.string.entity_type_concept
+                        "date" -> R.string.entity_type_date
+                        "url" -> R.string.entity_type_url
+                        "quote" -> R.string.entity_type_quote
+                        "product" -> R.string.entity_type_product
+                        "task" -> R.string.entity_type_task
+                        "number" -> R.string.entity_type_number
+                        else -> R.string.entity_type_concept
+                    }
+                )
+            }
+        } else {
+            ""
+        }
         if (entity != null && entitySheetState.isVisible) {
             ModalBottomSheet(
                 onDismissRequest = { selectedEntity = null },
@@ -763,16 +791,28 @@ fun QuickNoteDetailScreen(
                         .fillMaxWidth()
                         .padding(horizontal = LocalSpacing.current.lg, vertical = LocalSpacing.current.md)
                 ) {
-                    // 标题行：实体名 · 类型
-                    Text(
-                        text = stringResource(
-                            R.string.note_decompose_entity_sheet_title,
-                            entity.surfaceForm,
-                            entity.entityType
-                        ),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    // 标题行：实体名 + tag 标签
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LocalSpacing.current.sm)
+                    ) {
+                        Text(
+                            text = entity.surfaceForm,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = entityTagText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier
+                                .background(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
                     Spacer(Modifier.height(LocalSpacing.current.md))
                     if (relatedForEntity.isEmpty()) {
                         Text(
@@ -840,8 +880,12 @@ fun QuickNoteDetailScreen(
             SelectionFloatingToolbar(
                 isAiEnabled = hasAiProvider,
                 onAddEntity = {
+                    val selectedText = current.note.note.content.substring(
+                        uiSelection.min,
+                        uiSelection.max
+                    )
                     viewModel.addEntityFromSelection(
-                        surface = "content",
+                        surface = selectedText,
                         spanStart = uiSelection.min,
                         spanEnd = uiSelection.max
                     )
