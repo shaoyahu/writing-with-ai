@@ -1,5 +1,6 @@
 package com.yy.writingwithai.feature.my
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.BuildConfig
@@ -58,6 +59,7 @@ constructor(
     }
 }
 
+@Immutable
 sealed interface CheckUpdateState {
     data object Idle : CheckUpdateState
     data object Checking : CheckUpdateState

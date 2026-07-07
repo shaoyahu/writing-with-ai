@@ -316,7 +316,7 @@ constructor(
 
     private fun extractTitleFromMarkdown(markdown: String): String? {
         val firstLine = markdown.lineSequence().firstOrNull { it.isNotBlank() } ?: return null
-        val match = Regex("""^#\s+(.+?)\s*$""").find(firstLine) ?: return null
+        val match = H1_HEADING.find(firstLine) ?: return null
         return match.groupValues[1].take(100)
     }
 
@@ -330,7 +330,7 @@ constructor(
         if (firstNonBlank < 0) return markdown
         val firstLine = lines[firstNonBlank].trim()
         // 匹配 # 标题 或 ## 标题 等开头的 heading 行
-        val headingMatch = Regex("""^#{1,6}\s+(.+?)\s*$""").find(firstLine)
+        val headingMatch = HEADING_LINE.find(firstLine)
         if (headingMatch != null && headingMatch.groupValues[1] == title) {
             return lines.filterIndexedTo(mutableListOf()) { i, _ -> i != firstNonBlank }
                 .joinToString("\n").trimStart('\n')
@@ -343,5 +343,9 @@ constructor(
 
         // feishu-import-from-folder:批量 sleep 避免触发飞书 5 QPS
         private const val BATCH_DELAY_MS = 200L
+
+        // fix:提取内联 Regex 常量，避免每次调用重新编译
+        private val H1_HEADING = Regex("""^#\s+(.+?)\s*$""")
+        private val HEADING_LINE = Regex("""^#{1,6}\s+(.+?)\s*$""")
     }
 }

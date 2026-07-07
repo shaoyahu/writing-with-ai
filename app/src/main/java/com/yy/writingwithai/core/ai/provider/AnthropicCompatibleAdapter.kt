@@ -83,7 +83,12 @@ constructor(
             val url = if (config.endpointPath.isBlank()) {
                 baseUrl
             } else {
-                "$baseUrl${config.endpointPath}"
+                val trimmed = baseUrl.trimEnd('/')
+                if (config.endpointPath.startsWith("/")) {
+                    "$trimmed${config.endpointPath}"
+                } else {
+                    "$trimmed/${config.endpointPath}"
+                }
             }
             // fix-2026-06-24-review-r1-high H9:strip role-marker + cap length 8192
             val systemPrompt = sanitizeSystemPrompt(request.systemPrompt ?: systemPromptFor(request.op))
@@ -193,7 +198,7 @@ constructor(
                                 in 500..599 -> AiError.ServerError(code)
                                 else -> AiError.Unknown(code, detail)
                             },
-                            recoverable = code !in listOf(401, 403, 402)
+                            recoverable = code !in NON_RECOVERABLE_CODES
                         )
                     )
                     return@flow
@@ -396,6 +401,9 @@ constructor(
             "connection",
             "cookie"
         )
+
+        // fix H:不可恢复的错误码集合，避免每次调用创建新 list
+        val NON_RECOVERABLE_CODES = setOf(401, 403, 402)
 
         // RFC-7230 token: tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." /
         //   "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA

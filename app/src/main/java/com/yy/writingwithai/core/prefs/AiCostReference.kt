@@ -1,5 +1,7 @@
 package com.yy.writingwithai.core.prefs
 
+import androidx.compose.runtime.Immutable
+
 /**
  * onboarding-apikey-prompt · AI 能力 + token 成本参考常量。
  *
@@ -12,6 +14,7 @@ package com.yy.writingwithai.core.prefs
  * 价格区间按 deepseek / MiniMax-M2.7 / mimo 当前公开价折算，**仅供参考**,
  * 实际费用以 provider 账单为准。
  */
+@Immutable
 data class AiAbilityCost(
     /** 能力名(zh),UI 直接渲染。 */
     val name: String,

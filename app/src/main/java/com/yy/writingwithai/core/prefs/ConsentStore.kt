@@ -1,6 +1,7 @@
 package com.yy.writingwithai.core.prefs
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.stateIn
  * spec: openspec/changes/onboarding-consent/specs/onboarding-consent/spec.md
  * "ConsentStore persists consent state via DataStore"
  */
+@Immutable
 data class ConsentState(
     val accepted: Boolean,
     val acceptedAt: Long,

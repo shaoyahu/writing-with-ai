@@ -1,5 +1,6 @@
 package com.yy.writingwithai.feature.aiwriting.streaming
 
+import androidx.compose.runtime.Immutable
 import com.yy.writingwithai.core.ai.api.AiError
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.WritingOp
@@ -18,6 +19,7 @@ import com.yy.writingwithai.core.ai.api.WritingOp
  * 状态机不可序列化(`Streaming.partialText` 大文本 / `Done.usage` 来自 Flow)，用 ViewModel
  * scope 持有，不走 `rememberSaveable`。
  */
+@Immutable
 sealed interface AiActionUiState {
     data object Idle : AiActionUiState
 

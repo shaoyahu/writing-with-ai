@@ -76,6 +76,9 @@ constructor(
         // 这里仍然设上限防止极长 content 把 LIKE pattern 撑成几百 KB。
         const val LIKE_PREFIX_LEN = 50
 
+        private val TOKEN_EN_PATTERN = Regex("[a-z0-9_\\-]+")
+        private val TOKEN_CJK_PATTERN = Regex("[一-鿿]+")
+
         fun sanitizeForSearch(c: String): String = c.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
         fun keywordOverlapWeight(src: String, dst: String): Float {
@@ -102,11 +105,11 @@ constructor(
             val tokens = mutableListOf<String>()
             val lower = text.lowercase()
             // 1) 英文 / 数字 / 下划线 段(空白分词)。
-            Regex("[a-z0-9_\\-]+").findAll(lower).forEach { m ->
+            TOKEN_EN_PATTERN.findAll(lower).forEach { m ->
                 if (m.value.length > 1) tokens += m.value
             }
             // 2) CJK 段:unigram(每字) + bigram(相邻字)。
-            val cjkRuns = Regex("[一-鿿]+").findAll(lower).map { it.value }.toList()
+            val cjkRuns = TOKEN_CJK_PATTERN.findAll(lower).map { it.value }.toList()
             cjkRuns.forEach { run ->
                 run.forEach { ch -> tokens += ch.toString() }
                 if (run.length >= 2) {

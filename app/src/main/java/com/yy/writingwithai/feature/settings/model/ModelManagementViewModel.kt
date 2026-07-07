@@ -1,6 +1,7 @@
 package com.yy.writingwithai.feature.settings.model
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.R
@@ -446,6 +447,7 @@ constructor(
     }
 }
 
+@Immutable
 data class ModelManagementUiState(
     val selectedProviderId: String? = null,
     val hasApiKeyForSelected: Boolean = false,
@@ -458,6 +460,7 @@ data class ModelManagementUiState(
     val selectedModelByProvider: Map<String, String> = emptyMap()
 )
 
+@Immutable
 sealed interface PingResult {
     data object Idle : PingResult
     data object InProgress : PingResult
@@ -465,6 +468,7 @@ sealed interface PingResult {
     data class Failed(@StringRes val messageRes: Int, val rawDetail: String?) : PingResult
 }
 
+@Immutable
 sealed interface SaveResult {
     data object Idle : SaveResult
     data object InProgress : SaveResult

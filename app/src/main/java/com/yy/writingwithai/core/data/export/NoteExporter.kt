@@ -39,9 +39,7 @@ constructor(
         val aiHistories = aiHistoryRepository.observeAll(Int.MAX_VALUE).first()
         val tags: Map<String, List<String>> =
             withTags.associate { it.note.id to it.tags }
-        val now =
-            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.ROOT)
-                .format(java.util.Date())
+        val now = ISO_TIMESTAMP_FORMAT.format(java.util.Date())
         val meta = ExportMeta(exportTimestamp = now, appVersion = "0.4.0", schemaVersion = "1")
         val entries = mutableMapOf<String, ByteArray>()
         entries["notes.json"] =
@@ -65,6 +63,12 @@ constructor(
         }
         zipHelper.writeZip(entries, outputStream)
         return notes.size
+    }
+
+    companion object {
+        // fix:提取 SimpleDateFormat 常量，避免每次调用创建新实例
+        private val ISO_TIMESTAMP_FORMAT =
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.ROOT)
     }
 }
 

@@ -28,6 +28,9 @@ constructor() : AiProvider {
 
     companion object {
         const val PROVIDER_ID = "fake"
+
+        // fix:提取内联 Regex 常量，避免每次调用重新编译
+        private val SPACE_SPLIT = Regex("(?<=\\s)|(?=\\s)")
     }
 
     override fun stream(request: AiRequest, credentials: AiCredentials): Flow<AiStreamEvent> = flow {
@@ -80,5 +83,5 @@ constructor() : AiProvider {
     }
 
     /** 简单 tokenize:按空格+标点 split，每个 segment 作为一个 token。 */
-    private fun tokenize(text: String): List<String> = text.split(Regex("(?<=\\s)|(?=\\s)")).filter { it.isNotBlank() }
+    private fun tokenize(text: String): List<String> = text.split(SPACE_SPLIT).filter { it.isNotBlank() }
 }

@@ -154,8 +154,11 @@ class SemanticNoteLinker @Inject constructor(
         }
     }
 
-    private fun sanitize(c: String) = c.replace(Regex("[\"'`*\\[\\]]"), " ")
-        .replace(Regex("\\s+"), " ").trim().take(200)
+    private val SANITIZE_REGEX = Regex("[\"'`*\\[\\]]")
+    private val WHITESPACE_REGEX = Regex("\\s+")
+
+    private fun sanitize(c: String) = c.replace(SANITIZE_REGEX, " ")
+        .replace(WHITESPACE_REGEX, " ").trim().take(200)
 
     // fix-2026-06-25-review-r1 H4:英文约 1 tok / 4 char,CJK 约 1.5 tok / 1 char;
     // 之前 (length / 3.5) 把 1000 字中文估成 285，实际 1500，系统低估 5x 影响费用感知。

@@ -1,5 +1,6 @@
 package com.yy.writingwithai.core.ui
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.TextRange
 
 /**
@@ -10,6 +11,7 @@ import androidx.compose.ui.text.TextRange
  * 该类型是 `Selection → FAB enum` 纯投影，无 aiwriting 业务逻辑;`feature/quicknote` 与
  * `feature/aiwriting` 都引用，放 `core/ui/` 是恰当的跨 feature 共享层。
  */
+@Immutable
 data class AiActionFabState(
     val selectionEmpty: Boolean
 ) {

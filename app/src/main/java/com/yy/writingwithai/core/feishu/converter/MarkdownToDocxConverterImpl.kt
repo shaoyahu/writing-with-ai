@@ -148,7 +148,7 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
             i++
         }
         // 去掉纯 `---` separator 行
-        val dataRows = rows.filterNot { it.all { c -> c.matches(Regex("^-+$")) } }
+        val dataRows = rows.filterNot { it.all { c -> DASH_ROW.matches(c) } }
         return FeishuBlock.Table(dataRows) to i
     }
 
@@ -180,7 +180,7 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
     private fun isFenceClose(line: String): Boolean = isFenceOpen(line)
 
     private fun parseImage(line: String): FeishuBlock {
-        val match = Regex("""!\[([^\]]*)\]\(([^)]+)\)""").find(line)
+        val match = MD_IMG_INLINE.find(line)
         val path = match?.groupValues?.getOrNull(2) ?: line
         // v1 spec "Image degrades to text placeholder":占位形式 `[图片：path]`
         return FeishuBlock.Image(placeholder = "图片：$path")
@@ -198,14 +198,14 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
         var remaining = text
         while (remaining.isNotEmpty()) {
             // 1. 链接
-            val linkMatch = Regex("""\[([^\]]+)\]\(([^)]+)\)""").find(remaining)
+            val linkMatch = INLINE_LINK.find(remaining)
             // 2. inline code
-            val codeMatch = Regex("""`([^`]+)`""").find(remaining)
+            val codeMatch = INLINE_CODE.find(remaining)
             // 3. bold ** —— fix-2026-06-30-full-review-r1 MEDIUM M7:非贪婪 + 允许内嵌 *,
             //    支持 `**bold *italic* bold**` 嵌套
-            val boldMatch = Regex("""\*\*(.+?)\*\*""").find(remaining)
+            val boldMatch = INLINE_BOLD.find(remaining)
             // 4. italic * —— 同 M7
-            val italicMatch = Regex("""\*(.+?)\*""").find(remaining)
+            val italicMatch = INLINE_ITALIC.find(remaining)
 
             val first = listOfNotNull(
                 linkMatch?.let { Triple(it.range.first, it.range.last + 1, "link") },
@@ -223,7 +223,7 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
             val inner = remaining.substring(start, end)
             when (kind) {
                 "link" -> {
-                    val m = Regex("""\[([^\]]+)\]\(([^)]+)\)""").matchEntire(inner)!!
+                    val m = INLINE_LINK.matchEntire(inner)!!
                     runs += Run(text = m.groupValues[1], linkUrl = m.groupValues[2])
                 }
                 "code" -> runs += Run(text = inner.removeSurrounding("`"), code = true)
@@ -241,5 +241,13 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
         private val BULLET = Regex("""^[-*]\s+(.+)$""")
         private val ORDERED = Regex("""^\d+\.\s+(.+)$""")
         private val TABLE_SEPARATOR = Regex("""^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$""")
+
+        // fix:提取内联 Regex 常量，避免每次调用重新编译
+        private val DASH_ROW = Regex("^-+$")
+        private val MD_IMG_INLINE = Regex("""!\[([^\]]*)\]\(([^)]+)\)""")
+        private val INLINE_LINK = Regex("""\[([^\]]+)\]\(([^)]+)\)""")
+        private val INLINE_CODE = Regex("""`([^`]+)`""")
+        private val INLINE_BOLD = Regex("""\*\*(.+?)\*\*""")
+        private val INLINE_ITALIC = Regex("""\*(.+?)\*""")
     }
 }

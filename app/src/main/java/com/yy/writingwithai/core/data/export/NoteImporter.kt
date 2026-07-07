@@ -153,8 +153,7 @@ constructor(
 
     /** 序列化为 Markdown 报告(spec §"报告格式纯文本 Markdown" 场景)。 */
     internal fun formatReport(report: ImportReport): String {
-        val timestamp =
-            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ROOT).format(Date())
+        val timestamp = REPORT_TS_FORMAT.format(Date())
         val total = report.successCount + report.skippedCount + report.failedCount
         return buildString {
             appendLine("# writing-with-ai 导入报告")
@@ -175,5 +174,10 @@ constructor(
                 }
             }
         }
+    }
+
+    companion object {
+        // fix:提取 SimpleDateFormat 常量，避免每次调用创建新实例
+        private val REPORT_TS_FORMAT = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ROOT)
     }
 }

@@ -1,11 +1,13 @@
 package com.yy.writingwithai.feature.quicknote.model
 
+import androidx.compose.runtime.Immutable
 import com.yy.writingwithai.core.data.model.NoteWithTags
 import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
 
 /**
  * 列表屏 UI 状态(spec §"List ordering" + "Search" + "Tag many-to-many")。
  */
+@Immutable
 sealed interface NoteListUiState {
     val query: String
     val selectedTag: String?

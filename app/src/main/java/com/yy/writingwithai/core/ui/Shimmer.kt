@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -38,11 +39,14 @@ fun ShimmerBox(modifier: Modifier = Modifier, widthFraction: Float = 1f, height:
         label = "shimmerProgress"
     )
 
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f),
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-    )
+    val baseColor = MaterialTheme.colorScheme.outlineVariant
+    val shimmerColors = remember(baseColor) {
+        listOf(
+            baseColor.copy(alpha = 0.3f),
+            baseColor.copy(alpha = 0.1f),
+            baseColor.copy(alpha = 0.3f)
+        )
+    }
 
     Box(
         modifier = modifier

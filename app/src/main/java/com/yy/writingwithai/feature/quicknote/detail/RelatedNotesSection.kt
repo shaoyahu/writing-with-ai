@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +50,7 @@ import com.yy.writingwithai.core.note.RelatedNote
 import kotlinx.coroutines.launch
 
 /** UI state for the AI association extraction triggered by the user. */
+@Immutable
 sealed interface AiExtractState {
     /** Not running. */
     data object Idle : AiExtractState
@@ -366,17 +368,18 @@ private fun parseSharedItems(evidence: String?): Pair<List<String>, List<String>
     val entities = mutableListOf<String>()
 
     // 匹配 "sharedTags":[...] 和 "sharedEntities":[...]
-    val stringPattern = Regex(""""([^"\\]+)""")
+    // fix:提取 Regex 常量，避免每次调用重新编译
+    val stringPattern = SHARED_STRING_PATTERN
 
     // 提取 sharedTags
-    Regex(""""sharedTags"\s*:\s*\[([^]]*)]""").findAll(evidence).forEach { match ->
+    SHARED_TAGS_REGEX.findAll(evidence).forEach { match ->
         stringPattern.findAll(match.groupValues[1]).forEach { s ->
             tags.add(s.groupValues[1])
         }
     }
 
     // 提取 sharedEntities
-    Regex(""""sharedEntities"\s*:\s*\[([^]]*)]""").findAll(evidence).forEach { match ->
+    SHARED_ENTITIES_REGEX.findAll(evidence).forEach { match ->
         stringPattern.findAll(match.groupValues[1]).forEach { s ->
             entities.add(s.groupValues[1])
         }
@@ -384,3 +387,8 @@ private fun parseSharedItems(evidence: String?): Pair<List<String>, List<String>
 
     return tags.toList() to entities.toList()
 }
+
+// fix:提取 parseSharedItems 使用的 Regex 到文件级常量
+private val SHARED_STRING_PATTERN = Regex(""""([^"\\]+)""")
+private val SHARED_TAGS_REGEX = Regex(""""sharedTags"\s*:\s*\[([^]]*)]""")
+private val SHARED_ENTITIES_REGEX = Regex(""""sharedEntities"\s*:\s*\[([^]]*)]""")

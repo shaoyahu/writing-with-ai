@@ -140,7 +140,11 @@ constructor(
 
                 val attachmentId = UUID.randomUUID().toString()
                 val file = try {
-                    attachmentStore.save(body.byteStream(), noteId, attachmentId, ext)
+                    body.byteStream().use { stream ->
+                        attachmentStore.save(stream, noteId, attachmentId, ext)
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.w(TAG, "downloadOne: save failed for $url", e)
                     return null

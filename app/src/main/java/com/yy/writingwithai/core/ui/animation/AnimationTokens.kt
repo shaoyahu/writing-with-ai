@@ -3,6 +3,7 @@ package com.yy.writingwithai.core.ui.animation
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.unit.IntSize
 
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.IntSize
  * - [expandSpec]/[collapseSpec]: `FiniteAnimationSpec<IntSize>` — expandVertically/shrinkVertically 需此类型
  * - nav/dialog: EnterTransition / ExitTransition — NavHost composable 过渡
  */
+@Immutable
 data class AnimationTokens(
     /** NavHost forward enter。 */
     val navEnter: EnterTransition,

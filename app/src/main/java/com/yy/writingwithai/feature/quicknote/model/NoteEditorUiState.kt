@@ -1,6 +1,9 @@
 package com.yy.writingwithai.feature.quicknote.model
 
+import androidx.compose.runtime.Immutable
+
 /** 编辑屏 UI 状态。 */
+@Immutable
 data class NoteEditorUiState(
     val isNew: Boolean,
     val isLoaded: Boolean = false,

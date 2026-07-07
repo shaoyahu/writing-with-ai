@@ -11,6 +11,9 @@ import androidx.glance.unit.ColorProvider
  *
  * 替换原 6 个硬编码 hex 颜色常量(`cBlue` / `cWhite` / `cBg` / `cTitle` / `cBody` / `cMeta`),
  * 跟随系统暗色 / 亮色 / Material You 取色三档自适应。
+ *
+ * 注意:此函数在 GlanceTheme { provideContent { } } 内调用，MaterialTheme.colorScheme
+ * 由 GlanceTheme 提供，非普通 Compose 主题。GlanceTheme 内部桥接了 Material 3 色彩系统。
  */
 @Immutable
 data class WidgetColors(

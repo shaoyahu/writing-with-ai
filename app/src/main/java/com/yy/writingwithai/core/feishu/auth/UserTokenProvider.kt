@@ -209,9 +209,9 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
     /** 脱敏 body:client_secret / code / refresh_token 替换成 ****，避免 logcat 泄露。 */
     private fun sanitizeBodyForLog(body: String): String {
         return body
-            .replace(Regex("\"client_secret\"\\s*:\\s*\"[^\"]+\""), "\"client_secret\":\"****\"")
-            .replace(Regex("\"code\"\\s*:\\s*\"[^\"]+\""), "\"code\":\"****\"")
-            .replace(Regex("\"refresh_token\"\\s*:\\s*\"[^\"]+\""), "\"refresh_token\":\"****\"")
+            .replace(REGEX_SECRET, "\"client_secret\":\"****\"")
+            .replace(REGEX_CODE, "\"code\":\"****\"")
+            .replace(REGEX_REFRESH, "\"refresh_token\":\"****\"")
     }
 
     private fun JsonObject.str(key: String): String = this[key]?.jsonPrimitive?.contentOrNull ?: ""
@@ -227,5 +227,10 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
         private const val FALLBACK_PARSE_TTL_S = 60L
         private const val REQUEST_ID_OAUTH = "oauth"
         private val JSON = "application/json; charset=utf-8".toMediaType()
+
+        // fix:提取 Regex 常量避免每次调用 sanitizeBodyForLog 重新编译
+        private val REGEX_SECRET = Regex("\"client_secret\"\\s*:\\s*\"[^\"]+\"")
+        private val REGEX_CODE = Regex("\"code\"\\s*:\\s*\"[^\"]+\"")
+        private val REGEX_REFRESH = Regex("\"refresh_token\"\\s*:\\s*\"[^\"]+\"")
     }
 }

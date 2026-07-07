@@ -1,5 +1,6 @@
 package com.yy.writingwithai.feature.quicknote.detail
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.TextRange
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -471,8 +472,7 @@ constructor(
     private fun extractDocId(url: String): String {
         // 从飞书文档 URL 提取 docId
         // 格式:https://bytedance.feishu.cn/docx/{docId}?...
-        val regex = Regex("""/docx?/([A-Za-z0-9_-]+)""")
-        return regex.find(url)?.groupValues?.get(1) ?: url
+        return DOCX_URL_REGEX.find(url)?.groupValues?.get(1) ?: url
     }
     fun getExportMarkdown(): String? {
         val note = (uiState.value as? NoteDetailUiState.Content)?.note?.note ?: return null
@@ -680,6 +680,11 @@ constructor(
             }
         }
     }
+
+    companion object {
+        // fix:提取内联 Regex 常量，避免每次调用重新编译
+        private val DOCX_URL_REGEX = Regex("""/docx?/([A-Za-z0-9_-]+)""")
+    }
 }
 
 /** M3:详情屏顶部"上次 AI 操作"行投影 — `opKey` 是 aiwriting op 名("expand"/"polish"/"organize"),UI 层 `stringResource` 翻译。 */
@@ -753,6 +758,7 @@ sealed interface SyncAction {
 }
 
 /** note-decompose-highlight · 拆解状态。 */
+@Immutable
 sealed interface DecomposeState {
     data object Idle : DecomposeState
     data object Loading : DecomposeState

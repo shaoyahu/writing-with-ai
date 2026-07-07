@@ -1,6 +1,7 @@
 package com.yy.writingwithai.feature.settings.model
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.R
@@ -113,8 +114,8 @@ constructor(
         val current = _state.value
         val newId = if (!current.isEditMode && !current.idLocked) {
             val derived = name.lowercase()
-                .replace(Regex("[^a-z0-9\\s-]"), "")
-                .replace(Regex("\\s+"), "-")
+                .replace(STRIP_NON_SLUG, "")
+                .replace(COLLAPSE_WHITESPACE, "-")
                 .trim('-')
             if (derived.isBlank()) {
                 // H16 fix:派生 id 为空(全中文 / 全符号)→ 用 name 的稳定 hash + 短随机
@@ -365,9 +366,14 @@ constructor(
 
         // fix-2026-06-26-review-r3 LOW:随机盐掩码常量，避免 magic number 0xFFFF。
         private const val RANDOM_SALT_MASK = 0xFFFF
+
+        // fix:提取内联 Regex 常量，避免每次调用重新编译
+        private val STRIP_NON_SLUG = Regex("[^a-z0-9\\s-]")
+        private val COLLAPSE_WHITESPACE = Regex("\\s+")
     }
 }
 
+@Immutable
 data class CustomProviderEditUiState(
     val displayName: String = "",
     val providerId: String = "",

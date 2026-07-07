@@ -1,5 +1,7 @@
 package com.yy.writingwithai.core.data.model
 
+import androidx.compose.runtime.Immutable
+
 /**
  * 笔记 + 它挂的 tag 列表 + 首张图片路径(可选)。
  *
@@ -9,6 +11,7 @@ package com.yy.writingwithai.core.data.model
  * 图片的 localPath,`null` 表示该笔记无图片附件。列表卡片右侧根据此字段
  * 决定是否渲染 72dp × 72dp 缩略图。
  */
+@Immutable
 data class NoteWithTags(
     val note: Note,
     val tags: List<String>,

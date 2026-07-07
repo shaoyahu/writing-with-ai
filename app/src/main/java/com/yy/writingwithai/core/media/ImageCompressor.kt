@@ -60,8 +60,13 @@ class ImageCompressor @Inject constructor() {
         }
         val rotated = if (rotation != 0f) {
             val matrix = Matrix().apply { postRotate(rotation) }
-            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true).also {
-                if (it !== bitmap) bitmap.recycle()
+            try {
+                Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true).also {
+                    if (it !== bitmap) bitmap.recycle()
+                }
+            } catch (_: OutOfMemoryError) {
+                bitmap.recycle()
+                return
             }
         } else {
             bitmap

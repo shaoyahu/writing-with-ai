@@ -14,7 +14,16 @@ import androidx.glance.appwidget.action.ActionCallback
  */
 class OpenNoteAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val noteId = parameters[KEY_NOTE_ID]?.toLongOrNull() ?: return
+        val raw = parameters[KEY_NOTE_ID]
+        if (raw.isNullOrBlank()) {
+            android.util.Log.w(TAG, "onAction: noteId parameter missing or blank")
+            return
+        }
+        val noteId = raw.toLongOrNull()
+        if (noteId == null) {
+            android.util.Log.w(TAG, "onAction: noteId '$raw' is not a valid Long")
+            return
+        }
         // hardening H-4:走 sealed WidgetLaunchRoute.OpenNote，不再传裸 string。
         context.launchWithTaskStack(WidgetLaunchRoute.OpenNote(noteId))
     }
@@ -22,5 +31,6 @@ class OpenNoteAction : ActionCallback {
     companion object {
         val KEY_NOTE_ID: ActionParameters.Key<String> = ActionParameters.Key("noteId")
         const val EXTRA_ROUTE = "route"
+        private const val TAG = "OpenNoteAction"
     }
 }

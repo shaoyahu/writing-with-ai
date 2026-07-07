@@ -2,6 +2,7 @@ package com.yy.writingwithai.feature.settings.data
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.common.di.IoDispatcher
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@Immutable
 sealed interface DataUiState {
     data object Idle : DataUiState
 
@@ -49,6 +51,7 @@ sealed interface DataUiState {
  * 独立于 [DataUiState](避免覆盖 Done 态丢上下文)。`Idle` 默认;
  * `Success` 由屏监听 Snackbar 显示 + reset;`Failed` 同样 reset 前显示错误。
  */
+@Immutable
 sealed interface SaveReportResult {
     data object Idle : SaveReportResult
 

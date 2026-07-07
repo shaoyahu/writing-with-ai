@@ -277,6 +277,8 @@ constructor(
                     return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
                 }
                 items[0].jsonObject["block_id"]?.jsonPrimitive?.content ?: ref.docId
+            } catch (e2: kotlinx.coroutines.CancellationException) {
+                throw e2
             } catch (e2: Exception) {
                 Log.w(TAG, "syncAttachments: getBlocks retry failed: ${e2.message}")
                 return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "get_blocks_fail:${e2.message}")
@@ -293,10 +295,14 @@ constructor(
                     return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
                 }
                 items[0].jsonObject["block_id"]?.jsonPrimitive?.content ?: ref.docId
+            } catch (e2: kotlinx.coroutines.CancellationException) {
+                throw e2
             } catch (e2: Exception) {
                 Log.w(TAG, "syncAttachments: getBlocks retry failed: ${e2.message}")
                 return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "get_blocks_fail:${e2.message}")
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "syncAttachments: getBlocks failed: ${e.message}")
             return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "get_blocks_fail:${e.message}")

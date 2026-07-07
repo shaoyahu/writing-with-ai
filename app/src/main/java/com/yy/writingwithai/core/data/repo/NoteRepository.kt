@@ -24,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -63,7 +64,8 @@ constructor(
     private val recomputeFlow = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
     /** AI replace 触发通知:detail ViewModel 收集，收到 noteId 后强刷。 */
-    val noteUpdateEvents = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 32)
+    private val _noteUpdateEvents = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 32)
+    val noteUpdateEvents: SharedFlow<String> = _noteUpdateEvents
 
     init {
         // fix-2026-07-05-review-r4 MEDIUM M3:协程生命周期说明

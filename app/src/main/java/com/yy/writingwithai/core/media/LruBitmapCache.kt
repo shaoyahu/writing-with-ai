@@ -18,8 +18,9 @@ class LruBitmapCache(maxSizeBytes: Int = defaultSize()) {
     /** 获取缓存 Bitmap，未命中返回 null。 */
     fun get(path: String): Bitmap? = cache.get(path)
 
-    /** 存入缓存，若已存在则替换。 */
+    /** 存入缓存，若已存在则替换。已回收的 Bitmap 会被忽略。 */
     fun put(path: String, bitmap: Bitmap) {
+        if (bitmap.isRecycled) return
         cache.put(path, bitmap)
     }
 
