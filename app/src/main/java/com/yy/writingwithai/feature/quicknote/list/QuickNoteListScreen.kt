@@ -218,6 +218,7 @@ fun QuickNoteListScreen(
                                 onClick = {
                                     importMenuExpanded = false
                                     pendingAuthTarget = null
+                                    lastHandledAuthName = null
                                     viewModel.requestFeishuAuthCheck()
                                 }
                             ),
@@ -227,6 +228,7 @@ fun QuickNoteListScreen(
                                 onClick = {
                                     importMenuExpanded = false
                                     pendingAuthTarget = "folder"
+                                    lastHandledAuthName = null
                                     viewModel.requestFeishuAuthCheck()
                                 }
                             )
