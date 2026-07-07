@@ -192,7 +192,7 @@ fun NoteRow(
                             tags.take(3).forEach { tag ->
                                 // M5 fix: SuggestionChip 改为非交互式 Text+背景，避免误导可点击
                                 Text(
-                                    text = tag,
+                                    text = "#$tag",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier

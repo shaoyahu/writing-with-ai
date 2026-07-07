@@ -216,13 +216,16 @@ constructor(
                 val realDocToken = resolved.token
 
                 // 2. fetch markdown
-                val markdown = feishuApi.fetchDocumentV2(realDocToken)
+                val rawMarkdown = feishuApi.fetchDocumentV2(realDocToken)
 
                 // 3. 拿 title + revision — 优先 v1 getDocument;失败时从 markdown 第一行取 title
                 val meta = runCatching { feishuApi.getDocument(realDocToken) }.getOrNull()
                 val title = meta?.title?.takeIf { it.isNotBlank() }
-                    ?: extractTitleFromMarkdown(markdown)
+                    ?: extractTitleFromMarkdown(rawMarkdown)
                     ?: "未命名笔记"
+                // 飞书 API 返回的 markdown 可能第一行就是 # 标题，
+                // 已提取到 Note.title，正文中应移除以避免重复显示。
+                val markdown = stripLeadingTitle(rawMarkdown, title)
                 // revision 用 v1 真实 revisionId(供双向同步 conflict detection);拿不到时 fallback "0"
                 // 避免空字符串导致 FeishuSyncService 误判 CONFLICT(Finding #3)
                 val remoteRevision = meta?.revisionId?.takeIf { it.isNotBlank() } ?: "0"
@@ -248,7 +251,7 @@ constructor(
                     syncStatus = if (anyImageFailed) SyncStatus.PARTIAL_IMPORT_FAIL else SyncStatus.SYNCED,
                     lastSyncedAt = now
                 )
-                noteRepository.upsert(note, tags = listOf("feishu"))
+                noteRepository.upsert(note, tags = listOf("飞书"))
 
                 // 跨 DAO 事务:note (已落库 by NoteRepository) + attachment + ref + event 全包。
                 // 任意一段 throw → 整个事务回滚,包括 noteRepository.upsert 的影响 —— NoteRepository
@@ -315,6 +318,24 @@ constructor(
         val firstLine = markdown.lineSequence().firstOrNull { it.isNotBlank() } ?: return null
         val match = Regex("""^#\s+(.+?)\s*$""").find(firstLine) ?: return null
         return match.groupValues[1].take(100)
+    }
+
+    /**
+     * 移除 markdown 开头的 `# 标题` 行（如果与提取的 title 匹配），
+     * 避免标题在 Note.title 和 content 中重复显示。
+     */
+    private fun stripLeadingTitle(markdown: String, title: String): String {
+        val lines = markdown.lines()
+        val firstNonBlank = lines.indexOfFirst { it.isNotBlank() }
+        if (firstNonBlank < 0) return markdown
+        val firstLine = lines[firstNonBlank].trim()
+        // 匹配 # 标题 或 ## 标题 等开头的 heading 行
+        val headingMatch = Regex("""^#{1,6}\s+(.+?)\s*$""").find(firstLine)
+        if (headingMatch != null && headingMatch.groupValues[1] == title) {
+            return lines.filterIndexedTo(mutableListOf()) { i, _ -> i != firstNonBlank }
+                .joinToString("\n").trimStart('\n')
+        }
+        return markdown
     }
 
     companion object {
