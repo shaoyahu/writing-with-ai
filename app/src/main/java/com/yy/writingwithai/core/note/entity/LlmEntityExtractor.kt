@@ -120,8 +120,29 @@ constructor(
             val key = obj["key"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
             val surface = obj["surface"]?.jsonPrimitive?.contentOrNull ?: key
             val type = runCatching { EntityType.valueOf(typeStr.uppercase()) }.getOrNull() ?: return@mapNotNull null
-            Triple(type, key, surface)
+            // entity-management-and-ai-decompose fix:LLM 经常给 surface 包单/双引号
+            // ("先天缺陷 / "先天缺陷" / "content"),sheet 标题/sheet 内容要干净。
+            // 解析时剥离两端连续引号。
+            Triple(type, key, stripWrappingQuotes(surface))
         }
+    }
+
+    /**
+     * 剥离两端的连续引号字符。LLM 输出常见形态:
+     * - "先天缺陷(单前导) — 剥 1
+     * - "先天缺陷"(双前导双尾随) — 剥 2
+     * - "content"(标准双引号) — 剥 2
+     * 异常:整串都是引号 → 原样返回(交给上层 coerce 兜底)。
+     */
+    private fun stripWrappingQuotes(s: String): String {
+        if (s.isEmpty()) return s
+        val quoteChars = setOf('“', '”', '‘', '’', '"', '\'')
+        var leading = 0
+        while (leading < s.length && s[leading] in quoteChars) leading++
+        var trailing = 0
+        while (trailing < s.length - leading && s[s.length - 1 - trailing] in quoteChars) trailing++
+        if (leading + trailing >= s.length) return s
+        return s.substring(leading, s.length - trailing)
     }
 
     companion object {
