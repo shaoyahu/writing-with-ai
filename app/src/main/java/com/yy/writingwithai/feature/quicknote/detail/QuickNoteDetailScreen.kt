@@ -79,7 +79,9 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
@@ -202,6 +204,9 @@ fun QuickNoteDetailScreen(
 
     val current = state as? NoteDetailUiState.Content
     val noteId = current?.note?.note?.id
+    // floating-toolbar-redesign bug fix:提前在 composable scope 里捕获 primary color,
+    // 供 toolbar onAddEntity 回调(非 composable scope)重建 annotatedContent 时用。
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     // note-decompose-highlight T6:缓存加载 — 进入详情页时查询已有实体
     LaunchedEffect(noteId) {
@@ -587,7 +592,13 @@ fun QuickNoteDetailScreen(
                         val contentLen = contentText.length
                         val primaryColor = MaterialTheme.colorScheme.primary
                         val entityHighlights = remember(entityRows, titleLen, contentLen) {
-                            entityRows.mapNotNull { it.toHighlight(titleLen, contentLen) }
+                            val list = entityRows.mapNotNull { it.toHighlight(titleLen, contentLen) }
+                            android.util.Log.d(
+                                "EntityCheck",
+                                "rawRows=${entityRows.map { Triple(it.surfaceForm, it.spanStart, it.spanEnd) }}, " +
+                                    "highlights=$list"
+                            )
+                            list
                         }
                         val annotatedContent = remember(contentText, entityHighlights, primaryColor) {
                             buildEntityAnnotatedString(contentText, entityHighlights, primaryColor)
@@ -611,12 +622,19 @@ fun QuickNoteDetailScreen(
                                 } else {
                                     // 用户点击了某个位置(collapsed) → 检测是否命中实体
                                     val offset = selection.start
+                                    // entity-management-and-ai-decompose fix:用全 range 查询
+                                    // + 在内存中判断 offset 是否落在 annotation 区间内。
+                                    // Compose getStringAnnotations 的 (start, end) 参数对
+                                    // 空 range(start==end)的边界行为不稳定,直接用全 range 更可靠。
                                     val annotations = annotatedContent.getStringAnnotations(
                                         tag = "entity",
-                                        start = offset,
-                                        end = offset
+                                        start = 0,
+                                        end = annotatedContent.length
                                     )
-                                    val entityKey = annotations.firstOrNull()?.item
+                                    val hit = annotations.firstOrNull { r ->
+                                        offset in r.start until r.end
+                                    }
+                                    val entityKey = hit?.item
                                     if (entityKey != null) {
                                         val highlight = entityHighlights.find {
                                             it.entityKey == entityKey
@@ -878,20 +896,51 @@ fun QuickNoteDetailScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars)
-                .padding(bottom = LocalSpacing.current.md),
+                .padding(horizontal = LocalSpacing.current.lg, vertical = LocalSpacing.current.lg),
             contentAlignment = Alignment.BottomCenter
         ) {
             SelectionFloatingToolbar(
                 isAiEnabled = hasAiProvider,
+                // 当前选区是否已被加入实体:跟任意 USER_ADDED 实体的 span 存在重叠即视为已添加。
+                isEntityAdded = remember(uiSelection, entityRows) {
+                    val s = uiSelection.min
+                    val e = uiSelection.max
+                    entityRows.any { row ->
+                        row.source == "USER_ADDED" &&
+                            row.spanStart < e && row.spanEnd > s
+                    }
+                },
                 onAddEntity = {
+                    // floating-toolbar-redesign bug fix:BasicTextField 渲染的是 annotatedContent,
+                    // 每个已添加实体末尾追加了 ✦(superScript)字符,所以 uiSelection 的索引是
+                    // 相对于 annotatedContent,不能直接用来截取 content.substring,否则会
+                    // 错位(用户选"推理性能"4 字 → substring 拿到 "理性能上"4 字)。
+                    // 解法:根据 entityRows 重建 annotatedContent,把 [0, offset) 内的 ✦ 字符数扣掉。
+                    val annStart = uiSelection.min
+                    val annEnd = uiSelection.max
+                    val titleLen = current.note.note.title.length + 1 // 跟详情屏渲染分支一致
+                    val contentLen = current.note.note.content.length
+                    val ann = buildEntityAnnotatedString(
+                        current.note.note.content,
+                        entityRows.mapNotNull {
+                            it.toHighlight(titleLen, contentLen)
+                        },
+                        primaryColor
+                    )
+                    fun starsBefore(offset: Int): Int {
+                        val o = offset.coerceAtMost(ann.length)
+                        return ann.substring(0, o).count { it == EntityCrossStarChar.first() }
+                    }
+                    val contentStart = annStart - starsBefore(annStart)
+                    val contentEnd = annEnd - starsBefore(annEnd)
                     val selectedText = current.note.note.content.substring(
-                        uiSelection.min,
-                        uiSelection.max
+                        contentStart,
+                        contentEnd
                     )
                     viewModel.addEntityFromSelection(
                         surface = selectedText,
-                        spanStart = uiSelection.min,
-                        spanEnd = uiSelection.max
+                        spanStart = contentStart,
+                        spanEnd = contentEnd
                     )
                 },
                 onAiExpand = {
@@ -1224,43 +1273,103 @@ private fun opKeyToRes(opKey: String): Int = when (opKey) {
  * entity-management-and-ai-decompose §3:构建带实体高亮的 AnnotatedString。
  *
  * - 蓝色字体:`SpanStyle(color = primaryColor)`,不再用 Underline。
- * - 实体文本末尾追加 ✦ 字符(作为普通文本的一部分)。
+ * - 每个实体文本末尾紧贴 ✦ 字符(右上角超小号 superscript,视觉像星标)。
  * - 重叠实体按 span 长度降序处理(最长优先),短 span 的 annotation 会被长 span 覆盖。
+ *
+ * 注意:addStyle / addStringAnnotation 的 start/end 必须是 AnnotatedString 实际索引,
+ * 所以每段 append 后用 `length` 拿到新坐标,不再混用 content 原始索引。
  */
 private fun buildEntityAnnotatedString(
     content: String,
     highlights: List<EntityHighlight>,
     primaryColor: androidx.compose.ui.graphics.Color
 ): AnnotatedString = buildAnnotatedString {
-    append(content)
+    if (content.isEmpty()) return@buildAnnotatedString
+
     val sorted = highlights.sortedByDescending { it.contentEnd - it.contentStart }
-    val claimed = mutableListOf<IntRange>()
-    for (h in sorted) {
-        val start = h.contentStart.coerceIn(0, content.length)
-        val end = h.contentEnd.coerceIn(start, content.length)
-        if (start >= end) continue
-        addStyle(
-            style = SpanStyle(color = primaryColor),
-            start = start,
-            end = end
-        )
-        // 完全未被更长 span 占据的区间才追加 StringAnnotation + ✦
-        if (claimed.none { it.first <= start && it.last >= end }) {
-            addStringAnnotation(
-                tag = "entity",
-                annotation = h.entityKey,
-                start = start,
-                end = end
-            )
-            // 在 entity 文本末尾追加 ✦(作为普通文本,用 SpanStyle 着色)
-            val starIndex = content.length
-            append(EntityCrossStarChar)
+
+    // 1) 计算 normalized entity ranges(夹紧到 content 范围内,过滤空区间)
+    val entityRanges: List<Pair<IntRange, EntityHighlight>> = sorted
+        .map { h ->
+            val s = h.contentStart.coerceIn(0, content.length)
+            val e = h.contentEnd.coerceIn(s, content.length)
+            if (s >= e) null else (s until e) to h
+        }
+        .filterNotNull()
+
+    // 2) 按原始 content 顺序生成"普通段 / 实体段"事件序列
+    val events = buildList<Pair<IntRange, EntityHighlight?>> {
+        val breakpoints = sortedSetOf(0, content.length)
+        entityRanges.forEach { (r, _) ->
+            breakpoints.add(r.first)
+            breakpoints.add(r.last + 1)
+        }
+        val points = breakpoints.toList()
+        for (i in 0 until points.size - 1) {
+            val segStart = points[i]
+            val segEnd = points[i + 1]
+            if (segStart >= segEnd) continue
+            val owner = entityRanges.firstOrNull { (r, _) -> r.first == segStart && r.last + 1 == segEnd }
+            if (owner != null) {
+                add(segStart until segEnd to owner.second)
+            } else {
+                // 普通段:跳过其中被任何 entity 覆盖的部分
+                var cursor = segStart
+                val sortedEntityRanges = entityRanges.map { it.first }.sortedBy { it.first }
+                for (er in sortedEntityRanges) {
+                    val erS = er.first
+                    val erE = er.last + 1
+                    if (erS >= segEnd || erE <= segStart) continue
+                    if (cursor < erS) {
+                        add(cursor until erS to null)
+                    }
+                    cursor = maxOf(cursor, erE)
+                    if (cursor >= segEnd) break
+                }
+                if (cursor < segEnd) {
+                    add(cursor until segEnd to null)
+                }
+            }
+        }
+    }
+
+    // 3) 按顺序 append,同时用 length 跟踪 AnnotatedString 实际索引
+    val starInserted = mutableSetOf<String>()
+    for ((range, hl) in events) {
+        if (hl == null) {
+            append(content.substring(range.first, range.last + 1))
+        } else {
+            val s = range.first
+            val e = range.last + 1
+            val textStart = length
+            append(content.substring(s, e))
+            val textEnd = length
             addStyle(
                 style = SpanStyle(color = primaryColor),
-                start = starIndex,
-                end = starIndex + EntityCrossStarChar.length
+                start = textStart,
+                end = textEnd
             )
-            claimed.add(start until end)
+            // 唯一实体(按 key)追加 ✦ + annotation
+            if (starInserted.add(hl.entityKey)) {
+                addStringAnnotation(
+                    tag = "entity",
+                    annotation = hl.entityKey,
+                    start = textStart,
+                    end = textEnd
+                )
+                val starStart = length
+                append(EntityCrossStarChar)
+                val starEnd = length
+                addStyle(
+                    style = SpanStyle(
+                        color = primaryColor,
+                        fontSize = 0.55.em,
+                        baselineShift = BaselineShift.Superscript
+                    ),
+                    start = starStart,
+                    end = starEnd
+                )
+            }
         }
     }
 }
