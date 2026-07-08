@@ -2,11 +2,9 @@
 
 package com.yy.writingwithai.feature.my
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,8 +17,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Animation
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SmartToy
@@ -48,7 +48,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -63,7 +62,6 @@ import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.WritingAppTheme
 import com.yy.writingwithai.feature.my.devmode.DeveloperModeViewModel
-import com.yy.writingwithai.feature.my.entity.EntityManagementViewModel
 import kotlin.random.Random
 import kotlinx.coroutines.launch
 
@@ -94,14 +92,11 @@ fun MyScreen(
     modifier: Modifier = Modifier,
     // ux-2026-06-28 #7:关于页「检查更新」VM。Hilt 默认注入，无外部依赖。
     viewModel: CheckUpdateViewModel = hiltViewModel(),
-    // entity-management-and-ai-decompose §4.2:复用 EntityManagement VM 读 totalCount
-    entityMgmtVm: EntityManagementViewModel = hiltViewModel(),
     // entity-management-and-ai-decompose §5.2:版本号点击开启开发者模式
     devModeVm: DeveloperModeViewModel = hiltViewModel()
 ) {
     val cornerRadius = LocalCornerRadius.current
     val updateState by viewModel.state.collectAsStateWithLifecycle()
-    val entityState by entityMgmtVm.uiState.collectAsStateWithLifecycle()
     val devModeEnabled by devModeVm.isEnabled.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -216,7 +211,7 @@ fun MyScreen(
                     HorizontalDivider()
                     MyListItem(
                         title = stringResource(R.string.me_note_association_title),
-                        icon = Icons.Filled.LocalOffer,
+                        icon = Icons.Filled.Link,
                         onClick = { onNavigate(MeTabTarget.SettingsNoteAssociation) }
                     )
                 }
@@ -233,10 +228,9 @@ fun MyScreen(
                         onClick = { onNavigate(MeTabTarget.SettingsAliasManagement) }
                     )
                     HorizontalDivider()
-                    MyListItemWithBadge(
+                    MyListItem(
                         title = stringResource(R.string.entity_management_title),
-                        icon = Icons.Filled.LocalOffer,
-                        badgeCount = entityState.totalCount,
+                        icon = Icons.Filled.Category,
                         onClick = { onNavigate(MeTabTarget.EntityManagement) }
                     )
                     if (devModeEnabled) {
@@ -409,38 +403,6 @@ private fun MyAboutItem(title: String) {
                 tint = MaterialTheme.colorScheme.primary
             )
         }
-    )
-}
-
-/** entity-management-and-ai-decompose §4.2:带数字 badge 的列表项。 */
-@Composable
-private fun MyListItemWithBadge(title: String, icon: ImageVector, badgeCount: Int, onClick: () -> Unit) {
-    ListItem(
-        headlineContent = { Text(title) },
-        leadingContent = {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        },
-        trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (badgeCount > 0) {
-                    Text(
-                        text = badgeCount.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                    )
-                }
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        modifier = Modifier.clickable(onClick = onClick)
     )
 }
 
