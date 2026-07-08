@@ -7,7 +7,11 @@ import java.util.concurrent.atomic.AtomicReference
  * FakeProvider 的运行时配置(单测 / UI 验收用，M5 真联调时不改此处)。
  */
 data class FakeConfig(
-    val text: String = "Fake AI response for testing",
+    // M5 fix:默认返回有效 JSON 数组(空)而非英文文本,避免 LlmEntityExtractor.parseJsonEntities
+    // 因 JSON parse 失败静默返 0 实体,用户看到"转圈后无反馈"。空数组让流程走通,
+    // 拆解会得到 Decomposed(0) → UI Snackbar 提示"未发现实体"。真要 demo 实体高亮,
+    // 通过 FakeConfigHolder.set(...) 注入测试 JSON。
+    val text: String = "[]",
     val delayMs: Long = 0L,
     val errorAfterTokens: Int? = null,
     val tokenCounts: AiStreamEvent.Usage? = null

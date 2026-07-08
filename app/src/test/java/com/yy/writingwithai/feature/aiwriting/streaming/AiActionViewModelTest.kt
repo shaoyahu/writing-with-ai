@@ -47,16 +47,22 @@ class AiActionViewModelTest {
     private val consentStore = FakeConsentStore().apply {
         seed(ConsentState(accepted = true, acceptedAt = 1L, version = 1))
     }
+
+    // remove-debug-fake-fallback §7.3:FakeAiProvider 不再注册;单测必须 seed 真 provider id
+    // + apikey 才能跑通 start() 路径(同 release 行为:无 apikey → ProviderNotConfigured)。
+    // FakeSecureApiKeyStore.save() 是接口 public 方法;FakeProviderPrefsStore 走 deepseek 真 provider id。
     private val secureApiKeyStore = FakeSecureApiKeyStore()
     private val promptTemplateStore = FakePromptTemplateStore()
-    private val providerPrefsStore = FakeProviderPrefsStore(initial = "fake")
+    private val providerPrefsStore = FakeProviderPrefsStore(initial = "deepseek")
 
     @BeforeEach
-    fun setUp() {
+    fun setUp() = runTest {
         Dispatchers.setMain(dispatcher)
         // fix-2026-06-28-ai-model-selection-actually-used:VM.start 调 aiGateway.listProviders()
         // 拿 defaultModel(走 resolveActualModel 算 actualModel);默认返空，fake provider 路径继续。
         coEvery { aiGateway.listProviders() } returns emptyList()
+        // remove-debug-fake-fallback §7.3:seed 真 provider apikey 让 start() 跑通(无 apikey → ProviderNotConfigured)
+        secureApiKeyStore.save("deepseek", "test-deepseek-key")
     }
 
     @AfterEach

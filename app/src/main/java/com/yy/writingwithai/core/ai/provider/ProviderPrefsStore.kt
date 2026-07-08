@@ -31,7 +31,9 @@ interface ProviderPrefsStore {
      */
     suspend fun getSelectedProviderId(): String?
 
-    suspend fun setSelectedProviderId(providerId: String)
+    // remove-debug-fake-fallback §6.2:setSelectedProviderId 接 null — 删除/清 apikey 后
+    // selected 设为 null(未选)而非降到 fake provider(FakeAiProvider 不再注入)
+    suspend fun setSelectedProviderId(providerId: String?)
 
     /** Flow,UI 可订阅实时刷新;值可为 `null`。 */
     fun observeSelectedProviderId(): Flow<String?>
@@ -77,8 +79,14 @@ class ProviderPrefsStoreImpl(
         .map { it[KEY_SELECTED_PROVIDER_ID] }
         .first()
 
-    override suspend fun setSelectedProviderId(providerId: String) {
-        context.providerPrefsDataStore.edit { it[KEY_SELECTED_PROVIDER_ID] = providerId }
+    override suspend fun setSelectedProviderId(providerId: String?) {
+        context.providerPrefsDataStore.edit { prefs ->
+            if (providerId == null) {
+                prefs.remove(KEY_SELECTED_PROVIDER_ID)
+            } else {
+                prefs[KEY_SELECTED_PROVIDER_ID] = providerId
+            }
+        }
     }
 
     override fun observeSelectedProviderId(): Flow<String?> = context.providerPrefsDataStore.data

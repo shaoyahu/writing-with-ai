@@ -7,7 +7,6 @@ import com.yy.writingwithai.core.ai.api.AiRequest
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.api.WritingOp
-import com.yy.writingwithai.core.ai.fake.FakeAiProvider
 import com.yy.writingwithai.core.ai.provider.CustomProviderStore
 import com.yy.writingwithai.core.ai.provider.ProviderConfig
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStore
@@ -37,37 +36,9 @@ class CoreAiGatewayR3RegressionTest {
      * fix H2 regression:ping() 对 fake provider 不再抛 IllegalStateException,
      * 而是返回 ProviderNotConfigured 摘要，符合 `null == 成功` 契约。
      */
-    @Test
-    fun ping_on_fake_provider_returns_provider_not_configured_summary_not_throw() = runTest {
-        val gateway = gatewayWithProviders(mapOf("fake" to FakeAiProvider()))
-
-        val result = gateway.ping(
-            providerId = "fake",
-            apikey = "any",
-            modelName = "fake-model"
-        )
-
-        // 契约:非 null = 失败原因(给 UI 显示)。
-        assertNotNull(result)
-        assertEquals(AiError.ProviderNotConfigured.summary(), result)
-    }
-
-    /**
-     * fix H2 regression:ping() 在 fake 上不再抛 IllegalStateException，只是返回。
-     * 此测试用 try-finally 显式断言"不抛"(通过直接调用 ping + 不 catch 即可)。
-     */
-    @Test
-    fun ping_on_fake_provider_does_not_throw_exception() = runTest {
-        val gateway = gatewayWithProviders(mapOf("fake" to FakeAiProvider()))
-
-        // 不加 try-catch，若 IllegalStateException 漏出，runTest 会标红。
-        val result = gateway.ping(
-            providerId = "fake",
-            apikey = "any",
-            modelName = "fake-model"
-        )
-        assertEquals(AiError.ProviderNotConfigured.summary(), result)
-    }
+    // remove-debug-fake-fallback §7.3:FakeAiProvider 不再注入到 Hilt 图,这 2 个 fake-specific ping 测试
+    // 失去意义 — fake provider 的特殊处理代码已删除。删除而非重写,避免 future drift。
+    // 真 provider 的 ping 测试已由后续 integration test 覆盖。
 
     /**
      * fix H2 regression:ping() 对未注册的 providerId 仍返 "not registered"。
@@ -269,7 +240,7 @@ class CoreAiGatewayR3RegressionTest {
 /** 测试用 ProviderPrefsStore:不需要 read prefs,H4 测试不依赖。 */
 internal object NoopProviderPrefsStore : ProviderPrefsStore {
     override suspend fun getSelectedProviderId(): String? = null
-    override suspend fun setSelectedProviderId(providerId: String) {}
+    override suspend fun setSelectedProviderId(providerId: String?) {}
     override fun observeSelectedProviderId(): Flow<String?> = flowOf(null)
     override suspend fun getSelectedModel(providerId: String): String? = null
     override suspend fun setSelectedModel(providerId: String, model: String) {}

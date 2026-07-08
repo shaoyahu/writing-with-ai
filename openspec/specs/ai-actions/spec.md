@@ -53,7 +53,7 @@ sealed interface AiActionUiState {
 
 `start(op, sourceText, noteId)` MUST:
 - 同步读 `providerPrefsStore.getSelectedProviderId()`(user-configured provider id) + `secureApiKeyStore.get(providerId)`(真 apikey)
-- 若 `providerId != "fake"` 且 `apikey == null` → `_state = Failed(op, AiError.ProviderNotConfigured)`,**不**调 `AiGateway.streamWritingOp(...)`,return
+- 若 `apikey == null` → `_state = Failed(op, AiError.ProviderNotConfigured)`,**不**调 `AiGateway.streamWritingOp(...)`,return
 - 调 `promptTemplateStore.getForOp(op)` 拿用户自定义 system prompt(custom-prompt-template 落地);`null` → 走 `DefaultPrompts.forOp(op)` fallback
 - 调 `AiGateway.streamWritingOp(op, sourceText, providerId, apikey, modelName=null, systemPrompt=<解析结果>)` 订阅
 
@@ -264,7 +264,7 @@ Composable 内 MUST 通过 `stringResource(R.string.aiwriting_xxx)` 引用;**禁
 
 #### Scenario: AI 调用走 AiGateway
 - **WHEN** `AiActionViewModel.start(EXPAND, ...)` 执行
-- **THEN** 内部唯一调用是 `aiGateway.streamWritingOp(EXPAND, sourceText, PROVIDER_ID_FAKE, null)`
+- **THEN** 内部唯一调用是 `aiGateway.streamWritingOp(EXPAND, sourceText, providerId, apikey)`
 
 ### Requirement: package layout follows feature self-containment
 
@@ -324,28 +324,33 @@ sealed interface AiError {
 - **WHEN** `aiState = Failed(op, UserConsentRequired)`
 - **THEN** `StreamingPanel` Failed 态显示 `R.string.onboarding_required`(中文"请先同意隐私条款");底部"关闭"按钮可点;**不** 替换正文
 
-### Requirement: PROVIDER_ID_FAKE constant is replaced by consented provider
+### Requirement: AI op 调用必须使用真 AI provider(debug 包同 release 行为)
 
-`AiActionViewModel.PROVIDER_ID_FAKE` 常量在 M4-4 完成后 MUST 仍存在(向后兼容)但实际值从 `SecureApiKeyStore` 读取:start() 内部用 `private suspend fun resolveProviderId(): String = if (secureApiKeyStore.has(DEFAULT_PROVIDER)) DEFAULT_PROVIDER else PROVIDER_ID_FAKE`，默认 `DEFAULT_PROVIDER = "deepseek"`;未配 deepseek apikey 时 fallback `"fake"`(M3 FakeProvider 端到端验证不阻塞 v1 内测);M5 polish 时再切完整 provider 切换 UI。
+`AiActionViewModel` 扩写 / 润色 / 整理 / 摘要 / 翻译 5 个 op MUST 仅在用户配置真实 AI provider apikey 时调用 LLM。`BuildConfig.DEBUG` **不**再是「无 apikey 时回退 fake」的合法理由:
 
-```kotlin
-companion object {
-    const val PROVIDER_ID_FAKE = "fake"  // 兼容旧引用，M5 polish 删
-    const val DEFAULT_PROVIDER = "deepseek"
-}
-```
+- 无任何真实 provider apikey → `AiActionViewModel.start(...)` 检测 `secureApiKeyStore.observeConfiguredProviders().first().isEmpty()` → 立即 emit `AiError.ProviderNotConfigured` → UI Snackbar「请先配置 AI 模型」 + 「去设置」action,跳 AI 设置页
+- `PROVIDER_ID_FAKE` 常量已删除;全链路不再认 `"fake"` 作为合法 provider id
+- `CoreAiGateway.stream(...)` 收到 `providerId == "fake"` 时不再走 fake 特殊路径;provider map 不含 "fake",自动 fall through 到通用"无 provider"错误处理
 
-#### Scenario: 未配置 apikey 时 fallback fake
-- **WHEN** `SecureApiKeyStore.has("deepseek") = false`,`start(EXPAND, "晨跑", "n1")` 调用
-- **THEN** `providerId` 解析为 `"fake"`;走 FakeProvider 端到端(M3 行为)
+#### Scenario: debug 包无 apikey 触发扩写 → 请先配置
+- **WHEN** debug 包跑在真机/模拟器,用户未配置 AI provider apikey,在详情屏选中文本点扩写
+- **THEN** `AiActionViewModel.start(EXPAND, ...)` 立即 emit `AiError.ProviderNotConfigured`;UI Snackbar 显示「请先配置 AI 模型」 + 「去设置」按钮;点击 action 跳 `ModelManagementScreen`;**不**调用 FakeAiProvider,**不**出现 fake 文本
 
-#### Scenario: 已配置 apikey 时用 deepseek
-- **WHEN** `SecureApiKeyStore.has("deepseek") = true`,`start(EXPAND, "晨跑", "n1")` 调用
-- **THEN** `providerId` 解析为 `"deepseek"`;调 `AiGateway.streamWritingOp(EXPAND, "晨跑", "deepseek", null)`;M5 polish 落地真 provider 联调(v1 内测阶段 fake 仍可走，见 design D2 / D4 注)
+#### Scenario: debug 包有 apikey 触发扩写 → 真 provider 流式
+- **WHEN** debug 包跑在真机/模拟器,用户已配置 deepseek apikey,选中文本点扩写
+- **THEN** `AiActionViewModel` 走真 provider HTTP,SSE 流式返回 Delta,UI StreamingPanel 逐 token 渲染;debug 与 release 行为一致
 
-#### Scenario: 切换 provider 不影响 consent 门
-- **WHEN** `consentFlow.value.accepted == true`,`providerId` 从 `"fake"` 切到 `"deepseek"`
-- **THEN** consent 门控行为不变，只影响 `AiGateway.streamWritingOp` 第三参数
+#### Scenario: 扩写完成 token 落 ai_history 表
+- **WHEN** 真 provider 扩写流式完成
+- **THEN** ai_history 表写入一条记录(`op=expand`, `providerId="deepseek"`, `inputTokens` / `outputTokens` / `totalTokens`);debug 与 release 一致
+
+#### Scenario: grep 验证 AiActionViewModel 无 PROVIDER_ID_FAKE 常量
+- **WHEN** `grep "PROVIDER_ID_FAKE\|\"fake\"" app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionViewModel.kt`
+- **THEN** 0 匹配
+
+#### Scenario: grep 验证 CoreAiGateway 无 fake 特殊处理
+- **WHEN** `grep "FakeAiProvider" app/src/main/java/com/yy/writingwithai/core/ai/CoreAiGateway.kt`
+- **THEN** 0 匹配
 
 
 # ai-actions Delta Spec

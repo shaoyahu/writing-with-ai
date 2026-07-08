@@ -13,8 +13,8 @@ TBD - created by archiving change ai-abstraction-layer. Update Purpose after arc
 业务代码(ViewModel / Repository)**禁止**直接调 OkHttp / 构造 HTTP 请求;所有 AI 调用必须经过 `AiGateway`。
 
 #### Scenario: Gateway routes to provider by id
-- **WHEN** 调用 `AiGateway.streamWritingOp(op=EXPAND, sourceText="hello", providerId="fake", apikey="<任意非空>")`
-- **THEN** 系统从内部 `Map<String, AiProvider>` 取 `"fake"` → `FakeAiProvider`，并返回该 provider 的 `stream()` 结果 Flow
+- **WHEN** 调用 `AiGateway.streamWritingOp(op=EXPAND, sourceText="hello", providerId="deepseek", apikey="sk-real-123")`
+- **THEN** 系统从内部 `Map<String, AiProvider>` 取 `"deepseek"` → `AnthropicCompatibleAdapter`，并返回该 provider 的 `stream()` 结果 Flow
 
 #### Scenario: Unknown provider id returns immediate Failed
 - **WHEN** 调用 `AiGateway.streamWritingOp(providerId="nonexistent", apikey="<任意>")`
@@ -170,21 +170,29 @@ sealed interface SseEvent {
 
 
 
-### Requirement: FakeAiProvider only registered in debug build
+### Requirement: AI 调用不允许走 fake 兜底(debug 包同 release 行为)
 
-`core/ai/di/AiModule.kt` `provideAiProviders()` MUST conditionally register `FakeAiProvider` only when `BuildConfig.DEBUG == true`. In release builds, the `Map<String, AiProvider>` MUST NOT contain a `fake` key, so callers asking for `"fake"` provider id receive the standard `ProviderNotFound` Failed event instead of mock output.
+`BuildConfig.DEBUG` **不**再是「无 AI provider apikey 时回退到 `FakeAiProvider`」的合法豁免。debug 与 release 行为一致:
 
-#### Scenario: Debug build registers fake
-- **WHEN** `./gradlew :app:assembleDebug` runs and `BuildConfig.DEBUG == true`
-- **THEN** the `Map<String, AiProvider>` provided to `CoreAiGateway` includes key `"fake"` mapping to `FakeAiProvider`
+- 用户未配置任何真实 provider apikey → 任何 AI 调用路径(LlmEntityExtractor 拆解、AiActionViewModel 扩写/润色/整理/摘要/翻译 等) MUST 走「无 provider」错误分支(DecomposeState.ApiKeyMissing / AiError.ProviderNotConfigured / Snackbar 「请先配置 AI 模型」),**不**允许返回 fake 固定文本
+- `FakeAiProvider` 类**保留在代码库**(JVM 单测用),但**禁止**在 `app/src/main/` 下任何 main / androidTest 代码里被当作 default provider 注册或调用
+- 不允许的反例(必须删):`providers.firstOrNull() ?: if (BuildConfig.DEBUG) "fake" else return 0` / `val hasProvider = providers.isNotEmpty() || BuildConfig.DEBUG` / `if (BuildConfig.DEBUG) FakeAiProvider() else null` / `if (fake != null) put("fake", fake)` 之类分支
 
-#### Scenario: Release build excludes fake
-- **WHEN** `./gradlew :app:assembleRelease` runs and `BuildConfig.DEBUG == false`
-- **THEN** the `Map<String, AiProvider>` provided to `CoreAiGateway` does NOT contain key `"fake"`
+#### Scenario: debug 包无 apikey 走 ApiKeyMissing 错误
+- **WHEN** debug 包跑在真机/模拟器,用户未配置任何 AI provider apikey,触发任意 AI 调用(拆解 / 扩写 / 润色 等)
+- **THEN** 调用走「无 provider」错误分支(DecomposeState.ApiKeyMissing / Snackbar「请先配置 AI 模型」 + 「去设置」按钮);**不**返回 fake 文本,UI 不展示任何"Fake AI response for testing" 之类固定内容
 
-#### Scenario: Fake id in release returns Failed
-- **WHEN** `CoreAiGateway.streamWritingOp(providerId = "fake")` is called in a release build
-- **THEN** the first emitted event MUST be `AiStreamEvent.Failed(AiError.ProviderNotFound, recoverable = false)` rather than FakeAiProvider's mock stream
+#### Scenario: debug 包有 apikey 走真 provider
+- **WHEN** debug 包跑在真机/模拟器,用户已配置 deepseek / minimax / mimo 任一家真实 apikey
+- **THEN** 调用走真 provider HTTP 路径,SSE 流式返回;debug 与 release 行为一致
+
+#### Scenario: JVM 单测仍可用 FakeAiProvider
+- **WHEN** `app/src/test/` 单测通过 `FakeConfigHolder.set(text = ..., delayMs = ..., ...)` 注入固定响应
+- **THEN** `FakeAiProvider` 正常 emit Delta 流,单测断言通过 — FakeAiProvider 仅 JVM 单测用,不在 main 代码路径出现
+
+#### Scenario: grep 验证 main 无 BuildConfig.DEBUG 兜底 fake
+- **WHEN** `grep -rE "(BuildConfig.DEBUG.*fake|\"fake\".*BuildConfig.DEBUG)" app/src/main/`
+- **THEN** 0 匹配(无任何「DEBUG + fake」组合分支)
 
 ### Requirement: Default selected provider id is null on first install
 
@@ -283,3 +291,48 @@ sealed interface SseEvent {
 #### Scenario: Valid header passes
 - **WHEN** `customHeaders` contains `("X-Custom-Header", "value")`
 - **THEN** the header is sent upstream
+
+### Requirement: AiError is localized in UI
+
+UI 渲染 `AiError` 时 MUST 走 `AiErrorLocalizedMapper.localize(error: AiError): Int`(返回 @StringRes),`stringResource(AiErrorLocalizedMapper.localize(err))` 取得双语文案;**禁止**直接展示 `AiError.summary()` 英文术语。致命错误(Auth / InsufficientBalance / ProviderNotConfigured)UI MUST 提供 "去设置" 或 "复制错误码" 按钮引导用户。
+
+#### Scenario: ProviderNotConfigured hint shows snackbar with settings action
+- **WHEN** `SecureApiKeyStore.configuredProviderIds` 为空集 + 用户点击 AI 按钮
+- **THEN** Snackbar 显示 `R.string.ai_error_provider_not_configured` + action 按钮 "去设置";点击 action 跳 `AppNav.ModelManagementRoute`
+- **AND** apikey 配置存在时 Snackbar 不显示
+
+#### Scenario: Auth error 401/403 shows apikey invalid snackbar
+- **WHEN** provider 返回 401/403 + 真实 apikey
+- **THEN** Snackbar 显示 `R.string.ai_error_auth` + action "去设置";点击跳 `ModelProviderDetailScreen(providerId)`
+
+#### Scenario: InsufficientBalance 402 shows balance snackbar
+- **WHEN** provider 返回 402
+- **THEN** Snackbar 显示 `R.string.ai_error_insufficient_balance` + action "复制错误码";点击复制错误码到剪贴板
+
+#### Scenario: RateLimited 429 shows retry-after snackbar
+- **WHEN** provider 返回 429 + `Retry-After` 头
+- **THEN** Snackbar 显示 `R.string.ai_error_rate_limited` 模板字符串 "${retryAfterSeconds}s 后重试";数值由 `AiError.RateLimited.retryAfterSeconds` 字段提供
+
+#### Scenario: ServerError 5xx shows upstream error snackbar
+- **WHEN** provider 返回 5xx
+- **THEN** Snackbar 显示 `R.string.ai_error_server_error` 模板 "${code}"
+
+### Requirement: Provider config fields validated against real endpoint
+
+3 家预置 provider(deepseek / minimax / mimo)的 `ProviderConfig` 字段 MUST 与 `docs/usage/api-<provider>.md` 当前官方 API 文档对齐;真机调用 1 次成功流式调用作为校准证据;校准证据记录在 `docs/progress.md` 与 change 归档报告。
+
+#### Scenario: Deepseek config fields verified
+- **WHEN** 真机用 deepseek 真实 apikey 跑通 SSE 流式调用 1 次
+- **THEN** `DeepseekConfig` 的 `baseUrl` / `endpointPath` / `authStyle` / `defaultModel` / `supportedModels` / `apiFormat` 与 `docs/usage/api-deepseek.md` 一致;真机响应包含 ≥1 个 `Delta` 事件
+
+#### Scenario: Minimax config fields verified
+- **WHEN** 真机用 minimax 真实 apikey 跑通 SSE 流式调用 1 次
+- **THEN** `MinimaxConfig` 字段与 `docs/usage/api-minimax.md` 一致;真机响应包含 ≥1 个 `Delta` 事件
+
+#### Scenario: Mimo config fields verified
+- **WHEN** 真机用 mimo 真实 apikey 跑通 SSE 流式调用 1 次
+- **THEN** `MimoConfig` 字段与 `docs/usage/api-mimo.md` 一致;真机响应包含 ≥1 个 `Delta` 事件
+
+#### Scenario: Custom Anthropic-compatible provider smoke
+- **WHEN** 用户在 `CustomProviderEditScreen` 填 baseUrl + apikey + 选 Anthropic 格式
+- **THEN** 真机跑通 SSE 流式调用 1 次，响应包含 ≥1 个 `Delta` 事件;`docs/usage/api-anthropic-compatible.md` 描述的字段映射与实际响应一致

@@ -65,7 +65,7 @@ class AiActionViewModelApikeyPromptTest {
                 consentStore = consent,
                 secureApiKeyStore = FakeSecureApiKeyStore(),
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore(initial = "fake"),
+                providerPrefsStore = FakeProviderPrefsStore(initial = "deepseek"),
                 userPrefsStore = userPrefs
             )
 
@@ -78,7 +78,7 @@ class AiActionViewModelApikeyPromptTest {
     }
 
     @Test
-    fun `start() with consent AND ack=true proceeds to gateway call (gate fully open)`() = runTest {
+    fun `start() with consent AND ack=true but no apikey yields ProviderNotConfigured, no gateway call`() = runTest {
         val consent =
             FakeConsentStore().apply {
                 seed(ConsentState(accepted = true, acceptedAt = 1L, version = 1))
@@ -92,14 +92,22 @@ class AiActionViewModelApikeyPromptTest {
                 noteRepository = mockk<NoteRepository>(relaxed = true),
                 widgetUpdater = mockk<QuickNoteWidgetUpdater>(relaxed = true),
                 consentStore = consent,
+                // 空 — 无 apikey
                 secureApiKeyStore = FakeSecureApiKeyStore(),
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore(initial = "fake"),
+                providerPrefsStore = FakeProviderPrefsStore(initial = "deepseek"),
                 userPrefsStore = userPrefs
             )
 
+        // remove-debug-fake-fallback §7.3:FakeAiProvider 不再注入,consent+ack 但无 apikey
+        // → ProviderNotConfigured 错误,不会调 gateway(同 release 行为)。
         vm.start(WritingOp.EXPAND, sourceText = "晨跑", noteId = "n1")
-        assertEquals("fake", gateway.lastProviderId)
+        val finalState = vm.state.value
+        assertTrue(finalState is AiActionUiState.Failed) { "Expected Failed, got $finalState" }
+        finalState as AiActionUiState.Failed
+        assertEquals(AiError.ProviderNotConfigured, finalState.error)
+        assertEquals(null, gateway.lastProviderId, "AiGateway must not be called without apikey")
+        assertEquals(0, gateway.callCount)
     }
 }
 

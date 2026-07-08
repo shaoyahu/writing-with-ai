@@ -27,7 +27,7 @@ class FakeProviderPrefsStore(
 
     override suspend fun getSelectedProviderId(): String? = flow.value
 
-    override suspend fun setSelectedProviderId(providerId: String) {
+    override suspend fun setSelectedProviderId(providerId: String?) {
         flow.value = providerId
     }
 

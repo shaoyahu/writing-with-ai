@@ -2,6 +2,25 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log，单次评审查 `docs/reviews/`，规划查 `docs/plans/`。
 
+## 2026-07-09 · remove-debug-fake-fallback change 完成 + 归档
+
+- **背景**:用户发现 debug 包拆解功能转圈后无反馈,根因是 `BuildConfig.DEBUG` 兜底走 `FakeAiProvider` 返回非 JSON 固定文本 → parse 静默失败。用户拍板"debug 包也要走真 AI provider",写入 CLAUDE.md AI 集成约定。
+- **代码改动**:7 个 main 源文件删 `BuildConfig.DEBUG` fake 兜底分支(`LlmEntityExtractor` / `AiModule` / `QuickNoteDetailViewModel` / `CoreAiGateway` / `AiActionViewModel` / `ModelManagementViewModel` / `ModelManagementScreen`);`ProviderPrefsStore.setSelectedProviderId` 签名改 `String?`(null 删 key);`FakeConfig` 默认 text 改 `"[]"`(合法 JSON);15+ 单测文件同步修(从 `initial="fake"` 改 `initial="deepseek"` + seed apikey)
+- **spec sync**:3 份 delta spec 合入主 spec — `ai-gateway` 替换"FakeAiProvider only registered in debug build"为"AI 调用不允许走 fake 兜底"(4 scenario);`ai-decompose-implementation` 新增"Entity 抽取必须使用真 AI provider"(4 scenario);`ai-actions` 替换"PROVIDER_ID_FAKE constant is replaced by consented provider"为"AI op 调用必须使用真 AI provider"(5 scenario)
+- **归档**:`archive/2026-07-09-remove-debug-fake-fallback/`
+- **验证**:`:app:assembleDebug` + `:app:ktlintCheck` + `:app:testDebugUnitTest` 508 tests 全绿;grep 验证 main 无 `BuildConfig.DEBUG.*fake` / `FakeAiProvider` import / `"fake"` 字面量
+- **USER-OWNED 待办**:§9 真机 e2e 验证(6 场景:无 apikey 错误对话框 + 有 apikey 真拆解 + 流式扩写等)
+
+## 2026-07-08 · 4 change 批量 sync + archive(`entity-management-and-ai-decompose` / `floating-toolbar-redesign` / `real-provider-integration` / `feishu-sync-image-support`)
+
+- **背景**:4 个 active change 的代码 + 编译 + lint + 单测都早已落地,只差 OpenSpec 收口(代码 commit 见 `7da625b` + `8eddc52` + `6e72774`)。用户拍板"应该所有都只剩归档了",AI 一口气走 sync + archive,清空 `openspec/changes/`。
+- **entity-management-and-ai-decompose**:5 份 delta spec 全 ADDED → 新建 4 份主 spec(`ai-decompose-implementation` / `developer-mode` / `entity-detail` / `entity-management`)+ 重写 `note-decompose-highlight/spec.md`(MODIFIED 合并,保留 2026-07-07 entity-source-tagging 归档时改的 `Click entity shows related notes` scenario 按 source 分支)。归档到 `archive/2026-07-08-entity-management-and-ai-decompose/`。
+- **floating-toolbar-redesign**:2 份 delta spec(MODIFIED `quick-note` + ADDED `design-system-v2`)→ 改 `Detail screen shows floating selection toolbar` Requirement 描述体 + 7 个 scenario(原 5 个改 3 个、新增 3 个视觉规则 scenario),其他 Requirement 不动;`design-system-v2/spec.md` 末尾 append 2 条新 Requirement(`surfaceContainerHigh` + `IconButton + label below`)。归档到 `archive/2026-07-08-floating-toolbar-redesign/`。
+- **real-provider-integration**:1 份 delta spec(MODIFIED `ai-gateway`)→ 主 spec append 2 条新 Requirement(`AiError is localized in UI` 5 scenario + `Provider config fields validated against real endpoint` 4 scenario)。归档到 `archive/2026-07-08-real-provider-integration/`。**USER-OWNED 待办**:§7 真机验证 + §8.5 verification-report(3 家 apikey 真机跑通的 endpoint / 时间 / token 数),等用户上手机。
+- **feishu-sync-image-support**:1 份 delta spec(ADDED `feishu-sync-image`)→ 新建主 spec,7 条 Requirement 全收入。归档到 `archive/2026-07-08-feishu-sync-image-support/`。**USER-OWNED 待办**:§6.1-6.6 真机端到端验证(图片同步到飞书 doc 末尾 + 失败降级 `[图片:id]`),等用户上手机。
+- **额外清理**:`fix-review-2026-07-02/` 空目录(无文件)→ 删除。该目录 7-02 创建后没起草任何 proposal,可能是历史重命名残留。
+- **active 目录状态**:本次结束后 `openspec/changes/` 下只剩 `archive/` 子目录,0 个 active change。下一步候选起新 OpenSpec change 走 `/opsx:propose`。
+
 ## 2026-07-07 · entity-source-tagging + feishu-sync-result-feedback-redesign 双 change sync + archive
 
 - **entity-source-tagging**:tasks 17/17 全勾,tasks 在 `git pull` 之前就完成。sync 1 个 MODIFIED scenario 进 `note-decompose-highlight/spec.md`(`Click entity shows related notes` 改按 `source` 分支显示标题)+ 新建 `entity-source-tagging/spec.md`(3 Requirement 涵盖 source 字段 + 本地化 + sheet title 格式);archive 到 `archive/2026-07-07-entity-source-tagging/`

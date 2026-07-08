@@ -67,10 +67,10 @@ constructor(
     private val userPrefsStore: UserPrefsStore
 ) : ViewModel() {
     companion object {
-        /** M3 阶段写死 fake provider;M4-4 起 [resolveProviderId] 优先 deepseek。 */
-        const val PROVIDER_ID_FAKE = "fake"
+        // remove-debug-fake-fallback §5.1:删 PROVIDER_ID_FAKE 常量;FakeAiProvider 不再注入,
+        // debug 与 release 一致要求真实 provider apikey。
 
-        /** M4-4 默认 provider(SecureApiKeyStore.has(<id>) 决定走真 apikey 或 fake)。 */
+        /** M4-4 默认 provider(SecureApiKeyStore.has(<id>) 决定走真 apikey)。 */
         const val DEFAULT_PROVIDER = "deepseek"
     }
 
@@ -161,7 +161,9 @@ constructor(
                 }
                 val apikey = secureApiKeyStore.get(providerId)
                 val apiFormatOverride = providerPrefsStore.getApiFormat(providerId)
-                if (providerId != PROVIDER_ID_FAKE && apikey == null) {
+                // remove-debug-fake-fallback §5.1-5.3:FakeAiProvider 不再注册;统一要求 apikey 非 null,
+                // 无 apikey 走 ProviderNotConfigured,debug 与 release 行为一致。
+                if (apikey == null) {
                     if (streamGeneration.get() == currentGeneration) {
                         _state.value = AiActionUiState.Failed(op = op, error = AiError.ProviderNotConfigured)
                     }

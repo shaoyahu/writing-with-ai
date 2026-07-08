@@ -150,9 +150,9 @@ fun ModelManagementScreen(
                     .map { it.id }
                     .toSet()
             }
-            // 过滤 "fake" 内部测试 stub:不展示在用户可见列表(它是 Hilt 默认注入的 fake provider,
-            // 不是用户可配置的模型)。这样默认列表只有真实 builtin + 用户自定义。
-            descriptors.value.filter { it.id != "fake" }.forEach { descriptor ->
+            // remove-debug-fake-fallback §6.3:FakeAiProvider 不再注册,descriptors 列表里不含 "fake",
+            // filter 是冗余守卫。descriptors 直接遍历即可。
+            descriptors.value.forEach { descriptor ->
                 val isCustom = descriptor.id !in builtinIds
                 ProviderInfoCard(
                     descriptor = descriptor,
@@ -174,8 +174,9 @@ fun ModelManagementScreen(
 
             PingCard(
                 pingResult = state.pingResult,
-                canPing = state.configuredProviderIds.isNotEmpty() &&
-                    state.selectedProviderId != "fake",
+                // remove-debug-fake-fallback §6.3:删 `selectedProviderId != "fake"` 守卫;
+                // FakeAiProvider 不再是合法 selected,fake 守卫冗余。
+                canPing = state.configuredProviderIds.isNotEmpty(),
                 onPing = { viewModel.ping(state.selectedProviderId) },
                 spacing = spacing
             )

@@ -123,6 +123,7 @@ Android Studio 仍是日常开发首选(Compose Preview / Glance Preview / Layou
 - **错误降级**:AI 调用失败必须 fallback 到无 AI 的体验，绝不允许白屏或阻塞核心流程(写作流程永远可手动继续)。
 - **Token / 成本可观测**:所有出站调用经过能记录 token 消耗(入/出/总)和耗时的 wrapper，落 `ai_history` 表;具体存储走 proposal。
 - **prompt 注入防御**:用户文本只放在 user 消息的 content 字段，**不参与** system prompt 拼接;`core/ai/prompt/` 下的模板文件要过 review。
+- **debug 包也走真 AI provider**(2026-07-08 拍板):`BuildConfig.DEBUG` **不**作为「无 apikey 时 fallback 到 FakeAiProvider」的合法豁免。debug 构建只是把 `FakeAiProvider` 类注册到 DI 图给 JVM 单测用,真机 / 模拟器跑 debug 包时,只要用户没配真实 provider apikey,**直接弹 "请先配置 AI 模型" 错误**(跟 release 行为一致),不允许 fake 返回固定文本冒充 AI 结果。不允许的旧模式:`providers.firstOrNull() ?: if (BuildConfig.DEBUG) "fake" else return 0` / `val hasProvider = providers.isNotEmpty() || BuildConfig.DEBUG` 之类的「DEBUG 兜底 fake」分支必须全部移除。后续 change 涉及 AI 路径时,行为基准 = 真 provider 配置已就位,debug 包不另设捷径。FakeAiProvider 仅保留在 `app/src/test/` 单测中通过 `FakeConfigHolder.set(...)` 注入固定响应,**禁止**在任何 main / androidTest 代码里把它当 default provider 用。
 
 Provider 选型、prompt 设计、prompt 注入防御等设计细节由各 OpenSpec change 的 `design.md` 决定 —— 这里只定"必须遵守的硬规则"。
 

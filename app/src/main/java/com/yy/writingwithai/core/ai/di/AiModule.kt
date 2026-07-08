@@ -3,7 +3,6 @@ package com.yy.writingwithai.core.ai.di
 import com.yy.writingwithai.core.ai.CoreAiGateway
 import com.yy.writingwithai.core.ai.api.AiGateway
 import com.yy.writingwithai.core.ai.api.AiProvider
-import com.yy.writingwithai.core.ai.fake.FakeAiProvider
 import com.yy.writingwithai.core.ai.provider.AnthropicCompatibleAdapter
 import com.yy.writingwithai.core.ai.provider.deepseek.DeepseekConfig
 import com.yy.writingwithai.core.ai.provider.mimo.MimoConfig
@@ -45,13 +44,10 @@ object AiModule {
     }
 
     /**
-     * fix-2026-06-24-review-r1-critical:仅在 `BuildConfig.DEBUG` 时注册 `FakeAiProvider`,
-     * release build 的 provider map 不含 `"fake"` key，真实用户不会误走 mock 输出。
+     * remove-debug-fake-fallback §2.1-2.4:FakeAiProvider 类保留在 `core/ai/fake/`(JVM 单测用),
+     * 但 main DI 图不再注册它。debug 与 release 行为一致:无 provider apikey 走「请先配置 AI 模型」错误。
+     * 单测通过 `@TestInstallIn` 或直接 `new FakeAiProvider()` 拿实例,不走 Hilt main module。
      */
-    @Provides
-    @Singleton
-    fun provideFakeAiProvider(): FakeAiProvider? =
-        if (com.yy.writingwithai.BuildConfig.DEBUG) FakeAiProvider() else null
 
     @Provides
     @Singleton
@@ -74,16 +70,14 @@ object AiModule {
     @Provides
     @Singleton
     fun provideAiProviders(
-        fake: FakeAiProvider?,
         @Named("deepseek") deepseek: AnthropicCompatibleAdapter,
         @Named("minimax") minimax: AnthropicCompatibleAdapter,
         @Named("mimo") mimo: AnthropicCompatibleAdapter
-    ): Map<String, @JvmSuppressWildcards AiProvider> = buildMap {
-        put("deepseek", deepseek)
-        put("minimax", minimax)
-        put("mimo", mimo)
-        if (fake != null) put("fake", fake)
-    }.toMap()
+    ): Map<String, @JvmSuppressWildcards AiProvider> = mapOf(
+        "deepseek" to deepseek,
+        "minimax" to minimax,
+        "mimo" to mimo
+    )
 
     @Provides
     @Singleton

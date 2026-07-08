@@ -649,9 +649,10 @@ constructor(
         if (_decomposeState.value is DecomposeState.Loading) return
         viewModelScope.launch {
             // entity-management-and-ai-decompose §2.7:拆解前检查 API key
+            // remove-debug-fake-fallback §3.1-3.2:删 || DEBUG 兜底,debug 与 release 行为一致;
+            // 无 provider apikey → 走 DecomposeState.ApiKeyMissing → UI 弹「请先配置 AI 模型」错误对话框
             val providers = secureApiKeyStore.observeConfiguredProviders().first()
-            val hasProvider = providers.isNotEmpty() || com.yy.writingwithai.BuildConfig.DEBUG
-            if (!hasProvider) {
+            if (providers.isEmpty()) {
                 _decomposeState.value = DecomposeState.ApiKeyMissing
                 return@launch
             }
@@ -668,11 +669,9 @@ constructor(
                 _entityRows.value = rows
                 // note-detail-polish: 拆解完刷新关联笔记缓存(新实体可能产生新 ENTITY_HIT 链接)
                 _related.value = noteLinker.getRelated(id)
-                _decomposeState.value = if (count > 0) {
-                    DecomposeState.Decomposed(count)
-                } else {
-                    DecomposeState.Idle
-                }
+                // M5 fix:count == 0 也走 Decomposed(0),让 UI Snackbar 走"未发现实体"分支;
+                // 之前走 Idle 是 LaunchedEffect 的 early-return 条件,导致"转圈后无反馈"
+                _decomposeState.value = DecomposeState.Decomposed(count)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

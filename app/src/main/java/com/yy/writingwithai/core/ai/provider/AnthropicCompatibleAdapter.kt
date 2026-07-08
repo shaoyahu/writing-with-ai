@@ -153,10 +153,11 @@ constructor(
             // CancellationException，需要在通用 catch 前先 rethrow。
             val response = client.newCall(httpRequest).execute()
             try {
-                // custom-provider-api-format r2 debug:成功也打 logcat，失败时上面的
-                // Log.d 在 !isSuccessful 分支打。两条 log 都带 "AnthropicAdapter" tag,
-                // 用户跑 `adb logcat -s AnthropicAdapter` 直接看真实 POST URL。
-                android.util.Log.i("AnthropicAdapter", "POST $url → ${response.code}")
+                val ct = response.header("Content-Type")
+                android.util.Log.i(
+                    "AnthropicAdapter",
+                    "POST $url → ${response.code} Content-Type=$ct"
+                )
                 if (!response.isSuccessful) {
                     val code = response.code
                     // review r2 修:readUtf8(byteCount) 在 body 小于 byteCount 时抛 EOFException,
@@ -214,31 +215,77 @@ constructor(
                     return@flow
                 }
 
-                SseParser.parse(source).collect { sse ->
-                    currentCoroutineContext().ensureActive() // fix H11:cooperative cancel
-                    when (sse) {
-                        is SseEvent.Data -> {
-                            val delta = parseDelta(sse.content, effectiveApiFormat)
-                            if (delta != null) {
-                                emit(AiStreamEvent.Delta(delta))
-                                emittedDelta.set(true)
+                // fix-deepseek-non-streaming:部分 provider(如 Deepseek)的 /anthropic/v1/messages
+                // 端点即使请求体带 stream=true，也返回 Content-Type: application/json 的非流式
+                // JSON 响应(完整 Anthropic Messages API response object)。SseParser 只处理
+                // data: 前缀的 SSE 行，会静默忽略整个 JSON body，导致 collectText() 拿到空串。
+                // 检测 Content-Type，非 text/event-stream 时走非流式 JSON 解析路径。
+                val contentType = response.header("Content-Type", "").orEmpty()
+                val isSse = contentType.contains("text/event-stream", ignoreCase = true)
+
+                if (isSse) {
+                    // 流式 SSE 路径(正常 Anthropic 兼容 provider)
+                    SseParser.parse(source).collect { sse ->
+                        currentCoroutineContext().ensureActive()
+                        when (sse) {
+                            is SseEvent.Data -> {
+                                val delta = parseDelta(sse.content, effectiveApiFormat)
+                                if (delta != null) {
+                                    emit(AiStreamEvent.Delta(delta))
+                                    emittedDelta.set(true)
+                                }
+                                val usage = parseUsage(sse.content, effectiveApiFormat)
+                                if (usage != null) {
+                                    emit(usage)
+                                }
                             }
-                            val usage = parseUsage(sse.content, effectiveApiFormat)
-                            if (usage != null) {
-                                emit(usage)
+                            is SseEvent.Done -> {
+                                emit(AiStreamEvent.Done)
                             }
-                        }
-                        is SseEvent.Done -> {
-                            emit(AiStreamEvent.Done)
-                        }
-                        is SseEvent.Error -> {
-                            emit(
-                                AiStreamEvent.Failed(
-                                    AiError.Network(-1, sse.cause.message ?: "SSE error"),
-                                    true
+                            is SseEvent.Error -> {
+                                emit(
+                                    AiStreamEvent.Failed(
+                                        AiError.Network(-1, sse.cause.message ?: "SSE error"),
+                                        true
+                                    )
                                 )
-                            )
+                            }
                         }
+                    }
+                } else {
+                    // 非流式 JSON 路径:provider 返回完整 Anthropic Messages API response object
+                    // (Content-Type: application/json)。从 content[] 数组提取文本，emit 为
+                    // Delta → Usage → Done，让下游 collectText() 正常工作。
+                    // fix-review:复用 MAX_RESPONSE_BODY_BYTES 上限，防止恶意/误配 provider
+                    // 返回 multi-GB body 导致 OOM(与错误路径一致)。
+                    source.request(Long.MAX_VALUE)
+                    if (source.buffer.size > MAX_RESPONSE_BODY_BYTES) {
+                        emit(
+                            AiStreamEvent.Failed(
+                                AiError.Unknown(null, "non-streaming response exceeds 1MiB limit"),
+                                false
+                            )
+                        )
+                        return@flow
+                    }
+                    val rawBody = source.buffer.readUtf8()
+                    val nonStreamResult = parseNonStreamingResponse(rawBody, effectiveApiFormat)
+                    if (nonStreamResult != null) {
+                        if (nonStreamResult.text.isNotEmpty()) {
+                            emit(AiStreamEvent.Delta(nonStreamResult.text))
+                            emittedDelta.set(true)
+                        }
+                        nonStreamResult.usage?.let { emit(it) }
+                        emit(AiStreamEvent.Done)
+                    } else {
+                        // fix-review:parseNonStreamingResponse 返回 null 说明 JSON 格式异常，
+                        // 不应 emit Done(会误导下游认为成功)，应 emit Failed。
+                        emit(
+                            AiStreamEvent.Failed(
+                                AiError.Unknown(null, "non-streaming response parse error"),
+                                false
+                            )
+                        )
                     }
                 }
             } finally {
@@ -376,6 +423,115 @@ constructor(
             null
         }
     }
+
+    /**
+     * fix-deepseek-non-streaming:解析非流式 JSON 响应。
+     *
+     * 部分 provider(如 Deepseek)的 /anthropic/v1/messages 端点即使请求体带 stream=true，
+     * 也返回 Content-Type: application/json 的完整 Anthropic Messages API response object，
+     * 而非 SSE text/event-stream。此方法从完整 JSON body 中提取文本和 usage 信息。
+     *
+     * Anthropic Messages API 非流式响应结构:
+     * ```
+     * {
+     *   "id": "msg_...",
+     *   "type": "message",
+     *   "role": "assistant",
+     *   "content": [
+     *     {"type": "thinking", "thinking": "..."},  // 可选，extended thinking
+     *     {"type": "text", "text": "实际回复文本"}
+     *   ],
+     *   "model": "...",
+     *   "usage": {"input_tokens": N, "output_tokens": M}
+     * }
+     * ```
+     */
+    private fun parseNonStreamingResponse(
+        rawBody: String,
+        apiFormat: ApiFormat = config.apiFormat
+    ): NonStreamingResult? {
+        return try {
+            if (apiFormat == ApiFormat.OPENAI) {
+                @Serializable
+                data class OpenAiMessage(val content: String? = null)
+
+                @Serializable
+                data class OpenAiChoice(val message: OpenAiMessage? = null)
+
+                @Serializable
+                data class OpenAiUsage(
+                    val prompt_tokens: Int? = null,
+                    val completion_tokens: Int? = null,
+                    val total_tokens: Int? = null
+                )
+
+                @Serializable
+                data class OpenAiResponse(
+                    val choices: List<OpenAiChoice> = emptyList(),
+                    val usage: OpenAiUsage? = null
+                )
+                val obj = json.decodeFromString(OpenAiResponse.serializer(), rawBody)
+                val text = obj.choices.firstOrNull()?.message?.content.orEmpty()
+                val usage = obj.usage?.let { u ->
+                    val input = u.prompt_tokens ?: 0
+                    val output = u.completion_tokens ?: 0
+                    AiStreamEvent.Usage(
+                        inputTokens = input,
+                        outputTokens = output,
+                        totalTokens = u.total_tokens ?: (input + output)
+                    )
+                }
+                NonStreamingResult(text, usage)
+            } else {
+                // Anthropic Messages API 非流式响应
+                @Serializable
+                data class ContentBlock(
+                    val type: String,
+                    val text: String? = null,
+                    val thinking: String? = null
+                )
+
+                @Serializable
+                data class AnthropicUsage(
+                    val input_tokens: Int = 0,
+                    val output_tokens: Int = 0
+                )
+
+                @Serializable
+                data class AnthropicResponse(
+                    val content: List<ContentBlock> = emptyList(),
+                    val usage: AnthropicUsage? = null
+                )
+                val obj = json.decodeFromString(AnthropicResponse.serializer(), rawBody)
+                // 只提取 type="text" 的 content block，跳过 thinking 等其他类型
+                val text = obj.content
+                    .filter { it.type == "text" }
+                    .mapNotNull { it.text }
+                    .joinToString("")
+                val usage = obj.usage?.let { u ->
+                    AiStreamEvent.Usage(
+                        inputTokens = u.input_tokens,
+                        outputTokens = u.output_tokens,
+                        totalTokens = u.input_tokens + u.output_tokens
+                    )
+                }
+                NonStreamingResult(text, usage)
+            }
+        } catch (_: kotlinx.serialization.SerializationException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            // fix-review:JSON 语法合法但语义异常(如 content 是 object 而非 array、
+            // Int 溢出等)时 kotlinx.serialization 内部抛 IllegalArgumentException，
+            // 与 SSE 路径 parseDelta/parseUsage 的 graceful degradation 对齐。
+            null
+        }
+    }
+
+    /** 非流式响应解析结果。 */
+    private data class NonStreamingResult(
+        val text: String,
+        val usage: AiStreamEvent.Usage?
+    )
 
     private fun systemPromptFor(op: WritingOp): String = DefaultPrompts.forOp(op)
 

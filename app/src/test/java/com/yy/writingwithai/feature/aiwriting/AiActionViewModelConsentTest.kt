@@ -64,7 +64,7 @@ class AiActionViewModelConsentTest {
                 consentStore = consent,
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore(initial = "fake"),
+                providerPrefsStore = FakeProviderPrefsStore(initial = "deepseek"),
                 userPrefsStore = FakeUserPrefsStore().apply { seed(true) }
             )
 
@@ -93,12 +93,19 @@ class AiActionViewModelConsentTest {
                 consentStore = consent,
                 secureApiKeyStore = apikey,
                 promptTemplateStore = FakePromptTemplateStore(),
-                providerPrefsStore = FakeProviderPrefsStore(initial = "fake"),
+                providerPrefsStore = FakeProviderPrefsStore(initial = "deepseek"),
                 userPrefsStore = FakeUserPrefsStore().apply { seed(true) }
             )
 
+        // remove-debug-fake-fallback §7.3:FakeAiProvider 不再注入,M3 fake fallback 行为作废。
+        // 新行为:有 consent + 无 apikey → ProviderNotConfigured 错误,不会调 gateway。
         vm.start(WritingOp.EXPAND, sourceText = "晨跑", noteId = "n1")
-        assertEquals("fake", gateway.lastProviderId)
+        val finalState = vm.state.value
+        assertTrue(finalState is AiActionUiState.Failed) { "Expected Failed, got $finalState" }
+        finalState as AiActionUiState.Failed
+        assertEquals(AiError.ProviderNotConfigured, finalState.error)
+        assertEquals(null, gateway.lastProviderId, "AiGateway must not be called without apikey")
+        assertEquals(0, gateway.callCount)
     }
 
     @Test
@@ -111,7 +118,8 @@ class AiActionViewModelConsentTest {
             FakeSecureApiKeyStore().apply {
                 runBlocking { save("deepseek", "sk-real") }
             }
-        val providerPrefs = FakeProviderPrefsStore(initial = "fake").apply { seed("deepseek") }
+        // remove-debug-fake-fallback §7.3:走真 provider id("deepseek"),同 release 行为
+        val providerPrefs = FakeProviderPrefsStore(initial = "deepseek")
         val gateway = RecordingAiGateway()
         val vm =
             AiActionViewModel(

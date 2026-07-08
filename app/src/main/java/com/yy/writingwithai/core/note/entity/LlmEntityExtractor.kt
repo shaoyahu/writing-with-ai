@@ -49,12 +49,11 @@ constructor(
             val content = note.title + "\n" + note.content
             if (containsInjection(content)) return@withContext 0
 
-            // review r1 C1:与 SemanticNoteLinker 对齐，走 secureApiKeyStore 取真实 provider + apikey;
-            // release 构建 fake provider 不在 map 中，硬编码 "fake" 会全量静默失败。
+            // remove-debug-fake-fallback §1.1-1.3:无真实 provider 直接返 0;FakeAiProvider 仅 JVM 单测用。
+            // debug 包与 release 行为一致,无 apikey 走 ApiKeyMissing 错误对话框(由调用方 QuickNoteDetailViewModel.decompose 检测)。
             val providers = secureApiKeyStore.observeConfiguredProviders().first()
-            val providerId = providers.firstOrNull()
-                ?: if (com.yy.writingwithai.BuildConfig.DEBUG) "fake" else return@withContext 0
-            val apikey = if (providerId == "fake") "" else secureApiKeyStore.get(providerId) ?: return@withContext 0
+            val providerId = providers.firstOrNull() ?: return@withContext 0
+            val apikey = secureApiKeyStore.get(providerId) ?: return@withContext 0
 
             // entity-management-and-ai-decompose §2.2:用 custom_prompts 表里的提示词
             val systemPrompt = customPromptRepository.getEffectiveContent()
@@ -123,7 +122,7 @@ constructor(
             val typeStr = obj["type"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
             val key = obj["key"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
             val surface = obj["surface"]?.jsonPrimitive?.contentOrNull ?: key
-            val type = runCatching { EntityType.valueOf(typeStr.uppercase()) }.getOrNull() ?: return@mapNotNull null
+            val type = EntityType.fromTypeName(typeStr) ?: return@mapNotNull null
             // entity-management-and-ai-decompose fix:LLM 经常给 surface 包单/双引号
             // ("先天缺陷 / "先天缺陷" / "content"),sheet 标题/sheet 内容要干净。
             // 解析时剥离两端连续引号。

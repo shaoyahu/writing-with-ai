@@ -8,7 +8,6 @@ import com.yy.writingwithai.R
 import com.yy.writingwithai.core.ai.api.AiGateway
 import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.api.ProviderDescriptor
-import com.yy.writingwithai.core.ai.fake.FakeAiProvider
 import com.yy.writingwithai.core.ai.provider.CustomProviderStore
 import com.yy.writingwithai.core.ai.provider.ProviderConfig
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStore
@@ -79,7 +78,8 @@ constructor(
         viewModelScope.launch {
             val selected = providerPrefsStore.getSelectedProviderId()
             // fix-2026-06-24-review-r1-critical:selected 可能为 null(首次安装未配置)
-            val hasKey = selected != null && selected != FakeAiProvider.PROVIDER_ID && secureApiKeyStore.has(selected)
+            // remove-debug-fake-fallback §6.1:FakeAiProvider 不再注册,selected 不可能是 fake,删守卫
+            val hasKey = selected != null && secureApiKeyStore.has(selected)
             val initialConfigured = secureApiKeyStore.observeConfiguredProviders().first()
             val initialCustom = customProviderStore.getAll()
             _state.update {
@@ -390,13 +390,15 @@ constructor(
             } catch (_: Exception) {
                 // 静默，UI 重新拉取
             }
+            // remove-debug-fake-fallback §6.2:FakeAiProvider 不再注入,删除/清 apikey 后 selected 设为 null
+            // 而非降到 fake provider(由 secureApiKeyStore 空集自动走"请先配置"引导)
             if (_state.value.selectedProviderId == providerId) {
                 try {
-                    providerPrefsStore.setSelectedProviderId(FakeAiProvider.PROVIDER_ID)
+                    providerPrefsStore.setSelectedProviderId(null)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Exception) {}
-                _state.update { it.copy(selectedProviderId = FakeAiProvider.PROVIDER_ID) }
+                _state.update { it.copy(selectedProviderId = null) }
             }
         }
     }

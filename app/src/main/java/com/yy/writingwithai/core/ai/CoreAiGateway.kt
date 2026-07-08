@@ -10,7 +10,6 @@ import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.api.ProviderDescriptor
 import com.yy.writingwithai.core.ai.api.WritingOp
-import com.yy.writingwithai.core.ai.fake.FakeAiProvider
 import com.yy.writingwithai.core.ai.provider.AnthropicCompatibleAdapter
 import com.yy.writingwithai.core.ai.provider.CustomProviderStore
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStore
@@ -228,13 +227,8 @@ constructor(
             return AiError.UserConsentRequired.summary()
         }
         val provider = resolveProvider(providerId) ?: return "provider $providerId not registered"
-        if (provider.id == FakeAiProvider.PROVIDER_ID) {
-            // fix-review-r3-high H2:契约是 `@return null 表示成功`,fake provider 不应被静默
-            // 返 null(看上去像"成功")——也不应抛 IllegalStateException 打断契约。
-            // 返回 ProviderNotConfigured 摘要，让 UI 进入"未配置"分支，引导用户到
-            // 设置 → 模型管理配真实 apikey。
-            return AiError.ProviderNotConfigured.summary()
-        }
+        // remove-debug-fake-fallback §4.1-4.2:FakeAiProvider 不再注入 DI 图,provider map 不含 "fake",
+        // 这段判断冗余删除。debug 与 release 一致走真 provider 路径。
         // fix-2026-06-28-ai-model-selection-actually-used:ping fallback 也走
         //   `provider.defaultModel`，跟 streamWritingOp 行为一致;若 ping 入参 modelName
         //   非空，优先用入参(允许 UI 指定非默认 model 测连通性)。

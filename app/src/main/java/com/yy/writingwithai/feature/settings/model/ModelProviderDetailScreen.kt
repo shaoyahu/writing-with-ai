@@ -74,8 +74,7 @@ import kotlinx.coroutines.launch
  * - CoreAiGateway / AnthropicCompatibleAdapter 仍支持 ApiFormat.OPENAI 分支
  * - ModelManagementViewModel.onApiFormatSelected / loadApiFormat 仍存在
  * - ProviderPrefsStore.setApiFormat / getApiFormat 仍存在
- * - DeepseekConfig.apiFormat = ApiFormat.OPENAI(OPENAI 仍走 chat/completions 端点，
- *   但 UI 不再让用户选，默认透传)
+ * - DeepseekConfig.apiFormat = ApiFormat.ANTHROPIC(三家统一走 Anthropic 兼容协议)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

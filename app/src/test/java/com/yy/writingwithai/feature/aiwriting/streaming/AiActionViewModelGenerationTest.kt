@@ -53,14 +53,18 @@ class AiActionViewModelGenerationTest {
     }
     private val secureApiKeyStore = FakeSecureApiKeyStore()
     private val promptTemplateStore = FakePromptTemplateStore()
-    private val providerPrefsStore = FakeProviderPrefsStore(initial = "fake")
+
+    // remove-debug-fake-fallback §7.3:走真 provider id("deepseek"),同 release 行为
+    private val providerPrefsStore = FakeProviderPrefsStore(initial = "deepseek")
 
     @BeforeEach
-    fun setUp() {
+    fun setUp() = runTest {
         Dispatchers.setMain(dispatcher)
         // fix-2026-06-28-ai-model-selection-actually-used:VM.start 调 aiGateway.listProviders()
         // 拿 defaultModel;默认返空，fake provider 路径继续。
         coEvery { aiGateway.listProviders() } returns emptyList()
+        // remove-debug-fake-fallback §7.3:seed 真 provider apikey
+        secureApiKeyStore.save("deepseek", "test-deepseek-key")
     }
 
     @AfterEach
