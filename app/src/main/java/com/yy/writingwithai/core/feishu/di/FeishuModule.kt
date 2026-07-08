@@ -39,6 +39,21 @@ object FeishuModule {
         return client
     }
 
+    // fix-full-review:UserTokenProvider 需要飞书 OkHttpClient 但不能加 AuthInterceptor
+    // (会形成 Hilt 依赖循环:AuthInterceptor→UserTokenProvider→@Named("feishu")→AuthInterceptor)。
+    // 单独提供不带 AuthInterceptor 的 client，token exchange/refresh 的请求通过
+    // skipFeishuAuth() 标记跳过 AuthInterceptor，功能等效但无循环。
+    @Provides
+    @Singleton
+    @Named("feishu-auth")
+    fun provideFeishuAuthClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
     // M3:prod 事务执行器走 Room withTransaction。test 通过构造器注入 passthrough。
     @Provides
     @Singleton

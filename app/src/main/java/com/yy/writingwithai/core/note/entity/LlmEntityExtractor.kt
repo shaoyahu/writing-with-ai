@@ -81,8 +81,12 @@ constructor(
             if (entities.isEmpty()) return@withContext 0
 
             val now = System.currentTimeMillis()
-            val rows = entities.map { (type, key, surface) ->
-                val spanStart = content.indexOf(surface).coerceAtLeast(0)
+            val rows = entities.mapNotNull { (type, key, surface) ->
+                // fix-full-review:indexOf 找不到 surface 时返回 -1，被 coerceAtLeast(0)
+                // 变成 spanStart=0，导致所有找不到的实体 span 都从 0 开始(错误高亮)。
+                // 改为找不到时跳过该实体(返回 null)，避免无效 span 污染 UI。
+                val spanStart = content.indexOf(surface)
+                if (spanStart < 0) return@mapNotNull null
                 val spanEnd = (spanStart + surface.length).coerceAtMost(content.length)
                 NoteEntityRow(
                     noteId = noteId,

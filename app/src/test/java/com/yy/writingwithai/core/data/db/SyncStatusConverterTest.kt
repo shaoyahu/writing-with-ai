@@ -2,7 +2,6 @@ package com.yy.writingwithai.core.data.db
 
 import com.yy.writingwithai.core.data.db.entity.SyncStatus
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
 /**
@@ -11,9 +10,10 @@ import org.junit.jupiter.api.Test
  * 关键不变量:
  * - 枚举 → String 走 `name.lowercase()`,落库形式与 v9 schema `'local'` 对齐。
  * - String → 枚举 接受全部 5 个合法值(PARTIAL_IMPORT_FAIL 由 feishu-import-from-folder 引入),
- *   未知字符串 fail closed(抛 IllegalArgumentException) —— 比静默回退到 LOCAL 更安全。
- * - review 2026-07-07 Finding #14:补 PARTIAL_IMPORT_FAIL 显式 round-trip 测试,
- *   防止后续 refactor 把 throw 改成静默回退 LOCAL 时无 guard。
+ *   未知字符串 fail open(回退到 LOCAL + log warning) —— fix-full-review:之前 fail-closed
+ *   (valueOf 抛 IllegalArgumentException)会导致旧版 DB 新增 enum 值后 App 崩溃；
+ *   回退到 LOCAL 更安全，新值丢失总比整库不可读好。
+ * - review 2026-07-07 Finding #14:补 PARTIAL_IMPORT_FAIL 显式 round-trip 测试。
  */
 class SyncStatusConverterTest {
 
@@ -44,21 +44,21 @@ class SyncStatusConverterTest {
         assertEquals(SyncStatus.PARTIAL_IMPORT_FAIL, converter.toSyncStatus("partial_import_fail"))
     }
 
+    // fix-full-review:未知字符串不再抛异常，改为 fail-open 回退到 LOCAL。
+    // 之前 fail-closed(valueOf 抛 IllegalArgumentException)会导致旧版 DB 新增 enum 值后 App 崩溃。
     @Test
-    fun `toSyncStatus rejects unknown strings fail closed`() {
-        // 大小写错、新增未迁移的值 —— 都要显式崩,而不是静默回退 LOCAL。
-        assertThrows(IllegalArgumentException::class.java) {
-            converter.toSyncStatus("LOCALLY")
-        }
+    fun `toSyncStatus falls back to LOCAL for unknown strings`() {
+        // 大小写错、新增未迁移的值 —— 回退到 LOCAL 而非崩溃
+        assertEquals(SyncStatus.LOCAL, converter.toSyncStatus("LOCALLY"))
     }
 
     @Test
-    fun `toSyncStatus rejects empty and blank and unknown strings`() {
+    fun `toSyncStatus falls back to LOCAL for empty and blank and unknown strings`() {
         for (bad in listOf("", " ", "unknown")) {
-            assertThrows(
-                IllegalArgumentException::class.java,
-                { converter.toSyncStatus(bad) },
-                "expected IllegalArgumentException for '$bad'"
+            assertEquals(
+                SyncStatus.LOCAL,
+                converter.toSyncStatus(bad),
+                "expected LOCAL fallback for '$bad'"
             )
         }
     }

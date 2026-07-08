@@ -19,13 +19,21 @@ object WidgetStateSerializer : Serializer<WidgetState> {
         encodeDefaults = true
     }
 
+    // fix-full-review MEDIUM:限制最大读取 64KB，防止异常大文件导致 OOM。
+    // DataStore widget_state 文件正常 < 1KB，64KB 已是极大余量。
+    // 注意:readNBytes() 是 Java 9+ API，Android minSdk 26 只支持 Java 8，
+    // 改用 BufferedInputStream + 手动限长读取。
+    private const val MAX_READ_BYTES = 64 * 1024
+
     override val defaultValue: WidgetState = WidgetState()
 
     override suspend fun readFrom(input: InputStream): WidgetState {
         return try {
+            val buffered = input.buffered()
+            val bytes = buffered.readUpTo(MAX_READ_BYTES)
             json.decodeFromString(
                 WidgetState.serializer(),
-                input.readBytes().toString(Charsets.UTF_8)
+                bytes.toString(Charsets.UTF_8)
             )
         } catch (e: SerializationException) {
             throw CorruptionException("Failed to read WidgetState", e)
@@ -37,4 +45,19 @@ object WidgetStateSerializer : Serializer<WidgetState> {
             json.encodeToString(WidgetState.serializer(), t).toByteArray(Charsets.UTF_8)
         )
     }
+}
+
+/** 读取最多 [maxBytes] 字节，兼容 Java 8(Android minSdk 26)。 */
+private fun InputStream.readUpTo(maxBytes: Int): ByteArray {
+    val buffer = ByteArray(minOf(maxBytes, available().coerceAtLeast(256)))
+    val output = java.io.ByteArrayOutputStream()
+    var totalRead = 0
+    while (totalRead < maxBytes) {
+        val toRead = minOf(buffer.size, maxBytes - totalRead)
+        val read = read(buffer, 0, toRead)
+        if (read == -1) break
+        output.write(buffer, 0, read)
+        totalRead += read
+    }
+    return output.toByteArray()
 }

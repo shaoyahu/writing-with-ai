@@ -126,8 +126,11 @@ fun StreamingPanel(
                                 deltaSnapshot.value = ""
                             }
                     }
-                    // ViewModel 新 delta → 推 snapshot，触发上面 collect
-                    if (state.delta.isNotEmpty() && state.delta != deltaSnapshot.value) {
+                    // ViewModel 新 delta → 推 snapshot，触发上面 collect。
+                    // fix-full-review MEDIUM:去掉 `state.delta != deltaSnapshot.value` 判断 —
+                    // 连续相同 delta(如两个换行符)会被跳过导致文本缺失。snapshotFlow +
+                    // distinctUntilChanged 已保证去重，这里只需推值。
+                    if (state.delta.isNotEmpty()) {
                         deltaSnapshot.value = state.delta
                     }
                     val displayText = accumulated

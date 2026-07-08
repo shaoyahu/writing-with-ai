@@ -136,7 +136,7 @@ constructor(
                 val noteIds = notes.map { it.id }.take(500)
                 combine(
                     noteTagDao.observeAllCrossRefs(),
-                    noteAttachmentDao.observeFirstImageForNotes(noteIds)
+                    noteAttachmentDao.observeFirstImageForNotesSafe(noteIds)
                 ) { crossRefs, firstImages ->
                     val byNote = crossRefs.groupBy({ it.noteId }, { it.tag })
                     val firstImageByNote = firstImages.associate { it.noteId to it.localPath }

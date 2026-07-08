@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -95,7 +96,14 @@ fun AppNav(
     val context = LocalContext.current
 
     // fix-global-back-nav-and-gesture: 把 navController 传给 Activity 层(用于 OnBackPressedCallback)
-    androidx.compose.runtime.SideEffect { onNavControllerReady(navController) }
+    // fix-full-review:SideEffect 每次重组都调用 onNavControllerReady，而回调内
+    // addOnDestinationChangedListener 会累积 listener。改用 remember + 一次性赋值，
+    // 确保 listener 只注册一次。
+    val navControllerRef = remember { mutableStateOf<NavController?>(null) }
+    if (navControllerRef.value == null) {
+        navControllerRef.value = navController
+        onNavControllerReady(navController)
+    }
 
     // M4-4 · ConsentStore:测试优先用入参(避免 Robolectric 跑 Hilt EntryPoint);
     // 运行时 / MainActivity 走 Hilt ActivityComponent EntryPoint。
@@ -430,9 +438,6 @@ data object SettingsPromptTemplate
 @Serializable
 data object SettingsAliasManagement
 
-/**
- * entity-extraction-polish §5.1:笔记关联设置 route(关联阈值 + 暂停 + 立即重跑 + 进度)。
- */
 /**
  * feishu-import-from-folder:从文件夹导入 sub-screen route(纯 data object,无参数)。
  */

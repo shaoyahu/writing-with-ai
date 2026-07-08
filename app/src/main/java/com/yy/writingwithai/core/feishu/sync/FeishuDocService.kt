@@ -223,6 +223,8 @@ constructor(
 
     private fun buildAppendXml(content: String): String = "<document><p>" + xmlEscape(content) + "</p></document>"
 
+    // fix-full-review:此 xmlEscape 与 MarkdownToXmlConverter.escape() 逻辑重复。
+    // 未来修改必须同步两处，或改为委托 xmlConverter 暴露的公开 escape 方法。
     private fun xmlEscape(s: String): String = s
         .replace("&", "&amp;")
         .replace("<", "&lt;")

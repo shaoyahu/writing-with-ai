@@ -15,9 +15,7 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
-import javax.inject.Inject
 import javax.inject.Named
-import javax.inject.Singleton
 import javax.net.ssl.SSLException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -39,10 +37,14 @@ import okhttp3.RequestBody.Companion.toRequestBody
  *
  * 由 [ProviderConfig] 驱动认证 / URL / 字段，不 为每家写独立 adapter。
  * 支持三家预置 provider(deepseek / minimax / mimo)+ 自定义 Anthropic 兼容 provider。
+ *
+ * fix-full-review:移除 @Singleton + @Inject — 本类有两种实例化路径:
+ * 1) AiModule.@Provides 手动构造(内置 provider，Hilt @Singleton 在 @Provides 上保证单例)
+ * 2) CoreAiGateway.resolveProvider 手动构造(自定义 provider，走 customAdapterCache 缓存)
+ * 类级 @Singleton 对路径 2 无效(手动构造绕过 Hilt)，@Inject 也从未被 Hilt 使用。
+ * 单例保证由 @Provides/@Named 或 customAdapterCache 负责，不在类声明上误导。
  */
-@Singleton
 class AnthropicCompatibleAdapter
-@Inject
 constructor(
     private val config: ProviderConfig,
     @Named("ai") private val client: OkHttpClient
@@ -442,7 +444,8 @@ constructor(
         val httpDate = parseHttpDate(header.trim()) ?: return null
         val deltaMs = httpDate.time - System.currentTimeMillis()
         // 已过期 / 已到时 → 0(马上重试);未来 → 等待秒数
-        return (deltaMs / 1000L).coerceAtLeast(0L).toInt()
+        // fix-full-review:coerceAtMost(Int.MAX_VALUE) 防止 Long→Int 溢出
+        return (deltaMs / 1000L).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
     }
 
     private fun parseHttpDate(s: String): Date? {

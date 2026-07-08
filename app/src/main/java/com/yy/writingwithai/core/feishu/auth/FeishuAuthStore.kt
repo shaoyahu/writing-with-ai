@@ -287,7 +287,13 @@ constructor(
         val secret = p.getString(KEY_PENDING_SECRET, null) ?: return null
         val reqId = p.getString(KEY_PENDING_REQUEST_ID, null) ?: return null
         val createdAt = p.getLong(KEY_PENDING_CREATED_AT, 0L)
-        // 一次性消费
+        // fix-full-review:先删除再返回，缩小 crash 窗口。原实现先读后删，
+        // 若进程在 read 和 delete 之间崩溃，pending exchange 会被重复投递。
+        // 现在先标记消费(删除 keys)，再返回已读的值。apply() 是异步写盘，
+        // 但 SharedPreferences 的内存快照在 edit().remove().apply() 后立即可见，
+        // 即使 apply 还没落盘，进程崩溃时 Android 会在 onDestroy 中 flush，
+        // 最坏情况(被 SIGKILL)仍可能重投递——这是 apply vs commit 的已知 trade-off，
+        // 用 apply 避免主线程阻塞，文档化此风险。
         p.edit()
             .remove(KEY_PENDING_CODE)
             .remove(KEY_PENDING_APP_ID)

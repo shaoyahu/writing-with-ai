@@ -129,7 +129,6 @@
     <string name="selection_toolbar_ai_organize">整理</string>
     <string name="selection_toolbar_ai_summarize">摘要</string>
     <string name="selection_toolbar_ai_translate">翻译</string>
-    <string name="selection_toolbar_entity_added_fmt">已加入实体:%1$s</string>
 
     <!-- StreamingPanel 顶部标题(按 op 分) -->
     <string name="aiwriting_panel_title_expand">扩写</string>
@@ -440,7 +439,6 @@
     <string name="entity_type_task">任务</string>
     <string name="entity_type_number">数字</string>
     <string name="quicknote_detail_add_image">添加图片</string>
-    <string name="quicknote_detail_delete_image">删除图片</string>
 
     <!-- ===== app-bottom-tab-bar · 底部 tab 栏 + 我的 ===== -->
     <string name="tab_notes">笔记</string>
@@ -663,7 +661,6 @@
     <string name="note_decomposing">正在拆解…</string>
     <string name="note_decompose_no_entities">未发现实体</string>
     <string name="note_decompose_found_fmt">已发现 %1$d 个实体</string>
-    <string name="note_decompose_entity_sheet_title">%1$s · %2$s</string>
     <string name="note_decompose_no_related">暂无关联笔记</string>
     <!-- feishu-sync-feedback · 飞书同步反馈 UI 重构(v1.0) -->
     <string name="feishu_sync_success_fmt">已同步到飞书：%1$s</string>
@@ -720,7 +717,6 @@
     <string name="folder_import_parse_button">解析</string>
     <string name="folder_import_paste">粘贴</string>
     <string name="folder_import_chip_docx_only">仅显示 docx 类型(共 %1$d 篇)</string>
-    <string name="folder_import_empty_no_docx">未找到 docx 文档</string>
     <string name="folder_import_import_button_fmt">导入(已选 %1$d)</string>
     <string name="folder_import_select_all">全选</string>
     <string name="folder_import_deselect_all">取消全选</string>

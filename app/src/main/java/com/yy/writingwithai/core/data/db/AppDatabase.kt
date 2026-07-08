@@ -51,7 +51,7 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         SyncMetaEntity::class,
         NoteAttachmentEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -71,7 +71,10 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         // 记录创建文档时使用的文件夹 token，用于检测 folder token 变更。
         AutoMigration(from = 10, to = 11),
         // entity-source-tagging:note_entities 加 source 列，默认 AI_EXTRACTED
-        AutoMigration(from = 11, to = 12)
+        AutoMigration(from = 11, to = 12),
+        // fix-full-review:feishu_ref 加 docId + noteId 索引，feishu_sync_event 加 noteId 索引，
+        // 加速按文档/笔记查关联的常见查询。AutoMigration 会自动 CREATE INDEX。
+        AutoMigration(from = 12, to = 13)
     ]
 )
 @TypeConverters(SyncStatusConverter::class)

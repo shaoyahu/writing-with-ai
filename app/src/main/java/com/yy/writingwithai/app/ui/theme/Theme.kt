@@ -184,12 +184,16 @@ private inline fun <reified T> Context.getSystemServiceCompat(serviceClass: Clas
 /** API 33+ 兼容读取 [AccessibilityManager.isReduceMotionEnabled];低于 33 返回 false。 */
 private fun AccessibilityManager.isReduceMotionEnabledCompat(): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        // 反射调用避免编译期对 API 33 属性的引用(minSdk < 33 时编译不过)
+        // fix-full-review MEDIUM:缓存反射 Method 对象，避免每次 ON_RESUME 重新 getMethod。
         runCatching {
-            val method = AccessibilityManager::class.java.getMethod("isReduceMotionEnabled")
-            method.invoke(this) as? Boolean ?: false
+            CachedReduceMotionMethod.invoke(this) as? Boolean ?: false
         }.getOrDefault(false)
     } else {
         false
     }
+}
+
+// fix-full-review MEDIUM:缓存反射 Method，避免每次 ON_RESUME 重复反射查找。
+private val CachedReduceMotionMethod by lazy {
+    AccessibilityManager::class.java.getMethod("isReduceMotionEnabled")
 }

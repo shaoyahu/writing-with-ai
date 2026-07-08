@@ -90,7 +90,6 @@
     <string name="selection_toolbar_ai_organize">Organize</string>
     <string name="selection_toolbar_ai_summarize">Summarize</string>
     <string name="selection_toolbar_ai_translate">Translate</string>
-    <string name="selection_toolbar_entity_added_fmt">Entity added: %1$s</string>
 
     <string name="aiwriting_panel_title_expand">Expand</string>
     <string name="aiwriting_panel_title_polish">Polish</string>
@@ -320,7 +319,6 @@
     <string name="entity_type_task">Task</string>
     <string name="entity_type_number">Number</string>
     <string name="quicknote_detail_add_image">Add image</string>
-    <string name="quicknote_detail_delete_image">Delete image</string>
 
     <string name="tab_notes">Notes</string>
     <string name="tab_my">Me</string>
@@ -605,7 +603,6 @@
     <string name="note_decomposing">Decomposing…</string>
     <string name="note_decompose_no_entities">No entities found</string>
     <string name="note_decompose_found_fmt">%1$d entities found</string>
-    <string name="note_decompose_entity_sheet_title">%1$s · %2$s</string>
     <string name="note_decompose_no_related">No related notes</string>
     <!-- feishu-sync-feedback · TODO(en): translate in M5 polish -->
     <string name="feishu_sync_success_fmt">TODO(en): feishu_sync_success_fmt</string>

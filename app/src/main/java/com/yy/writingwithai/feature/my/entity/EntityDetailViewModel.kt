@@ -47,7 +47,9 @@ class EntityDetailViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(entityKey = entityKey, loading = true)
             val (meta, hits) = withContext(Dispatchers.IO) {
                 val list = entityDao.queryEntityList(null, null, "lastExtracted")
-                val metaRow = list.firstOrNull { it.entityKey == entityKey } ?: list.firstOrNull()
+                // fix-full-review MEDIUM:只取 entityKey 精确匹配的行，不再 fallback 到
+                // list.firstOrNull()——静默返回错误实体比显示空更危险。
+                val metaRow = list.firstOrNull { it.entityKey == entityKey }
                 val hits = entityDao.queryNotesByEntity(entityKey, 200)
                 metaRow to hits
             }

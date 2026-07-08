@@ -96,13 +96,18 @@ constructor(
         return (custom + builtin).distinctBy { it.id }
     }
 
-    /** 按 providerId 取 AiProvider(内置优先，未命中查自定义)。suspend，无 runBlocking。 */
+    /** 按 providerId 取 AiProvider(内置优先，未命中查自定义)。suspend，无 runBlocking。
+     * fix-full-review:用 computeIfAbsent 替代 get+put，消除 TOCTOU 竞态(两个并发调用
+     * 可能同时构造同一 adapter)。computeIfAbsent 保证 mappingFunction 只执行一次。
+     */
     private suspend fun resolveProvider(providerId: String): AiProvider? {
         providers[providerId]?.let { return it }
         customAdapterCache[providerId]?.let { return it }
         val config = customProviderStore.getById(providerId) ?: return null
-        return AnthropicCompatibleAdapter(config, okHttpClient).also {
-            customAdapterCache[providerId] = it
+        // computeIfAbsent 的 mappingFunction 是同步的，但构造 AnthropicCompatibleAdapter
+        // 本身也是同步的(只赋值字段)，所以这里安全。
+        return customAdapterCache.computeIfAbsent(providerId) {
+            AnthropicCompatibleAdapter(config, okHttpClient)
         }
     }
 

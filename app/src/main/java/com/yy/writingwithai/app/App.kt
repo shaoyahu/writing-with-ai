@@ -34,7 +34,10 @@ import dagger.hilt.components.SingletonComponent
 @Composable
 fun App(
     initialRoute: WidgetLaunchRoute? = null,
-    widgetPendingRoute: MutableState<WidgetLaunchRoute?> = mutableStateOf(null),
+    // fix-full-review:默认参数 mutableStateOf(null) 在 Composable 函数外求值，
+    // 所有使用默认值的调用点共享同一个 MutableState 实例。改为 remember { mutableStateOf(null) }
+    // 确保每个调用点获得独立实例(MainActivity 显式传入，不受影响)。
+    widgetPendingRoute: MutableState<WidgetLaunchRoute?> = remember { mutableStateOf(null) },
     onNavControllerReady: (NavController) -> Unit = {}
 ) {
     val userPrefsStore = rememberUserPrefsStore()

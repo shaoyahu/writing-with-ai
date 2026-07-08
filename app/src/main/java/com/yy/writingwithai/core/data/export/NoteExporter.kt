@@ -67,8 +67,11 @@ constructor(
 
     companion object {
         // fix:提取 SimpleDateFormat 常量，避免每次调用创建新实例
+        // fix-full-review:格式含字面量 'Z'，必须显式设 UTC 时区，否则输出的是本地时间而非 UTC
         private val ISO_TIMESTAMP_FORMAT =
-            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.ROOT)
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.ROOT).apply {
+                timeZone = java.util.TimeZone.getTimeZone("UTC")
+            }
     }
 }
 

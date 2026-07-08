@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.yy.writingwithai.core.data.db.entity.NoteAttachmentEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 /**
  * note-list-thumbnail · 列表缩略图查询投影(只取首图需要的 noteId + localPath)。
@@ -65,4 +66,11 @@ interface NoteAttachmentDao {
         """
     )
     fun observeFirstImageForNotes(noteIds: List<String>): Flow<List<FirstImageRow>>
+
+    // fix-full-review:空列表会生成无效 SQL `IN ()`，Room 运行时直接崩溃。
+    // 提供安全包装：空输入直接返回空 Flow，避免走到 Room 生成的 SQL。
+    fun observeFirstImageForNotesSafe(noteIds: List<String>): Flow<List<FirstImageRow>> {
+        if (noteIds.isEmpty()) return flow { emit(emptyList()) }
+        return observeFirstImageForNotes(noteIds)
+    }
 }

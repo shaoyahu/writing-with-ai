@@ -10,6 +10,7 @@ import com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
 import com.yy.writingwithai.core.data.db.dao.NoteLinkDao
 import com.yy.writingwithai.core.data.db.dao.entity.EntityAliasDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
+import com.yy.writingwithai.core.data.db.dao.sync.SyncMetaDao
 import com.yy.writingwithai.core.feishu.sync.FeishuRefDao
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventDao
 import dagger.Module
@@ -76,4 +77,9 @@ object DataModule {
     @Provides
     @Singleton
     fun provideNoteAttachmentDao(db: AppDatabase): NoteAttachmentDao = db.noteAttachmentDao()
+
+    // fix-full-review:补上 SyncMetaDao provider，否则 @Inject SyncMetaDao 会在 Hilt 运行时报错。
+    @Provides
+    @Singleton
+    fun provideSyncMetaDao(db: AppDatabase): SyncMetaDao = db.syncMetaDao()
 }

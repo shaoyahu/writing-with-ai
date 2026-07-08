@@ -41,6 +41,8 @@ class SemanticNoteLinker @Inject constructor(
         if (!bypassRateLimit && isRateLimited(noteId)) return 0
         val src = noteDao.getById(noteId) ?: return 0
         if (src.content.isBlank()) return 0
+        // fix-full-review:与 LlmEntityExtractor 对齐，检测 prompt 注入模式后跳过 LLM 调用。
+        if (containsInjection(src.content)) return 0
 
         val providers = apikeyStore.observeConfiguredProviders().first()
         val providerId = providers.firstOrNull() ?: return 0
@@ -65,7 +67,9 @@ class SemanticNoteLinker @Inject constructor(
 
         val startMs = System.currentTimeMillis()
         val inTokens = estimateTokens(prompt)
-        var responseText = ""
+        // fix-full-review:StringBuilder 替代 string concatenation，
+        // 每次 responseText += t 创建新 String 对象，O(n^2) 内存分配。
+        val responseBuilder = StringBuilder()
         var linkCount = 0
         try {
             gateway.streamWritingOp(
@@ -79,10 +83,10 @@ class SemanticNoteLinker @Inject constructor(
                     is AiStreamEvent.Delta -> {
                         val t = event.text ?: ""
                         // fix-2026-06-24-review-r1-critical:防失控 LLM 输出 OOM / 计费炸
-                        if (responseText.length + t.length > MAX_CHARS) {
+                        if (responseBuilder.length + t.length > MAX_CHARS) {
                             throw TokenLimitExceeded(MAX_CHARS)
                         }
-                        responseText += t
+                        responseBuilder.append(t)
                     }
                     is AiStreamEvent.Failed -> {
                         // M7 修:失败也由 gateway.onCompletion 统一 record,extractor 不再独立 record。
@@ -91,6 +95,7 @@ class SemanticNoteLinker @Inject constructor(
                     else -> {}
                 }
             }
+            val responseText = responseBuilder.toString()
             val response = parseResponse(responseText)
             val outTokens = estimateTokens(responseText)
             val now = System.currentTimeMillis()
@@ -156,6 +161,18 @@ class SemanticNoteLinker @Inject constructor(
 
     private val SANITIZE_REGEX = Regex("[\"'`*\\[\\]]")
     private val WHITESPACE_REGEX = Regex("\\s+")
+
+    // fix-full-review:与 LlmEntityExtractor.containsInjection 对齐的注入检测模式。
+    private val INJECTION_PATTERNS = listOf(
+        "ignore previous instructions",
+        "忽略之前指令",
+        "ignore all previous"
+    )
+
+    private fun containsInjection(content: String): Boolean {
+        val lower = content.lowercase()
+        return INJECTION_PATTERNS.any { lower.contains(it) }
+    }
 
     private fun sanitize(c: String) = c.replace(SANITIZE_REGEX, " ")
         .replace(WHITESPACE_REGEX, " ").trim().take(200)

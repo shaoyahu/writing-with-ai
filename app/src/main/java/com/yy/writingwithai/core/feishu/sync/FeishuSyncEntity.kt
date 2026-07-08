@@ -20,7 +20,9 @@ import com.yy.writingwithai.core.data.db.entity.NoteEntity
             childColumns = ["noteId"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    // fix-full-review:加 docId / noteId 索引，加速按文档或笔记查关联的常见查询。
+    indices = [Index("docId"), Index("noteId")]
 )
 data class FeishuRefEntity(
     @PrimaryKey val noteId: String,
@@ -40,7 +42,8 @@ data class FeishuRefEntity(
  */
 @Entity(
     tableName = "feishu_sync_event",
-    indices = [Index("createdAt")]
+    // fix-full-review:加 noteId 索引，加速按笔记查同步事件的常见查询。
+    indices = [Index("createdAt"), Index("noteId")]
 )
 data class FeishuSyncEventEntity(
     @PrimaryKey val id: String,

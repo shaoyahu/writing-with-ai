@@ -8,7 +8,6 @@ import androidx.lifecycle.lifecycleScope
 import com.yy.writingwithai.R
 import com.yy.writingwithai.core.feishu.api.FeishuError
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -325,7 +324,6 @@ class OAuthCodeReceiver : ComponentActivity() {
  *
  * 不用 [GlobalScope] 是因为它隐式全局可写，难以测试和被监控。
  */
+// fix-full-review:移除未使用的 @ApplicationContext context 注入，OAuthAppScope 仅委托 CoroutineScope，不使用 Context
 @Singleton
-class OAuthAppScope @Inject constructor(
-    @ApplicationContext context: Context
-) : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatchers.IO)
+class OAuthAppScope @Inject constructor() : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatchers.IO)

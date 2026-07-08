@@ -16,10 +16,6 @@ class DataModuleTest {
     @Test
     fun `provideAppDatabase source should not call fallbackToDestructiveMigration`() {
         // 读 DataModule.kt 源文件，确认 provideAppDatabase 方法体内不含 fallbackToDestructiveMigration
-        val source = this::class.java.classLoader.getResource("DataModule.kt")
-            ?.readText()
-            ?: this::class.java.protectionDomain.codeSource.location.readText()
-        // 上面是占位 — 实际读 classpath 不一定有;改用 java.io.File 读源码路径
         val file = java.io.File("src/main/java/com/yy/writingwithai/core/data/di/DataModule.kt")
         assertTrue(file.exists(), "DataModule.kt source must exist on disk for this structural test")
         val text = file.readText()

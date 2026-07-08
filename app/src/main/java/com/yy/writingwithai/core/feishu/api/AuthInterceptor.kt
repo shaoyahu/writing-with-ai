@@ -62,7 +62,8 @@ constructor(
     private val tokenProvider: UserTokenProvider
 ) : Interceptor {
 
-    private val NO_AUTH_HEADER = "X-No-Auth-Retry"
+    // fix-full-review:移除类内重复 NO_AUTH_HEADER(遮蔽顶层 internal const val)，
+    // 类内引用自动解析到文件顶部的顶层常量，与 skipFeishuAuth() 扩展函数使用同一实例。
     private val interceptorScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val refreshMutex = Mutex()
 

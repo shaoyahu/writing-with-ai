@@ -160,6 +160,7 @@ constructor(
         withContext(Dispatchers.IO) {
             val p = prefs ?: return@withContext
             p.edit().remove(keyFor(providerId)).commit()
+            revealTimers.remove(providerId)?.cancel()
             revealStates[providerId]?.value = RevealState.Hidden
         }
     }
@@ -168,9 +169,13 @@ constructor(
         withContext(Dispatchers.IO) {
             val p = prefs ?: return@withContext
             p.edit().clear().commit()
+            revealTimers.values.forEach { it.cancel() }
+            revealTimers.clear()
             revealStates.values.forEach { it.value = RevealState.Hidden }
         }
     }
+
+    private val revealTimers = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.Job>()
 
     override fun reveal(providerId: String): StateFlow<RevealState> {
         val flow = revealStates.getOrPut(providerId) { MutableStateFlow(RevealState.Hidden) }
@@ -242,12 +247,15 @@ constructor(
         // 实际时间已推进 50-200ms,expiresAt 立刻显示为负。改在 IO 之后重算。
         val expiresAt = System.currentTimeMillis() + REVEAL_TIMEOUT_MS
         flow.value = RevealState.Revealed(apikey = apikey, expiresAt = expiresAt)
-        // 起一次性 5s timer，过期 emit Hidden。
-        scope.launch {
+        // fix-full-review:取消旧 timer 再启新 timer，防止快速连续 reveal() 叠加多个 timer。
+        // revealTimers 按 providerId 跟踪，新 reveal 取消旧 job 后启动新倒计时。
+        revealTimers[providerId]?.cancel()
+        revealTimers[providerId] = scope.launch {
             delay(REVEAL_TIMEOUT_MS)
             if (flow.value is RevealState.Revealed) {
                 flow.value = RevealState.Hidden
             }
+            revealTimers.remove(providerId)
         }
     }
 

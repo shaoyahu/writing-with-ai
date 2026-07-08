@@ -56,7 +56,7 @@ constructor(
             val docId: String,
             val anyImageFailed: Boolean
         ) : ImportResult()
-        data class Failure(val reason: String) : ImportResult()
+        data class Failure(val reason: String, val isAuthExpired: Boolean = false) : ImportResult()
     }
 
     data class ImportSummary(
@@ -176,7 +176,9 @@ constructor(
             onProgress(idx + 1, docTokens.size)
 
             // 批量中途 token 过期:终止后续所有 import,把剩余 token 全标失败。
-            if (result is ImportResult.Failure && result.reason.contains("授权已过期")) {
+            // fix-full-review:改用 ImportResult.Failure.isAuthExpired 类型标记，
+            // 替代脆弱的 result.reason.contains("授权已过期") 字符串匹配(中文文案变更即失效)
+            if (result is ImportResult.Failure && result.isAuthExpired) {
                 val remaining = docTokens.drop(idx + 1)
                 failed.addAll(remaining)
                 failure += remaining.size
@@ -299,7 +301,7 @@ constructor(
             } catch (e: FeishuError.NotFound) {
                 ImportResult.Failure("文档不存在或已删除")
             } catch (e: FeishuError.AuthExpired) {
-                ImportResult.Failure("飞书授权已过期,请重新授权")
+                ImportResult.Failure("飞书授权已过期,请重新授权", isAuthExpired = true)
             } catch (e: FeishuError.Forbidden) {
                 ImportResult.Failure("无权限访问该文档")
             } catch (e: FeishuError.BadRequest) {

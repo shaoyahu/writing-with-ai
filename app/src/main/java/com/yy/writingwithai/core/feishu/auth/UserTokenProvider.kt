@@ -2,8 +2,9 @@ package com.yy.writingwithai.core.feishu.auth
 
 import android.util.Log
 import com.yy.writingwithai.core.feishu.api.FeishuError
-import java.util.concurrent.TimeUnit
+import com.yy.writingwithai.core.feishu.api.skipFeishuAuth
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -44,11 +45,16 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * - 响应字段顶层(无 data 包装):code=0 表示成功
  */
 @Singleton
-class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) {
-
-    private val httpClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS).build()
+class UserTokenProvider @Inject constructor(
+    private val store: FeishuAuthStore,
+    // fix-full-review:注入 @Named("feishu-auth") OkHttpClient 替代自建 client。
+    // 自建 client 绕过 logging / cert pinning / shared connection pool，
+    // 且用于最敏感的 token exchange/refresh 操作(client_secret 在 body 中)。
+    // 使用 @Named("feishu-auth") 而非 @Named("feishu") 避免 Hilt 依赖循环
+    // (AuthInterceptor→UserTokenProvider→OkHttpClient→AuthInterceptor)。
+    // token exchange/refresh 请求通过 skipFeishuAuth() 标记，功能等效。
+    @Named("feishu-auth") private val httpClient: OkHttpClient
+) {
 
     // fix-2026-06-24-review-r1-high H6:consolidate token state under one Mutex (no @Volatile 分裂)
     private data class UserTokenState(val token: String?, val expiresAt: Long, val invalidated: Boolean)
@@ -169,10 +175,13 @@ class UserTokenProvider @Inject constructor(private val store: FeishuAuthStore) 
     /**
      * POST JSON → 返回根 JsonObject(响应字段顶层，无 data 包装)。
      * v2 协议不需要 Authorization header。
+     * fix-full-review:skipFeishuAuth() 避免 AuthInterceptor 注入 token(v2 协议自带
+     * client_secret 认证，不需要 Bearer token;注入反而可能触发 AuthInterceptor→getToken→postJson 循环)。
      */
     private suspend fun postJson(url: String, jsonBody: String): JsonObject {
         return withContext(Dispatchers.IO) {
-            val req = Request.Builder().url(url).post(jsonBody.toRequestBody(JSON)).build()
+            val req = Request.Builder().url(url).post(jsonBody.toRequestBody(JSON))
+                .skipFeishuAuth().build()
             // 诊断日志:飞书 20063 等业务错误 msg 字段常为空，需要看完整 body
             // 定位是缺字段 / redirect_uri 不匹配 / client_secret 错 / code 过期 等。
             // body 不能直接 log(可能含 client_secret)，改 log 脱敏后 body。
