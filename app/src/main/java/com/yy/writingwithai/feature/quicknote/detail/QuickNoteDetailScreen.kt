@@ -70,18 +70,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
@@ -317,7 +311,10 @@ fun QuickNoteDetailScreen(
         }
     }
     // note-detail-polish: 直接用 uiSelection 驱动 UI;SelectionContainer.onSelectionChange 更新它
-    var uiSelection by androidx.compose.runtime.remember {
+    // fix M31 (full-review):key by noteId — 切换笔记后 uiSelection 残留上一条的选区,
+    // 浮选工具栏在内容未选中时还显示,出现"无选区但有 toolbar"的伪状态。
+    // key(noteId) 让 Compose 在 noteId 变化时丢弃旧 remember 槽,新 noteId 用 Zero 初始化。
+    var uiSelection by androidx.compose.runtime.remember(noteId) {
         androidx.compose.runtime.mutableStateOf(androidx.compose.ui.text.TextRange.Zero)
     }
     android.util.Log.d("DetailToolbar", "render check: uiSelection=$uiSelection current!=null=${current != null}")
@@ -892,6 +889,22 @@ fun QuickNoteDetailScreen(
     // note-detail-polish: 选中文字时浮出快捷工具栏 — 放在 Scaffold 顶层(避免被 when/Column 嵌套吞掉)
     if (!uiSelection.collapsed && current != null) {
         android.util.Log.d("DetailToolbar", "TOOLBAR rendering now (top-level)")
+        // fix H12+H13:统一 offset 空间。uiSelection 是 annotated-space,entityRows 是 content-space,
+        // 在 toolbar 渲染前一次性转换完毕,后续 callback 全部用 contentSelectionMin/Max 截 raw content。
+        val titleLen = current.note.note.title.length + 1
+        val contentLen = current.note.note.content.length
+        val ann = buildEntityAnnotatedString(
+            current.note.note.content,
+            entityRows.mapNotNull { it.toHighlight(titleLen, contentLen) },
+            primaryColor
+        )
+        fun annToContent(annOffset: Int): Int {
+            val o = annOffset.coerceAtMost(ann.length)
+            val stars = ann.substring(0, o).count { it == EntityCrossStarChar.first() }
+            return annOffset - stars
+        }
+        val contentSelectionMin = annToContent(uiSelection.min)
+        val contentSelectionMax = annToContent(uiSelection.max)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -901,38 +914,19 @@ fun QuickNoteDetailScreen(
         ) {
             SelectionFloatingToolbar(
                 isAiEnabled = hasAiProvider,
-                // 当前选区是否已被加入实体:跟任意 USER_ADDED 实体的 span 存在重叠即视为已添加。
-                isEntityAdded = remember(uiSelection, entityRows) {
-                    val s = uiSelection.min
-                    val e = uiSelection.max
+                isEntityAdded = remember(contentSelectionMin, contentSelectionMax, entityRows) {
+                    val s = contentSelectionMin
+                    val e = contentSelectionMax
                     entityRows.any { row ->
                         row.source == "USER_ADDED" &&
                             row.spanStart < e && row.spanEnd > s
                     }
                 },
                 onAddEntity = {
-                    // floating-toolbar-redesign bug fix:BasicTextField 渲染的是 annotatedContent,
-                    // 每个已添加实体末尾追加了 ✦(superScript)字符,所以 uiSelection 的索引是
-                    // 相对于 annotatedContent,不能直接用来截取 content.substring,否则会
-                    // 错位(用户选"推理性能"4 字 → substring 拿到 "理性能上"4 字)。
-                    // 解法:根据 entityRows 重建 annotatedContent,把 [0, offset) 内的 ✦ 字符数扣掉。
                     val annStart = uiSelection.min
                     val annEnd = uiSelection.max
-                    val titleLen = current.note.note.title.length + 1 // 跟详情屏渲染分支一致
-                    val contentLen = current.note.note.content.length
-                    val ann = buildEntityAnnotatedString(
-                        current.note.note.content,
-                        entityRows.mapNotNull {
-                            it.toHighlight(titleLen, contentLen)
-                        },
-                        primaryColor
-                    )
-                    fun starsBefore(offset: Int): Int {
-                        val o = offset.coerceAtMost(ann.length)
-                        return ann.substring(0, o).count { it == EntityCrossStarChar.first() }
-                    }
-                    val contentStart = annStart - starsBefore(annStart)
-                    val contentEnd = annEnd - starsBefore(annEnd)
+                    val contentStart = annToContent(annStart)
+                    val contentEnd = annToContent(annEnd)
                     val selectedText = current.note.note.content.substring(
                         contentStart,
                         contentEnd
@@ -946,35 +940,35 @@ fun QuickNoteDetailScreen(
                 onAiExpand = {
                     aiVm?.start(
                         WritingOp.EXPAND,
-                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
                         noteId!!
                     )
                 },
                 onAiPolish = {
                     aiVm?.start(
                         WritingOp.POLISH,
-                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
                         noteId!!
                     )
                 },
                 onAiOrganize = {
                     aiVm?.start(
                         WritingOp.ORGANIZE,
-                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
                         noteId!!
                     )
                 },
                 onAiSummarize = {
                     aiVm?.start(
                         WritingOp.SUMMARIZE,
-                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
                         noteId!!
                     )
                 },
                 onAiTranslate = {
                     aiVm?.start(
                         WritingOp.TRANSLATE,
-                        current.note.note.content.substring(uiSelection.min, uiSelection.max),
+                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
                         noteId!!
                     )
                 }
@@ -1245,133 +1239,7 @@ fun QuickNoteDetailScreen(
 }
 
 /**
- * ux-2026-06-28 #8:缩略图 inSampleSize 计算。80dp ≈ 160px(2x density),
- * `reqPx` 上下浮动，长边 ≤ reqPx 时 sampleSize=1。
+ * entity-management-and-ai-decompose §3
+ * helper `buildEntityAnnotatedString` + inSampleSize + R.string 映射
+ * 已迁至 QuickNoteDetailHelpers.kt(同包 internal,fix M72 大函数拆分)。
  */
-private fun calculateThumbSample(srcWidth: Int, srcHeight: Int, reqPx: Int): Int {
-    if (srcWidth <= 0 || srcHeight <= 0) return 1
-    var sample = 1
-    val halfW = srcWidth / 2
-    val halfH = srcHeight / 2
-    while (halfW / sample >= reqPx && halfH / sample >= reqPx) {
-        sample *= 2
-    }
-    return sample
-}
-
-/** M3:把 lastAiOp("expand"/"polish"/"organize") 映射到 R.string.aiwriting_action_* 中文资源。 */
-private fun opKeyToRes(opKey: String): Int = when (opKey) {
-    "expand" -> R.string.aiwriting_action_expand
-    "polish" -> R.string.aiwriting_action_polish
-    "organize" -> R.string.aiwriting_action_organize
-    "summarize" -> R.string.aiwriting_action_summarize
-    "translate" -> R.string.aiwriting_action_translate
-    else -> R.string.aiwriting_action_expand
-}
-
-/**
- * entity-management-and-ai-decompose §3:构建带实体高亮的 AnnotatedString。
- *
- * - 蓝色字体:`SpanStyle(color = primaryColor)`,不再用 Underline。
- * - 每个实体文本末尾紧贴 ✦ 字符(右上角超小号 superscript,视觉像星标)。
- * - 重叠实体按 span 长度降序处理(最长优先),短 span 的 annotation 会被长 span 覆盖。
- *
- * 注意:addStyle / addStringAnnotation 的 start/end 必须是 AnnotatedString 实际索引,
- * 所以每段 append 后用 `length` 拿到新坐标,不再混用 content 原始索引。
- */
-private fun buildEntityAnnotatedString(
-    content: String,
-    highlights: List<EntityHighlight>,
-    primaryColor: androidx.compose.ui.graphics.Color
-): AnnotatedString = buildAnnotatedString {
-    if (content.isEmpty()) return@buildAnnotatedString
-
-    val sorted = highlights.sortedByDescending { it.contentEnd - it.contentStart }
-
-    // 1) 计算 normalized entity ranges(夹紧到 content 范围内,过滤空区间)
-    val entityRanges: List<Pair<IntRange, EntityHighlight>> = sorted
-        .map { h ->
-            val s = h.contentStart.coerceIn(0, content.length)
-            val e = h.contentEnd.coerceIn(s, content.length)
-            if (s >= e) null else (s until e) to h
-        }
-        .filterNotNull()
-
-    // 2) 按原始 content 顺序生成"普通段 / 实体段"事件序列
-    val events = buildList<Pair<IntRange, EntityHighlight?>> {
-        val breakpoints = sortedSetOf(0, content.length)
-        entityRanges.forEach { (r, _) ->
-            breakpoints.add(r.first)
-            breakpoints.add(r.last + 1)
-        }
-        val points = breakpoints.toList()
-        for (i in 0 until points.size - 1) {
-            val segStart = points[i]
-            val segEnd = points[i + 1]
-            if (segStart >= segEnd) continue
-            val owner = entityRanges.firstOrNull { (r, _) -> r.first == segStart && r.last + 1 == segEnd }
-            if (owner != null) {
-                add(segStart until segEnd to owner.second)
-            } else {
-                // 普通段:跳过其中被任何 entity 覆盖的部分
-                var cursor = segStart
-                val sortedEntityRanges = entityRanges.map { it.first }.sortedBy { it.first }
-                for (er in sortedEntityRanges) {
-                    val erS = er.first
-                    val erE = er.last + 1
-                    if (erS >= segEnd || erE <= segStart) continue
-                    if (cursor < erS) {
-                        add(cursor until erS to null)
-                    }
-                    cursor = maxOf(cursor, erE)
-                    if (cursor >= segEnd) break
-                }
-                if (cursor < segEnd) {
-                    add(cursor until segEnd to null)
-                }
-            }
-        }
-    }
-
-    // 3) 按顺序 append,同时用 length 跟踪 AnnotatedString 实际索引
-    val starInserted = mutableSetOf<String>()
-    for ((range, hl) in events) {
-        if (hl == null) {
-            append(content.substring(range.first, range.last + 1))
-        } else {
-            val s = range.first
-            val e = range.last + 1
-            val textStart = length
-            append(content.substring(s, e))
-            val textEnd = length
-            addStyle(
-                style = SpanStyle(color = primaryColor),
-                start = textStart,
-                end = textEnd
-            )
-            // 唯一实体(按 key)追加 ✦ + annotation
-            if (starInserted.add(hl.entityKey)) {
-                addStringAnnotation(
-                    tag = "entity",
-                    annotation = hl.entityKey,
-                    start = textStart,
-                    end = textEnd
-                )
-                val starStart = length
-                append(EntityCrossStarChar)
-                val starEnd = length
-                addStyle(
-                    style = SpanStyle(
-                        color = primaryColor,
-                        fontSize = 0.55.em,
-                        baselineShift = BaselineShift.Superscript
-                    ),
-                    start = starStart,
-                    end = starEnd
-                )
-            }
-        }
-    }
-}
-
-private const val EntityCrossStarChar: String = "✦"

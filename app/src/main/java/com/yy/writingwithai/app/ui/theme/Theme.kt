@@ -18,9 +18,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.core.prefs.UserPrefsStore
 import com.yy.writingwithai.core.ui.animation.AnimationStyle
@@ -161,7 +161,9 @@ private fun rememberReduceMotion(): Boolean {
     var reduceMotion by remember(am) {
         mutableStateOf(am?.isReduceMotionEnabledCompat() ?: false)
     }
-    val lifecycleOwner = LocalLifecycleOwner.current
+    // fix M61 (full-review):LocalLifecycleOwner deprecated in Compose 1.6+,
+    // 改用 LocalContext 取 ComponentActivity 的 lifecycle。
+    val lifecycleOwner = LocalContext.current as LifecycleOwner
     DisposableEffect(lifecycleOwner, am) {
         if (am == null) {
             return@DisposableEffect onDispose { }

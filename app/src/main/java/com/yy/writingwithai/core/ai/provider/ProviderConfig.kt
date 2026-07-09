@@ -34,9 +34,14 @@ data class ProviderConfig(
     }
 
     companion object {
-        /** L4 修:reserved auth header 白名单，customAuthHeaderName 不允许撞。 */
+        // L4 修:reserved auth header 白名单,customAuthHeaderName 不允许撞。
+        // fix M1 (full-review):与 AnthropicCompatibleAdapter.RESERVED_HEADERS 对齐,加
+        // "x-api-key" —— DeepSeek/Mimo 等 OpenAI-compat provider 走 Bearer 也可能在
+        // 第三方自定义 provider 配置里被当作 custom header 名提交,撞上后 OkHttp
+        // 二次处理或 provider 误以为 token refresh。
         val RESERVED_AUTH_HEADERS: Set<String> = setOf(
             "authorization",
+            "x-api-key",
             "cookie",
             "set-cookie"
         )

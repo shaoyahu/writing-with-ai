@@ -156,10 +156,14 @@ fun FolderImportScreen(onBack: () -> Unit, viewModel: FolderImportViewModel = hi
                     )
                 }
                 is FolderImportViewModel.State.Error -> {
+                    // fix M36 (full-review):错误文案从 VM 端的 @StringRes 渲染,
+                    // 不再在 VM 字面量塞中文;服务端原始 message 通过 args 透传。
+                    val argsArray = s.args.toTypedArray()
+                    val errorText = stringResource(s.resId, *argsArray)
                     InputSection(
                         input = input,
                         onInputChange = { input = it },
-                        error = s.message,
+                        error = errorText,
                         onParse = { viewModel.onParse(input) },
                         spacing = spacing
                     )

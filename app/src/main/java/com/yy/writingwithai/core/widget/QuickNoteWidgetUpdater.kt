@@ -23,6 +23,11 @@ class QuickNoteWidgetUpdater
 @Inject
 constructor() {
     suspend fun updateAll(context: Context) {
+        // fix-full-review M54:同时刷新主 widget (QuickNoteWidget)、1x1 (QuickNote1x1Widget)、
+        // 1x4 (QuickNote1x4Widget)。过去只 refresh QuickNoteWidget,用户添加的 1x1/1x4
+        // 实例不会自动更新,只能等 Glance 自带轮询(默认 30 分钟),与主 widget 行为不一致。
         QuickNoteWidget().updateAll(context)
+        QuickNote1x1Widget().updateAll(context)
+        QuickNote1x4Widget().updateAll(context)
     }
 }

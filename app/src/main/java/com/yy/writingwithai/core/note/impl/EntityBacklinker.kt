@@ -6,6 +6,9 @@ import com.yy.writingwithai.core.data.db.entity.LinkType
 import com.yy.writingwithai.core.data.db.entity.NoteLinkEntity
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 
 /**
  * entity-extraction-association · 实体命中反向链接(tasks §3.1, §4.2)。
@@ -69,11 +72,17 @@ constructor(
     }
 
     private fun buildEvidence(shared: Set<String>): String {
-        val escaped = shared.joinToString(",") { "\"$it\"" }
-        return "{\"sharedEntities\":[$escaped]}"
+        // fix M24 (full-review):用 kotlinx.serialization 替代手动 `"$it"` 拼接。
+        // 之前 entity key 含 `"` / `\` / 控制字符会产出非法 JSON,sqlite 解析失败 → 整个
+        // note_links 行被跳过，反向链接丢失。排序 + JSON encoder 一步到位。
+        val sorted = shared.sorted()
+        return """{"sharedEntities":${JSON.encodeToString(ListSerializer(String.serializer()), sorted)}}"""
     }
 
     companion object {
         const val MAX_HITS = 66
+
+        // fix M24 (full-review):kotlinx Json 实例,buildEvidence 用。
+        private val JSON = Json
     }
 }

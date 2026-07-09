@@ -1,11 +1,11 @@
 package com.yy.writingwithai.feature.settings.animation
 
 import android.content.Context
-import android.os.Build
 import android.view.accessibility.AccessibilityManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.prefs.UserPrefsStore
+import com.yy.writingwithai.core.ui.animation.ReduceMotionReader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -64,20 +64,8 @@ constructor(
      * 低于 33 时返回 `false`(API < 33 设备视为未启用)。reduce-motion 是用户在系统设置里切的,
      * 在设置页停留期间基本不变,无 hot flow 订阅需求。
      */
-    private val _reduceMotionEnabled = MutableStateFlow(isReduceMotionEnabled())
+    private val _reduceMotionEnabled = MutableStateFlow(ReduceMotionReader.read(accessibilityManager))
     val reduceMotionEnabled: StateFlow<Boolean> = _reduceMotionEnabled.asStateFlow()
-
-    private fun isReduceMotionEnabled(): Boolean {
-        val manager = accessibilityManager ?: return false
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            runCatching {
-                val method = AccessibilityManager::class.java.getMethod("isReduceMotionEnabled")
-                method.invoke(manager) as? Boolean ?: false
-            }.getOrDefault(false)
-        } else {
-            false
-        }
-    }
 
     /**
      * 「导航动画」toggle 写盘(spec ADDED REQ AnimationDetailScreen)。

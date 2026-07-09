@@ -8,7 +8,7 @@ import com.yy.writingwithai.core.data.repo.NoteRepository
 import com.yy.writingwithai.core.feishu.sync.FeishuImportService
 import com.yy.writingwithai.core.feishu.sync.FeishuRefEntity
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
-import com.yy.writingwithai.core.prefs.SearchHistoryStore
+import com.yy.writingwithai.core.prefs.SearchHistoryStoreImpl
 import com.yy.writingwithai.feature.quicknote.model.NoteListUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -44,7 +44,9 @@ constructor(
     private val repository: NoteRepository,
     private val feishuSyncService: FeishuSyncService,
     // feishu-import-from-folder:列表页导入入口用
-    private val feishuImportService: FeishuImportService
+    private val feishuImportService: FeishuImportService,
+    // fix M14 (full-review):Hilt 注入 SearchHistoryStoreImpl,避免 object + Context 传参
+    private val searchHistoryStore: SearchHistoryStoreImpl
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val selectedTag = MutableStateFlow<String?>(null)
@@ -84,15 +86,24 @@ constructor(
 
     fun setQuery(q: String) {
         query.update { q }
-        // fix-2026-06-26-review-r3 M4:`SearchHistoryStore.add` 现在接进 `setQuery`，避免
-        // R3 报告中的"dead code"问题:生产代码之前只调 `getAll` / `remove`，从未写入，
-        // DataStore 永远是空集合，UI 顶部搜索历史区永远显示"暂无"。
-        // 600ms debounce 收敛连续 keystroke，空 query / 与上次相同时不写。
+        // fix-2026-06-26-review-r3 M4:`SearchHistoryStore.add` 现在接进 `setQuery`,避免
+        // R3 报告中的"dead code"问题:生产代码之前只调 `getAll` / `remove`,从未写入,
+        // DataStore 永远是空集合,UI 顶部搜索历史区永远显示"暂无"。
+        // 600ms debounce 收敛连续 keystroke,空 query / 与上次相同时不写。
         if (q.isNotBlank()) {
             viewModelScope.launch {
-                SearchHistoryStore.add(appContext, q.trim())
+                searchHistoryStore.add(q.trim())
             }
         }
+    }
+
+    /** fix M14 (full-review):Screen 层通过 VM 间接访问 store(避免屏直接 new infrastructure)。 */
+    suspend fun getSearchHistory(): List<String> = searchHistoryStore.getAll()
+
+    /** fix M14 (full-review):Screen 层通过 VM 间接 remove + 读,UI 立刻刷新。 */
+    suspend fun removeSearchHistory(query: String): List<String> {
+        searchHistoryStore.remove(query)
+        return searchHistoryStore.getAll()
     }
 
     fun selectTag(tag: String?) {

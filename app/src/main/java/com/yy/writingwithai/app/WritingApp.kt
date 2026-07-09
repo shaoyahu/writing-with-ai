@@ -11,12 +11,11 @@ import com.yy.writingwithai.core.i18n.LocaleStore
 import com.yy.writingwithai.core.note.backfill.BackfillScheduler
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.widget.QuickNoteWidgetWorker
+import com.yy.writingwithai.di.ApplicationScope
 import dagger.hilt.android.HiltAndroidApp
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
@@ -46,8 +45,10 @@ class WritingApp : Application() {
     @Inject
     lateinit var localeStore: LocaleStore
 
-    // fix-2026-06-24-review-r1-high H23:异步 IO scope，不阻塞 Application.onCreate
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // fix H19:改用 Hilt 注入的 @ApplicationScope CoroutineScope,不再自管 SupervisorJob。
+    @Inject
+    @ApplicationScope
+    lateinit var appScope: CoroutineScope
 
     // language-switcher:在 super.onCreate 之前注入 locale(attachBaseContext 早于 onCreate,
     // Hilt @Inject 还没 ready — 用 LocaleStore.readOnceBlocking 走 raw DataStore 读，

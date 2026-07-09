@@ -6,12 +6,18 @@ import androidx.collection.LruCache
 /**
  * M7 fix:应用级 Bitmap LRU 缓存，避免 LazyColumn 滚出再滚入时重复 decodeFile。
  *
- * 容量 = 可用内存 / 8（典型 Android 设备 128MB 堆 → 16MB 缓存）。
+ * 容量 = 可用内存 / 8（典型 Android 设备 128MB 堆 → 16MB 缓存），
+ * 上限 64MB 封顶避免堆大设备(如 512MB 堆)独占 64MB 缓存导致其他子系统 OOM。
  * 通过 [instance] 懒加载单例访问，Composable 中无需 Hilt 注入。
  */
 class LruBitmapCache(maxSizeBytes: Int = defaultSize()) {
 
-    private val cache: LruCache<String, Bitmap> = object : LruCache<String, Bitmap>(maxSizeBytes) {
+    /** 缓存上限:64MB。超过此值的 (maxMemory/8) 截断到此值。 */
+    private val maxCacheCapBytes = 64 * 1024 * 1024
+
+    private val cache: LruCache<String, Bitmap> = object : LruCache<String, Bitmap>(
+        maxSizeBytes.coerceAtMost(maxCacheCapBytes)
+    ) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.allocationByteCount
     }
 

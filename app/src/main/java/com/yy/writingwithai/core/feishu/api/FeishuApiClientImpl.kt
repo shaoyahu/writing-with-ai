@@ -24,6 +24,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import okio.use
 
 /**
@@ -130,7 +131,7 @@ constructor(
             put("index", -1)
             put("children", buildJsonArray { add(blockObj) })
         }.toString()
-        Log.d("FeishuApi", "createBlock body: $body")
+        // fix H5:移除 release 代码中的 Log.d，避免泄露 API 请求体到 logcat。
         val request = Request.Builder()
             .url(urlFor("docx/v1/documents/$docId/blocks/$parentBlockId/children"))
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
@@ -208,8 +209,40 @@ constructor(
     }
 
     // ---- v2 docs_ai/v1 ----
+    // fix M68 (full-review):原 100 行 mega-function,拆 4 步 helper:
+    //   1) executeHttp           — OkHttp call + 结构化 catch 链(rethrow FeishuError/Cancellation/
+    //                              OOM/StackOverflow;分类 UnknownHost/SSL/其他 → FeishuError.NetworkError)
+    //   2) readBodyCapped        — source.request(MAX_BODY+1) 流式截断(防恶意 endpoint OOM)+ UTF-8 解码
+    //   3) parseFeishuBody       — 业务 code 0 → data;非 0 翻译 NotFound/BadRequest/TokenInvalid
+    //   4) mapHttpStatus         — 200..299 走 parse;4xx/5xx 直接抛对应 FeishuError
+    // 拆后每函数 < 40 行,行数 guideline 内,且每子函数单一职责便于单测。
     private fun executeRequest(request: Request): ParsedResponse {
-        val response = try {
+        val response = executeHttp(request)
+        return response.use { resp ->
+            val body = readBodyCapped(resp)
+            when (resp.code) {
+                in 200..299 -> parseFeishuBody(body, request)
+                400 -> throw FeishuError.BadRequest(400, body)
+                401 -> throw FeishuError.AuthExpired
+                403 -> throw FeishuError.Forbidden(scope = null)
+                404 -> throw FeishuError.NotFound(resource = request.url.encodedPath)
+                429 -> {
+                    val retryAfter = resp.header("Retry-After")?.toIntOrNull() ?: 60
+                    throw FeishuError.RateLimited(retryAfterSeconds = retryAfter)
+                }
+                in 500..599 -> throw FeishuError.ServerError(resp.code)
+                else -> throw FeishuError.ServerError(resp.code)
+            }
+        }
+    }
+
+    /**
+     * 执行 OkHttp 调用并把 IO/SSL/未知异常映射到 [FeishuError.NetworkError]。
+     * 重新封装 H45 修复:FeishuError / Cancellation / OOM / StackOverflow 显式 rethrow,
+     * 避免被兜底 catch(Throwable) 包成 NetworkError 误标 retry-friendly。
+     */
+    private fun executeHttp(request: Request): Response {
+        return try {
             httpClient.newCall(request).execute()
         } catch (e: FeishuError) {
             // review r1 HIGH#5:AuthInterceptor runBlocking 抛的 FeishuError(NotAuthorized 等)
@@ -225,89 +258,84 @@ constructor(
         } catch (e: javax.net.ssl.SSLException) {
             // fix-MEDIUM(feishu M2):SSL 错误通常不是网络抖动(证书 / 协议)，不推荐自动重试。
             throw FeishuError.NetworkError(detail = "ssl=" + e.javaClass.simpleName + ": " + (e.message ?: ""))
+        } catch (e: OutOfMemoryError) {
+            // fix-full-review M45:rethrow OOM/StackOverflow — 不是网络错误，包成 NetworkError 会误导 retry/backoff。
+            // Error 不是 Exception，故意保留在 Throwable catch 之后。
+            throw e
+        } catch (e: StackOverflowError) {
+            throw e
         } catch (e: Throwable) {
             throw FeishuError.NetworkError(detail = e.javaClass.simpleName + ": " + (e.message ?: ""))
         }
-        return response.use { resp ->
-            // fix-2026-06-26-review-r3 HIGH H9:流式截断到 1 MiB，不让 okio buffer 缓存整段 body。
-            // 之前 `source.request(Long.MAX_VALUE)` 把整段 body 拉进 heap buffer 再判断截断，
-            // 已经把恶意/异常 endpoint 的 MB 级 body 吃进内存了。改用 readByteArray(maxBytes)
-            // 让 okio 在拉到上限时停止从 socket 读。
-            val body = try {
-                resp.body?.source()?.use { source ->
-                    // fix-full-review:用 capped read 替代 source.request(Long.MAX_VALUE)，
-                    // 避免恶意/异常 endpoint 返回超大 body 时 OOM。request(maxSize + 1) 只从
-                    // socket 读到 maxSize+1 字节就停止；若 buffer.size > maxSize 说明 body
-                    // 超限，截断读取；否则正常读完。比先全量拉进 heap 再判断安全得多。
-                    source.request(MAX_BODY + 1)
-                    val bytes = if (source.buffer.size > MAX_BODY) {
-                        Log.w(
-                            "FeishuApi",
-                            "response body exceeded ${MAX_BODY} bytes, truncating"
-                        )
-                        source.buffer.readByteArray(MAX_BODY)
-                    } else {
-                        source.buffer.readByteArray()
-                    }
-                    String(bytes, Charsets.UTF_8)
-                }.orEmpty()
-            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
-                // fix-MEDIUM(feishu M1):结构化并发取消时 (coroutine 取消),
-                // 读 socket body 抛 CancellationException 不应被包成 NetworkError
-                // 吞掉 → 保持结构化并发语义(原 throw 上去)。
-                throw e
-            }
-            when (resp.code) {
-                in 200..299 -> {
-                    val parsed = try {
-                        Json.parseToJsonElement(body).jsonObject
-                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
-                        throw e
-                    } catch (e: Throwable) {
-                        throw FeishuError.NetworkError(detail = "JSON parse failed: ${e.message}")
-                    }
-                    val code = parsed["code"]?.jsonPrimitive?.intOrNull ?: 0
-                    if (code != 0) {
-                        val msg = parsed["msg"]?.jsonPrimitive?.contentOrNull ?: ""
-                        if (code == AuthInterceptor.FEISHU_TOKEN_INVALID_CODE) throw FeishuError.TokenInvalid
-                        // fix(feishu-doc-deleted-3380003):飞书对已删除文档返回 HTTP 200
-                        // 但业务 code=3380003(msg="Document page has been deleted"),原本包成
-                        // BadRequest 直接逃到 UI 显示"操作失败"。特判翻译成 NotFound,
-                        // 让 FeishuDocService.updateDoc 已有的 catch NotFound 链路接管:
-                        // 标记 REMOTE_DELETED → sync push catch NotFound → 删旧 ref + 重建 doc。
-                        if (code == FEISHU_DOC_DELETED_CODE) {
-                            throw FeishuError.NotFound(resource = request.url.encodedPath)
-                        }
-                        throw FeishuError.BadRequest(code, msg)
-                    }
-                    val data = try {
-                        parsed["data"]?.jsonObject ?: emptyJsonObject()
-                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
-                        throw e
-                    } catch (e: Throwable) {
-                        // fix-2026-06-26-review-r3 HIGH H-extra(r3 regression fix):
-                        // `data` 不是 JsonObject 时的强转异常也应包装为 NetworkError，保持
-                        // 与"200 但 body 坏"一致的错误语义，避免 IllegalArgumentException
-                        // 逃逸破坏调用方异常处理。
-                        throw FeishuError.NetworkError(detail = "data is not a JSON object: ${e.message}")
-                    }
-                    ParsedResponse(
-                        rawBody = body,
-                        data = data
+    }
+
+    /**
+     * 流式读取 body,封顶 [MAX_BODY] 字节,防恶意 endpoint 返回超大 body OOM。
+     * 取消信号 rethrow,IO 异常翻译为 NetworkError。
+     */
+    private fun readBodyCapped(resp: Response): String {
+        return try {
+            resp.body?.source()?.use { source ->
+                // fix-full-review:用 capped read 替代 source.request(Long.MAX_VALUE)，
+                // 避免恶意/异常 endpoint 返回超大 body 时 OOM。request(maxSize + 1) 只从
+                // socket 读到 maxSize+1 字节就停止；若 buffer.size > maxSize 说明 body
+                // 超限，截断读取；否则正常读完。比先全量拉进 heap 再判断安全得多。
+                source.request(MAX_BODY + 1)
+                val bytes = if (source.buffer.size > MAX_BODY) {
+                    Log.w(
+                        "FeishuApi",
+                        "response body exceeded ${MAX_BODY} bytes, truncating"
                     )
+                    source.buffer.readByteArray(MAX_BODY)
+                } else {
+                    source.buffer.readByteArray()
                 }
-                400 -> throw FeishuError.BadRequest(400, body)
-                401 -> throw FeishuError.AuthExpired
-                403 -> throw FeishuError.Forbidden(scope = null)
-                404 -> throw FeishuError.NotFound(resource = request.url.encodedPath)
-                429 -> {
-                    val retryAfter = resp.header("Retry-After")?.toIntOrNull() ?: 60
-                    throw FeishuError.RateLimited(retryAfterSeconds = retryAfter)
-                }
-                in 500..599 -> throw FeishuError.ServerError(resp.code)
-                else -> throw FeishuError.ServerError(resp.code)
-            }
+                String(bytes, Charsets.UTF_8)
+            }.orEmpty()
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         }
+    }
+
+    /**
+     * 解析 200 OK body:JSON 反序列化 + 业务 code 翻译到 FeishuError。
+     * 业务 code=0 走 data 提取;非 0 特判 NotFound(已删除 docx)/
+     * TokenInvalid(401 等价) / BadRequest(其他业务错误)。
+     */
+    private fun parseFeishuBody(body: String, request: Request): ParsedResponse {
+        val parsed = try {
+            Json.parseToJsonElement(body).jsonObject
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            throw FeishuError.NetworkError(detail = "JSON parse failed: ${e.message}")
+        }
+        val code = parsed["code"]?.jsonPrimitive?.intOrNull ?: 0
+        if (code != 0) {
+            val msg = parsed["msg"]?.jsonPrimitive?.contentOrNull ?: ""
+            if (code == AuthInterceptor.FEISHU_TOKEN_INVALID_CODE) throw FeishuError.TokenInvalid
+            // fix(feishu-doc-deleted-3380003):飞书对已删除文档返回 HTTP 200
+            // 但业务 code=3380003(msg="Document page has been deleted"),原本包成
+            // BadRequest 直接逃到 UI 显示"操作失败"。特判翻译成 NotFound,
+            // 让 FeishuDocService.updateDoc 已有的 catch NotFound 链路接管:
+            // 标记 REMOTE_DELETED → sync push catch NotFound → 删旧 ref + 重建 doc。
+            if (code == FEISHU_DOC_DELETED_CODE) {
+                throw FeishuError.NotFound(resource = request.url.encodedPath)
+            }
+            throw FeishuError.BadRequest(code, msg)
+        }
+        val data = try {
+            parsed["data"]?.jsonObject ?: emptyJsonObject()
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // fix-2026-06-26-review-r3 HIGH H-extra(r3 regression fix):
+            // `data` 不是 JsonObject 时的强转异常也应包装为 NetworkError，保持
+            // 与"200 但 body 坏"一致的错误语义，避免 IllegalArgumentException
+            // 逃逸破坏调用方异常处理。
+            throw FeishuError.NetworkError(detail = "data is not a JSON object: ${e.message}")
+        }
+        return ParsedResponse(rawBody = body, data = data)
     }
 
     private data class ParsedResponse(

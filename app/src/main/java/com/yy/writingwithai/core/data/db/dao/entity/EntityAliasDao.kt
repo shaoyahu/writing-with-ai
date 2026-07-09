@@ -16,6 +16,15 @@ interface EntityAliasDao {
     @Query("DELETE FROM entity_aliases WHERE entityType = :entityType AND aliasKey = :aliasKey")
     suspend fun deleteByAlias(entityType: EntityType, aliasKey: String)
 
+    // fix M11 (full-review):删除实体时同时清 entity_aliases 别名行。
+    // 之前 confirmDelete 只删 note_entities,留下 alias 孤儿行(指向不存在的 entity),
+    // EntityBacklinker.findByAliasKeys 会拿到 stale canonicalKey,反向链接结果污染。
+    @Query(
+        "DELETE FROM entity_aliases WHERE entityType = :entityType AND " +
+            "(aliasKey = :entityKey OR canonicalEntityKey = :entityKey)"
+    )
+    suspend fun deleteByEntityKey(entityType: EntityType, entityKey: String)
+
     @Query("SELECT * FROM entity_aliases WHERE aliasKey IN (:aliasKeys)")
     suspend fun findByAliasKeys(aliasKeys: List<String>): List<EntityAliasRow>
 

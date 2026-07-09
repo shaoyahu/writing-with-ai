@@ -22,6 +22,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.yy.writingwithai.R
+import com.yy.writingwithai.app.ui.theme.CornerRadius
 
 /**
  * 1x1 快速记笔记纯按钮 widget。
@@ -44,7 +45,7 @@ private fun Widget1x1Content() {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceTheme.colors.primary)
-            .cornerRadius(16.dp)
+            .cornerRadius(CornerRadius().lg)
             .clickable(
                 onClick = actionRunCallback<CreateNoteFromWidgetAction>()
             )

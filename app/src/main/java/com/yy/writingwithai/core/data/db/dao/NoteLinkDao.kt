@@ -25,6 +25,10 @@ interface NoteLinkDao {
     @Query("DELETE FROM note_links WHERE srcNoteId = :noteId")
     suspend fun deleteBySrc(noteId: String)
 
+    /** fix H3:删除指向被删笔记的链接行(dstNoteId)，避免孤儿链接。 */
+    @Query("DELETE FROM note_links WHERE dstNoteId = :noteId")
+    suspend fun deleteByDst(noteId: String)
+
     @Query("DELETE FROM note_links WHERE srcNoteId = :src AND dstNoteId = :dst")
     suspend fun deletePair(src: String, dst: String)
 

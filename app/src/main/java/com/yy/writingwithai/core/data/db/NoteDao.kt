@@ -24,6 +24,12 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :id")
     suspend fun getById(id: String): NoteEntity?
 
+    // fix M39 (full-review):EntityDetailViewModel.load 之前在 hits.mapNotNull 内
+    // 单条 getById(每个 hit 一次 IO 查询 → N+1)。补批量接口,Room 用 IN(...) 一次拿全。
+    // hits 上限 200 时,单次查询比 200 次快 10-100x(取决于 IO)。
+    @Query("SELECT * FROM notes WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<String>): List<NoteEntity>
+
     @Query("SELECT * FROM notes WHERE id = :id")
     fun observeById(id: String): Flow<NoteEntity?>
 
@@ -92,6 +98,15 @@ interface NoteDao {
 
     @Query("SELECT * FROM notes WHERE LOWER(title) = LOWER(:title) ORDER BY updatedAt DESC LIMIT 1")
     suspend fun resolveByTitle(title: String): NoteEntity?
+
+    /**
+     * fix M26 (full-review):批量按 title 解析 — 之前 [WikilinkIndexer.resolveTitles]
+     * 走 N 次 [resolveByTitle],每次一条 SQL,wikilink 索引时 N 个 link 就 N 次 IO。
+     * Room IN 查询一次性捞所有候选,内存里 groupBy title(LOWER 比较)对外暴露 title→entity 映射。
+     * 重复 title 在 groupBy 里被压扁,只有第一个(updatedAt DESC)生效,与单条 resolveByTitle 语义对齐。
+     */
+    @Query("SELECT * FROM notes WHERE LOWER(title) IN (:titlesLower) ORDER BY updatedAt DESC")
+    suspend fun resolveByTitles(titlesLower: List<String>): List<NoteEntity>
 
     @Query("UPDATE notes SET lastAiOp = :op, lastAiAt = :at WHERE id = :noteId")
     suspend fun updateAiMetadata(noteId: String, op: String, at: Long)

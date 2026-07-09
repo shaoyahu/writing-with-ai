@@ -32,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -47,8 +46,6 @@ import com.yy.writingwithai.core.ai.api.AiError
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.feature.aiwriting.error.toDisplayMessageRes
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 
 /**
  * AI 流式操作面板(M3 + ai-writing-ux-polish)。
@@ -109,29 +106,22 @@ fun StreamingPanel(
                     // 在新 delta 到达时取消前一个 LaunchedEffect，中间 delta 来不及拼就被丢
                     // (SSE ~50ms 一个 token，远快于 Compose 帧率)。改为 snapshotFlow
                     // + collect 收 delta,LaunchedEffect 只挂一次，所有 delta 顺序拼接。
+                    //
+                    // fix-full-review-r2 H14:delta 推送改用 LaunchedEffect 监听 state.delta
+                    // 变化,而不是在 composition 期间写 MutableState 触发 snapshotFlow(脆弱
+                    // 且可能丢失 delta)。
                     var accumulated by remember { mutableStateOf("") }
-                    val deltaSnapshot = remember { mutableStateOf("") }
-                    LaunchedEffect(state.accumulatedLength) {
-                        if (state.accumulatedLength == 0 && accumulated.isNotEmpty()) {
+                    val contentLen = state.accumulatedLength
+                    LaunchedEffect(contentLen) {
+                        if (contentLen == 0 && accumulated.isNotEmpty()) {
                             accumulated = ""
-                            deltaSnapshot.value = ""
                         }
                     }
-                    LaunchedEffect(Unit) {
-                        snapshotFlow { deltaSnapshot.value }
-                            .filter { it.isNotEmpty() }
-                            .distinctUntilChanged()
-                            .collect { chunk ->
-                                accumulated = accumulated + chunk
-                                deltaSnapshot.value = ""
-                            }
-                    }
-                    // ViewModel 新 delta → 推 snapshot，触发上面 collect。
-                    // fix-full-review MEDIUM:去掉 `state.delta != deltaSnapshot.value` 判断 —
-                    // 连续相同 delta(如两个换行符)会被跳过导致文本缺失。snapshotFlow +
-                    // distinctUntilChanged 已保证去重，这里只需推值。
-                    if (state.delta.isNotEmpty()) {
-                        deltaSnapshot.value = state.delta
+                    LaunchedEffect(state.delta) {
+                        val chunk = state.delta
+                        if (chunk.isNotEmpty()) {
+                            accumulated = accumulated + chunk
+                        }
                     }
                     val displayText = accumulated
                     if (displayText.isEmpty()) {

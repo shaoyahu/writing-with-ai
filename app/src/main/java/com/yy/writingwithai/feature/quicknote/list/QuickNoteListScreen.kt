@@ -87,7 +87,6 @@ import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
 import com.yy.writingwithai.core.feishu.sync.FeishuImportService
-import com.yy.writingwithai.core.prefs.SearchHistoryStore
 import com.yy.writingwithai.core.ui.NoteListSkeleton
 import com.yy.writingwithai.core.ui.dropdown.AppActionDropdown
 import com.yy.writingwithai.core.ui.dropdown.AppActionItem
@@ -127,7 +126,7 @@ fun QuickNoteListScreen(
     // 2) 用 `produceState` 让 store 变化时(本屏内 remove 调用后)立刻 emit 新列表。
     var searchHistory by remember(context) { mutableStateOf<List<String>>(emptyList()) }
     androidx.compose.runtime.LaunchedEffect(context) {
-        searchHistory = SearchHistoryStore.getAll(context)
+        searchHistory = viewModel.getSearchHistory()
     }
 
     // note-list-card-actions · 屏级 3 state:同屏只能显示 1 个菜单 / 1 个 dialog,用 noteId 区分。
@@ -304,8 +303,8 @@ fun QuickNoteListScreen(
                             Text(q, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                             IconButton(onClick = {
                                 coroutineScope.launch {
-                                    SearchHistoryStore.remove(context, q)
-                                    searchHistory = SearchHistoryStore.getAll(context)
+                                    // fix M14 (full-review):走 VM 间接 access;返回最新列表
+                                    searchHistory = viewModel.removeSearchHistory(q)
                                 }
                             }) {
                                 Icon(

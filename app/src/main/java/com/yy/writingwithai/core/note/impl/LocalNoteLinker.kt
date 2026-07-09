@@ -6,6 +6,9 @@ import com.yy.writingwithai.core.data.db.entity.LinkType
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 
 @Singleton
 class LocalNoteLinker
@@ -120,9 +123,15 @@ constructor(
         }
 
         fun buildTagEvidence(sharedTags: List<String>): String {
-            val escaped = sharedTags.sorted().joinToString(",") { "\"$it\"" }
-            return "{\"sharedTags\":[$escaped]}"
+            // fix M25 (full-review):用 kotlinx.serialization 替代手动 `"$it"` 拼接。
+            // 之前 tag 含 `"` / `\` / 控制字符会产出非法 JSON,sqlite 解析失败 → 整个
+            // note_links 行被跳过，本地链接丢失。排序 + JSON encoder 一步到位。
+            val sorted = sharedTags.sorted()
+            return """{"sharedTags":${JSON.encodeToString(ListSerializer(String.serializer()), sorted)}}"""
         }
+
+        // fix M25 (full-review):共享 JSON 实例给 buildTagEvidence 用。
+        private val JSON = Json
     }
 }
 

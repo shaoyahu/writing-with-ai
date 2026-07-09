@@ -199,23 +199,14 @@ constructor(
                     currentFolderToken = e.currentFolderToken,
                     refFolderToken = e.refFolderToken
                 )
-            } catch (e: FeishuError.NotFound) {
-                val ref = _feishuRef.value
-                _syncMessage.value = SyncMessage.Failure.RemoteDeleted(
-                    noteId = id,
-                    docId = ref?.docId ?: e.resource,
-                    docUrl = ref?.docUrl ?: ""
-                )
-            } catch (e: FeishuError.NetworkError) {
-                _syncMessage.value = SyncMessage.Failure.Network(e.detail)
-            } catch (e: FeishuError.ServerError) {
-                _syncMessage.value = SyncMessage.Failure.Server(e.code)
-            } catch (e: FeishuError.RateLimited) {
-                _syncMessage.value = SyncMessage.Failure.RateLimited(e.retryAfterSeconds)
-            } catch (e: FeishuError.BadRequest) {
-                _syncMessage.value = SyncMessage.Failure.Empty
             } catch (e: FeishuError) {
-                _syncMessage.value = SyncMessage.Failure.Unknown(e.message ?: e.javaClass.simpleName)
+                val ref = _feishuRef.value
+                _syncMessage.value = classifyFeishuFailure(
+                    e,
+                    noteId = id,
+                    docUrl = ref?.docUrl ?: "",
+                    docId = ref?.docId ?: e.message.orEmpty()
+                )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -245,22 +236,13 @@ constructor(
                     docId = noteId?.let { feishuSyncService.getRef(it)?.docId } ?: "",
                     docUrl = docUrl
                 )
-            } catch (e: FeishuError.NetworkError) {
-                _syncMessage.value = SyncMessage.Failure.Network(e.detail)
-            } catch (e: FeishuError.ServerError) {
-                _syncMessage.value = SyncMessage.Failure.Server(e.code)
-            } catch (e: FeishuError.RateLimited) {
-                _syncMessage.value = SyncMessage.Failure.RateLimited(e.retryAfterSeconds)
-            } catch (e: FeishuError.BadRequest) {
-                _syncMessage.value = SyncMessage.Failure.Empty
-            } catch (e: FeishuError.NotFound) {
-                _syncMessage.value = SyncMessage.Failure.RemoteDeleted(
-                    noteId = noteId ?: "",
-                    docId = "",
-                    docUrl = docUrl
-                )
             } catch (e: FeishuError) {
-                _syncMessage.value = SyncMessage.Failure.Unknown(e.message ?: e.javaClass.simpleName)
+                _syncMessage.value = classifyFeishuFailure(
+                    e,
+                    noteId = noteId ?: "",
+                    docUrl = docUrl,
+                    docId = ""
+                )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -310,28 +292,14 @@ constructor(
                 val noteTitle = (uiState.value as? NoteDetailUiState.Content)?.note?.note?.title ?: "笔记"
                 _syncMessage.value = SyncMessage.Success(noteTitle = noteTitle, docUrl = updatedRef.docUrl)
                 _feishuRef.value = feishuSyncService.getRef(ref.noteId)
-            } catch (e: FeishuError.NetworkError) {
-                _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Network(e.detail)
-            } catch (e: FeishuError.ServerError) {
-                _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Server(e.code)
-            } catch (e: FeishuError.RateLimited) {
-                _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.RateLimited(e.retryAfterSeconds)
-            } catch (e: FeishuError.BadRequest) {
-                _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Empty
-            } catch (e: FeishuError.NotFound) {
-                _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.RemoteDeleted(
-                    noteId = ref.noteId,
-                    docId = ref.docId,
-                    docUrl = ref.docUrl
-                )
             } catch (e: FeishuError) {
                 _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Unknown(e.message ?: e.javaClass.simpleName)
+                _syncMessage.value = classifyFeishuFailure(
+                    e,
+                    noteId = ref.noteId,
+                    docUrl = ref.docUrl,
+                    docId = ref.docId
+                )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -357,24 +325,17 @@ constructor(
                 _showConflictDialog.value = false
                 val noteTitle = (uiState.value as? NoteDetailUiState.Content)?.note?.note?.title ?: "笔记"
                 _syncMessage.value = SyncMessage.Success(noteTitle = noteTitle, docUrl = ref.docUrl)
-            } catch (e: FeishuError.NetworkError) {
-                _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Network(e.detail)
-            } catch (e: FeishuError.ServerError) {
-                _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Server(e.code)
-            } catch (e: FeishuError.RateLimited) {
-                _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.RateLimited(e.retryAfterSeconds)
-            } catch (e: FeishuError.BadRequest) {
-                _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Empty
             } catch (e: FeishuError) {
                 _showConflictDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Unknown(e.message ?: e.javaClass.simpleName)
+                _syncMessage.value = classifyFeishuFailure(
+                    e,
+                    noteId = ref.noteId,
+                    docUrl = ref.docUrl,
+                    docId = ref.docId
+                )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 _showConflictDialog.value = false
                 _syncMessage.value = SyncMessage.Failure.Unknown(e.message ?: e.javaClass.simpleName)
             } finally {
@@ -422,28 +383,14 @@ constructor(
                 _syncMessage.value = SyncMessage.Success(noteTitle = noteTitle, docUrl = ref.docUrl)
                 _feishuRef.value = feishuSyncService.getRef(id)
                 _showFolderMigrationDialog.value = false
-            } catch (e: FeishuError.NetworkError) {
-                _showFolderMigrationDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Network(e.detail)
-            } catch (e: FeishuError.ServerError) {
-                _showFolderMigrationDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Server(e.code)
-            } catch (e: FeishuError.RateLimited) {
-                _showFolderMigrationDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.RateLimited(e.retryAfterSeconds)
-            } catch (e: FeishuError.BadRequest) {
-                _showFolderMigrationDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Empty
-            } catch (e: FeishuError.NotFound) {
-                _showFolderMigrationDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.RemoteDeleted(
-                    noteId = id,
-                    docId = "",
-                    docUrl = ""
-                )
             } catch (e: FeishuError) {
                 _showFolderMigrationDialog.value = false
-                _syncMessage.value = SyncMessage.Failure.Unknown(e.message ?: e.javaClass.simpleName)
+                _syncMessage.value = classifyFeishuFailure(
+                    e,
+                    noteId = id,
+                    docUrl = "",
+                    docId = ""
+                )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -562,12 +509,53 @@ constructor(
         }
     }
 
+    /**
+     * fix-full-review M46:统一 FeishuError 分类。push/pull/resolveConflict/FolderMigration
+     * 这五个调用点过去各写一份 ~13 行 catch 块,改动一处类型要同步改五处,容易漏。
+     * 把「纯分类」(Conflict / FolderMigration / NotFound / Network / Server / RateLimited /
+     * BadRequest / 兜底 Unknown)抽到这里;Conflict / FolderMigration 在分类基础上还要
+     * 额外副作用(刷新 _feishuRef、弹 dialog),留给调用方继续 if 判断。
+     */
+    private fun classifyFeishuFailure(
+        e: FeishuError,
+        noteId: String,
+        docUrl: String,
+        docId: String
+    ): SyncMessage.Failure = when (e) {
+        is FeishuError.NotFound -> SyncMessage.Failure.RemoteDeleted(
+            noteId = noteId,
+            docId = docId,
+            docUrl = docUrl
+        )
+        is FeishuError.NetworkError -> SyncMessage.Failure.Network(e.detail)
+        is FeishuError.ServerError -> SyncMessage.Failure.Server(e.code)
+        is FeishuError.RateLimited -> SyncMessage.Failure.RateLimited(e.retryAfterSeconds)
+        is FeishuError.BadRequest -> SyncMessage.Failure.Empty
+        is FeishuError -> SyncMessage.Failure.Unknown(e.message ?: e.javaClass.simpleName)
+    }
+
     /** 把用户选中的文字手动加入 note_entities。 */
     fun addEntityFromSelection(surface: String, spanStart: Int, spanEnd: Int) {
         val id = noteId ?: return
         if (surface.isBlank()) return
         viewModelScope.launch {
             val entityKey = surface.trim().lowercase()
+            // fix M33 (full-review):手动加 entity 时去重。之前的逻辑只要选中文本就 upsert,
+            // 同一 span / 同一 key 重复点击 toolbar 会插入多条相同行,UI 多次出现同一 underline,
+            // 还会污染 ai_history / entity 表统计。
+            // 去重规则:同 noteId + 同 span 范围,或同 noteId + 同 entityKey(空白处理后)
+            // + 已有 span 与本次重叠 → 跳过。
+            val existing = entityDao.getByNoteId(id)
+            val duplicate = existing.any { row ->
+                row.source == "USER_ADDED" && (
+                    (row.spanStart == spanStart && row.spanEnd == spanEnd) ||
+                        (
+                            row.entityKey == entityKey &&
+                                row.spanStart < spanEnd && row.spanEnd > spanStart
+                            )
+                    )
+            }
+            if (duplicate) return@launch
             val row = NoteEntityRow(
                 noteId = id,
                 entityType = com.yy.writingwithai.core.note.entity.EntityType.CONCEPT,

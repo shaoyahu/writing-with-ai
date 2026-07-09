@@ -198,7 +198,7 @@ constructor(
                         op = op,
                         sourceText = sourceText,
                         providerId = providerId,
-                        apikey = apikey ?: "",
+                        apikey = apikey,
                         modelName = actualModel,
                         systemPrompt = systemPrompt,
                         apiFormatOverride = apiFormatOverride

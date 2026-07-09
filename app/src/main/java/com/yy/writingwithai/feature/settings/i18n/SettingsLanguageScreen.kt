@@ -59,12 +59,14 @@ fun SettingsLanguageScreen(
 
     // review-2026-07-02 code-quality:非 Activity context(如 Preview / Glance)时
     // 静默忽略点击会令用户困惑;改为 Toast 提示"无法切换"。
+    // fix M49 (full-review):Toast 文案走 strings.xml,不再硬编码英文。
     val onSelect: (LocaleSelection) -> Unit = { selection ->
         val act = activity
         if (act != null) {
             viewModel.select(selection, act)
         } else {
-            Toast.makeText(context, "Cannot switch language in this context", Toast.LENGTH_SHORT).show()
+            val msg = context.getString(R.string.settings_language_unavailable_context)
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         }
     }
 

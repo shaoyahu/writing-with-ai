@@ -178,6 +178,14 @@ constructor(
 
     companion object {
         // fix:提取 SimpleDateFormat 常量，避免每次调用创建新实例
-        private val REPORT_TS_FORMAT = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ROOT)
+        // fix M13 (full-review):显式设 TimeZone.UTC,避免 SimpleDateFormat 走 JVM 默认时区
+        // 导致不同设备导入报告时间戳不一致(用户从 UTC+8 设备导出报告到 UTC 设备解析，
+        // 时间戳解读会差 8 小时)。
+        private val REPORT_TS_FORMAT = SimpleDateFormat(
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            Locale.ROOT
+        ).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
     }
 }

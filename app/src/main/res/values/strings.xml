@@ -445,6 +445,15 @@
     <string name="tab_my">我的</string>
     <string name="tab_new_note">+ 新建</string>
     <string name="tab_new_note_cd">新建笔记</string>
+    <!-- fix M32 (full-review):wikilink autocomplete 空候选时的"创建新"提示走 stringResource,
+         i18n 统一管理,不再在 Composable 里硬编码中文。 -->
+    <string name="wikilink_autocomplete_create_new">创建新笔记 \"%1$s\"</string>
+    <!-- fix M36 (full-review):FolderImportViewModel 错误文案统一走 stringResource,
+         不在 VM 里硬编码中文;Server-side 错误信息透传到 args[0] 由 placeholder 展示。 -->
+    <string name="folder_import_error_empty_input">请输入文件夹链接或 token</string>
+    <string name="folder_import_error_no_docs">未找到 docx 文档</string>
+    <string name="folder_import_error_parse_failed">解析失败：%1$s</string>
+    <string name="folder_import_error_parse_failed_unknown">解析失败</string>
     <string name="me_title">我的</string>
     <!-- ux-2026-06-28 #5:动画风格拆到独立"显示"section,AI 配置只留 AI 相关条目。 -->
     <string name="me_section_ai_config">AI 配置</string>
@@ -654,6 +663,8 @@
     <string name="settings_language_option_en">English</string>
     <string name="settings_language_hint">切换后会重启 APP，导航栈会重置</string>
     <string name="settings_language_selected">已选</string>
+    <!-- fix M49 (full-review):无法在非 Activity context 切换语言时弹的提示 -->
+    <string name="settings_language_unavailable_context">当前场景无法切换语言</string>
 
     <!-- note-decompose-highlight · 拆解功能 -->
     <string name="note_decompose">拆解</string>
@@ -777,4 +788,10 @@
     <string name="prompt_editor_save">保存</string>
     <string name="prompt_editor_reset">恢复默认</string>
     <string name="prompt_editor_saved">已保存</string>
+
+    <!-- fix LOW (full-review):UpdateDownloadReceiver Toast 走 stringResource,i18n 统一管理 -->
+    <string name="update_toast_failed">下载未成功，请重试</string>
+    <string name="update_toast_read_failed">下载文件损坏:无法读取</string>
+    <string name="update_toast_sha_mismatch">下载文件损坏，请重试</string>
+    <string name="update_toast_no_installer">无法启动安装器，请手动到 /app/download/ 下载</string>
 </resources>

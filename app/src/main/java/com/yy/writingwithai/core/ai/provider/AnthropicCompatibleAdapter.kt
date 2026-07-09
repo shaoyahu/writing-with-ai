@@ -8,6 +8,7 @@ import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.ApiFormat
 import com.yy.writingwithai.core.ai.api.WritingOp
 import com.yy.writingwithai.core.ai.prompt.DefaultPrompts
+import com.yy.writingwithai.core.ai.prompt.SafePromptTemplate
 import com.yy.writingwithai.core.ai.stream.SseEvent
 import com.yy.writingwithai.core.ai.stream.SseParser
 import java.io.IOException
@@ -60,234 +61,30 @@ constructor(
     }
 
     override fun stream(request: AiRequest, credentials: AiCredentials): Flow<AiStreamEvent> {
-        // M4 修:用 AtomicBoolean 在 flow lambda 和 retry predicate 之间共享状态。
-        // 必须在 flow lambda 外声明，retry predicate 链在 flow lambda 外，看不到内部 var。
+        // fix M7 (full-review):原始 stream() ~257 行混合职责 — URL 拼装 + body 编码 +
+        // HTTP 调用 + status 处理 + SSE 解析 + 非流式 JSON 解析 + retry/catch。
+        // 拆为 urlFor() / buildBody() / handleResponse() 三个 private helper +
+        // 顶层 stream() 只负责 orchestrate。stream 主体回归 30 行内。
         val emittedDelta = AtomicBoolean(false)
         return flow {
-            val baseUrl = credentials.baseUrlOverride ?: config.baseUrl
-            // model-management-detail-dropdown X 方案:用户在详情页可切 OpenAI/Anthropic,endpoint path 跟着切
             val effectiveApiFormat = request.apiFormatOverride ?: config.apiFormat
-            // ux-2026-06-28 #3:custom 表单走"完整 URL",endpointPath 留空 → 直用 baseUrl;
-// 内置 provider(deepseek/minimax/mimo)的 config.endpointPath 非空，继续走
-// "$baseUrl${endpointPath}" 拼接，行为不变。
-//
-// custom-provider-api-format r2:删掉硬编码 path(原 line 77-80 按 effectiveApiFormat
-// 拼 /chat/completions 或 /anthropic/v1/messages)，统一用 config.endpointPath:
-// - custom 表单:buildConfig 按 state.apiFormat 设 endpointPath = /v1/messages
-//   (Anthropic SDK) 或 /chat/completions (OpenAI SDK),path 由 SDK 设计固定，
-//   厂家可能把 /anthropic 子路径塞进 baseUrl(DeepSeek 风格)。
-// - 内置 provider:endpointPath 显式配置(MinimaxConfig = /anthropic/v1/messages,
-//   适配 Minimax 自家 SDK 行为)。
-//
-// 之前硬编码 path = /anthropic/v1/messages 对 DeepSeek 用户造成 /anthropic 重复
-// (logcat 23:53:08 验证:POST https://api.deepseek.com/anthropic/anthropic/v1/messages
-// → 404，因为 DeepSeek baseUrl 已经含 /anthropic,adapter 不应再拼)。
-            val url = if (config.endpointPath.isBlank()) {
-                baseUrl
-            } else {
-                val trimmed = baseUrl.trimEnd('/')
-                if (config.endpointPath.startsWith("/")) {
-                    "$trimmed${config.endpointPath}"
-                } else {
-                    "$trimmed/${config.endpointPath}"
-                }
-            }
-            // fix-2026-06-24-review-r1-high H9:strip role-marker + cap length 8192
-            val systemPrompt = sanitizeSystemPrompt(request.systemPrompt ?: systemPromptFor(request.op))
-
-            @Serializable
-            data class ChatMessage(val role: String, val content: String)
-
-            @Serializable
-            data class AnthropicBody(
-                val model: String,
-                val max_tokens: Int = DEFAULT_MAX_TOKENS,
-                val stream: Boolean = true,
-                val system: String,
-                val messages: List<ChatMessage>
-            )
-
-            @Serializable
-            data class OpenAiBody(
-                val model: String,
-                val max_tokens: Int = DEFAULT_MAX_TOKENS,
-                val stream: Boolean = true,
-                val messages: List<ChatMessage>
-            )
-
-            val isOpenAi = effectiveApiFormat == ApiFormat.OPENAI
-            val body =
-                if (isOpenAi) {
-                    json.encodeToString(
-                        OpenAiBody.serializer(),
-                        OpenAiBody(
-                            model = request.model,
-                            messages = listOf(
-                                ChatMessage("system", systemPrompt),
-                                ChatMessage("user", request.sourceText)
-                            )
-                        )
-                    )
-                } else {
-                    json.encodeToString(
-                        AnthropicBody.serializer(),
-                        AnthropicBody(
-                            model = request.model,
-                            system = systemPrompt,
-                            messages = listOf(ChatMessage("user", request.sourceText))
-                        )
-                    )
-                }
-
+            val systemPrompt =
+                sanitizeSystemPrompt(request.systemPrompt ?: systemPromptFor(request.op))
+            val body = buildRequestBody(request, systemPrompt, effectiveApiFormat)
+            val url = urlFor(credentials)
             val httpRequest =
                 Request.Builder()
                     .url(url)
                     .post(body.toRequestBody("application/json".toMediaType()))
                     .apply { addAuthHeaders(this, credentials) }
                     .build()
-
-            // fix-review-r3-high H1:把 `response.close()` 集中到外层 try-finally,
-            // 之前 success / failure 两条路径各自 close，取消路径(catch 抛
-            // CancellationException)下 body source 泄漏(socket 不释放)。
-            // fix-review-r3-high H3:body read 的 `catch (Throwable)` 同样吞
-            // CancellationException，需要在通用 catch 前先 rethrow。
             val response = client.newCall(httpRequest).execute()
             try {
-                val ct = response.header("Content-Type")
-                android.util.Log.i(
-                    "AnthropicAdapter",
-                    "POST $url → ${response.code} Content-Type=$ct"
+                handleResponse(
+                    response = response,
+                    effectiveApiFormat = effectiveApiFormat,
+                    emittedDelta = { emittedDelta.set(true) }
                 )
-                if (!response.isSuccessful) {
-                    val code = response.code
-                    // review r2 修:readUtf8(byteCount) 在 body 小于 byteCount 时抛 EOFException,
-                    // 导致绝大多数非 1MiB+ 的错误响应详情全部丢失。参照 FeishuApiClientImpl 做
-                    // source.request(Long.MAX_VALUE) 拉完 body 到 buffer，再按 buffer.size 决定是否截断。
-                    val rawDetail = try {
-                        response.body?.source()?.use { src ->
-                            src.request(Long.MAX_VALUE)
-                            if (src.buffer.size > MAX_RESPONSE_BODY_BYTES) {
-                                src.buffer.readUtf8(MAX_RESPONSE_BODY_BYTES)
-                            } else {
-                                src.buffer.readUtf8()
-                            }
-                        } ?: ""
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        throw e
-                    } catch (e: Throwable) {
-                        ""
-                    }
-                    // M3 修:截断 raw body 长度(provider 5xx 经常返回 KB 级 HTML，可能含 Authorization header 回显),
-                    // 脱敏 apikey / Bearer / x-api-key pattern(避免 provider 把请求 header 回显到错误页)。
-                    val detail = sanitizeErrorDetail(rawDetail)
-                    // custom-provider-api-format r2 debug:把 url + code 一并写到 logcat + error detail,
-                    // 让用户 adb logcat 直接看真实 POST URL / 响应码(404 / 401 / 5xx 等)
-                    // 不用猜是 URL 拼错还是 protocol 不匹配。Log.d 标签固定 "AnthropicAdapter"。
-                    android.util.Log.d(
-                        "AnthropicAdapter",
-                        "POST $url → $code body=${rawDetail.take(200)}"
-                    )
-                    emit(
-                        AiStreamEvent.Failed(
-                            error =
-                            when (code) {
-                                401, 403 -> AiError.Auth(code, detail)
-                                402 -> AiError.InsufficientBalance(detail)
-                                // review r2 修:429 应映射 RateLimited(而非 Unknown),5xx 应映射 ServerError(而非 Network)
-                                429 -> {
-                                    val retryAfter = parseRetryAfterSeconds(response.header("Retry-After")) ?: 60
-                                    AiError.RateLimited(retryAfterSeconds = retryAfter)
-                                }
-                                in 500..599 -> AiError.ServerError(code)
-                                else -> AiError.Unknown(code, detail)
-                            },
-                            recoverable = code !in NON_RECOVERABLE_CODES
-                        )
-                    )
-                    return@flow
-                }
-
-                emit(AiStreamEvent.Started)
-
-                val source = response.body?.source()
-                if (source == null) {
-                    emit(AiStreamEvent.Failed(AiError.Unknown(null, "empty response body"), false))
-                    return@flow
-                }
-
-                // fix-deepseek-non-streaming:部分 provider(如 Deepseek)的 /anthropic/v1/messages
-                // 端点即使请求体带 stream=true，也返回 Content-Type: application/json 的非流式
-                // JSON 响应(完整 Anthropic Messages API response object)。SseParser 只处理
-                // data: 前缀的 SSE 行，会静默忽略整个 JSON body，导致 collectText() 拿到空串。
-                // 检测 Content-Type，非 text/event-stream 时走非流式 JSON 解析路径。
-                val contentType = response.header("Content-Type", "").orEmpty()
-                val isSse = contentType.contains("text/event-stream", ignoreCase = true)
-
-                if (isSse) {
-                    // 流式 SSE 路径(正常 Anthropic 兼容 provider)
-                    SseParser.parse(source).collect { sse ->
-                        currentCoroutineContext().ensureActive()
-                        when (sse) {
-                            is SseEvent.Data -> {
-                                val delta = parseDelta(sse.content, effectiveApiFormat)
-                                if (delta != null) {
-                                    emit(AiStreamEvent.Delta(delta))
-                                    emittedDelta.set(true)
-                                }
-                                val usage = parseUsage(sse.content, effectiveApiFormat)
-                                if (usage != null) {
-                                    emit(usage)
-                                }
-                            }
-                            is SseEvent.Done -> {
-                                emit(AiStreamEvent.Done)
-                            }
-                            is SseEvent.Error -> {
-                                emit(
-                                    AiStreamEvent.Failed(
-                                        AiError.Network(-1, sse.cause.message ?: "SSE error"),
-                                        true
-                                    )
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    // 非流式 JSON 路径:provider 返回完整 Anthropic Messages API response object
-                    // (Content-Type: application/json)。从 content[] 数组提取文本，emit 为
-                    // Delta → Usage → Done，让下游 collectText() 正常工作。
-                    // fix-review:复用 MAX_RESPONSE_BODY_BYTES 上限，防止恶意/误配 provider
-                    // 返回 multi-GB body 导致 OOM(与错误路径一致)。
-                    source.request(Long.MAX_VALUE)
-                    if (source.buffer.size > MAX_RESPONSE_BODY_BYTES) {
-                        emit(
-                            AiStreamEvent.Failed(
-                                AiError.Unknown(null, "non-streaming response exceeds 1MiB limit"),
-                                false
-                            )
-                        )
-                        return@flow
-                    }
-                    val rawBody = source.buffer.readUtf8()
-                    val nonStreamResult = parseNonStreamingResponse(rawBody, effectiveApiFormat)
-                    if (nonStreamResult != null) {
-                        if (nonStreamResult.text.isNotEmpty()) {
-                            emit(AiStreamEvent.Delta(nonStreamResult.text))
-                            emittedDelta.set(true)
-                        }
-                        nonStreamResult.usage?.let { emit(it) }
-                        emit(AiStreamEvent.Done)
-                    } else {
-                        // fix-review:parseNonStreamingResponse 返回 null 说明 JSON 格式异常，
-                        // 不应 emit Done(会误导下游认为成功)，应 emit Failed。
-                        emit(
-                            AiStreamEvent.Failed(
-                                AiError.Unknown(null, "non-streaming response parse error"),
-                                false
-                            )
-                        )
-                    }
-                }
             } finally {
                 response.close()
             }
@@ -295,8 +92,8 @@ constructor(
             .flowOn(Dispatchers.IO)
             // fix H12 + M4:skip retry after Delta emitted (avoids duplicate UI text).
             // emittedDelta 用 AtomicBoolean 在 flow lambda 和 retry predicate 之间共享。
-            // fix-review-r3-medium M1:retry 范围太宽，把所有 IOException 都重试 — 但 SSL/UnknownHost /
-            // ConnectException 等"环境错"retry 也不会自愈，只会拖慢 1.5s+ 后把 Network 抛给 UI。
+            // fix-review-r3-medium M1:retry 范围太宽,把所有 IOException 都重试 — 但 SSL/UnknownHost /
+            // ConnectException 等"环境错"retry 也不会自愈,只会拖慢 1.5s+ 后把 Network 抛给 UI。
             // retry 仅限"瞬时"网络错(EOF / connection reset / read timeout 等),ssl/dns/connect 失败
             // 直接 fallthrough 给 .catch。
             // fix-2026-07-05-review-r4 CRITICAL C2:retry predicate 必须显式检查并 rethrow CancellationException
@@ -316,6 +113,195 @@ constructor(
                         emit(AiStreamEvent.Failed(AiError.Unknown(null, e.message ?: "unknown"), false))
                 }
             }
+    }
+
+    /**
+     * fix M7 (full-review):抽 URL 拼装逻辑。custom 表单走完整 URL(直用 baseUrl),
+     * 内置 provider 把 endpointPath 拼到 baseUrl 后(diff baseUrl 已含 /anthropic 时不重复)。
+     */
+    private fun urlFor(credentials: AiCredentials): String {
+        val baseUrl = credentials.baseUrlOverride ?: config.baseUrl
+        if (config.endpointPath.isBlank()) return baseUrl
+        val trimmed = baseUrl.trimEnd('/')
+        return if (config.endpointPath.startsWith("/")) {
+            "$trimmed${config.endpointPath}"
+        } else {
+            "$trimmed/${config.endpointPath}"
+        }
+    }
+
+    /**
+     * fix M7 (full-review):抽请求 body 序列化。OpenAI / Anthropic 两条路径共用
+     * ChatMessage,user content 走 SafePromptTemplate.fenceUserContent 防 prompt injection。
+     */
+    private fun buildRequestBody(request: AiRequest, systemPrompt: String, effectiveApiFormat: ApiFormat): String {
+        val isOpenAi = effectiveApiFormat == ApiFormat.OPENAI
+
+        @Serializable
+        data class ChatMessage(val role: String, val content: String)
+
+        @Serializable
+        data class AnthropicBody(
+            val model: String,
+            val max_tokens: Int = DEFAULT_MAX_TOKENS,
+            val stream: Boolean = true,
+            val system: String,
+            val messages: List<ChatMessage>
+        )
+
+        @Serializable
+        data class OpenAiBody(
+            val model: String,
+            val max_tokens: Int = DEFAULT_MAX_TOKENS,
+            val stream: Boolean = true,
+            val messages: List<ChatMessage>
+        )
+        return if (isOpenAi) {
+            json.encodeToString(
+                OpenAiBody.serializer(),
+                OpenAiBody(
+                    model = request.model,
+                    // fix M40 (full-review):显式给 max_tokens。`encodeDefaults=false` 是为了避免
+                    // 旧 OpenAI proxy 把 DEFAULT_MAX_TOKENS=2048 当显式值 400,但完全省略字段
+                    // 又会让 anthropic 报"missing max_tokens"。两者都传 model 自带的 maxOutput
+                    // 兜底(没有则用 DEFAULT_MAX_TOKENS),且确保 max_tokens 一定存在。
+                    max_tokens = request.maxOutput ?: DEFAULT_MAX_TOKENS,
+                    messages = listOf(
+                        ChatMessage("system", systemPrompt),
+                        ChatMessage("user", SafePromptTemplate.fenceUserContent(request.sourceText))
+                    )
+                )
+            )
+        } else {
+            json.encodeToString(
+                AnthropicBody.serializer(),
+                AnthropicBody(
+                    model = request.model,
+                    // 同 M40:显式 max_tokens。
+                    max_tokens = request.maxOutput ?: DEFAULT_MAX_TOKENS,
+                    system = systemPrompt,
+                    messages =
+                    listOf(
+                        ChatMessage("user", SafePromptTemplate.fenceUserContent(request.sourceText))
+                    )
+                )
+            )
+        }
+    }
+
+    /**
+     * fix M7 (full-review):抽 response 处理 — error path emit Failed,success path
+     * 选 SSE 还是非流式 JSON,parse 后 emit Delta/Usage/Done/Failed。Stream 行为完全保留。
+     */
+    private suspend fun kotlinx.coroutines.flow.FlowCollector<AiStreamEvent>.handleResponse(
+        response: okhttp3.Response,
+        effectiveApiFormat: ApiFormat,
+        emittedDelta: () -> Unit
+    ) {
+        val code = response.code
+        val ct = response.header("Content-Type")
+        android.util.Log.i("AnthropicAdapter", "POST ${response.request.url} → $code Content-Type=$ct")
+        if (!response.isSuccessful) {
+            val rawDetail = try {
+                response.body?.source()?.use { src ->
+                    src.request(Long.MAX_VALUE)
+                    if (src.buffer.size > MAX_RESPONSE_BODY_BYTES) {
+                        src.buffer.readUtf8(MAX_RESPONSE_BODY_BYTES)
+                    } else {
+                        src.buffer.readUtf8()
+                    }
+                } ?: ""
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                ""
+            }
+            val detail = sanitizeErrorDetail(rawDetail)
+            android.util.Log.d(
+                "AnthropicAdapter",
+                "POST ${response.request.url} → $code body=${detail.take(200)}"
+            )
+            emit(
+                AiStreamEvent.Failed(
+                    error = when (code) {
+                        401, 403 -> AiError.Auth(code, detail)
+                        402 -> AiError.InsufficientBalance(detail)
+                        429 -> {
+                            val retryAfter =
+                                parseRetryAfterSeconds(response.header("Retry-After")) ?: 60
+                            AiError.RateLimited(retryAfterSeconds = retryAfter)
+                        }
+                        in 500..599 -> AiError.ServerError(code)
+                        else -> AiError.Unknown(code, detail)
+                    },
+                    recoverable = code !in NON_RECOVERABLE_CODES
+                )
+            )
+            return
+        }
+
+        emit(AiStreamEvent.Started)
+        val source = response.body?.source()
+        if (source == null) {
+            emit(AiStreamEvent.Failed(AiError.Unknown(null, "empty response body"), false))
+            return
+        }
+
+        val contentType = response.header("Content-Type", "").orEmpty()
+        val isSse = contentType.contains("text/event-stream", ignoreCase = true)
+        if (isSse) {
+            SseParser.parse(source).collect { sse ->
+                currentCoroutineContext().ensureActive()
+                when (sse) {
+                    is SseEvent.Data -> {
+                        val delta = parseDelta(sse.content, effectiveApiFormat)
+                        if (delta != null) {
+                            emit(AiStreamEvent.Delta(delta))
+                            emittedDelta()
+                        }
+                        val usage = parseUsage(sse.content, effectiveApiFormat)
+                        if (usage != null) emit(usage)
+                    }
+                    is SseEvent.Done -> emit(AiStreamEvent.Done)
+                    is SseEvent.Error -> {
+                        emit(
+                            AiStreamEvent.Failed(
+                                AiError.Network(-1, sse.cause.message ?: "SSE error"),
+                                true
+                            )
+                        )
+                    }
+                }
+            }
+        } else {
+            source.request(Long.MAX_VALUE)
+            if (source.buffer.size > MAX_RESPONSE_BODY_BYTES) {
+                emit(
+                    AiStreamEvent.Failed(
+                        AiError.Unknown(null, "non-streaming response exceeds 1MiB limit"),
+                        false
+                    )
+                )
+                return
+            }
+            val rawBody = source.buffer.readUtf8()
+            val nonStreamResult = parseNonStreamingResponse(rawBody, effectiveApiFormat)
+            if (nonStreamResult != null) {
+                if (nonStreamResult.text.isNotEmpty()) {
+                    emit(AiStreamEvent.Delta(nonStreamResult.text))
+                    emittedDelta()
+                }
+                nonStreamResult.usage?.let { emit(it) }
+                emit(AiStreamEvent.Done)
+            } else {
+                emit(
+                    AiStreamEvent.Failed(
+                        AiError.Unknown(null, "non-streaming response parse error"),
+                        false
+                    )
+                )
+            }
+        }
     }
 
     private fun addAuthHeaders(request: Request.Builder, credentials: AiCredentials) {
@@ -550,10 +536,11 @@ constructor(
         // fix H9:strip role-marker abuse
         val ROLE_MARKERS = Regex("""(?i)\b(role|system|assistant|user)\s*:\s*""")
 
-        // fix H13:reserved headers that user must not override
+        // fix H2:加入 x-api-key 防止 customHeaders 覆盖 apikey(OkHttp last-writer-wins)。
         val RESERVED_HEADERS = setOf(
             "host",
             "authorization",
+            "x-api-key",
             "content-length",
             "transfer-encoding",
             "connection",

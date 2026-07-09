@@ -13,8 +13,10 @@ data class WikilinkMatch(
 object WikilinkParser {
     // Wiki 约定 [[display|target]]:group1 = display(可选 alias),group2 = target(在 | 后)。
     // 无 | 时 group1 = target,group2 = null。
+    // fix H9:group2 改贪婪匹配 `([^\[\]\n]+)`，支持多管道 wikilink `[[A|B|C]]`。
+    // 之前 `([^\[\]\n]+?)` 懒惰匹配只取 `B`，`C` 被丢弃。
     // group1 段禁止 `[` `]` `\n` `|`;group2 段禁止 `[` `]` `\n`(允许 `|` 之外的字符)。
-    private val REGEX = Regex("""\[\[([^\[\]\n|]+?)(?:\|([^\[\]\n]+?))?\]\]""")
+    private val REGEX = Regex("""\[\[([^\[\]\n|]+?)(?:\|([^\[\]\n]+))?\]\]""")
 
     fun parse(content: String): List<WikilinkMatch> = REGEX.findAll(content)
         .map { match ->

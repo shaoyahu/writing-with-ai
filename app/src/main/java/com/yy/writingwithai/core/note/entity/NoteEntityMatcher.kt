@@ -1,5 +1,7 @@
 package com.yy.writingwithai.core.note.entity
 
+import androidx.room.withTransaction
+import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.db.entity.entity.NoteEntityRow
 import javax.inject.Inject
@@ -25,7 +27,8 @@ import javax.inject.Singleton
 class NoteEntityMatcher
 @Inject
 constructor(
-    private val entityDao: NoteEntityDao
+    private val entityDao: NoteEntityDao,
+    private val db: AppDatabase
 ) {
 
     /**
@@ -38,24 +41,37 @@ constructor(
         if (known.isEmpty()) return 0
         val now = System.currentTimeMillis()
         val newRows = mutableListOf<NoteEntityRow>()
+        // fix M23 (full-review):把"content 中只匹配首次出现"改为"匹配所有非重叠出现"。
+        // 之前 `content.indexOf(surface)` 只返回第一个,后续出现全部漏命中。
+        // 改成 while-loop 从 start 之后继续 indexOf,产出多个 span。
         for ((entityKey, entityType, surface) in known) {
             if (surface.isBlank()) continue
-            val start = content.indexOf(surface)
-            if (start < 0) continue
-            val end = (start + surface.length).coerceAtMost(content.length)
-            newRows += NoteEntityRow(
-                noteId = noteId,
-                entityType = entityType,
-                entityKey = entityKey,
-                surfaceForm = surface,
-                spanStart = start,
-                spanEnd = end,
-                lastExtractedAt = now,
-                source = "AI_EXTRACTED"
-            )
+            var cursor = 0
+            while (true) {
+                val start = content.indexOf(surface, startIndex = cursor)
+                if (start < 0) break
+                val end = (start + surface.length).coerceAtMost(content.length)
+                newRows += NoteEntityRow(
+                    noteId = noteId,
+                    entityType = entityType,
+                    entityKey = entityKey,
+                    surfaceForm = surface,
+                    spanStart = start,
+                    spanEnd = end,
+                    lastExtractedAt = now,
+                    source = "AI_EXTRACTED"
+                )
+                cursor = end
+                if (cursor >= content.length) break
+            }
         }
         if (newRows.isEmpty()) return 0
-        entityDao.upsertAll(newRows)
+        // fix H11:upsert 前先 deleteByNoteId 删旧行，避免编辑后笔记保留旧 entity spans。
+        // 包裹在事务中保证原子性。
+        db.withTransaction {
+            entityDao.deleteByNoteId(noteId)
+            entityDao.upsertAll(newRows)
+        }
         return newRows.size
     }
 }

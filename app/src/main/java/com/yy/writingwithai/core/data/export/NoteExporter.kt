@@ -1,5 +1,6 @@
 package com.yy.writingwithai.core.data.export
 
+import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.data.repo.AiHistoryRepository
 import com.yy.writingwithai.core.data.repo.NoteRepository
 import javax.inject.Inject
@@ -40,7 +41,10 @@ constructor(
         val tags: Map<String, List<String>> =
             withTags.associate { it.note.id to it.tags }
         val now = ISO_TIMESTAMP_FORMAT.format(java.util.Date())
-        val meta = ExportMeta(exportTimestamp = now, appVersion = "0.4.0", schemaVersion = "1")
+        // fix M12 (full-review):用 BuildConfig.VERSION_NAME 而不是硬编码 "0.4.0"。
+        // 之前 hardcode 容易在版本升级后忘记同步,导致导出文件元数据 appVersion 永远停在 0.4.0,
+        // 用户跨设备 round-trip 时 import_report 看到的版本号和实际 APK 不一致,排查靠版本号定位问题失败。
+        val meta = ExportMeta(exportTimestamp = now, appVersion = BuildConfig.VERSION_NAME, schemaVersion = "1")
         val entries = mutableMapOf<String, ByteArray>()
         entries["notes.json"] =
             json.encodeToString(ExportNoteListSerializer, notes.map { it.toExport() })

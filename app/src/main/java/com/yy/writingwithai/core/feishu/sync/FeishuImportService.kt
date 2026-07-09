@@ -253,18 +253,15 @@ constructor(
                     syncStatus = if (anyImageFailed) SyncStatus.PARTIAL_IMPORT_FAIL else SyncStatus.SYNCED,
                     lastSyncedAt = now
                 )
-                noteRepository.upsert(note, tags = listOf("飞书"))
-
-                // 跨 DAO 事务:note (已落库 by NoteRepository) + attachment + ref + event 全包。
-                // 任意一段 throw → 整个事务回滚,包括 noteRepository.upsert 的影响 —— NoteRepository
-                // 自身也走 db.withTransaction,所以整体能原子化(因为 AppDatabase 是单例,所有 DAO
-                // 共享同一连接)。
+                // fix H8:把 noteRepository.upsert 也移入事务块,确保 note + attachment + ref + event
+                // 全部原子化。之前 upsert 在事务外,attachment/ref/event 失败会留下孤儿 note 行。
                 val refStatus = if (anyImageFailed) {
                     FeishuRefStatus.PARTIAL_IMPORT_FAIL
                 } else {
                     FeishuRefStatus.SYNCED
                 }
                 db.withTransaction {
+                    noteRepository.upsert(note, tags = listOf("飞书"))
                     if (dl.attachments.isNotEmpty()) {
                         dl.attachments.forEach { attachmentDao.insert(it) }
                     }

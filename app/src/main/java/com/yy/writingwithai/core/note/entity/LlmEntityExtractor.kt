@@ -1,9 +1,11 @@
 package com.yy.writingwithai.core.note.entity
 
+import androidx.room.withTransaction
 import com.yy.writingwithai.core.ai.api.AiGateway
 import com.yy.writingwithai.core.ai.api.AiStreamEvent
 import com.yy.writingwithai.core.ai.api.TokenLimitExceeded
 import com.yy.writingwithai.core.ai.api.WritingOp
+import com.yy.writingwithai.core.data.db.AppDatabase
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.data.db.entity.entity.NoteEntityRow
@@ -38,6 +40,7 @@ class LlmEntityExtractor
 constructor(
     private val noteDao: NoteDao,
     private val entityDao: NoteEntityDao,
+    private val db: AppDatabase,
     private val aiGateway: AiGateway,
     private val secureApiKeyStore: SecureApiKeyStore,
     private val customPromptRepository: CustomPromptRepository
@@ -74,6 +77,11 @@ constructor(
             } catch (e: TokenLimitExceeded) {
                 android.util.Log.w("LlmEntityExtractor", "LLM output exceeded $MAX_CHARS chars; cap triggered")
                 return@withContext 0
+            } catch (e: RuntimeException) {
+                // fix M30 (full-review):collectText 抛 RuntimeException（AI 流 Failed）
+                // 时记日志 + 返回 0，不让异常逃出 withContext 触发 app crash。
+                android.util.Log.w("LlmEntityExtractor", "LLM stream failed: ${e.message}")
+                return@withContext 0
             }
 
             val entities = parseJsonEntities(raw)
@@ -98,16 +106,43 @@ constructor(
                     source = "AI_EXTRACTED"
                 )
             }
-            entityDao.deleteByNoteId(noteId)
-            entityDao.upsertAll(rows)
+            // fix H10:deleteByNoteId + upsertAll 包裹在事务中，进程杀死不会丢失所有 entity 数据。
+            db.withTransaction {
+                entityDao.deleteByNoteId(noteId)
+                entityDao.upsertAll(rows)
+            }
             rows.size
         }
 
     private fun containsInjection(content: String): Boolean {
         val lower = content.lowercase()
-        return lower.contains("ignore previous instructions") ||
-            lower.contains("忽略之前指令") ||
-            lower.contains("ignore all previous")
+        // fix M29 (full-review):prompt 注入检测从"简单子串"扩到"多个变体 + 多语言"。
+        // 之前 `ignore previous instructions` 等字面量用空格 / unicode trick 可绕过
+        // (例 `ignore previous instructions`,`ign ore previous...`,中文"忽略前文指示")。
+        // 用 normalize 把不可见空白折叠成 ASCII 空格再做子串匹配,显著降低绕过概率。
+        // 注意:这仍是启发式,不能完全防 LLM-side 注入,只能过滤最低成本的攻击。
+        val normalized = lower.replace(' ', ' ').replace('​', ' ')
+            .replace('‌', ' ').replace('‍', ' ').replace('﻿', ' ')
+            .replace(Regex("\\s+"), " ")
+        val signals = listOf(
+            "ignore previous instructions",
+            "ignore all previous",
+            "ignore the previous",
+            "disregard previous",
+            "disregard all previous",
+            "forget previous",
+            "forget all previous",
+            "ignore your instructions",
+            "忽略之前指令",
+            "忽略之前指示",
+            "忽略前文指示",
+            "忽略上文指示",
+            "无视之前指令",
+            "请忽略之前",
+            "忽略以上所有",
+            "ignore above instructions"
+        )
+        return signals.any { normalized.contains(it) }
     }
 
     private fun parseJsonEntities(raw: String): List<Triple<EntityType, String, String>> {
@@ -167,12 +202,21 @@ private suspend fun kotlinx.coroutines.flow.Flow<com.yy.writingwithai.core.ai.ap
 ): String {
     val sb = StringBuilder()
     collect { ev ->
-        if (ev is com.yy.writingwithai.core.ai.api.AiStreamEvent.Delta) {
-            val t = ev.text ?: ""
-            if (sb.length + t.length > maxChars) {
-                throw com.yy.writingwithai.core.ai.api.TokenLimitExceeded(maxChars)
+        when (ev) {
+            is com.yy.writingwithai.core.ai.api.AiStreamEvent.Delta -> {
+                val t = ev.text ?: ""
+                if (sb.length + t.length > maxChars) {
+                    throw com.yy.writingwithai.core.ai.api.TokenLimitExceeded(maxChars)
+                }
+                sb.append(t)
             }
-            sb.append(t)
+            // fix M30 (full-review):Failed event 立即抛异常，让上层走 catch 路径记录失败。
+            // 之前 Failed 被忽略,流正常 emit Done,collectText 返回半截(可能空)字符串,
+            // LlmEntityExtractor 当成成功结果(parseJsonEntities 返空)无错误提示。
+            is com.yy.writingwithai.core.ai.api.AiStreamEvent.Failed -> {
+                throw RuntimeException("AI stream failed: ${ev.error.summary()}")
+            }
+            else -> Unit
         }
     }
     return sb.toString()

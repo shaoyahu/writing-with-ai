@@ -79,22 +79,11 @@ constructor(
                 withTimeoutOrNull(5_000) { tokenProvider.getToken() }
             }
         }
-        // fix-MEDIUM(feishu M6):第一次 token 拉取超时不重试 — 直接走 X-No-Auth-Retry
-        // 标记(本拦截器内识别) + 移除 Authorization 头(让 FeishuApiClient 拿到 401
-        // → 抛 AuthExpired)，业务层 fail-fast。 之前 fallback 到 `Bearer ` 空白，服务端再
-        // 401 → 触发 isTokenInvalid → 进入"刷新+重试"循环，第二次同样超时 → 客户端空转 10 秒。
-        // X-No-Auth-Retry 在发出去之前用同样的 removeHeader 模式剥掉，与原始 design 一致。
+        // fix H7:firstToken==null 时直接抛 FeishuError.AuthExpired，不发无 auth 请求。
+        // 之前 fallback 构造无 Authorization 请求发给飞书 → 401 → 业务层重试 → 再次超时 →
+        // 空转 10s。直接抛错让调用方 fail-fast 更合理。
         if (firstToken == null) {
-            val noAuthReq = request.newBuilder()
-                .removeHeader("Authorization")
-                .header(NO_AUTH_HEADER, NO_AUTH_HEADER_VALUE)
-                .build()
-            // 立即剥掉标记头，避免发到飞书服务端。拦截器对调一次后，
-            // noAuthReq 不会再进入本拦截器(它的 NO_AUTH_HEADER 已被链上一步剥掉)，所以
-            // 也不会"再取 token 再 401"的死循环。
-            return chain.proceed(
-                noAuthReq.newBuilder().removeHeader(NO_AUTH_HEADER).build()
-            )
+            throw FeishuError.AuthExpired
         }
         val response = chain.proceed(
             request.newBuilder().header("Authorization", "Bearer $firstToken").build()

@@ -15,7 +15,7 @@ sealed class UpdateError(message: String, cause: Throwable? = null) : Exception(
     /** 响应体无法解析(服务端 schema 不一致)。 */
     class Parse(cause: Throwable? = null) : UpdateError("parse error", cause)
 
-    /** APK 文件校验失败(SHA-256 不匹配)。 */
+    /** APK 文件校验失败(SHA-256 不匹配)。hash 值仅在 debug build 通过安全 logger 输出，不写入异常消息。 */
     class ChecksumMismatch(val expected: String, val actual: String) :
-        UpdateError("checksum mismatch: expected=$expected actual=$actual")
+        UpdateError("checksum mismatch")
 }

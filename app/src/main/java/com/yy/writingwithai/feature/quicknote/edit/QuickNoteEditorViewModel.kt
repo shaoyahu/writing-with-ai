@@ -197,14 +197,24 @@ constructor(
             // 打到 logcat，在 debug 包也被 ADB / 抓 log 工具捕获，违反 CLAUDE.md "不放用户
             // 数据到 logcat"原则。后续要排查 EditorVM 用 Android Studio debugger，不开 log。
             repository.upsert(note, tagsToSave)
-            // ux-2026-06-28 #8:upsert 成功 → note 行已落库，FK 满足，现在可以 commit 待处理附件。
-            // 任一 Uri 失败不阻断其它;失败记 debug 日志(用户 UUID 仅在 DEBUG 包出现，符合 CLAUDE.md)。
+            // ux-2026-06-28 #8:upsert 成功 → note 行已落库,FK 满足,现在 commit 待处理附件。
+            // fix M34 (full-review):commitAttachment 现在是 suspend,await 顺序执行。
+            // 任一 Uri 失败不阻断其它,collect 到 partialFailures 后整体 log 告警 1 次,
+            // 仍然 fire onSaved(note 主行已落库,UI 应进 detail;失败的附件 user 可手动重试)。
             val pending = pendingAttachmentUrisFlow.value
+            val partialFailures = mutableListOf<android.net.Uri>()
             if (pending.isNotEmpty()) {
                 pendingAttachmentUrisFlow.value = emptyList()
                 for (uri in pending) {
-                    commitAttachment(uri, noteId)
+                    val ok = commitAttachment(uri, noteId)
+                    if (!ok) partialFailures.add(uri)
                 }
+            }
+            if (partialFailures.isNotEmpty() && com.yy.writingwithai.BuildConfig.DEBUG) {
+                android.util.Log.w(
+                    "EditorVM",
+                    "save: ${partialFailures.size}/${pending.size} attachments failed for noteId=$noteId"
+                )
             }
             savingFlow.update { false }
             onSaved(note.id)
@@ -216,36 +226,41 @@ constructor(
      * 复用 [QuickNoteDetailViewModel.addAttachment] 的实现策略，确保行为一致。
      * 失败时只在 DEBUG 包 Log.e，避免 release 包污染 logcat。
      */
-    private fun commitAttachment(uri: android.net.Uri, noteId: String) {
-        viewModelScope.launch {
-            var sourceFile: java.io.File? = null
-            try {
-                val attachmentId = UUID.randomUUID().toString()
-                sourceFile = java.io.File(appContext.cacheDir, "tmp_$attachmentId.jpg")
-                appContext.contentResolver.openInputStream(uri)?.use { input ->
-                    sourceFile!!.outputStream().use { output -> input.copyTo(output) }
-                } ?: return@launch
-                val destFile = attachmentStore.getAttachmentFile(noteId, attachmentId, "jpg")
-                imageCompressor.compress(sourceFile, destFile)
-                noteAttachmentDao.insert(
-                    NoteAttachmentEntity(
-                        id = attachmentId,
-                        noteId = noteId,
-                        mimeType = "image/jpeg",
-                        localPath = destFile.absolutePath,
-                        fileSize = destFile.length(),
-                        createdAt = System.currentTimeMillis()
-                    )
+    // fix M34 (full-review):把 attachment commit 改成 suspend 函数,save() 内 await 所有
+    // commit 完成后再 onSaved。失败 → 整 save 视为部分失败,日志告警,UI 仍 fire onSaved
+    // (note 主行已落库,用户可见;附件失败的可以在 detail 屏幕 refresh 重试)。
+    private suspend fun commitAttachment(uri: android.net.Uri, noteId: String): Boolean {
+        var sourceFile: java.io.File? = null
+        return try {
+            val attachmentId = UUID.randomUUID().toString()
+            sourceFile = java.io.File(appContext.cacheDir, "tmp_$attachmentId.jpg")
+            val opened = appContext.contentResolver.openInputStream(uri)?.use { input ->
+                sourceFile!!.outputStream().use { output -> input.copyTo(output) }
+                true
+            } ?: false
+            if (!opened) return false
+            val destFile = attachmentStore.getAttachmentFile(noteId, attachmentId, "jpg")
+            imageCompressor.compress(sourceFile!!, destFile)
+            noteAttachmentDao.insert(
+                NoteAttachmentEntity(
+                    id = attachmentId,
+                    noteId = noteId,
+                    mimeType = "image/jpeg",
+                    localPath = destFile.absolutePath,
+                    fileSize = destFile.length(),
+                    createdAt = System.currentTimeMillis()
                 )
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (com.yy.writingwithai.BuildConfig.DEBUG) {
-                    android.util.Log.e("EditorVM", "commitAttachment failed", e)
-                }
-            } finally {
-                sourceFile?.takeIf { it.exists() }?.delete()
+            )
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (com.yy.writingwithai.BuildConfig.DEBUG) {
+                android.util.Log.e("EditorVM", "commitAttachment failed", e)
             }
+            false
+        } finally {
+            sourceFile?.takeIf { it.exists() }?.delete()
         }
     }
 

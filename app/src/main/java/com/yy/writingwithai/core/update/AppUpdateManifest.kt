@@ -17,9 +17,24 @@ data class AppUpdateManifest(
     @SerialName("apkUrl") val apkUrl: String,
     @SerialName("apkSha256") val apkSha256: String,
     @SerialName("apkName") val apkName: String? = null,
-    @SerialName("apkSize") val apkSize: Long = 0L,
+    // fix M59 (full-review):以下 4 字段保留 JSON 反序列化兼容(服务端可能返回),
+    // 但当前客户端未读取。标记 @Deprecated 防止新代码误用,需要时移除注解即可。
+    @Deprecated("Unused by client, kept for JSON compat") @SerialName("apkSize") val apkSize: Long = 0L,
     @SerialName("releaseNotes") val releaseNotes: String = "",
-    @SerialName("releasedAt") val releasedAt: String = "",
-    @SerialName("minSupportedVersionCode") val minSupportedVersionCode: Int = 1,
-    @SerialName("mandatory") val mandatory: Boolean = false
-)
+    @Deprecated("Unused by client, kept for JSON compat") @SerialName("releasedAt") val releasedAt: String = "",
+    @Deprecated("Unused by client, kept for JSON compat")
+    @SerialName("minSupportedVersionCode")
+    val minSupportedVersionCode: Int = 1,
+    @Deprecated("Unused by client, kept for JSON compat") @SerialName("mandatory") val mandatory: Boolean = false
+) {
+    init {
+        require(versionCode > 0) { "versionCode must be positive" }
+        require(versionName.isNotBlank()) { "versionName must not be blank" }
+        require(apkUrl.startsWith("https://")) { "apkUrl must use HTTPS" }
+        require(SHA256_REGEX.matches(apkSha256)) { "apkSha256 must be 64 hex chars" }
+    }
+
+    companion object {
+        private val SHA256_REGEX = Regex("^[0-9a-fA-F]{64}$")
+    }
+}

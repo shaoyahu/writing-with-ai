@@ -32,15 +32,6 @@ import com.yy.writingwithai.feature.onboarding.OnboardingEntry
 import com.yy.writingwithai.feature.onboarding.OnboardingRoute
 import com.yy.writingwithai.feature.quicknote.detail.QuickNoteDetailScreen
 import com.yy.writingwithai.feature.quicknote.edit.QuickNoteEditorScreen
-import com.yy.writingwithai.feature.settings.SettingsEntry
-import com.yy.writingwithai.feature.settings.alias.AliasManagementScreen
-import com.yy.writingwithai.feature.settings.animation.AnimationDetailScreen
-import com.yy.writingwithai.feature.settings.animation.AnimationStylePreviewScreen
-import com.yy.writingwithai.feature.settings.association.NoteAssociationSettingsScreen
-import com.yy.writingwithai.feature.settings.data.SettingsDataScreen
-import com.yy.writingwithai.feature.settings.feishu.FeishuAuthScreen
-import com.yy.writingwithai.feature.settings.i18n.SettingsLanguageScreen
-import com.yy.writingwithai.feature.settings.model.ModelManagementEntry
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -260,82 +251,9 @@ fun AppNav(
                 prefillFocus = args.prefillFocus
             )
         }
-        composable<SettingsData> {
-            SettingsDataScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        // language-switcher:「我的 → 设置 → 语言」3 选 1;选完 recreate() 整个 Activity。
-        composable<SettingsLanguage> {
-            SettingsLanguageScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable<Settings> {
-            SettingsEntry.SettingsRoute(
-                onBack = { navController.popBackStack() },
-                // entity-extraction-polish §5.2
-                onNavigateToAssociation = { navController.navigate(SettingsNoteAssociation) }
-            )
-        }
-        composable<SettingsPromptTemplate> {
-            SettingsEntry.PromptTemplateRoute(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable<SettingsAliasManagement> {
-            AliasManagementScreen(onBack = { navController.popBackStack() })
-        }
-        // entity-extraction-polish §5.1:笔记关联设置 route
-        composable<SettingsNoteAssociation> {
-            NoteAssociationSettingsScreen(onBack = { navController.popBackStack() })
-        }
-        composable<SettingsModelManagement> {
-            ModelManagementEntry.ModelManagementRoute(
-                onProviderClick = { id -> navController.navigate(SettingsModelProviderDetail(id)) },
-                onCreateCustomClick = { navController.navigate(SettingsCustomProviderEdit(null)) },
-                onEditCustomClick = { id -> navController.navigate(SettingsCustomProviderEdit(id)) },
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable<SettingsModelProviderDetail> { backStackEntry ->
-            val args = backStackEntry.toRoute<SettingsModelProviderDetail>()
-            ModelManagementEntry.ModelProviderDetailRoute(
-                providerId = args.providerId,
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable<SettingsCustomProviderEdit> { backStackEntry ->
-            val args = backStackEntry.toRoute<SettingsCustomProviderEdit>()
-            ModelManagementEntry.CustomProviderEditRoute(
-                providerId = args.providerId,
-                onBack = { navController.popBackStack() }
-            )
-        }
-        // animation-system-and-consent-redesign §11.2:动画风格设置 route。
-        composable<SettingsAnimationStyle> {
-            AnimationStylePreviewScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        // animation-switch-redesign-followup §6.1:动画详细设置 route(2 个细分开关入口)。
-        composable<SettingsAnimationDetail> {
-            AnimationDetailScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        // ux-2026-06-28 P6:飞书授权页专属 route(不再走 Settings hub)
-        composable<SettingsFeishu> {
-            FeishuAuthScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        // feishu-import-from-folder:从文件夹导入 sub-screen
-        composable<FeishuFolderImport> {
-            com.yy.writingwithai.feature.feishuimport.FolderImportScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
+        // fix M62 (full-review):Settings 系列 12 个路由抽到 AppNavSettingsRoutes.kt,
+        // 通过 NavGraphBuilder 扩展函数一次性注册(同包,无公开 API 变化)。
+        settingsNavRoutes(navController)
         // entity-management-and-ai-decompose §7.1:实体管理 list
         composable<EntityManagement> {
             EntityManagementScreen(

@@ -203,10 +203,14 @@ constructor(
         // fix-2026-06-30-full-review-r1 HIGH H5:同步删 ai_history 行，避免 orphan。
         // AiHistoryEntity.noteId 无 ForeignKey，必须手动清，否则 observeByNoteId
         // 仍会发射孤儿行，observeTotalTokens 计入脏数据。
+        // fix H3:同步删 note_links 中 src/dst 指向被删笔记的行，避免孤儿链接。
+        // Room FK 未启用(见 H4)，CASCADE 不生效，必须手动清。
         db.withTransaction {
             noteAttachmentDao.deleteForNote(id)
             noteTagDao.removeAllForNote(id)
             aiHistoryDao.deleteByNoteId(id)
+            db.noteLinkDao().deleteBySrc(id)
+            db.noteLinkDao().deleteByDst(id)
             noteDao.deleteById(id)
         }
         try {

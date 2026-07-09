@@ -51,6 +51,14 @@ constructor() {
                     val t = trimmed.removePrefix("### ").trim()
                     sb.append("<h3>").append(convertInline(t)).append("</h3>")
                 }
+                // fix M22 (full-review):h4/h5/h6 之前 fall through 到 default `<p>` —
+                // 内容丢失 markdown 标题语义,且 v2 API `<h3>` 是已知最高级。
+                // 显式 map 到最接近的 `<h3>` 并去掉前导 `#` 链,与 h1/h2/h3 行为对齐。
+                trimmed.startsWith("#### ") || trimmed.startsWith("##### ") || trimmed.startsWith("###### ") -> {
+                    val hashes = trimmed.takeWhile { it == '#' }
+                    val t = trimmed.removePrefix(hashes).trim()
+                    sb.append("<h3>").append(convertInline(t)).append("</h3>")
+                }
                 trimmed.startsWith("## ") -> {
                     val t = trimmed.removePrefix("## ").trim()
                     sb.append("<h2>").append(convertInline(t)).append("</h2>")
@@ -137,6 +145,21 @@ constructor() {
                     }
                     out.append(escape("`"))
                     i++
+                }
+                c == '_' && i + 1 < n && text[i + 1] == '_' -> {
+                    // fix M17 (full-review):`__bold__` 必须先识别。
+                    // 之前 `c == '_'` 单字符分支永远优先,`__foo__` 会被切成 `_` + `_foo_`,
+                    // inner="foo_" 不平衡,输出 escape 后剩 `_foo_` 字面量。
+                    // 配对识别 + recursive parse,与 `**bold**` 同款。
+                    val end = text.indexOf("__", i + 2)
+                    if (end > i + 2) {
+                        val inner = text.substring(i + 2, end)
+                        out.append("<b>").append(convertInline(inner)).append("</b>")
+                        i = end + 2
+                        continue
+                    }
+                    out.append(escape("__"))
+                    i += 2
                 }
                 c == '_' -> {
                     val end = text.indexOf('_', i + 1)

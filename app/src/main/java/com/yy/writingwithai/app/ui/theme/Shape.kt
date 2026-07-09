@@ -2,18 +2,23 @@ package com.yy.writingwithai.app.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
-import androidx.compose.ui.unit.dp
 
 /**
- * ui-redesign-v2 · Material 3 Shapes(extraSmall=4dp / small=8dp / medium=12dp / large=16dp / extraLarge=24dp)。
- * 注意:值与 CornerRadius.xs/sm/md/lg/xl 一一对应，但 Shapes 是 top-level val,
- * 无法读 LocalCornerRadius，值独立维护。修改时需同步两边。
- * 业务代码需要自定义圆角请走 [LocalCornerRadius.current]，不要在这里加。
+ * ui-redesign-v2 · Material 3 Shapes(extraSmall/small/medium/large/extraLarge)。
+ *
+ * fix M53 (full-review):值与 [CornerRadius.xs/sm/md/lg/xl] 一一对应,过去是手写 .dp,
+ * 两边独立维护容易漂移;改为读取默认 [CornerRadius] 实例的字段,改一处自动同步。
+ * Compose Shapes 是 top-level val,无法直接走 [LocalCornerRadius](在 Composition 之外),
+ * 但用静态默认值是安全的——[CornerRadius] 默认值与 theme 提供值一致,且 CornerRadius
+ * 字段都是 val,启动期不可变。
  */
-internal val Shapes = Shapes(
-    extraSmall = RoundedCornerShape(4.dp),
-    small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(24.dp)
-)
+internal val Shapes: Shapes = run {
+    val r = CornerRadius()
+    Shapes(
+        extraSmall = RoundedCornerShape(r.xs),
+        small = RoundedCornerShape(r.sm),
+        medium = RoundedCornerShape(r.md),
+        large = RoundedCornerShape(r.lg),
+        extraLarge = RoundedCornerShape(r.xl)
+    )
+}

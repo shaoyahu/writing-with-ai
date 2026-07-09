@@ -140,11 +140,19 @@ constructor(
 
                 val attachmentId = UUID.randomUUID().toString()
                 val file = try {
-                    body.byteStream().use { stream ->
+                    // fix M20 (full-review):中流 size cap — 之前只有 pre-read contentLength() 声明值校验
+                    // 和读后 file.length() 兜底,服务可伪造/省略 Content-Length,大图会全量写盘
+                    // 才被 file.length() 检出。包一层 BoundedInputStream 让 reader 边读边累计,
+                    // 超过 MAX 立刻抛 SizeCapExceededException,避免磁盘被打爆。
+                    val capped = BoundedInputStream(body.byteStream(), MAX_IMAGE_BYTES, url)
+                    capped.use { stream ->
                         attachmentStore.save(stream, noteId, attachmentId, ext)
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
+                } catch (e: SizeCapExceededException) {
+                    Log.w(TAG, "downloadOne: $url mid-stream exceeded ${MAX_IMAGE_BYTES}B cap, aborted")
+                    return null
                 } catch (e: Exception) {
                     Log.w(TAG, "downloadOne: save failed for $url", e)
                     return null
@@ -250,3 +258,37 @@ constructor(
             Regex("""<img\s[^>]*?src=["']([^"']{1,2048})["'][^>]*?/?>""", RegexOption.IGNORE_CASE)
     }
 }
+
+/**
+ * fix M20 (full-review):有界 InputStream — 超过 [maxBytes] 立刻抛 [SizeCapExceededException]。
+ * 防止 service 不带 Content-Length 或声明值偏小时全量下载到磁盘。
+ */
+private class BoundedInputStream(
+    private val delegate: java.io.InputStream,
+    private val maxBytes: Long,
+    private val source: String
+) : java.io.InputStream() {
+    private var readBytes = 0L
+
+    override fun read(): Int {
+        val b = delegate.read()
+        if (b != -1) count(1)
+        return b
+    }
+
+    override fun read(b: ByteArray, off: Int, len: Int): Int {
+        val n = delegate.read(b, off, len)
+        if (n > 0) count(n.toLong())
+        return n
+    }
+
+    private fun count(delta: Long) {
+        readBytes += delta
+        if (readBytes > maxBytes) throw SizeCapExceededException(source, maxBytes)
+    }
+
+    override fun close() = delegate.close()
+}
+
+private class SizeCapExceededException(source: String, maxBytes: Long) :
+    RuntimeException("stream from $source exceeded $maxBytes bytes")

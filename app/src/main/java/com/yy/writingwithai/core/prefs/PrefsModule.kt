@@ -5,12 +5,14 @@ import com.yy.writingwithai.core.ai.provider.CustomProviderStore
 import com.yy.writingwithai.core.ai.provider.CustomProviderStoreImpl
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStore
 import com.yy.writingwithai.core.ai.provider.ProviderPrefsStoreImpl
+import com.yy.writingwithai.di.ApplicationScope
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * M4-4 onboarding-consent · core/prefs/ Hilt 模块。
@@ -27,7 +29,12 @@ import javax.inject.Singleton
 object PrefsModule {
     @Provides
     @Singleton
-    fun provideConsentStore(@ApplicationContext context: Context): ConsentStore = ConsentStoreImpl(context)
+    fun provideConsentStore(
+        @ApplicationContext context: Context,
+        // fix M66 (full-review):注入 @ApplicationScope,转发给 ConsentStoreImpl,
+        // 让 ConsentStore 与 NoteRepository / WritingApp 共享同一个进程级 scope。
+        @ApplicationScope scope: CoroutineScope
+    ): ConsentStore = ConsentStoreImpl(context, scope)
 
     @Provides
     @Singleton

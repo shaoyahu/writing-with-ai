@@ -200,14 +200,15 @@ class UserTokenProvider @Inject constructor(
                 } catch (e: kotlin.coroutines.cancellation.CancellationException) {
                     throw e
                 } catch (e: Throwable) {
-                    Log.e(TAG, "postJson: parse fail, raw=$raw", e)
-                    throw FeishuError.NetworkError("parse: ${e.message}, raw=$raw")
+                    // fix H6:截断 raw 避免泄露 access_token/refresh_token 到 logcat。
+                    Log.e(TAG, "postJson: parse fail, raw=${raw.take(100)}", e)
+                    throw FeishuError.NetworkError("parse: ${e.message}")
                 }
                 val code = root["code"]?.jsonPrimitive?.intOrNull ?: 0
                 val msg = root["msg"]?.jsonPrimitive?.contentOrNull ?: ""
                 if (code != 0) {
-                    // 错误响应也 log 完整 body — error / error_description 字段可能含具体缺哪个字段
-                    Log.w(TAG, "postJson: feishu business error code=$code msg=$msg body=$raw")
+                    // fix H6:截断 raw 避免泄露 token 到 logcat。
+                    Log.w(TAG, "postJson: feishu business error code=$code msg=$msg")
                     throw FeishuError.BadRequest(code, msg)
                 }
                 root

@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 
 /**
@@ -205,12 +206,12 @@ fun <T> AppSelectionDropdown(
                     },
                     trailingIcon = if (isSelected) {
                         {
-                            // review-2026-07-02 finding-3:为选中态 Check icon 加
-                            // contentDescription="已选中",让 TalkBack 读出选中状态,
-                            // 而非读 null(会跳过此 icon,只读 row 文字)。
+                            val ctx = androidx.compose.ui.platform.LocalContext.current
+                            // fix M58 (full-review):contentDescription 走 stringResource,
+                            // 硬编码 "Selected" 在非英文 locale 下 TalkBack 读英文。
                             Icon(
                                 imageVector = Icons.Filled.Check,
-                                contentDescription = "Selected",
+                                contentDescription = ctx.getString(R.string.settings_language_selected),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }

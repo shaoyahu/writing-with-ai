@@ -16,8 +16,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yy.writingwithai.R
 import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.entity.NoteEntity
 import dagger.hilt.EntryPoint
@@ -54,8 +56,10 @@ fun WikilinkAutocomplete(prefix: String, onSelect: (String) -> Unit, modifier: M
     Surface(modifier = modifier.fillMaxWidth(), shadowElevation = 2.dp) {
         Column {
             if (candidates.isEmpty()) {
+                // fix M32 (full-review):stringResource 走 strings.xml 而非 Composable 里硬编码中文。
+                val createNewLabel = stringResource(R.string.wikilink_autocomplete_create_new, prefix)
                 Text(
-                    text = "创建新笔记 \"$prefix\"",
+                    text = createNewLabel,
                     modifier = Modifier.fillMaxWidth().clickable { currentOnSelect(prefix) }.padding(12.dp),
                     style = MaterialTheme.typography.bodySmall
                 )

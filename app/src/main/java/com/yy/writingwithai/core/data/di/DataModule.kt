@@ -34,6 +34,15 @@ object DataModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
         val builder = Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
+        // fix H4:启用 Room 外键约束。之前未调用 setForeignKeyConstraintsEnabled(true)，
+        // 导致 NoteLinkEntity/NoteAttachmentEntity/NoteEntityRow 的 ForeignKey(CASCADE)
+        // 全部被 SQLite 忽略，删除笔记时子表行不自动级联删除。
+        builder.addCallback(object : androidx.room.RoomDatabase.Callback() {
+            override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                super.onOpen(db)
+                db.execSQL("PRAGMA foreign_keys = ON")
+            }
+        })
         // review r3 修 H7:DEBUG 模式不再调用 Room 的"版本不匹配时静默删库重建"方法。
         // 该调用在 debug 装旧版时静默抹掉用户全部数据(local notes / attachments / ai_history),
         // 与用户预期(debug 仅是 dev 便利)严重不符。统一走 addMigrations 路径，

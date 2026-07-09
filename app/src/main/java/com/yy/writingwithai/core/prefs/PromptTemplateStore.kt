@@ -48,16 +48,23 @@ data class PromptTemplate(
 )
 
 data class PromptTemplates(
+    // fix M65 (full-review):补 SUMMARIZE / TRANSLATE 字段。keys map 已经存了 5 个 op,
+    // 但 observeAll 只读 3 个,用户在 UI 改 summarize / translate 模板后 observer 不刷新,
+    // 下次拿模板读到旧值。EMPTY 同步补两个 null。
     val expand: PromptTemplate?,
     val polish: PromptTemplate?,
-    val organize: PromptTemplate?
+    val organize: PromptTemplate?,
+    val summarize: PromptTemplate? = null,
+    val translate: PromptTemplate? = null
 ) {
     companion object {
         val EMPTY =
             PromptTemplates(
                 expand = null,
                 polish = null,
-                organize = null
+                organize = null,
+                summarize = null,
+                translate = null
             )
     }
 }
@@ -111,6 +118,18 @@ constructor(
                     organize = prefs[
                         keys.getValue(
                             WritingOp.ORGANIZE
+                        )
+                    ]?.takeIf { it.isNotEmpty() }?.let { PromptTemplate(it) },
+                    // fix M65 (full-review):同时读 SUMMARIZE / TRANSLATE,UI 改这俩
+                    // op 的模板后 observer 立刻拿到新值。
+                    summarize = prefs[
+                        keys.getValue(
+                            WritingOp.SUMMARIZE
+                        )
+                    ]?.takeIf { it.isNotEmpty() }?.let { PromptTemplate(it) },
+                    translate = prefs[
+                        keys.getValue(
+                            WritingOp.TRANSLATE
                         )
                     ]?.takeIf { it.isNotEmpty() }?.let { PromptTemplate(it) }
                 )

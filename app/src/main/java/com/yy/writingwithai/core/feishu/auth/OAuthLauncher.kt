@@ -50,7 +50,9 @@ constructor(
                 authStore.setAppId(appId)
                 authStore.persistAppSecret(REQUEST_ID_OAUTH, appSecret)
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
+            // fix LOW (full-review):catch(Throwable) 会吞 OOM/StackOverflow 后再抛,
+            // 不可恢复。authStore 仅抛 IOException/KeystoreException,收窄到 Exception。
             Log.e(TAG, "OAuthLauncher: failed to persist appId/secret to encrypted prefs", e)
             if (isKeystoreErrorFn(e)) throw OAuthLaunchException.KeystoreUnavailable(e)
             throw e
@@ -61,7 +63,8 @@ constructor(
         // consumeOAuthState() 找不到 state → 用户看到"state expired"假失败。
         try {
             withContext(Dispatchers.IO) { authStore.persistOAuthState(state) }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
+            // fix LOW (full-review):同上,EncryptedSharedPreferences 只抛 IOException。
             Log.e(TAG, "OAuthLauncher: failed to persist OAuth state", e)
             if (isKeystoreErrorFn(e)) throw OAuthLaunchException.KeystoreUnavailable(e)
             throw e

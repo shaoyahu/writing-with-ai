@@ -1,8 +1,5 @@
 package com.yy.writingwithai.feature.aiwriting
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -88,15 +85,6 @@ object AiwritingEntry {
             state, onAccept, onReject, onCancel, onRegenerate, onClose,
             onDismiss, onUndo, onDismissReplace, onRetry, onNavigateToSettings
         )
-    }
-
-    /**
-     * H4 新增:系统剪贴板 wrapper(走 ClipboardManager)。
-     * 不走 AiGateway(非 AI 操作，系统 API)。
-     */
-    fun copyToClipboard(context: Context, text: String) {
-        val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-        manager.setPrimaryClip(ClipData.newPlainText("writing-with-ai", text))
     }
 }
 

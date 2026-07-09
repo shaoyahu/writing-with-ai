@@ -166,7 +166,21 @@ constructor(
         return provider.stream(request, credentials)
             .onEach { event ->
                 when (event) {
-                    is AiStreamEvent.Delta -> outputBuilder.append(event.text)
+                    is AiStreamEvent.Delta -> {
+                        // fix M10 (full-review):outputBuilder 加大小上限，防止恶意 / 误配 provider
+                        // 持续推 delta 撑爆 JVM 堆(原代码无任何 cap,OOM 风险)。
+                        // 复用 LlmEntityExtractor 同样的 LLM_MAX_OUTPUT_CHARS 上限(≈4K tokens),
+                        // 防止流式 delta 累加超界。
+                        val appended = event.text
+                        if (outputBuilder.length + appended.length >
+                            com.yy.writingwithai.core.ai.api.LLM_MAX_OUTPUT_CHARS
+                        ) {
+                            throw com.yy.writingwithai.core.ai.api.TokenLimitExceeded(
+                                com.yy.writingwithai.core.ai.api.LLM_MAX_OUTPUT_CHARS
+                            )
+                        }
+                        outputBuilder.append(appended)
+                    }
                     is AiStreamEvent.Usage -> lastUsage = event
                     is AiStreamEvent.Failed -> lastError = event.error
                     else -> Unit

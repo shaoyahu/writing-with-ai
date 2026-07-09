@@ -9,12 +9,11 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.yy.writingwithai.di.ApplicationScope
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -58,10 +57,13 @@ private val Context.consentDataStore: DataStore<Preferences> by preferencesDataS
 class ConsentStoreImpl
 @Inject
 constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    // fix M66 (full-review):scope 改用 Hilt 注入的 @ApplicationScope(与应用进程同生命周期),
+    // 不再自管 SupervisorJob + Dispatchers.Default,与 NoteRepository / WritingApp
+    // 的 scope 统一管理,避免多份独立 supervisor scope 漂移。
+    @ApplicationScope private val scope: CoroutineScope
 ) : ConsentStore {
     private val store = context.consentDataStore
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override val consentFlow: StateFlow<ConsentState> =
         combine(

@@ -223,6 +223,24 @@ constructor(
 
     private fun buildAppendXml(content: String): String = "<document><p>" + xmlEscape(content) + "</p></document>"
 
+    /**
+     * fix M18 (full-review):拉取文档根 block_id(用于 image block 的 parent)。
+     * 失败时 throw 给上层 catch — 原本 3 段复制粘贴 retry 块全调这个 helper,
+     * 解析 / 空 items 判断只此一处,避免改了 logic 忘了同步某分支。
+     *
+     * @throws EmptyBlocksException 当返回 items 为 null/空(原版直接走 placeholder fallback)
+     */
+    private suspend fun fetchRootBlockId(docId: String): String {
+        val blocksJson = feishuApi.getBlocks(docId)
+        val blocksObj = Json.parseToJsonElement(blocksJson).jsonObject
+        val dataObj = blocksObj["data"]?.jsonObject ?: blocksObj
+        val items = dataObj["items"]?.jsonArray
+        if (items == null || items.isEmpty()) throw EmptyBlocksException()
+        return items[0].jsonObject["block_id"]?.jsonPrimitive?.content ?: docId
+    }
+
+    private class EmptyBlocksException : RuntimeException("blocks_empty")
+
     // fix-full-review:此 xmlEscape 与 MarkdownToXmlConverter.escape() 逻辑重复。
     // 未来修改必须同步两处，或改为委托 xmlConverter 暴露的公开 escape 方法。
     private fun xmlEscape(s: String): String = s
@@ -256,49 +274,33 @@ constructor(
         // 0. 获取文档根 block_id (用于作为 image block 的 parent)
         // fix-2026-07-05-review-r4 MEDIUM M2:getBlocks 失败时增加 1 次重试
         // 处理网络抖动导致的临时失败
+        // fix M18 (full-review):抽 helper 消重试分支的 3 段复制粘贴。
         val rootBlockId = try {
-            val blocksJson = feishuApi.getBlocks(ref.docId)
-            val blocksObj = Json.parseToJsonElement(blocksJson).jsonObject
-            val dataObj = blocksObj["data"]?.jsonObject ?: blocksObj
-            val items = dataObj["items"]?.jsonArray
-            if (items == null || items.isEmpty()) {
-                return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
-            }
-            items[0].jsonObject["block_id"]?.jsonPrimitive?.content ?: ref.docId
+            fetchRootBlockId(ref.docId)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
+        } catch (e: EmptyBlocksException) {
+            return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
         } catch (e: java.net.SocketTimeoutException) {
-            // 网络超时，重试一次
             Log.w(TAG, "syncAttachments: getBlocks timeout, retrying once")
             try {
-                val blocksJson = feishuApi.getBlocks(ref.docId)
-                val blocksObj = Json.parseToJsonElement(blocksJson).jsonObject
-                val dataObj = blocksObj["data"]?.jsonObject ?: blocksObj
-                val items = dataObj["items"]?.jsonArray
-                if (items == null || items.isEmpty()) {
-                    return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
-                }
-                items[0].jsonObject["block_id"]?.jsonPrimitive?.content ?: ref.docId
+                fetchRootBlockId(ref.docId)
             } catch (e2: kotlinx.coroutines.CancellationException) {
                 throw e2
+            } catch (e2: EmptyBlocksException) {
+                return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
             } catch (e2: Exception) {
                 Log.w(TAG, "syncAttachments: getBlocks retry failed: ${e2.message}")
                 return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "get_blocks_fail:${e2.message}")
             }
         } catch (e: java.io.IOException) {
-            // 网络错误，重试一次
             Log.w(TAG, "syncAttachments: getBlocks IO error, retrying once")
             try {
-                val blocksJson = feishuApi.getBlocks(ref.docId)
-                val blocksObj = Json.parseToJsonElement(blocksJson).jsonObject
-                val dataObj = blocksObj["data"]?.jsonObject ?: blocksObj
-                val items = dataObj["items"]?.jsonArray
-                if (items == null || items.isEmpty()) {
-                    return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
-                }
-                items[0].jsonObject["block_id"]?.jsonPrimitive?.content ?: ref.docId
+                fetchRootBlockId(ref.docId)
             } catch (e2: kotlinx.coroutines.CancellationException) {
                 throw e2
+            } catch (e2: EmptyBlocksException) {
+                return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "blocks_empty")
             } catch (e2: Exception) {
                 Log.w(TAG, "syncAttachments: getBlocks retry failed: ${e2.message}")
                 return@withContext fallbackToPlaceholders(note, ref, sortedAttachments, "get_blocks_fail:${e2.message}")

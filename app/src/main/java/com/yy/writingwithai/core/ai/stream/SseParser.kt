@@ -24,7 +24,7 @@ internal object SseParser {
     // r2 修:用 Unicode escape 取代字面量 BOM，避免 lint ByteOrderMark 报错。
     // hardening C-1 fix:ktlint 11.x 会把字面量 BOM 转成空字符串，改用 unicode escape 防回退。
     // fix-full-review:字面量 BOM (U+FEFF) 在源码中不可见，ktlint/editor 可能静默修改。
-    // 改用 "﻿" 确保源码中始终是可审计的 ASCII。
+    // 改用 "" 确保源码中始终是可审计的 ASCII。
     private const val UTF8_BOM = "\uFEFF"
 
     // hardening C-1:截断时 emit 的错误消息。
@@ -32,6 +32,8 @@ internal object SseParser {
 
     fun parse(source: BufferedSource): Flow<SseEvent> = flow {
         var dataBuffer = StringBuilder()
+        // fix M8 (full-review):当前事件名(RFC 8895 `event:` 行)。同一事件内多条 data 行共享。
+        var eventName: String? = null
         // L7 修:首行剥离 UTF-8 BOM (U+FEFF)，某些 provider(尤其在 BOM 写入 default
         // charset 的 Windows / .NET 后端)会把 BOM 直接放在首行，导致首个 `data:` 事件
         // startsWith 失败。Okio `readUtf8Line` 不剥 BOM，这里手动处理。
@@ -54,16 +56,31 @@ internal object SseParser {
 
             when {
                 line.isEmpty() -> {
-                    if (dataBuffer.isNotEmpty()) {
-                        emit(SseEvent.Data(dataBuffer.toString().trimEnd()))
+                    if (dataBuffer.isNotEmpty() || eventName != null) {
+                        // fix M9 (full-review):event:error 时把累计 data 当 Error emit,
+                        // 不让 Anthropic SSE 错误事件被静默丢弃(payload 是 {"type":"error", ...})。
+                        if (eventName == SSE_EVENT_ERROR) {
+                            emit(
+                                SseEvent.Error(
+                                    IllegalStateException("SSE error event: $dataBuffer")
+                                )
+                            )
+                            cleanTermination = false
+                            return@flow
+                        }
+                        if (dataBuffer.isNotEmpty()) {
+                            emit(SseEvent.Data(dataBuffer.toString().trimEnd(), eventName))
+                        }
                         dataBuffer = StringBuilder()
                         // hardening C-1:空行表示完整事件边界。
                         cleanTermination = true
                     }
+                    // fix M8 (full-review):事件边界后清空 eventName,下一个事件重新开始。
+                    eventName = null
                 }
                 line == "[DONE]" -> {
                     if (dataBuffer.isNotEmpty()) {
-                        emit(SseEvent.Data(dataBuffer.toString().trimEnd()))
+                        emit(SseEvent.Data(dataBuffer.toString().trimEnd(), eventName))
                         dataBuffer = StringBuilder()
                     }
                     emit(SseEvent.Done)
@@ -74,6 +91,12 @@ internal object SseParser {
                 // 应被忽略(`startsWith("data:")` 自然 fall through)。
                 line.startsWith(":", ignoreCase = true) -> {
                     // no-op: comment / heartbeat
+                }
+                // fix M8 (full-review):捕获 `event: <name>` 行(RFC 8895),与 data: 行共享同一事件。
+                // 之前整行被忽略,Anthropic `message_stop` / `content_block_delta` 等关键
+                // 事件名全部丢失,下游无法区分事件类型。
+                line.startsWith("event:", ignoreCase = true) -> {
+                    eventName = line.substring(6).trim()
                 }
                 // L4 修:RFC 允许大小写，`startsWith("data:", ignoreCase = true)` 容错。
                 // review r2 修:`removePrefix("data:")` 大小写敏感，当 provider 返回 `DATA:` 或 `Data:`
@@ -87,7 +110,7 @@ internal object SseParser {
                     val payload = line.substring(5).trimStart()
                     if (payload == "[DONE]") {
                         if (dataBuffer.isNotEmpty()) {
-                            emit(SseEvent.Data(dataBuffer.toString().trimEnd()))
+                            emit(SseEvent.Data(dataBuffer.toString().trimEnd(), eventName))
                             dataBuffer = StringBuilder()
                         }
                         emit(SseEvent.Done)
@@ -115,7 +138,7 @@ internal object SseParser {
         // 3) dataBuffer 非空 + cleanTermination == true → 已在前面的空行 flush 过一次，
         //    不应进入此分支(若有，空行后 dataBuffer 应已清空);为安全 emit Done。
         if (dataBuffer.isNotEmpty()) {
-            emit(SseEvent.Data(dataBuffer.toString().trimEnd()))
+            emit(SseEvent.Data(dataBuffer.toString().trimEnd(), eventName))
             if (!cleanTermination) {
                 emit(SseEvent.Error(EOFException(TRUNCATED_MSG)))
                 return@flow
@@ -123,4 +146,7 @@ internal object SseParser {
         }
         emit(SseEvent.Done)
     }
+
+    // fix M9 (full-review):Anthropic / OpenAI SSE 错误事件名。
+    private const val SSE_EVENT_ERROR = "error"
 }

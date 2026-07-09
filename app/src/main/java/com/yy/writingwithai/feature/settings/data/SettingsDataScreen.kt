@@ -186,7 +186,7 @@ fun SettingsDataScreen(onBack: () -> Unit, viewModel: SettingsDataViewModel = hi
                     // last-import-report-save · 导入完成后暴露报告 zip 保存入口。
                     // 仅在 isImport == true 显示(导出 Done 无报告);缓存 null(VM cleared)置灰。
                     if (s.isImport) {
-                        val canSave = viewModel.lastImportReportZipBytes != null
+                        val canSave = viewModel.lastImportReportFile != null
                         Spacer(Modifier.height(12.dp))
                         OutlinedButton(
                             enabled = canSave,

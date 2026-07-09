@@ -3,6 +3,7 @@ package com.yy.writingwithai.feature.my.entity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.writingwithai.core.data.db.NoteDao
+import com.yy.writingwithai.core.data.db.dao.entity.EntityAliasDao
 import com.yy.writingwithai.core.data.db.dao.entity.NoteEntityDao
 import com.yy.writingwithai.core.note.entity.EntityType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +18,7 @@ import kotlinx.coroutines.withContext
 @HiltViewModel
 class EntityDetailViewModel @Inject constructor(
     private val entityDao: NoteEntityDao,
+    private val aliasDao: EntityAliasDao,
     private val noteDao: NoteDao
 ) : ViewModel() {
 
@@ -61,14 +63,21 @@ class EntityDetailViewModel @Inject constructor(
                     source = hits.firstOrNull()?.source ?: "AI_EXTRACTED"
                 )
             }
-            val notes = hits.mapNotNull { hit ->
-                val note = withContext(Dispatchers.IO) { noteDao.getById(hit.noteId) } ?: return@mapNotNull null
-                AssociatedNote(
-                    noteId = hit.noteId,
-                    title = note.title,
-                    preview = buildSnippet(note.title, note.content, hit.spanStart, hit.spanEnd),
-                    source = hit.source
-                )
+            val notes = withContext(Dispatchers.IO) {
+                // fix M39 (full-review):之前 hits.mapNotNull 内每个 hit 调一次
+                // noteDao.getById → N+1 SQL 查询,hits 上限 200 时对 UI 延迟 + Room IO
+                // 都有负担。改用新增的 NoteDao.getByIds IN(...) 一次拿,本地 Map 查表。
+                val ids = hits.map { it.noteId }
+                val byId = noteDao.getByIds(ids).associateBy { it.id }
+                hits.mapNotNull { hit ->
+                    val note = byId[hit.noteId] ?: return@mapNotNull null
+                    AssociatedNote(
+                        noteId = hit.noteId,
+                        title = note.title,
+                        preview = buildSnippet(note.title, note.content, hit.spanStart, hit.spanEnd),
+                        source = hit.source
+                    )
+                }
             }
             _uiState.value = _uiState.value.copy(notes = notes, loading = false)
         }
@@ -83,9 +92,16 @@ class EntityDetailViewModel @Inject constructor(
     }
 
     fun confirmDelete() {
-        val key = _uiState.value.entityKey
+        val state = _uiState.value
+        val key = state.entityKey
+        val entityType = state.entityType
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { entityDao.deleteByEntityKey(key) }
+            withContext(Dispatchers.IO) {
+                entityDao.deleteByEntityKey(key)
+                // fix M11 (full-review):同时清 entity_aliases 别名行(aliasKey 或
+                // canonicalEntityKey = 该 entity),防止孤儿 alias 污染反向链接。
+                aliasDao.deleteByEntityKey(entityType, key)
+            }
             _uiState.value = _uiState.value.copy(deleted = true, showDeleteConfirm = false)
         }
     }

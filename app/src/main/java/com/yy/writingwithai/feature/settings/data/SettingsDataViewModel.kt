@@ -11,8 +11,8 @@ import com.yy.writingwithai.core.data.export.NoteExporter
 import com.yy.writingwithai.core.data.export.NoteImporter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -139,16 +139,19 @@ constructor(
             try {
                 val report =
                     withContext(ioDispatcher) {
-                        val bytes =
-                            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        val rawIn =
+                            context.contentResolver.openInputStream(uri)
                                 ?: return@withContext ImportReport()
                         val out = ByteArrayOutputStream()
                         val r =
-                            noteImporter.importFromZip(
-                                ByteArrayInputStream(bytes),
-                                out
-                            )
-                        lastImportReportZipBytes = out.toByteArray()
+                            noteImporter.importFromZip(rawIn, out)
+                        // fix M73 (full-review):原版 out.toByteArray() 把整个
+                        // 报告 zip 全复制到堆,大导出(全量笔记+附件)易 OOM。
+                        // 改为落 cacheDir 临时文件,saveImportReport 时流式拷,
+                        // 峰值内存 = 单条 note JSON,不再保留全量报告 zip bytes。
+                        val tmp = java.io.File(context.cacheDir, "import-report-${System.currentTimeMillis()}.zip")
+                        tmp.outputStream().use { fos -> out.writeTo(fos) }
+                        lastImportReportFile = tmp
                         r
                     }
                 _uiState.value = DataUiState.Done(report, isImport = true)
@@ -160,24 +163,24 @@ constructor(
         }
     }
 
-    /** 上次导入生成的 zip bytes(含 `import_report.md`),null = 未触发过导入或已清空。 */
-    var lastImportReportZipBytes: ByteArray? = null
+    /** 上次导入生成的 zip 文件(含 `import_report.md`),null = 未触发过导入或已清空。 */
+    var lastImportReportFile: java.io.File? = null
         private set
 
     /**
-     * last-import-report-save · 把 [lastImportReportZipBytes] 写到用户选的 SAF URI。
+     * last-import-report-save · 把 [lastImportReportFile] 流式拷到用户选的 SAF URI。
      *
      * 缓存为 null 时 no-op(不抛错，UI 端按钮已置灰，正常路径不会走到这里);
      * 写入走 `Dispatchers.IO`;失败 catch 后 emit [SaveReportResult.Failed],
      * **不**切 [DataUiState](避免覆盖 Done 态丢用户上下文)。
      */
     fun saveImportReport(uri: Uri) {
-        val bytes = lastImportReportZipBytes ?: return
+        val src = lastImportReportFile ?: return
         viewModelScope.launch {
             try {
                 withContext(ioDispatcher) {
                     context.contentResolver.openOutputStream(uri)?.use { stream ->
-                        stream.write(bytes)
+                        src.inputStream().use { it.copyTo(stream) }
                     } ?: error("openOutputStream returned null")
                 }
                 _lastSaveReportResult.value = SaveReportResult.Success

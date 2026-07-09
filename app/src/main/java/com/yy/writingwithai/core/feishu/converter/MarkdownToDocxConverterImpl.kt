@@ -173,9 +173,23 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
      * fix-2026-06-26-review-r3 HIGH H10:code-fence 判定。
      * CommonMark 规范:open/close fence 行首最多 3 空格缩进;4+ 空格是普通文本。
      * 此处要求行首无空白，与 spec "严格 fence" 一致 — 避免误把缩进段落当作 fence。
+     *
+     * fix M15 (full-review):之前 `!line.startsWith("    ```")` 只匹配 0 空格或 4+ 空格,
+     * CommonMark 允许 1-3 空格缩进的 fence。改用 indent 计算:行首空格数 in [0,3] 才算合法 fence。
+     * (像:
+     * ```
+     *    ```kotlin
+     *    code
+     *    ```
+     * ```
+     * 这种合法的 3 空格缩进 fence 之前会被忽略。)
      */
-    private fun isFenceOpen(line: String): Boolean =
-        !line.isBlank() && line.startsWith("```") && !line.startsWith("    ```")
+    private fun isFenceOpen(line: String): Boolean {
+        if (line.isBlank()) return false
+        val indent = line.takeWhile { it == ' ' }.length
+        if (indent !in 0..3) return false
+        return line.trimStart().startsWith("```")
+    }
 
     private fun isFenceClose(line: String): Boolean = isFenceOpen(line)
 
@@ -227,8 +241,18 @@ class MarkdownToDocxConverterImpl @Inject constructor() : MarkdownToDocxConverte
                     runs += Run(text = m.groupValues[1], linkUrl = m.groupValues[2])
                 }
                 "code" -> runs += Run(text = inner.removeSurrounding("`"), code = true)
-                "bold" -> runs += Run(text = inner.removeSurrounding("**"), bold = true)
-                "italic" -> runs += Run(text = inner.removeSurrounding("*"), italic = true)
+                "bold" -> {
+                    // fix M16 (full-review):之前 bold 内部丢掉 italic — `**bold *italic* bold**`
+                    // 只产生 Run(bold)="bold *italic* bold",italic 不渲染。删掉外层 marker 后
+                    // 把 inner 再 parse 一遍,嵌套的 italic/link/code 会保留格式。
+                    val innerStripped = inner.removeSurrounding("**")
+                    runs += parseRuns(innerStripped).map { it.copy(bold = true) }
+                }
+                "italic" -> {
+                    // 同 M16:italic 内可能还有 link/code,递归 + 套上 italic 标记。
+                    val innerStripped = inner.removeSurrounding("*")
+                    runs += parseRuns(innerStripped).map { it.copy(italic = true) }
+                }
             }
             remaining = remaining.substring(end)
         }
