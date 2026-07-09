@@ -1,0 +1,171 @@
+docs/reviews/2026-07-09-full-project-code-review-r1.md
+  s_e1a5ec24fe1c0a::t_8d4141cda5da9d 1-281
+app/src/main/java/com/yy/writingwithai/app/AppNav.kt
+  s_fb567d403ceea1::t_d9d7f209d98c3d 254-256
+app/src/main/java/com/yy/writingwithai/app/AppNavSettingsRoutes.kt
+  s_fb567d403ceea1::t_f00d2c7fd5a28f 1-109
+app/src/main/java/com/yy/writingwithai/app/WritingApp.kt
+  s_fb567d403ceea1::t_78698dd387bf25 14,48-51
+app/src/main/java/com/yy/writingwithai/app/ui/theme/Shape.kt
+  s_fb567d403ceea1::t_9155cdc827d613 7-13,15-24
+app/src/main/java/com/yy/writingwithai/app/ui/theme/Theme.kt
+  s_fb567d403ceea1::t_1608bde4fc23a1 23,164-166
+app/src/main/java/com/yy/writingwithai/core/ai/CoreAiGateway.kt
+  s_fb567d403ceea1::t_a1057f8f7feee4 169-183
+app/src/main/java/com/yy/writingwithai/core/ai/api/AiRequest.kt
+  s_fb567d403ceea1::t_45051edd66c483 16-22
+app/src/main/java/com/yy/writingwithai/core/ai/provider/AnthropicCompatibleAdapter.kt
+  s_fb567d403ceea1::t_88f83d4f011021 11,64-67,71-74,83-86,95-96,118-306,539,543
+app/src/main/java/com/yy/writingwithai/core/ai/provider/ProviderConfig.kt
+  s_fb567d403ceea1::t_b60750a5dbd182 37-41,44
+app/src/main/java/com/yy/writingwithai/core/ai/stream/SseEvent.kt
+  s_fb567d403ceea1::t_bbec3175f445c7 3-9,11-15
+app/src/main/java/com/yy/writingwithai/core/ai/stream/SseParser.kt
+  s_fb567d403ceea1::t_9e4da9da6f1136 27,35-36,59-73,78-79,83,95-100,113,141,149-151
+app/src/main/java/com/yy/writingwithai/core/data/db/NoteDao.kt
+  s_fb567d403ceea1::t_29629a6ef9fa4a 27-32,102-110
+app/src/main/java/com/yy/writingwithai/core/data/db/dao/NoteLinkDao.kt
+  s_fb567d403ceea1::t_d27d3c4cf8777f 28-31
+app/src/main/java/com/yy/writingwithai/core/data/db/dao/entity/EntityAliasDao.kt
+  s_fb567d403ceea1::t_7429f4338a921e 19-27
+app/src/main/java/com/yy/writingwithai/core/data/di/DataModule.kt
+  s_fb567d403ceea1::t_6bc39f04b61478 37-45
+app/src/main/java/com/yy/writingwithai/core/data/export/NoteExporter.kt
+  s_fb567d403ceea1::t_2768c6874dd749 3,44-47
+app/src/main/java/com/yy/writingwithai/core/data/export/NoteImporter.kt
+  s_fb567d403ceea1::t_8356958a81c404 181-189
+app/src/main/java/com/yy/writingwithai/core/data/export/ZipHelper.kt
+  s_fb567d403ceea1::t_cdded1a4e4a25f 21-25,63,81-95,103-112
+app/src/main/java/com/yy/writingwithai/core/data/repo/NoteRepository.kt
+  s_fb567d403ceea1::t_0892843c3e2fb4 206-207,212-213
+app/src/main/java/com/yy/writingwithai/core/feishu/api/AuthInterceptor.kt
+  s_fb567d403ceea1::t_fbbbfde726b1d9 82-84,86
+app/src/main/java/com/yy/writingwithai/core/feishu/api/FeishuApiClientImpl.kt
+  s_fb567d403ceea1::t_9fc08f0f47c280 27,134,212-218,220-245,261-266,270-287,289-291,293-323,325-336,338
+app/src/main/java/com/yy/writingwithai/core/feishu/auth/OAuthLauncher.kt
+  s_fb567d403ceea1::t_42097884919e02 53-55,66-67
+app/src/main/java/com/yy/writingwithai/core/feishu/auth/UserTokenProvider.kt
+  s_fb567d403ceea1::t_6e44895fb64438 203-205,210-211
+app/src/main/java/com/yy/writingwithai/core/feishu/converter/MarkdownToDocxConverterImpl.kt
+  s_fb567d403ceea1::t_6df2ffaa298013 176-185,187-192,244-255
+app/src/main/java/com/yy/writingwithai/core/feishu/converter/MarkdownToXmlConverter.kt
+  s_fb567d403ceea1::t_7b8e4c6a06ec69 54-61,149-163
+app/src/main/java/com/yy/writingwithai/core/feishu/sync/FeishuDocService.kt
+  s_fb567d403ceea1::t_d3ba083ca9dc5f 226-243,277,279,282-283,287,290-291,299,302-303
+app/src/main/java/com/yy/writingwithai/core/feishu/sync/FeishuImageDownloader.kt
+  s_fb567d403ceea1::t_522e794ab9715b 143-148,153-155,261-294
+app/src/main/java/com/yy/writingwithai/core/feishu/sync/FeishuImportService.kt
+  s_fb567d403ceea1::t_82e6147325c014 256-257,264
+app/src/main/java/com/yy/writingwithai/core/feishu/sync/FeishuSyncService.kt
+  s_fb567d403ceea1::t_6852987a119d87 15-26,158-175,257-270,272,274-291,293-322,324,337-355,357,360-362
+app/src/main/java/com/yy/writingwithai/core/media/LruBitmapCache.kt
+  s_fb567d403ceea1::t_456a826112d8db 9-10,15-20
+app/src/main/java/com/yy/writingwithai/core/note/backfill/BackfillWorker.kt
+  s_fb567d403ceea1::t_9881604a06128f 26-31,33
+app/src/main/java/com/yy/writingwithai/core/note/entity/LlmEntityExtractor.kt
+  s_fb567d403ceea1::t_aa143a432783ed 3,8,43,80-84,109-113,119-145,205-217,219
+app/src/main/java/com/yy/writingwithai/core/note/entity/NoteEntityMatcher.kt
+  s_fb567d403ceea1::t_f23d7033cfc588 3-4,30-31,44-46,49-66,69-74
+app/src/main/java/com/yy/writingwithai/core/note/impl/EntityBacklinker.kt
+  s_fb567d403ceea1::t_d86eec9592c338 9-11,75-79,84-86
+app/src/main/java/com/yy/writingwithai/core/note/impl/LocalNoteLinker.kt
+  s_fb567d403ceea1::t_585cb00f554dac 9-11,126-130,132-134
+app/src/main/java/com/yy/writingwithai/core/note/impl/WikilinkIndexer.kt
+  s_fb567d403ceea1::t_4f956af19e0f87 20-24,26,39-43
+app/src/main/java/com/yy/writingwithai/core/note/wikilink/WikilinkParser.kt
+  s_fb567d403ceea1::t_2e96744e8d5358 16-17,19
+app/src/main/java/com/yy/writingwithai/core/prefs/ConsentStore.kt
+  s_fb567d403ceea1::t_c357a2c59ccfc9 12,60-64
+app/src/main/java/com/yy/writingwithai/core/prefs/PrefsModule.kt
+  s_fb567d403ceea1::t_892c0e999a8215 8,15,32-37
+app/src/main/java/com/yy/writingwithai/core/prefs/PromptTemplateStore.kt
+  s_fb567d403ceea1::t_f3a3ced8bbfc46 51-53,56-58,65-67,122-133
+app/src/main/java/com/yy/writingwithai/core/prefs/SearchHistoryStore.kt
+  s_fb567d403ceea1::t_adc66eb80bcd84 9-11,16-20,22-28,33,43,51,56-78
+app/src/main/java/com/yy/writingwithai/core/serialization/JsonConfig.kt
+  s_fb567d403ceea1::t_f4b0ba414b02af 1,3,6-16,18-22
+app/src/main/java/com/yy/writingwithai/core/ui/animation/ReduceMotionReader.kt
+  s_fb567d403ceea1::t_d98eb57a6d1f59 1-27
+app/src/main/java/com/yy/writingwithai/core/ui/dropdown/AppDropdownMenu.kt
+  s_fb567d403ceea1::t_5dd521cae62dd4 28,209-211,214
+app/src/main/java/com/yy/writingwithai/core/update/ApkDownloader.kt
+  s_fb567d403ceea1::t_833c8ff8dea63a 26-27,34,36,52-56,67-70
+app/src/main/java/com/yy/writingwithai/core/update/AppUpdateManifest.kt
+  s_fb567d403ceea1::t_0cea01b63828fe 20-22,24-40
+app/src/main/java/com/yy/writingwithai/core/update/UpdateDownloadReceiver.kt
+  s_fb567d403ceea1::t_ae5bdd0bfb6eb2 8-9,13,43-52,76,81-82,87,101,109,116-117,138-150,157-170,173,197-204
+app/src/main/java/com/yy/writingwithai/core/update/UpdateError.kt
+  s_fb567d403ceea1::t_6420abcaea9234 18,20
+app/src/main/java/com/yy/writingwithai/core/widget/QuickNote1x1Widget.kt
+  s_fb567d403ceea1::t_bdb00d2faccdb9 25,48
+app/src/main/java/com/yy/writingwithai/core/widget/QuickNoteWidgetUpdater.kt
+  s_fb567d403ceea1::t_6412b621c6f5a1 26-28,30-31
+app/src/main/java/com/yy/writingwithai/core/widget/WidgetState.kt
+  s_fb567d403ceea1::t_c499b7b0a33d58 11-16
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionViewModel.kt
+  s_fb567d403ceea1::t_caa0bbaf24a5f0 201
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/StreamingPanel.kt
+  s_fb567d403ceea1::t_1cb2e8e62e4345 109-112,114-116,120-124
+app/src/main/java/com/yy/writingwithai/feature/feishuimport/FolderImportScreen.kt
+  s_fb567d403ceea1::t_437399e9de7476 159-162,166
+app/src/main/java/com/yy/writingwithai/feature/feishuimport/FolderImportViewModel.kt
+  s_fb567d403ceea1::t_be4175a82e0438 3,6,29-40,49,57-61,63-74
+app/src/main/java/com/yy/writingwithai/feature/my/entity/EntityDetailViewModel.kt
+  s_fb567d403ceea1::t_30b9b2e5854da2 6,21,66-80,95-97,99-104
+app/src/main/java/com/yy/writingwithai/feature/my/entity/EntityManagementViewModel.kt
+  s_fb567d403ceea1::t_63f90f17bca4d1 11,15-18,22,50-57,63-64,69,74,118-121,123-126,128-130,132
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailHelpers.kt
+  s_fb567d403ceea1::t_cc41725e646a73 1-152
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailScreen.kt
+  s_fb567d403ceea1::t_3cdfc18f69b069 314-317,892-907,917-919,928-929,943,950,957,964,971,1242-1244
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailViewModel.kt
+  s_fb567d403ceea1::t_81e8f683091df3 202,204-205,207-208,239-241,243-244,295,297-298,300-301,330-335,338,386,388-389,391-392,512-536,543-558
+app/src/main/java/com/yy/writingwithai/feature/quicknote/edit/QuickNoteEditorViewModel.kt
+  s_fb567d403ceea1::t_ea1ebf6f853bfd 200-203,205,209-210,213-218,229-251,253-259,261-263
+app/src/main/java/com/yy/writingwithai/feature/quicknote/edit/WikilinkAutocomplete.kt
+  s_fb567d403ceea1::t_8c90185d76b920 19,22,59-60,62
+app/src/main/java/com/yy/writingwithai/feature/quicknote/list/QuickNoteListScreen.kt
+  s_fb567d403ceea1::t_d4fdfcea285b0f 129,306-307
+app/src/main/java/com/yy/writingwithai/feature/quicknote/list/QuickNoteListViewModel.kt
+  s_fb567d403ceea1::t_43e4a35b303f02 11,47-49,89-92,95,100-108
+app/src/main/java/com/yy/writingwithai/feature/settings/animation/AnimationDetailViewModel.kt
+  s_fb567d403ceea1::t_67a32e780ee98c 8,67
+app/src/main/java/com/yy/writingwithai/feature/settings/animation/AnimationStylePreviewViewModel.kt
+  s_fb567d403ceea1::t_1f232fcb90f0f1 9,60
+app/src/main/java/com/yy/writingwithai/feature/settings/data/SettingsDataScreen.kt
+  s_fb567d403ceea1::t_1f3864a84e6388 189
+app/src/main/java/com/yy/writingwithai/feature/settings/data/SettingsDataViewModel.kt
+  s_fb567d403ceea1::t_c0b09a29291694 15,142-143,147-154,166-167,171,178,183
+app/src/main/java/com/yy/writingwithai/feature/settings/i18n/SettingsLanguageScreen.kt
+  s_fb567d403ceea1::t_f2fadbc186c158 62,68-69
+app/src/main/res/values/strings.xml
+  s_fb567d403ceea1::t_148b7f77f95f5a 448-456,666-667,791-796
+docs/progress.md
+  s_fb567d403ceea1::t_2d0632f10710b4 5-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "294e4baed71ed7a80c55de3451c9e2b04ac706ab",
+  "prompts": {},
+  "sessions": {
+    "s_e1a5ec24fe1c0a": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a4f738ba3f2c68ab9010f7a",
+        "model": "gpt-5.5__max"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_fb567d403ceea1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5a51f160-053d-4fae-841c-105caf76311b",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
