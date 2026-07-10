@@ -1,0 +1,21 @@
+app/build.gradle.kts
+  s_fb567d403ceea1::t_0d18374a553ad8 27-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6af9521067e1ee55a8d685dfd53c863d0151a117",
+  "prompts": {},
+  "sessions": {
+    "s_fb567d403ceea1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5a51f160-053d-4fae-841c-105caf76311b",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
