@@ -72,39 +72,34 @@ internal fun buildEntityAnnotatedString(
         }
         .filterNotNull()
 
-    // 2) 按原始 content 顺序生成"普通段 / 实体段"事件序列
+    // 2) 按原始 content 顺序生成"实体段 / 普通段"事件序列
+    // entity-overlap-coverage:用"最长覆盖 entity"替代"严格边界匹配"。
+    // 原 line 87 要求 `r.first == segStart && r.last + 1 == segEnd`,嵌套场景(如
+    // "有效上下文覆盖" + "初筛阶段" 重叠)下内层段没 owner,被当普通段,click 不弹 sheet。
+    // 新规则:对每个 breakpoint 段找"完全覆盖该段的最长 entity";没有则普通段。
     val events = buildList<Pair<IntRange, EntityHighlight?>> {
-        val breakpoints = sortedSetOf(0, content.length)
+        val points = sortedSetOf(0, content.length)
         entityRanges.forEach { (r, _) ->
-            breakpoints.add(r.first)
-            breakpoints.add(r.last + 1)
+            points.add(r.first)
+            points.add(r.last + 1)
         }
-        val points = breakpoints.toList()
-        for (i in 0 until points.size - 1) {
-            val segStart = points[i]
-            val segEnd = points[i + 1]
+        val sortedPoints = points.toList()
+        // 按 span 长度降序:取覆盖段时选最长的那个(优先显示大段)
+        val sortedByLength = entityRanges.sortedByDescending { it.first.last - it.first.first }
+        for (i in 0 until sortedPoints.size - 1) {
+            val segStart = sortedPoints[i]
+            val segEnd = sortedPoints[i + 1]
             if (segStart >= segEnd) continue
-            val owner = entityRanges.firstOrNull { (r, _) -> r.first == segStart && r.last + 1 == segEnd }
-            if (owner != null) {
-                add(segStart until segEnd to owner.second)
-            } else {
-                // 普通段:跳过其中被任何 entity 覆盖的部分
-                var cursor = segStart
-                val sortedEntityRanges = entityRanges.map { it.first }.sortedBy { it.first }
-                for (er in sortedEntityRanges) {
-                    val erS = er.first
-                    val erE = er.last + 1
-                    if (erS >= segEnd || erE <= segStart) continue
-                    if (cursor < erS) {
-                        add(cursor until erS to null)
-                    }
-                    cursor = maxOf(cursor, erE)
-                    if (cursor >= segEnd) break
-                }
-                if (cursor < segEnd) {
-                    add(cursor until segEnd to null)
-                }
+            val covering = sortedByLength.firstOrNull { (r, _) ->
+                r.first <= segStart && r.last + 1 >= segEnd
             }
+            add(
+                if (covering != null) {
+                    segStart until segEnd to covering.second
+                } else {
+                    segStart until segEnd to null
+                }
+            )
         }
     }
 

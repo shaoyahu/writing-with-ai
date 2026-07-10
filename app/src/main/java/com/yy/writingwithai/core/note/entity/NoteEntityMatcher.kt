@@ -46,16 +46,21 @@ constructor(
         // 改成 while-loop 从 start 之后继续 indexOf,产出多个 span。
         for ((entityKey, entityType, surface) in known) {
             if (surface.isBlank()) continue
+            // entity-strip-alignment:DB 已知 surfaceForm 可能仍含 LLM 历史写入的引号
+            // (commit 8eddc52 之前未 strip),先 strip 后做 indexOf,保证 spanStart/spanEnd
+            // 指向 cleaned 字符位置 —— 与 LlmEntityExtractor 当前写入路径一致。
+            val cleaned = stripWrappingQuotes(surface)
+            if (cleaned.isBlank()) continue
             var cursor = 0
             while (true) {
-                val start = content.indexOf(surface, startIndex = cursor)
+                val start = content.indexOf(cleaned, startIndex = cursor)
                 if (start < 0) break
-                val end = (start + surface.length).coerceAtMost(content.length)
+                val end = (start + cleaned.length).coerceAtMost(content.length)
                 newRows += NoteEntityRow(
                     noteId = noteId,
                     entityType = entityType,
                     entityKey = entityKey,
-                    surfaceForm = surface,
+                    surfaceForm = cleaned,
                     spanStart = start,
                     spanEnd = end,
                     lastExtractedAt = now,
@@ -74,4 +79,19 @@ constructor(
         }
         return newRows.size
     }
+}
+
+/**
+ * entity-strip-alignment:剥离 LLM 输出里两端的连续引号字符
+ * (""训练稳定性""、"训练稳定性"、'训练稳定性')。全引号 -> 原样返回。
+ */
+private fun stripWrappingQuotes(s: String): String {
+    if (s.isEmpty()) return s
+    val quoteChars = setOf('“', '”', '‘', '’', '"', '\'')
+    var leading = 0
+    while (leading < s.length && s[leading] in quoteChars) leading++
+    var trailing = 0
+    while (trailing < s.length - leading && s[s.length - 1 - trailing] in quoteChars) trailing++
+    if (leading + trailing >= s.length) return s
+    return s.substring(leading, s.length - trailing)
 }

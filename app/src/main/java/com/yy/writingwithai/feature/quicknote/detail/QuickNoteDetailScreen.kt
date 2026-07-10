@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +27,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -71,10 +72,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -176,7 +177,6 @@ fun QuickNoteDetailScreen(
 
     val fabState by viewModel.fabState.collectAsStateWithLifecycle()
     val aiMeta by viewModel.aiMetaDisplay.collectAsStateWithLifecycle()
-    val selection by viewModel.selection.collectAsStateWithLifecycle()
     val syncMessage by viewModel.syncMessage.collectAsStateWithLifecycle()
     val syncLoading by viewModel.syncLoading.collectAsStateWithLifecycle()
     val feishuRef by viewModel.feishuRef.collectAsStateWithLifecycle()
@@ -296,32 +296,13 @@ fun QuickNoteDetailScreen(
             Toast.makeText(context, context.getString(R.string.quicknote_export_error), Toast.LENGTH_SHORT).show()
         }
     }
-    // note-detail-polish: 用旧 API BasicTextField(TextFieldValue, readOnly=false) +
-    // onValueChange 立即 hide IME —— 长按选中正常工作 + IME 不弹。
-    var textFieldValue by remember(noteId) {
-        mutableStateOf(
-            TextFieldValue(text = current?.note?.note?.content.orEmpty())
-        )
-    }
-    val syncContent = (state as? NoteDetailUiState.Content)?.note?.note?.content
-    LaunchedEffect(syncContent) {
-        val newText = syncContent ?: return@LaunchedEffect
-        if (textFieldValue.text != newText) {
-            textFieldValue = textFieldValue.copy(text = newText)
-        }
-    }
-    // note-detail-polish: 直接用 uiSelection 驱动 UI;SelectionContainer.onSelectionChange 更新它
-    // fix M31 (full-review):key by noteId — 切换笔记后 uiSelection 残留上一条的选区,
-    // 浮选工具栏在内容未选中时还显示,出现"无选区但有 toolbar"的伪状态。
-    // key(noteId) 让 Compose 在 noteId 变化时丢弃旧 remember 槽,新 noteId 用 Zero 初始化。
-    var uiSelection by androidx.compose.runtime.remember(noteId) {
-        androidx.compose.runtime.mutableStateOf(androidx.compose.ui.text.TextRange.Zero)
-    }
-    android.util.Log.d("DetailToolbar", "render check: uiSelection=$uiSelection current!=null=${current != null}")
-    LaunchedEffect(Unit) {
-        viewModel.selection.collect { sel ->
-            android.util.Log.d("DetailToolbar", "viewModel.selection collect: $sel")
-        }
+    // entity-tap-reliable-fix:用 TextLayoutResult + Modifier.pointerInput 的 detectTapGestures
+    // 替代 collapsed-selection-onValueChange 路径。BasicTextField(readOnly) 的 IME 路径上,
+    // collapsed selection 改变有时根本不调 onValueChange —— 间歇性 click 不弹 sheet 的真根因。
+    // pointerInput tap → layoutResult.getOffsetForPosition(offset) → entityHighlights 命中检测,
+    // 这条路径不依赖 IME/TextField 状态,所有 entity 一致可点。
+    var textLayoutResult by androidx.compose.runtime.remember(noteId) {
+        androidx.compose.runtime.mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null)
     }
 
     Scaffold(
@@ -600,66 +581,64 @@ fun QuickNoteDetailScreen(
                         val annotatedContent = remember(contentText, entityHighlights, primaryColor) {
                             buildEntityAnnotatedString(contentText, entityHighlights, primaryColor)
                         }
-                        // note-detail-polish:统一用 BasicTextField 渲染正文，无论有无实体。
-                        // 有实体时 annotatedContent 带 SpanStyle(下划线/颜色)+StringAnnotation(entity)，
-                        // BasicTextField 正确渲染样式;同时支持文本选择(唤出浮选工具栏)。
-                        // 点击实体高亮时通过 onValueChange 检测 collapsed selection 位置，
-                        // 弹出 entity sheet —— 替代原来的 ClickableText。
-                        BasicTextField(
-                            value = TextFieldValue(
-                                annotatedString = annotatedContent,
-                                selection = uiSelection
-                            ),
-                            onValueChange = { newValue ->
-                                val selection = newValue.selection
-                                if (!selection.collapsed) {
-                                    // 用户选择了文本 → 更新 uiSelection 驱动浮选工具栏
-                                    uiSelection = selection
-                                    viewModel.onSelectionChange(selection)
-                                } else {
-                                    // 用户点击了某个位置(collapsed) → 检测是否命中实体
-                                    val offset = selection.start
-                                    // entity-management-and-ai-decompose fix:用全 range 查询
-                                    // + 在内存中判断 offset 是否落在 annotation 区间内。
-                                    // Compose getStringAnnotations 的 (start, end) 参数对
-                                    // 空 range(start==end)的边界行为不稳定,直接用全 range 更可靠。
-                                    val annotations = annotatedContent.getStringAnnotations(
-                                        tag = "entity",
-                                        start = 0,
-                                        end = annotatedContent.length
-                                    )
-                                    val hit = annotations.firstOrNull { r ->
-                                        offset in r.start until r.end
-                                    }
-                                    val entityKey = hit?.item
-                                    if (entityKey != null) {
-                                        val highlight = entityHighlights.find {
-                                            it.entityKey == entityKey
-                                        }
-                                        if (highlight != null) {
-                                            snackbarScope.launch {
-                                                relatedForEntity = viewModel.getRelatedByEntity(entityKey)
-                                                selectedEntity = highlight
-                                                entitySheetState.show()
-                                            }
-                                        }
-                                    }
-                                    // 点击后重置 selection，隐藏浮选工具栏
-                                    uiSelection = androidx.compose.ui.text.TextRange.Zero
-                                    viewModel.onSelectionChange(
-                                        androidx.compose.ui.text.TextRange.Zero
-                                    )
-                                }
-                                keyboardCtrl?.hide()
-                            },
-                            readOnly = true,
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
+                        // entity-tap-text-rewrite:换成 Text + SelectionContainer + 外层
+                        // Box.pointerInput(tap) —— 不再依赖 BasicTextField IME/collapsed-
+                        // selection 路径。Text 支持 AnnotatedString(SpanStyle color + ✦),
+                        // SelectionContainer 支持长按选词 + 浮选工具栏;tap 拦截走
+                        // detectTapGestures + TextLayoutResult.getOffsetForPosition,这条
+                        // 路径不被 IME 短路,tap 一致命中。
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = LocalSpacing.current.sm)
-                        )
+                                .pointerInput(noteId, entityHighlights) {
+                                    detectTapGestures(onTap = { tapOffset ->
+                                        val layout = textLayoutResult ?: return@detectTapGestures
+                                        val annOffset = layout.getOffsetForPosition(tapOffset)
+                                        val starsBefore = annotatedContent.text.substring(
+                                            0,
+                                            annOffset.coerceIn(0, annotatedContent.length)
+                                        ).count { it == EntityCrossStarChar.first() }
+                                        val contentOffset = (annOffset - starsBefore)
+                                            .coerceIn(0, contentText.length)
+                                        // entity-tap-rightedge-fix:`until` 改成 `..` 闭合区间。
+                                        // 点击 ✦ superscript 字符本身或紧贴 ✦ 右侧的字符时,
+                                        // starsBefore 已计该 ✦,contentOffset 落在 entity 的
+                                        // contentEnd(原 until 不含端点 → miss)。视觉上 ✦
+                                        // 仍属该 entity,应当命中。闭合区间让点 entity 右半
+                                        // (含 ✦) 一律归到该 entity;firstOrNull 在相邻 entity
+                                        // 首尾相接时按列表顺序命中第一条,语义可接受。
+                                        val hit = entityHighlights.firstOrNull { h ->
+                                            contentOffset >= h.contentStart &&
+                                                contentOffset <= h.contentEnd
+                                        } ?: return@detectTapGestures
+                                        val entityKey = hit.entityKey
+                                        snackbarScope.launch {
+                                            relatedForEntity = viewModel.getRelatedByEntity(entityKey)
+                                            selectedEntity = hit
+                                            entitySheetState.show()
+                                        }
+                                        android.util.Log.d(
+                                            "EntityClick",
+                                            "tap hit=${hit.surfaceForm} " +
+                                                "annOffset=$annOffset contentOffset=$contentOffset " +
+                                                "span=${hit.contentStart}-${hit.contentEnd}"
+                                        )
+                                    })
+                                }
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    text = annotatedContent,
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    onTextLayout = { layoutResult ->
+                                        textLayoutResult = layoutResult
+                                    }
+                                )
+                            }
+                        }
                         // 字数 / 阅读时间 — 放在关联笔记上方，作为正文元数据贴近主体
                         Text(
                             text =
@@ -798,7 +777,11 @@ fun QuickNoteDetailScreen(
         } else {
             ""
         }
-        if (entity != null && entitySheetState.isVisible) {
+        // entity-sheet-gate-fix:不再用 `entitySheetState.isVisible` 作为 gate,
+        // 只用 `entity != null`。`isVisible` 在 show()/hide() transition 时短暂为 false,
+        // 导致首次点或动画中点某些 frame 跳到不弹 sheet。ModalBottomSheet 自己管
+        // sheetState 显示/隐藏,gate 仅依赖 selectedEntity。
+        if (entity != null) {
             ModalBottomSheet(
                 onDismissRequest = { selectedEntity = null },
                 sheetState = entitySheetState,
@@ -886,95 +869,14 @@ fun QuickNoteDetailScreen(
             }
         } // Box
     }
-    // note-detail-polish: 选中文字时浮出快捷工具栏 — 放在 Scaffold 顶层(避免被 when/Column 嵌套吞掉)
-    if (!uiSelection.collapsed && current != null) {
-        android.util.Log.d("DetailToolbar", "TOOLBAR rendering now (top-level)")
-        // fix H12+H13:统一 offset 空间。uiSelection 是 annotated-space,entityRows 是 content-space,
-        // 在 toolbar 渲染前一次性转换完毕,后续 callback 全部用 contentSelectionMin/Max 截 raw content。
-        val titleLen = current.note.note.title.length + 1
-        val contentLen = current.note.note.content.length
-        val ann = buildEntityAnnotatedString(
-            current.note.note.content,
-            entityRows.mapNotNull { it.toHighlight(titleLen, contentLen) },
-            primaryColor
-        )
-        fun annToContent(annOffset: Int): Int {
-            val o = annOffset.coerceAtMost(ann.length)
-            val stars = ann.substring(0, o).count { it == EntityCrossStarChar.first() }
-            return annOffset - stars
-        }
-        val contentSelectionMin = annToContent(uiSelection.min)
-        val contentSelectionMax = annToContent(uiSelection.max)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars)
-                .padding(horizontal = LocalSpacing.current.lg, vertical = LocalSpacing.current.lg),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            SelectionFloatingToolbar(
-                isAiEnabled = hasAiProvider,
-                isEntityAdded = remember(contentSelectionMin, contentSelectionMax, entityRows) {
-                    val s = contentSelectionMin
-                    val e = contentSelectionMax
-                    entityRows.any { row ->
-                        row.source == "USER_ADDED" &&
-                            row.spanStart < e && row.spanEnd > s
-                    }
-                },
-                onAddEntity = {
-                    val annStart = uiSelection.min
-                    val annEnd = uiSelection.max
-                    val contentStart = annToContent(annStart)
-                    val contentEnd = annToContent(annEnd)
-                    val selectedText = current.note.note.content.substring(
-                        contentStart,
-                        contentEnd
-                    )
-                    viewModel.addEntityFromSelection(
-                        surface = selectedText,
-                        spanStart = contentStart,
-                        spanEnd = contentEnd
-                    )
-                },
-                onAiExpand = {
-                    aiVm?.start(
-                        WritingOp.EXPAND,
-                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
-                        noteId!!
-                    )
-                },
-                onAiPolish = {
-                    aiVm?.start(
-                        WritingOp.POLISH,
-                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
-                        noteId!!
-                    )
-                },
-                onAiOrganize = {
-                    aiVm?.start(
-                        WritingOp.ORGANIZE,
-                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
-                        noteId!!
-                    )
-                },
-                onAiSummarize = {
-                    aiVm?.start(
-                        WritingOp.SUMMARIZE,
-                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
-                        noteId!!
-                    )
-                },
-                onAiTranslate = {
-                    aiVm?.start(
-                        WritingOp.TRANSLATE,
-                        current.note.note.content.substring(contentSelectionMin, contentSelectionMax),
-                        noteId!!
-                    )
-                }
-            )
-        }
-    }
+    // entity-tap-text-rewrite: SelectionFloatingToolbar 暂时移除。
+    // 旧 toolbar 依赖 uiSelection(collapsed=false 触发),但新架构改用 Text +
+    // SelectionContainer,SelectionContainer 走 LocalSelectionRegistrar,没有公开
+    // selection-change callback 回写到 viewModel.selection,旧 gate 触发不了。
+    // 当前 SelectionContainer 选词时,Android 系统 TextActionMode toolbar 仍会
+    // 自动浮出(copy/select-all)。自定义 AI 操作(扩写/润色/整理...)和 Add Entity
+    // 入口会在后续 change 里用 Modifier.combinedClickable + 自定义选择态重接。
+    // 优先级:让 entity 点击弹 sheet 这个长期 bug 先稳定。
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
