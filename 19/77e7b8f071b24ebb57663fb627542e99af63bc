@@ -1,0 +1,25 @@
+app/src/main/java/com/yy/writingwithai/core/note/entity/NoteEntityMatcher.kt
+  s_fb567d403ceea1::t_da55f4e1d05bdc 49-53,56,58,63,83-97
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailHelpers.kt
+  s_fb567d403ceea1::t_43a028d70fb9ac 75-79,81,83-84,86-91,93-94,96-102
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailScreen.kt
+  s_fb567d403ceea1::t_0c78658048b9aa 9,30,75,299-305,584-590,594-641,780-784,872-879
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "1977e7b8f071b24ebb57663fb627542e99af63bc",
+  "prompts": {},
+  "sessions": {
+    "s_fb567d403ceea1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5a51f160-053d-4fae-841c-105caf76311b",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
