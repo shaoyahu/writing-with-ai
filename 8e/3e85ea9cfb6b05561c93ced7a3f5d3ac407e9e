@@ -1,0 +1,57 @@
+app/schemas/com.yy.writingwithai.core.data.db.AppDatabase/14.json
+  s_4b09c899bde67b::t_da690bad2d5ca1 1-856
+app/src/androidTest/java/com/yy/writingwithai/core/data/db/AppDatabaseMigrationTest.kt
+  s_4b09c899bde67b::t_e6651c724c3aba 53-65
+app/src/main/java/com/yy/writingwithai/core/ai/CoreAiGateway.kt
+  s_4b09c899bde67b::t_1ebef85fa50fa0 120-122,221-224
+app/src/main/java/com/yy/writingwithai/core/ai/api/AiGateway.kt
+  s_4b09c899bde67b::t_0f37dc359ae1ac 20-30
+app/src/main/java/com/yy/writingwithai/core/data/db/AiHistoryDao.kt
+  s_4b09c899bde67b::t_229d7f3814f96c 18-35
+app/src/main/java/com/yy/writingwithai/core/data/db/AppDatabase.kt
+  s_4b09c899bde67b::t_31bdd61109578c 37-39,57,80-83
+app/src/main/java/com/yy/writingwithai/core/data/db/entity/AiHistoryEntity.kt
+  s_4b09c899bde67b::t_32dd6721a0fde9 9-13,29-39
+app/src/main/java/com/yy/writingwithai/core/data/model/AiHistory.kt
+  s_4b09c899bde67b::t_c4d2525cdad3dd 18-26
+app/src/main/java/com/yy/writingwithai/core/data/repo/AiHistoryRepository.kt
+  s_4b09c899bde67b::t_ee5eb92a5571c6 35-40,53-55,77-79
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/AiwritingEntry.kt
+  s_4b09c899bde67b::t_b82651b652e3cc 67-68,70-72,77-78,90
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionUiState.kt
+  s_4b09c899bde67b::t_febd783c575cf9 8,11-17,19,26-28,30-31,35-37,40-56,59-61,64-67,73
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionViewModel.kt
+  s_4b09c899bde67b::t_267c457985db3e 22,37,39-43,46-49,52-55,74-79,83-84,102,105-109,111,115-123,126-136,142-144,146,149,189,192-195,197-258,261-278,281-285,290-292,294-314,316-352,359-360,369-371,376,383,387-391,415,444-453,458-462,475-478,480-481,485,488,494-641
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/AiVersion.kt
+  s_4b09c899bde67b::t_a7926a431da923 1-39
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/StreamingPanel.kt
+  s_4b09c899bde67b::t_fa6702c0b7de40 26-27,53,56,58-61,66-69,75-76,103-128,132-142,182-350,556,558,561-566,568,578,580-611,616-637,640,657,660
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailScreen.kt
+  s_4b09c899bde67b::t_d7d318897c7e00 735-736
+app/src/main/res/values-en/strings.xml
+  s_4b09c899bde67b::t_ffde35c61199f8 118-126
+app/src/main/res/values/strings.xml
+  s_4b09c899bde67b::t_d62d5eeeb2b0db 162-169
+app/src/test/java/com/yy/writingwithai/feature/aiwriting/AiActionViewModelConsentTest.kt
+  s_4b09c899bde67b::t_3bd1fce57131cc 155-157,185-187
+app/src/test/java/com/yy/writingwithai/feature/aiwriting/AiActionViewModelMultiVersionTest.kt
+  s_4b09c899bde67b::t_98ba54c101d3b2 1-349
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "8e3e85ea9cfb6b05561c93ced7a3f5d3ac407e9e",
+  "prompts": {},
+  "sessions": {
+    "s_4b09c899bde67b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a8b54e3f10dff3444",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
