@@ -1,0 +1,35 @@
+app/src/main/java/com/yy/writingwithai/core/editor/SimpleMarkdownEditor.kt
+  s_36c9ddaeb7b9b8::t_eedaba1cac0a90 41-44
+app/src/main/java/com/yy/writingwithai/core/ui/MarkdownRenderer.kt
+  s_36c9ddaeb7b9b8::t_e5e92ad088c33b 1-333
+app/src/main/java/com/yy/writingwithai/core/ui/MarkdownText.kt
+  s_36c9ddaeb7b9b8::t_73eb149ae81a02 1-35
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailScreen.kt
+  s_36c9ddaeb7b9b8::t_d77d43bed1e667 577
+app/src/main/java/com/yy/writingwithai/feature/quicknote/edit/QuickNoteEditorScreen.kt
+  s_36c9ddaeb7b9b8::t_8865054fb94b2c 23,26,32,39-40,51-52,54,60,69-74,77-83,85-90,114-139,141,162-176,195,225-250,255,299-421
+app/src/main/res/values-en/strings.xml
+  s_36c9ddaeb7b9b8::t_73b4b1e100bc66 58-65
+app/src/main/res/values/strings.xml
+  s_36c9ddaeb7b9b8::t_1190b9e9980f76 87-94
+app/src/test/java/com/yy/writingwithai/core/ui/MarkdownRendererTest.kt
+  s_36c9ddaeb7b9b8::t_9a6968f39744b8 1-258
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "bf114e1b59e6c1ba14460d7c1a7e01f51535c94e",
+  "prompts": {},
+  "sessions": {
+    "s_36c9ddaeb7b9b8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a1495b7762f822b3c",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
