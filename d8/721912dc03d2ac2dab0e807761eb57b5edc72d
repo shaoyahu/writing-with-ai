@@ -1,0 +1,77 @@
+app/src/main/AndroidManifest.xml
+  s_cd9617c685aac8::t_7f77b0f2a84d90 17-25,127-144
+app/src/main/java/com/yy/writingwithai/app/AppNav.kt
+  s_cd9617c685aac8::t_b7e51a94a1568b 165-169,307-314,425-437
+app/src/main/java/com/yy/writingwithai/app/AppNavSettingsRoutes.kt
+  s_cd9617c685aac8::t_a45c65f5c47341 48-50,105-110
+app/src/main/java/com/yy/writingwithai/app/WritingApp.kt
+  s_cf3b6746761276::t_dcae6ac1d24d8e 12,49-52,96-98
+app/src/main/java/com/yy/writingwithai/core/data/repo/NoteRepository.kt
+  s_cd9617c685aac8::t_64dc89c425b1ae 12,255-283,295-300
+app/src/main/java/com/yy/writingwithai/core/notification/MorningFreewriteAlarmReceiver.kt
+  s_cd9617c685aac8::t_6261195a9302c3 1-55
+app/src/main/java/com/yy/writingwithai/core/notification/MorningFreewriteBootReceiver.kt
+  s_cd9617c685aac8::t_70466f92a4990e 1-54
+app/src/main/java/com/yy/writingwithai/core/notification/MorningFreewriteNotifier.kt
+  s_cd9617c685aac8::t_99c2d145fbb0fa 1-93
+app/src/main/java/com/yy/writingwithai/core/notification/MorningFreewriteScheduler.kt
+  s_cd9617c685aac8::t_af670a7ae82388 1-107
+app/src/main/java/com/yy/writingwithai/core/prefs/UserPrefsStore.kt
+  s_cd9617c685aac8::t_198758c50f65e7 9,15,69-82,131-153,183-203
+app/src/main/java/com/yy/writingwithai/core/widget/WidgetLaunchRoute.kt
+  s_cd9617c685aac8::t_b1ef677dfd0817 17-20,32-37,42,48,52-53,66
+app/src/main/java/com/yy/writingwithai/di/LocalDateSupplierModule.kt
+  s_cd9617c685aac8::t_c3c286c89e443f 1-25
+app/src/main/java/com/yy/writingwithai/feature/freewrite/FreewriteEntry.kt
+  s_cd9617c685aac8::t_b172a9b368349c 1-32
+app/src/main/java/com/yy/writingwithai/feature/freewrite/MorningFreewriteScreen.kt
+  s_cd9617c685aac8::t_3799d4d4bdd677 1-314
+app/src/main/java/com/yy/writingwithai/feature/freewrite/MorningFreewriteViewModel.kt
+  s_cd9617c685aac8::t_164ecabd53ad8a 1-351
+app/src/main/java/com/yy/writingwithai/feature/settings/SettingsEntry.kt
+  s_cd9617c685aac8::t_51c0bb0700cce4 28-29,35
+app/src/main/java/com/yy/writingwithai/feature/settings/SettingsScreen.kt
+  s_cd9617c685aac8::t_5229448b358ac4 48-49,122-133
+app/src/main/java/com/yy/writingwithai/feature/settings/freewrite/SettingsFreewriteScreen.kt
+  s_cd9617c685aac8::t_ae155b1b1f92c7 1-201
+app/src/main/java/com/yy/writingwithai/feature/settings/freewrite/SettingsFreewriteViewModel.kt
+  s_cd9617c685aac8::t_9e77347c51f774 1-89
+app/src/main/res/drawable/ic_ai_24dp.xml
+  s_cd9617c685aac8::t_fc112457f7dd58 1-10
+app/src/main/res/values-en/strings.xml
+  s_cd9617c685aac8::t_b1891ee7b5924d 673-699
+app/src/main/res/values/strings.xml
+  s_cd9617c685aac8::t_018f33645aa726 491-492,799-825
+app/src/test/java/com/yy/writingwithai/core/data/repo/NoteRepositoryJournalTest.kt
+  s_cd9617c685aac8::t_d3046eb6d0b1ab 1-121
+app/src/test/java/com/yy/writingwithai/core/notification/MorningFreewriteSchedulerTest.kt
+  s_cd9617c685aac8::t_480bd8c90e3931 1-103
+app/src/test/java/com/yy/writingwithai/core/prefs/FakeUserPrefsStore.kt
+  s_cd9617c685aac8::t_14419365e1dbd6 4,16-17,27-28,42-47,66-73,79-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d8721912dc03d2ac2dab0e807761eb57b5edc72d",
+  "prompts": {},
+  "sessions": {
+    "s_cd9617c685aac8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a358a0cceb9301efa",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_cf3b6746761276": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-aa66e8d1b0e6a3af0",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
