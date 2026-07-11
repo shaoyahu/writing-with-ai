@@ -1,0 +1,331 @@
+app/schemas/com.yy.writingwithai.core.data.db.AppDatabase/14.json
+  s_ab4e6de0e20586::t_a718a1f8babc58 1-856
+app/src/androidTest/java/com/yy/writingwithai/core/data/db/AiHistoryDaoTest.kt
+  s_ab4e6de0e20586::t_f8235da8cbb972 1-170
+app/src/androidTest/java/com/yy/writingwithai/core/data/db/AppDatabaseMigrationTest.kt
+  s_ab4e6de0e20586::t_33444e83f2900c 53-86
+app/src/main/AndroidManifest.xml
+  s_ab4e6de0e20586::t_331e9ec0b2181a 17-25,127-144
+app/src/main/java/com/yy/writingwithai/app/AppNav.kt
+  s_ab4e6de0e20586::t_8a41dae6411c4d 26,36-37,168-172,245-248,256-275,316-327,385-399,471-487
+app/src/main/java/com/yy/writingwithai/app/AppNavSettingsRoutes.kt
+  s_ab4e6de0e20586::t_48d97c6061c78d 48-50,105-110
+app/src/main/java/com/yy/writingwithai/app/AppShell.kt
+  s_ab4e6de0e20586::t_8f070f7238b6fe 160-161
+app/src/main/java/com/yy/writingwithai/app/WritingApp.kt
+  s_ab4e6de0e20586::t_384e9439523d24 12,49-52,96-98
+app/src/main/java/com/yy/writingwithai/core/ai/CoreAiGateway.kt
+  s_ab4e6de0e20586::t_511273e0d7495c 120-122,221-224
+app/src/main/java/com/yy/writingwithai/core/ai/api/AiGateway.kt
+  s_ab4e6de0e20586::t_e8865b6471c41c 20-30
+app/src/main/java/com/yy/writingwithai/core/ai/provider/ProviderRegistry.kt
+  s_ab4e6de0e20586::t_0f6375d10fc399 1-22
+app/src/main/java/com/yy/writingwithai/core/data/db/AggregateModels.kt
+  s_ab4e6de0e20586::t_4cddf194e856a3 1-45
+app/src/main/java/com/yy/writingwithai/core/data/db/AiHistoryDao.kt
+  s_ab4e6de0e20586::t_f78d7ab5551021 34-74
+app/src/main/java/com/yy/writingwithai/core/data/db/AppDatabase.kt
+  s_ab4e6de0e20586::t_1cadcf84164c21 37-39,57,80-83
+app/src/main/java/com/yy/writingwithai/core/data/db/dao/NoteAttachmentDao.kt
+  s_ab4e6de0e20586::t_5eb1af6e6cae85 32-39
+app/src/main/java/com/yy/writingwithai/core/data/db/entity/AiHistoryEntity.kt
+  s_ab4e6de0e20586::t_9b710dee27575f 9-13,29-39
+app/src/main/java/com/yy/writingwithai/core/data/model/AiHistory.kt
+  s_ab4e6de0e20586::t_d9382129eee25d 18-26
+app/src/main/java/com/yy/writingwithai/core/data/repo/AiHistoryRepository.kt
+  s_ab4e6de0e20586::t_0a2d5e6a38320b 35-40,53-55,77-79
+app/src/main/java/com/yy/writingwithai/core/data/repo/AiUsageRepository.kt
+  s_ab4e6de0e20586::t_69b7e96d010ed9 1-60
+app/src/main/java/com/yy/writingwithai/core/data/repo/NoteRepository.kt
+  s_ab4e6de0e20586::t_8b3e0f7f613628 12,255-283,295-300
+app/src/main/java/com/yy/writingwithai/core/data/repo/UsagePeriod.kt
+  s_ab4e6de0e20586::t_83f73e7b508eb6 1-43
+app/src/main/java/com/yy/writingwithai/core/data/repo/UsageSnapshot.kt
+  s_ab4e6de0e20586::t_b0d9600fc3d682 1-22
+app/src/main/java/com/yy/writingwithai/core/editor/SimpleMarkdownEditor.kt
+  s_ab4e6de0e20586::t_693ae6fb87e85f 41-44
+app/src/main/java/com/yy/writingwithai/core/media/AttachmentMarkdownParser.kt
+  s_ab4e6de0e20586::t_90f15db1bcfb91 1-77
+app/src/main/java/com/yy/writingwithai/core/note/graph/CircularLayout.kt
+  s_ab4e6de0e20586::t_4fd57f0a277e7f 1-59
+app/src/main/java/com/yy/writingwithai/core/note/graph/ForceLayout.kt
+  s_ab4e6de0e20586::t_6488c9ab9a3ec7 1-239
+app/src/main/java/com/yy/writingwithai/core/note/graph/GraphDataLoader.kt
+  s_ab4e6de0e20586::t_4842bd54fc7ffe 1-158
+app/src/main/java/com/yy/writingwithai/core/note/graph/GraphEdge.kt
+  s_ab4e6de0e20586::t_bc4c9469565e04 1-16
+app/src/main/java/com/yy/writingwithai/core/note/graph/GraphNode.kt
+  s_ab4e6de0e20586::t_d7f3a8082f9da4 1-19
+app/src/main/java/com/yy/writingwithai/core/note/graph/GraphSnapshot.kt
+  s_ab4e6de0e20586::t_6cbc53f5c5409b 1-39
+app/src/main/java/com/yy/writingwithai/core/note/graph/LayoutCache.kt
+  s_ab4e6de0e20586::t_8bcecd9aaab5bf 1-75
+app/src/main/java/com/yy/writingwithai/core/note/graph/di/GraphModule.kt
+  s_ab4e6de0e20586::t_71d9b847f73f5c 1-55
+app/src/main/java/com/yy/writingwithai/core/notification/MorningFreewriteAlarmReceiver.kt
+  s_ab4e6de0e20586::t_2f358e8d3ab307 1-55
+app/src/main/java/com/yy/writingwithai/core/notification/MorningFreewriteBootReceiver.kt
+  s_ab4e6de0e20586::t_42a202e05de906 1-63
+app/src/main/java/com/yy/writingwithai/core/notification/MorningFreewriteNotifier.kt
+  s_ab4e6de0e20586::t_1b8bcec6d98418 1-95
+app/src/main/java/com/yy/writingwithai/core/notification/MorningFreewriteScheduler.kt
+  s_ab4e6de0e20586::t_01c9eb09af0e11 1-138
+app/src/main/java/com/yy/writingwithai/core/prefs/PrefsModule.kt
+  s_ab4e6de0e20586::t_06c164b1670528 62-68
+app/src/main/java/com/yy/writingwithai/core/prefs/ProviderCostStore.kt
+  s_ab4e6de0e20586::t_50abd9f689dd7d 1-67
+app/src/main/java/com/yy/writingwithai/core/prefs/UserPrefsStore.kt
+  s_ab4e6de0e20586::t_c866c8fde91a09 9,15,69-82,131-153,183-203
+app/src/main/java/com/yy/writingwithai/core/ui/MarkdownRenderer.kt
+  s_ab4e6de0e20586::t_da0e8872916255 1-351
+app/src/main/java/com/yy/writingwithai/core/ui/MarkdownText.kt
+  s_ab4e6de0e20586::t_f0a4c8a6bb947d 1-35
+app/src/main/java/com/yy/writingwithai/core/widget/WidgetLaunchRoute.kt
+  s_ab4e6de0e20586::t_3be8d77f2dea4c 17-20,32-37,42,48,52-53,66
+app/src/main/java/com/yy/writingwithai/di/LocalDateSupplierModule.kt
+  s_ab4e6de0e20586::t_5719c76cffef92 1-25
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/AiwritingEntry.kt
+  s_ab4e6de0e20586::t_4517b9c149d1e2 67-68,70-72,77-78,90
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionUiState.kt
+  s_ab4e6de0e20586::t_9791ce6e6c8055 8,11-17,19,26-28,30-31,35-37,40-56,59-61,64-67,73
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionViewModel.kt
+  s_ab4e6de0e20586::t_7b0a52a15c0d83 22,37,39-43,46-49,52-55,74-79,83-84,102,105-109,111,115-123,126-136,142-144,146,149,189,192-195,197-258,261-278,281-285,290-292,294-314,316-352,359-360,369-371,376,383,387-391,415,444-453,458-462,475-478,480-481,485,488,494-661
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/AiVersion.kt
+  s_ab4e6de0e20586::t_9294abf8f7e7c5 1-39
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/streaming/StreamingPanel.kt
+  s_ab4e6de0e20586::t_aa2e780cb34e77 26-27,53,56,58-61,66-69,75-76,103-128,132-142,182-352,558,560,563-568,570,580,582-613,618-639,642,659,662
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/usage/AiUsageScreen.kt
+  s_ab4e6de0e20586::t_4698d4ce8fe999 1-250
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/usage/AiUsageViewModel.kt
+  s_ab4e6de0e20586::t_0622bfc2b1b499 1-104
+app/src/main/java/com/yy/writingwithai/feature/aiwriting/usage/UsageBarChart.kt
+  s_ab4e6de0e20586::t_8cbd5da35a8aca 1-126
+app/src/main/java/com/yy/writingwithai/feature/freewrite/FreewriteEntry.kt
+  s_ab4e6de0e20586::t_feb23d48541956 1-32
+app/src/main/java/com/yy/writingwithai/feature/freewrite/MorningFreewriteScreen.kt
+  s_ab4e6de0e20586::t_8bee8777b06a6a 1-321
+app/src/main/java/com/yy/writingwithai/feature/freewrite/MorningFreewriteViewModel.kt
+  s_ab4e6de0e20586::t_61d54ed2a0dd4e 1-351
+app/src/main/java/com/yy/writingwithai/feature/my/MeTabTarget.kt
+  s_ab4e6de0e20586::t_414a9913a631bb 46-49
+app/src/main/java/com/yy/writingwithai/feature/my/MyScreen.kt
+  s_ab4e6de0e20586::t_8bdf80c2f040be 25,218-224
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/InlineMarkdownText.kt
+  s_ab4e6de0e20586::t_35b60b4b5ab9b3 1-192
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailScreen.kt
+  s_ab4e6de0e20586::t_41700c7f7a14f7 75,118-120,134-137,143-148,183-184,478-491,588-593,601-612,616,724-725
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailViewModel.kt
+  s_ab4e6de0e20586::t_fa5d7e2a2057a3 52-53,590-613
+app/src/main/java/com/yy/writingwithai/feature/quicknote/edit/QuickNoteEditorScreen.kt
+  s_ab4e6de0e20586::t_32221242f57172 23,26,32,39-40,51-52,54,60,69-74,77-83,85-90,114-139,141,162-176,195,225-250,255,299-421
+app/src/main/java/com/yy/writingwithai/feature/quicknote/graph/NoteGraphCanvas.kt
+  s_ab4e6de0e20586::t_5422841b8fbf5f 1-300
+app/src/main/java/com/yy/writingwithai/feature/quicknote/graph/NoteGraphScreen.kt
+  s_ab4e6de0e20586::t_4089a80ee13eb1 1-127
+app/src/main/java/com/yy/writingwithai/feature/quicknote/graph/NoteGraphViewModel.kt
+  s_ab4e6de0e20586::t_556f58d54478f1 1-105
+app/src/main/java/com/yy/writingwithai/feature/quicknote/lightbox/AttachmentLightboxScreen.kt
+  s_ab4e6de0e20586::t_5392d3d74b40ab 1-165
+app/src/main/java/com/yy/writingwithai/feature/quicknote/lightbox/AttachmentLightboxViewModel.kt
+  s_ab4e6de0e20586::t_7848dd37f7edae 1-88
+app/src/main/java/com/yy/writingwithai/feature/settings/SettingsEntry.kt
+  s_ab4e6de0e20586::t_f85d947949f10e 28-29,35
+app/src/main/java/com/yy/writingwithai/feature/settings/SettingsScreen.kt
+  s_ab4e6de0e20586::t_c8dbebb6f67e4e 48-49,122-133
+app/src/main/java/com/yy/writingwithai/feature/settings/freewrite/SettingsFreewriteScreen.kt
+  s_ab4e6de0e20586::t_b254c0d8f8e12b 1-201
+app/src/main/java/com/yy/writingwithai/feature/settings/freewrite/SettingsFreewriteViewModel.kt
+  s_ab4e6de0e20586::t_64a6543035579b 1-89
+app/src/main/res/drawable/ic_ai_24dp.xml
+  s_ab4e6de0e20586::t_3e02f5d4dcd04f 1-10
+app/src/main/res/values-en/strings.xml
+  s_ab4e6de0e20586::t_a6b70b6b012ec0 673-757
+app/src/main/res/values/strings.xml
+  s_ab4e6de0e20586::t_cdc1cfbac7cebd 491-492,799-889
+app/src/test/java/com/yy/writingwithai/core/data/export/NoteExporterTest.kt
+  s_ab4e6de0e20586::t_8142735f9f0d1c 126
+app/src/test/java/com/yy/writingwithai/core/data/repo/AiUsageRepositoryTest.kt
+  s_ab4e6de0e20586::t_20c7c7fba15b72 1-66
+app/src/test/java/com/yy/writingwithai/core/data/repo/NoteRepositoryJournalTest.kt
+  s_ab4e6de0e20586::t_b263661817e444 1-121
+app/src/test/java/com/yy/writingwithai/core/feishu/sync/FeishuSyncServiceTest.kt
+  s_ab4e6de0e20586::t_1060e361a8745a 161-165
+app/src/test/java/com/yy/writingwithai/core/feishu/sync/SyncTestFakes.kt
+  s_ab4e6de0e20586::t_68dfcb9dbeebf0 293-295
+app/src/test/java/com/yy/writingwithai/core/media/AttachmentMarkdownParserTest.kt
+  s_ab4e6de0e20586::t_b436ccef50fb36 1-75
+app/src/test/java/com/yy/writingwithai/core/note/entity/LlmEntityExtractorTest.kt
+  s_ab4e6de0e20586::t_703950e47bd8dd 5,19,36,46,53,87-91,96-100,114-118,129-133,144-148
+app/src/test/java/com/yy/writingwithai/core/note/graph/ForceLayoutTest.kt
+  s_ab4e6de0e20586::t_190b013d934b7c 1-131
+app/src/test/java/com/yy/writingwithai/core/note/graph/GraphDataLoaderTest.kt
+  s_ab4e6de0e20586::t_05718636fc1345 1-237
+app/src/test/java/com/yy/writingwithai/core/notification/MorningFreewriteSchedulerTest.kt
+  s_ab4e6de0e20586::t_8c14a8d6c590d5 1-103
+app/src/test/java/com/yy/writingwithai/core/prefs/FakeUserPrefsStore.kt
+  s_ab4e6de0e20586::t_c0505ca6bab624 4,16-17,27-28,42-47,66-73,79-88
+app/src/test/java/com/yy/writingwithai/core/prefs/SearchHistoryStoreTest.kt
+  s_ab4e6de0e20586::t_a5e1366e046d4e 3,8,17-19,23-37,40-43,50-54,60-64
+app/src/test/java/com/yy/writingwithai/core/ui/MarkdownRendererTest.kt
+  s_ab4e6de0e20586::t_90d8dc1212619d 1-258
+app/src/test/java/com/yy/writingwithai/core/update/AppUpdateCheckerTest.kt
+  s_ab4e6de0e20586::t_d52990149fae09 67,82,109-115
+app/src/test/java/com/yy/writingwithai/feature/aiwriting/AiActionViewModelApikeyPromptTest.kt
+  s_ab4e6de0e20586::t_fd8adfa59f7f9e 127-129,157-159
+app/src/test/java/com/yy/writingwithai/feature/aiwriting/AiActionViewModelConsentTest.kt
+  s_ab4e6de0e20586::t_98a16ec48dd868 155-157,185-187
+app/src/test/java/com/yy/writingwithai/feature/aiwriting/AiActionViewModelMultiVersionTest.kt
+  s_ab4e6de0e20586::t_aae4a98f5f1842 1-349
+app/src/test/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionViewModelGenerationTest.kt
+  s_ab4e6de0e20586::t_572e63cb7f929e 83,136-139
+app/src/test/java/com/yy/writingwithai/feature/aiwriting/streaming/AiActionViewModelTest.kt
+  s_ab4e6de0e20586::t_86a9394e9aa316 75,98-99,101,108,142,168,195,219,225
+app/src/test/java/com/yy/writingwithai/feature/aiwriting/usage/AiUsageViewModelTest.kt
+  s_ab4e6de0e20586::t_9aa29a9229c8ba 1-117
+app/src/test/java/com/yy/writingwithai/feature/my/CheckUpdateViewModelTest.kt
+  s_ab4e6de0e20586::t_eea1ad7c9f970e 69,88,112
+app/src/test/java/com/yy/writingwithai/feature/quicknote/list/QuickNoteListViewModelTest.kt
+  s_6372ed974c6db7::t_9778690a1ac919 7,39,47,53-54
+app/src/test/java/com/yy/writingwithai/feature/settings/data/SettingsDataViewModelTest.kt
+  s_ab4e6de0e20586::t_299bef76170858 14,31,39,44-46,59,133,243,272-273
+docs/progress.md
+  s_ab4e6de0e20586::t_93e9280a30d7c5 5-15
+openspec/changes/archive/2026-07-11-ai-regenerate-versions/design.md
+  s_d091c194dfabed::t_21f326a88e9247 1-443
+openspec/changes/archive/2026-07-11-ai-regenerate-versions/proposal.md
+  s_5367674f133404::t_dbed56c5b500c8 1-110
+openspec/changes/archive/2026-07-11-ai-regenerate-versions/specs/ai-actions/spec.md
+  s_ab4e6de0e20586::t_d67f863d5653b0 1-235
+openspec/changes/archive/2026-07-11-ai-regenerate-versions/tasks.md
+  s_ab4e6de0e20586::t_e710d8c17a5afc 1-241
+openspec/changes/archive/2026-07-11-ai-usage-statistics/design.md
+  s_5367674f133404::t_802f1f703ff770 1-223
+openspec/changes/archive/2026-07-11-ai-usage-statistics/proposal.md
+  s_a506690dc3a990::t_357ac25fa80866 1-122
+openspec/changes/archive/2026-07-11-ai-usage-statistics/specs/ai-history/spec.md
+  s_ab4e6de0e20586::t_9ed45587dd2ed5 1-147
+openspec/changes/archive/2026-07-11-ai-usage-statistics/tasks.md
+  s_ab4e6de0e20586::t_dd27679bfac593 1-128
+openspec/changes/archive/2026-07-11-attachment-inline-render/design.md
+  s_484c389e81fcb8::t_c43c816ebe911c 1-142
+openspec/changes/archive/2026-07-11-attachment-inline-render/proposal.md
+  s_484c389e81fcb8::t_4d4e8cfbc8c414 1-70
+openspec/changes/archive/2026-07-11-attachment-inline-render/specs/attachment/spec.md
+  s_ab4e6de0e20586::t_1a19a2b721d2ff 1-100
+openspec/changes/archive/2026-07-11-attachment-inline-render/tasks.md
+  s_ab4e6de0e20586::t_537e37490c1ad3 1-69
+openspec/changes/archive/2026-07-11-fix-review-r1-2026-07-11/design.md
+  s_ab4e6de0e20586::t_7b051cc5ab951a 1-167
+openspec/changes/archive/2026-07-11-fix-review-r1-2026-07-11/proposal.md
+  s_ab4e6de0e20586::t_f23490322de4fd 1-32
+openspec/changes/archive/2026-07-11-fix-review-r1-2026-07-11/tasks.md
+  s_ab4e6de0e20586::t_a5628a90031484 1-50
+openspec/changes/archive/2026-07-11-markdown-live-preview/design.md
+  s_8cf13cb6c147fe::t_e4dc592c39d9b2 1-100
+openspec/changes/archive/2026-07-11-markdown-live-preview/proposal.md
+  s_324d3d46982a68::t_1c2a4563535ba9 1-33
+openspec/changes/archive/2026-07-11-markdown-live-preview/specs/quick-note/spec.md
+  s_ab4e6de0e20586::t_ff9c9251f5ead3 1-133
+openspec/changes/archive/2026-07-11-markdown-live-preview/tasks.md
+  s_ab4e6de0e20586::t_4ccb6e94dcdd33 1-60
+openspec/changes/archive/2026-07-11-morning-freewrite/design.md
+  s_8cf13cb6c147fe::t_d679eec4f4851d 1-362
+openspec/changes/archive/2026-07-11-morning-freewrite/proposal.md
+  s_8cf13cb6c147fe::t_39557bcffdf8ff 1-108
+openspec/changes/archive/2026-07-11-morning-freewrite/specs/quick-note/spec.md
+  s_ab4e6de0e20586::t_84e3aecfbdc837 1-185
+openspec/changes/archive/2026-07-11-morning-freewrite/tasks.md
+  s_ab4e6de0e20586::t_b61b1433335c13 1-68
+openspec/changes/archive/2026-07-11-note-graph-view/design.md
+  s_5367674f133404::t_9a827a9bc5fada 1-199
+openspec/changes/archive/2026-07-11-note-graph-view/proposal.md
+  s_5367674f133404::t_96ed9ea4a69773 1-56
+openspec/changes/archive/2026-07-11-note-graph-view/specs/note-entity-link/spec.md
+  s_ab4e6de0e20586::t_22f7483e5e12b4 1-167
+openspec/changes/archive/2026-07-11-note-graph-view/tasks.md
+  s_ab4e6de0e20586::t_f87261663701b8 1-82
+openspec/specs/ai-actions/spec.md
+  s_ab4e6de0e20586::t_403523b900abf0 352,354-359,361-363,365-375,377-379,381-560,562-569,571,573-575,577-579,581-582
+openspec/specs/ai-history/spec.md
+  s_ab4e6de0e20586::t_3b09bd25a74571 96-241
+openspec/specs/attachment/spec.md
+  s_ab4e6de0e20586::t_9274897aa5ff33 1-99
+openspec/specs/note-entity-link/spec.md
+  s_ab4e6de0e20586::t_f693334a15e801 128-257
+openspec/specs/quick-note/spec.md
+  s_ab4e6de0e20586::t_33b1b1d9731d78 740-1051
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "21871efd798a5c41a1885b3ac5c2823340b19a72",
+  "prompts": {},
+  "sessions": {
+    "s_324d3d46982a68": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a7bce2a253796fd43",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_484c389e81fcb8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-add8546778d14914e",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_5367674f133404": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-af76f348f52432e18",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_6372ed974c6db7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-ad9e6dffe4399301d",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_8cf13cb6c147fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-ae0be3b93a99b4ad8",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_a506690dc3a990": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a5d640770ef2887ca",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_ab4e6de0e20586": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "18d2b255-adfe-4077-bcb3-9be417f9e332",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_d091c194dfabed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-ae2fbeaa8bb2ef6cf",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
