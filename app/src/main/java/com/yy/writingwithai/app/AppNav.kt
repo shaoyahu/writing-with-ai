@@ -23,6 +23,7 @@ import com.yy.writingwithai.core.prefs.UserPrefsStore
 import com.yy.writingwithai.core.ui.animation.LocalAnimationTokens
 import com.yy.writingwithai.core.widget.WidgetLaunchRoute
 import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
+import com.yy.writingwithai.feature.aiwriting.usage.AiUsageScreen
 import com.yy.writingwithai.feature.my.devmode.DeveloperModeScreen
 import com.yy.writingwithai.feature.my.devmode.PromptEditorScreen
 import com.yy.writingwithai.feature.my.entity.EntityDetailScreen
@@ -32,6 +33,8 @@ import com.yy.writingwithai.feature.onboarding.OnboardingEntry
 import com.yy.writingwithai.feature.onboarding.OnboardingRoute
 import com.yy.writingwithai.feature.quicknote.detail.QuickNoteDetailScreen
 import com.yy.writingwithai.feature.quicknote.edit.QuickNoteEditorScreen
+import com.yy.writingwithai.feature.quicknote.graph.NoteGraphScreen
+import com.yy.writingwithai.feature.quicknote.lightbox.AttachmentLightboxScreen
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -162,6 +165,11 @@ fun AppNav(
                     if (popUpToInclusive) popUpTo(0) { inclusive = true } else popUpTo(AppShell) { inclusive = true }
                 }
             }
+            is WidgetLaunchRoute.Freewrite -> {
+                navController.navigate(MorningFreewrite(date = route.date)) {
+                    if (popUpToInclusive) popUpTo(0) { inclusive = true } else popUpTo(AppShell) { inclusive = true }
+                }
+            }
         }
     }
 
@@ -234,11 +242,35 @@ fun AppNav(
                 onNavigateToSettings = { navController.navigate(Settings) },
                 // real-provider-integration §4:apikey-missing Snackbar action 跳模型管理
                 onNavigateToModelManagement = { navController.navigate(SettingsModelManagement) },
+                // note-graph-view §5.5:跳关联图屏(`NoteGraph(noteId)`)。
+                onNavigateToGraph = { id -> navController.navigate(NoteGraph(id)) },
+                // fix-review-r1 F2:缩略图 tap → 全屏 lightbox。
+                onNavigateToLightbox = { id -> navController.navigate(AttachmentLightbox(id)) },
                 onRequestConsent = {
                     AiwritingEntry.requestConsent(
                         navController
                     ) { nav -> OnboardingEntry.requestConsent(nav) }
                 }
+            )
+        }
+        // note-graph-view §5.4:关联图屏 route。`args.noteId` 由 Compose Navigation 类型安全解析
+        // (`@Serializable NoteGraph(val noteId: String)`)。节点 tap 复用 `QuicknoteDetail(id)`,
+        // 共享现有栈语义(D10:不开新 tab / 新窗口)。
+        composable<NoteGraph> { backStackEntry ->
+            val args = backStackEntry.toRoute<NoteGraph>()
+            NoteGraphScreen(
+                noteId = args.noteId,
+                onBack = { navController.popBackStack() },
+                onNodeTap = { id -> navController.navigate(QuicknoteDetail(id)) }
+            )
+        }
+        // fix-review-r1 F2:全屏附件 lightbox 入口。`args.attachmentId` 由 Compose Navigation
+        // 类型安全解析(`@Serializable AttachmentLightbox(val attachmentId: String)`),
+        // VM 通过 `savedStateHandle` 接收。系统 back / 顶栏 Close / 单击背景均由
+        // `onBack = popBackStack` 处理;不依赖 dialog,避免 predictive-back 冲突。
+        composable<AttachmentLightbox> {
+            AttachmentLightboxScreen(
+                onBack = { navController.popBackStack() }
             )
         }
         composable<QuicknoteEdit> { backStackEntry ->
@@ -280,6 +312,18 @@ fun AppNav(
         // §7.4:提示词编辑
         composable<PromptEditor> {
             PromptEditorScreen(onBack = { navController.popBackStack() })
+        }
+        // ai-usage-statistics §5:AI 用量统计页(从 MyScreen 数据管理区入口进入)
+        composable<AiUsage> {
+            AiUsageScreen(onBack = { navController.popBackStack() })
+        }
+        // morning-freewrite §3.4:沉浸晨写屏(通知点入 / widget 启动)
+        composable<MorningFreewrite> { backStackEntry ->
+            val args = backStackEntry.toRoute<MorningFreewrite>()
+            com.yy.writingwithai.feature.freewrite.FreewriteEntry.MorningFreewriteRoute(
+                date = args.date,
+                onDismiss = { navController.popBackStack() }
+            )
         }
         composable(OnboardingEntry.ROUTE_CONSENT) {
             OnboardingRoute(
@@ -337,6 +381,21 @@ data object Me
 
 @Serializable
 data class QuicknoteDetail(val id: String)
+
+/**
+ * note-graph-view §5.4:关联图屏 route。`noteId` 是中心笔记 id(`Note.id`),
+ * 由 `QuickNoteDetailScreen` overflow "查看关联图" 入口 `onNavigateToGraph(id)` 传入。
+ */
+@Serializable
+data class NoteGraph(val noteId: String)
+
+/**
+ * fix-review-r1 F2:全屏附件 lightbox route。`attachmentId` 是 `NoteAttachmentEntity.id`,
+ * 由 `InlineMarkdownText` 缩略图 tap → `QuickNoteDetailScreen.onNavigateToLightbox(id)` 传入。
+ * `AttachmentLightboxViewModel` 从 `savedStateHandle[attachmentId]` 取该参数。
+ */
+@Serializable
+data class AttachmentLightbox(val attachmentId: String)
 
 @Serializable
 data class QuicknoteEdit(val id: String? = "NEW", val prefillFocus: Boolean = false)
@@ -409,3 +468,20 @@ data object DeveloperOptions
 /** entity-management-and-ai-decompose §7.4:提示词编辑 route。 */
 @Serializable
 data object PromptEditor
+
+/** ai-usage-statistics §5:AI 用量统计 route(从 MyScreen 数据管理区进入)。 */
+@Serializable
+data object AiUsage
+
+// ---- morning-freewrite ----
+
+/**
+ * morning-freewrite §3.4:沉浸晨写屏 route(date 是 ISO `yyyy-MM-dd`,
+ * 来自 Notification PendingIntent extra route=freewrite/$date)。
+ */
+@Serializable
+data class MorningFreewrite(val date: String)
+
+/** morning-freewrite §2.3:「设置 → 每日晨写」配置页 route(无参数)。 */
+@Serializable
+data object SettingsFreewrite

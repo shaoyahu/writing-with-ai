@@ -20,19 +20,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,12 +48,16 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -57,12 +66,28 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
+import com.yy.writingwithai.core.ui.MarkdownText
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 
 /**
- * ui-redesign-v2 · 编辑器:标题用 BasicTextField(headlineMedium，无边框),
- * 正文 BasicTextField(bodyLarge, weight(1f) 自适应高度), Tag 区 Surface 包裹视觉分离。
+ * markdown-live-preview · 预览模式三态:EDIT / PREVIEW / SPLIT。
+ *
+ * 屏宽 ≥ 600dp 时 toggle 循环 EDIT → PREVIEW → SPLIT → EDIT;
+ * 屏宽 < 600dp 时 toggle 仅在 EDIT ↔ PREVIEW 间循环(分屏被禁用,符合设计)。
+ *
+ * SPLIT 模式:左 BasicTextField 编辑,右 MarkdownText 渲染,中间 divider 分隔。
+ * 预览内容走 snapshotFlow + 200ms debounce,跟手输入不卡。
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+internal enum class PreviewMode { EDIT, PREVIEW, SPLIT }
+
+/** design.md §D3 · 600dp 是分屏门槛(平板/横屏可用);窄屏自动回退到 PREVIEW。 */
+private const val SPLIT_MIN_WIDTH_DP: Int = 600
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, FlowPreview::class)
 @Composable
 fun QuickNoteEditorScreen(
     onBack: () -> Unit,
@@ -78,11 +103,7 @@ fun QuickNoteEditorScreen(
     LaunchedEffect(prefillFocus) {
         if (prefillFocus) contentFocusRequester.requestFocus()
     }
-    // ux-2026-06-28 #8:新建笔记时附件 Uri 先缓存;保存时落库。现有笔记(走路由 id)直接 observe 已落库附件。
     val pendingUris by viewModel.pendingAttachmentUris.collectAsStateWithLifecycle()
-    // fix-2026-06-30-full-review-r1 MEDIUM M10:用 collectAsStateWithLifecycle 替代
-    // LaunchedEffect + collect,app 在后台时不再持续收集 Room Flow，避免 Room query
-    // 重复发射。空列表 initialValue 是合理占位(已有 attachments 时会被实际值替换)。
     val existingAttachments by viewModel.observeAttachments()
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val visibleAttachments = if (state.isNew) emptyList() else existingAttachments
@@ -90,7 +111,34 @@ fun QuickNoteEditorScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri -> uri?.let { viewModel.addAttachment(it) } }
 
+    // markdown-live-preview · 屏宽 & 预览模式
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp
+    val canSplit = screenWidthDp >= SPLIT_MIN_WIDTH_DP
+    // rememberSaveable: 旋转屏幕 / 切后台后保留选择
+    var previewMode by rememberSaveable { mutableStateOf(PreviewMode.EDIT) }
+    // 窄屏强制非 SPLIT
+    LaunchedEffect(canSplit) {
+        if (!canSplit && previewMode == PreviewMode.SPLIT) {
+            previewMode = PreviewMode.PREVIEW
+        }
+    }
+
+    // 200ms debounce · 预览内容用 snapshotFlow 跟踪 content
+    var previewContent by remember { mutableStateOf(state.content) }
+    LaunchedEffect(state.content) {
+        snapshotFlow { state.content }
+            .distinctUntilChanged()
+            .debounce(200L)
+            .collectLatest { previewContent = it }
+    }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val splitUnsupportedMsg = stringResource(R.string.quicknote_editor_preview_split_unsupported)
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -111,6 +159,21 @@ fun QuickNoteEditorScreen(
                     }
                 },
                 actions = {
+                    // markdown-live-preview · 三态 toggle,循环 EDIT → PREVIEW → SPLIT → EDIT;
+                    // 窄屏 / 非分屏时 SPLIT 被自动跳过,逻辑写在 onClick 内。
+                    IconButton(onClick = {
+                        val next = nextMode(previewMode, canSplit)
+                        if (previewMode == PreviewMode.SPLIT && !canSplit) {
+                            // 切到非分屏时给个反馈(虽然 LaunchedEffect 已自动回退,这里兜底)
+                            scope.launch { snackbarHostState.showSnackbar(splitUnsupportedMsg) }
+                        }
+                        previewMode = next
+                    }) {
+                        Icon(
+                            Icons.Filled.Visibility,
+                            contentDescription = stringResource(R.string.quicknote_editor_preview_toggle_cd)
+                        )
+                    }
                     IconButton(
                         onClick = { viewModel.save(onSaved = onSaved) },
                         enabled = state.isLoaded && !state.isSaving
@@ -129,7 +192,7 @@ fun QuickNoteEditorScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // ui-redesign-v2 · 标题:无边框 BasicTextField + headlineMedium
+            // 标题
             BasicTextField(
                 value = state.title,
                 onValueChange = viewModel::setTitle,
@@ -154,105 +217,42 @@ fun QuickNoteEditorScreen(
                 }
             )
 
-            // ui-redesign-v2 · 标题/正文分隔线
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                 modifier = Modifier.padding(horizontal = spacing.md)
             )
 
-            // fix-2026-06-26-review-r3 C4:wikilink 自动补全 offset 闭包捕获旧 content 会错位。
-            // 用 snapshot(content + offset + prefix)一起，onSelect 内重新定位 `[[`。
-            // content 变化后 LaunchedEffect(content) 重新计算 prefix;若 prefix 为空就关闭弹层。
-            // R3 C4 fix:之前 `onSelect` 闭包捕获 `content` 和 `lastOpen`,AI acceptReplace
-            // 改 content 后用户再点补全 → 写错位;改为每次 onSelect 内部重新定位 `[[`。
-            var wikilinkPrefix by remember { mutableStateOf("") }
-            val content = state.content
-            // derivedStateOf 在 content 变化时重算，但 wikilink 弹层还在 → 用户点 onSelect 时
-            // 仍拿最新 content 重新匹配 `[[...prefix...]]`，不再依赖闭包旧值。
-            val lastOpen by remember {
-                derivedStateOf { content.lastIndexOf("[[") }
-            }
-            if (lastOpen >= 0) {
-                val afterOpen = content.substring(lastOpen + 2)
-                val closeIdx = afterOpen.indexOf("]]")
-                if (closeIdx < 0 && afterOpen.length <= 64 && !afterOpen.contains("\n")) {
-                    LaunchedEffect(content) { wikilinkPrefix = afterOpen.trim() }
-                } else {
-                    // 已关闭的 wikilink / 含换行 / 超长 → 清 prefix，关闭补全弹层
-                    LaunchedEffect(content) { wikilinkPrefix = "" }
-                }
-            } else {
-                // 没有 `[[` → 清 prefix
-                LaunchedEffect(content) { wikilinkPrefix = "" }
-            }
-            if (wikilinkPrefix.isNotEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.md)) {
-                    WikilinkAutocomplete(
-                        prefix = wikilinkPrefix,
-                        onSelect = { selected ->
-                            // R3 C4 fix:重新在最新 content 里查 `[[`，避免 AI 替换导致 stale offset。
-                            val currentContent = state.content
-                            val openIdx = currentContent.lastIndexOf("[[")
-                            if (openIdx < 0) {
-                                // 弹层期间 content 已被外部改，丢掉这次插入
-                                wikilinkPrefix = ""
-                                return@WikilinkAutocomplete
-                            }
-                            val tail = currentContent.substring(openIdx + 2)
-                            val tailClose = tail.indexOf("]]")
-                            if (tailClose >= 0) {
-                                // 用户在弹层期间已手动关闭 wikilink，不再插入
-                                wikilinkPrefix = ""
-                                return@WikilinkAutocomplete
-                            }
-                            // 校验 wikilink 段前缀与当前 prefix 一致(避免 stale prefix)
-                            val tailPrefix = tail.take(wikilinkPrefix.length)
-                            if (tailPrefix != wikilinkPrefix) {
-                                wikilinkPrefix = ""
-                                return@WikilinkAutocomplete
-                            }
-                            val before = currentContent.substring(0, openIdx)
-                            val after = currentContent.substring(openIdx + 2 + wikilinkPrefix.length)
-                            viewModel.setContent("$before[[$selected]]$after")
-                            wikilinkPrefix = ""
-                        }
+            // 主体区域:三态
+            when (previewMode) {
+                PreviewMode.EDIT -> EditorBody(
+                    state = state,
+                    spacing = spacing,
+                    focusRequester = contentFocusRequester,
+                    onContentChange = viewModel::setContent
+                )
+                PreviewMode.PREVIEW -> PreviewBody(
+                    markdown = previewContent,
+                    spacing = spacing,
+                    modifier = Modifier.weight(1f)
+                )
+                PreviewMode.SPLIT -> Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    EditorBody(
+                        state = state,
+                        spacing = spacing,
+                        focusRequester = contentFocusRequester,
+                        onContentChange = viewModel::setContent,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                    )
+                    VerticalDivider(thickness = 1)
+                    PreviewBody(
+                        markdown = previewContent,
+                        spacing = spacing,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                 }
             }
 
-            // ui-redesign-v2 · 正文:BasicTextField + weight(1f) 自适应
-            BasicTextField(
-                value = state.content,
-                onValueChange = { newContent ->
-                    viewModel.setContent(newContent)
-                },
-                textStyle = MaterialTheme.typography.bodyLarge.merge(
-                    TextStyle(color = MaterialTheme.colorScheme.onSurface)
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.md, vertical = spacing.sm)
-                    .focusRequester(contentFocusRequester),
-                decorationBox = { innerTextField ->
-                    // M2 fix: 内 Box 加 fillMaxHeight,BasicTextField 真正占满 weight(1f) 分配空间
-                    Box(
-                        modifier = Modifier.fillMaxHeight(),
-                        contentAlignment = Alignment.TopStart
-                    ) {
-                        if (state.content.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.quicknote_editor_content_hint),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        innerTextField()
-                    }
-                }
-            )
-
-            // ui-redesign-v2 · Tag 区:Surface 包裹视觉分离
+            // 标签 + 附件(原状保留)
             Text(
                 text = stringResource(R.string.quicknote_editor_tags_count_fmt, state.tags.size),
                 style = MaterialTheme.typography.bodyMedium,
@@ -282,8 +282,6 @@ fun QuickNoteEditorScreen(
                 )
             }
 
-            // ux-2026-06-28 #8:图片附件行 — 添加按钮 + pending/已落库缩略图。
-            // 新建笔记时只能看到 pending 计数 + 移除;编辑现有笔记可直接看已落库缩略图。
             AttachmentRow(
                 pendingUris = pendingUris,
                 existingAttachments = visibleAttachments,
@@ -296,6 +294,129 @@ fun QuickNoteEditorScreen(
             )
         }
     }
+}
+
+private fun nextMode(current: PreviewMode, canSplit: Boolean): PreviewMode = when (current) {
+    PreviewMode.EDIT -> PreviewMode.PREVIEW
+    PreviewMode.PREVIEW -> if (canSplit) PreviewMode.SPLIT else PreviewMode.EDIT
+    PreviewMode.SPLIT -> PreviewMode.EDIT
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EditorBody(
+    state: com.yy.writingwithai.feature.quicknote.model.NoteEditorUiState,
+    spacing: com.yy.writingwithai.app.ui.theme.Spacing,
+    focusRequester: FocusRequester,
+    onContentChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // wikilink 自动补全相关 state(原状)
+    var wikilinkPrefix by remember { mutableStateOf("") }
+    val content = state.content
+    val lastOpen by remember {
+        derivedStateOf { content.lastIndexOf("[[") }
+    }
+    if (lastOpen >= 0) {
+        val afterOpen = content.substring(lastOpen + 2)
+        val closeIdx = afterOpen.indexOf("]]")
+        if (closeIdx < 0 && afterOpen.length <= 64 && !afterOpen.contains("\n")) {
+            LaunchedEffect(content) { wikilinkPrefix = afterOpen.trim() }
+        } else {
+            LaunchedEffect(content) { wikilinkPrefix = "" }
+        }
+    } else {
+        LaunchedEffect(content) { wikilinkPrefix = "" }
+    }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.md)) {
+            if (wikilinkPrefix.isNotEmpty()) {
+                WikilinkAutocomplete(
+                    prefix = wikilinkPrefix,
+                    onSelect = { selected ->
+                        val currentContent = state.content
+                        val openIdx = currentContent.lastIndexOf("[[")
+                        if (openOpenGuard(openIdx)) {
+                            wikilinkPrefix = ""
+                            return@WikilinkAutocomplete
+                        }
+                        val tail = currentContent.substring(openIdx + 2)
+                        val tailClose = tail.indexOf("]]")
+                        if (tailClose >= 0) {
+                            wikilinkPrefix = ""
+                            return@WikilinkAutocomplete
+                        }
+                        val tailPrefix = tail.take(wikilinkPrefix.length)
+                        if (tailPrefix != wikilinkPrefix) {
+                            wikilinkPrefix = ""
+                            return@WikilinkAutocomplete
+                        }
+                        val before = currentContent.substring(0, openIdx)
+                        val after = currentContent.substring(openIdx + 2 + wikilinkPrefix.length)
+                        onContentChange("$before[[$selected]]$after")
+                        wikilinkPrefix = ""
+                    }
+                )
+            }
+        }
+        BasicTextField(
+            value = state.content,
+            onValueChange = onContentChange,
+            textStyle = MaterialTheme.typography.bodyLarge.merge(
+                TextStyle(color = MaterialTheme.colorScheme.onSurface)
+            ),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = spacing.md, vertical = spacing.sm)
+                .focusRequester(focusRequester),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier.fillMaxHeight(),
+                    contentAlignment = Alignment.TopStart
+                ) {
+                    if (state.content.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.quicknote_editor_content_hint),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+    }
+}
+
+private fun openOpenGuard(openIdx: Int): Boolean = openIdx < 0
+
+@Composable
+private fun PreviewBody(
+    markdown: String,
+    spacing: com.yy.writingwithai.app.ui.theme.Spacing,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = spacing.md, vertical = spacing.sm)
+    ) {
+        MarkdownText(
+            markdown = markdown,
+            modifier = Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+@Composable
+private fun VerticalDivider(thickness: Int) {
+    androidx.compose.material3.VerticalDivider(
+        thickness = thickness.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+    )
 }
 
 /**
@@ -318,7 +439,6 @@ private fun AttachmentRow(
             .padding(horizontal = 16.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // 已有附件(编辑现有笔记时)+ pending 缩略图
         if (existingAttachments.isNotEmpty() || pendingUris.isNotEmpty()) {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -331,9 +451,6 @@ private fun AttachmentRow(
                     )
                 }
                 itemsIndexed(pendingUris) { index, uri ->
-                    // fix-2026-06-30-full-review-r1 LOW L2:加稳定 key(index 在本列表
-                    // 生命周期内单调，虽然不跨重组稳定，但足够 Compose 区分"已渲染项"防止
-                    // 短暂错位)。更好的方案是 wrap Uri + uuid 持久 id，留 M5 polish。
                     ThumbnailChip(
                         label = uri.lastPathSegment ?: uri.toString(),
                         onRemove = { onRemovePending(uri) }

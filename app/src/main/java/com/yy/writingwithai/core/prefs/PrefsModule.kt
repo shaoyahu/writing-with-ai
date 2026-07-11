@@ -59,4 +59,11 @@ object PrefsModule {
     @Singleton
     fun provideCustomProviderStore(@ApplicationContext context: Context): CustomProviderStore =
         CustomProviderStoreImpl(context)
+
+    /**
+     * ai-usage-statistics §2:UI 层不直接 import 实现类,集中在这里桥接接口与实现。
+     */
+    @Provides
+    @Singleton
+    fun provideProviderCostStore(impl: ProviderCostStoreImpl): ProviderCostStore = impl
 }

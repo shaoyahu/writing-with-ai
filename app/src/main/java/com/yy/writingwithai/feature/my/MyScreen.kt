@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Storage
@@ -213,6 +214,13 @@ fun MyScreen(
                         title = stringResource(R.string.me_note_association_title),
                         icon = Icons.Filled.Link,
                         onClick = { onNavigate(MeTabTarget.SettingsNoteAssociation) }
+                    )
+                    // ai-usage-statistics §7:AI 用量入口放在数据管理 Section
+                    HorizontalDivider()
+                    MyListItem(
+                        title = stringResource(R.string.ai_usage_title),
+                        icon = Icons.Filled.QueryStats,
+                        onClick = { onNavigate(MeTabTarget.AiUsage) }
                     )
                 }
             }

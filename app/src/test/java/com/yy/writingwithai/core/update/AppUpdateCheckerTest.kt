@@ -64,7 +64,7 @@ class AppUpdateCheckerTest {
               "versionName": "0.5.0",
               "apkUrl": "https://example.com/writing-with-ai-12.apk",
               "apkSize": 12345678,
-              "apkSha256": "abc1234567890def",
+              "apkSha256": "abc1234567890defabc1234567890defabc1234567890defabc1234567890def",
               "releaseNotes": "fix stuff",
               "releasedAt": "2026-06-24T10:00:00Z",
               "minSupportedVersionCode": 1,
@@ -79,7 +79,7 @@ class AppUpdateCheckerTest {
         assertEquals(12, manifest.versionCode)
         assertEquals("0.5.0", manifest.versionName)
         assertEquals("https://example.com/writing-with-ai-12.apk", manifest.apkUrl)
-        assertEquals("abc1234567890def", manifest.apkSha256)
+        assertEquals("abc1234567890defabc1234567890defabc1234567890defabc1234567890def", manifest.apkSha256)
     }
 
     @Test
@@ -106,7 +106,13 @@ class AppUpdateCheckerTest {
 
     @Test
     fun `200 with missing fields uses defaults`() = runTest {
-        val body = """{"versionCode": 1, "versionName": "0.1", "apkUrl": "u", "apkSize": 1, "apkSha256": "x"}"""
+        // fix-full-review-r1 C2:AppUpdateManifest.init requires apkUrl starts with "https://"
+        val sha256 = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+        val body = """
+            {"versionCode": 1, "versionName": "0.1",
+             "apkUrl": "https://example.com/a.apk", "apkSize": 1,
+             "apkSha256": "$sha256"}
+        """.trimIndent().replace("\n", "")
         server.enqueue(MockResponse().setBody(body).setResponseCode(200))
 
         val result = checker.fetch()

@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +23,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -69,12 +67,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.R
 import com.yy.writingwithai.app.ui.theme.LocalCornerRadius
 import com.yy.writingwithai.app.ui.theme.LocalSpacing
@@ -93,7 +91,6 @@ import com.yy.writingwithai.feature.aiwriting.AiwritingEntry
 import com.yy.writingwithai.feature.aiwriting.streaming.AiActionUiState.Idle
 import com.yy.writingwithai.feature.quicknote.model.EntityHighlight
 import com.yy.writingwithai.feature.quicknote.model.NoteDetailUiState
-import com.yy.writingwithai.feature.quicknote.model.toHighlight
 import com.yy.writingwithai.feature.quicknote.share.shareNoteMarkdown
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -102,7 +99,6 @@ import dagger.hilt.android.components.ActivityComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -119,6 +115,9 @@ internal interface DetailScreenEntryPoint {
 
     // real-provider-integration §4:UI 早返回 apikey-missing Snackbar，需实时监听已配 provider
     fun secureApiKeyStore(): SecureApiKeyStore
+
+    // fix-review-r1 F2:InlineMarkdownText 在 detail 屏正文直接消费 dao，避免再开 ViewModel
+    fun noteAttachmentDao(): com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -132,12 +131,21 @@ fun QuickNoteDetailScreen(
     // real-provider-integration §4:apikey 缺失时 Snackbar action "去设置" 跳模型管理页
     onNavigateToModelManagement: () -> Unit,
     onRequestConsent: () -> Unit,
+    // note-graph-view §5.5:跳图屏入口(`NoteGraph(noteId)`);未传默认 no-op,保 unit-test 简易。
+    onNavigateToGraph: (String) -> Unit = {},
+    // fix-review-r1 F2:InlineMarkdownText 缩略图点击 → lightbox
+    onNavigateToLightbox: (String) -> Unit = {},
     viewModel: QuickNoteDetailViewModel = hiltViewModel()
 ) {
     // feishu clip labels 提升到 Composable 顶部 scope，供 onClick lambda 使用
     val feishuClipUrlLabel = stringResource(R.string.feishu_clip_label_url)
     val feishuClipErrorLabel = stringResource(R.string.feishu_clip_label_error)
-    android.util.Log.d("DetailToolbar", "QuickNoteDetailScreen compose enter")
+    // fix-review-r1 F8 4.3:无脑 Log.d 一进屏就 dump,release 包每次导航都打日志——既浪费
+    // battery/IO,也可能漏 noteId 等敏感前缀(虽然此处只打 tag,但 release 包不应有任何
+    // 非崩溃日志)。统一加 BuildConfig.DEBUG,跟 NoteRepository/UserPrefsStore 同模式。
+    if (BuildConfig.DEBUG) {
+        android.util.Log.d("DetailToolbar", "QuickNoteDetailScreen compose enter")
+    }
     val keyboardCtrl = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     // M4-4:详情屏 consent 闸门(UI 层二次防御，与 ViewModel.start() 一致)
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -172,6 +180,8 @@ fun QuickNoteDetailScreen(
 
     val fabState by viewModel.fabState.collectAsStateWithLifecycle()
     val aiMeta by viewModel.aiMetaDisplay.collectAsStateWithLifecycle()
+    // note-graph-view §5.2:是否存在任何关联(关联笔记 / backlinks / 实体),用于 overflow 入口 enabled gate。
+    val hasAnyRelationState by viewModel.hasAnyRelation.collectAsStateWithLifecycle()
     val syncMessage by viewModel.syncMessage.collectAsStateWithLifecycle()
     val syncLoading by viewModel.syncLoading.collectAsStateWithLifecycle()
     val feishuRef by viewModel.feishuRef.collectAsStateWithLifecycle()
@@ -465,6 +475,20 @@ fun QuickNoteDetailScreen(
                                         enabled = hasAiProvider && !isDecomposing
                                     )
                                 )
+                                // note-graph-view §5.1:关联图入口。仅在 hasAnyRelation 时可用,
+                                // 用主笔记 id(就是 current.note.note.id,因为 actions 块有
+                                // `if (current != null)` 守卫),null 时 enabled=false 兜底。
+                                add(
+                                    AppActionItem(
+                                        text = stringResource(R.string.note_graph_entry_action),
+                                        onClick = {
+                                            menuExpanded = false
+                                            current?.note?.note?.id?.let { onNavigateToGraph(it) }
+                                        },
+                                        leadingIcon = Icons.Outlined.Hub,
+                                        enabled = hasAnyRelationState && current?.note?.note?.id != null
+                                    )
+                                )
                             }
                         )
                     }
@@ -561,20 +585,12 @@ fun QuickNoteDetailScreen(
                         // 实体文本末尾直接追加 ✦ 字符(作为 AnnotatedString 的一部分)。
                         val currentNoteId = s.note.note.id
                         val contentText = s.note.note.content
-                        val titleLen = s.note.note.title.length + 1 // +1 for "\n"
-                        val contentLen = contentText.length
-                        val primaryColor = MaterialTheme.colorScheme.primary
-                        val entityHighlights = remember(entityRows, titleLen, contentLen) {
-                            val list = entityRows.mapNotNull { it.toHighlight(titleLen, contentLen) }
-                            android.util.Log.d(
-                                "EntityCheck",
-                                "rawRows=${entityRows.map { Triple(it.surfaceForm, it.spanStart, it.spanEnd) }}, " +
-                                    "highlights=$list"
-                            )
-                            list
-                        }
-                        val annotatedContent = remember(contentText, entityHighlights, primaryColor) {
-                            buildEntityAnnotatedString(contentText, entityHighlights, primaryColor)
+                        // fix-review-r1 F2:InlineMarkdownText 在 detail 屏正文直接消费 dao
+                        val attachmentDao = remember(context) {
+                            EntryPointAccessors.fromActivity(
+                                context as android.app.Activity,
+                                DetailScreenEntryPoint::class.java
+                            ).noteAttachmentDao()
                         }
                         // entity-tap-text-rewrite:换成 Text + SelectionContainer + 外层
                         // Box.pointerInput(tap) —— 不再依赖 BasicTextField IME/collapsed-
@@ -582,58 +598,22 @@ fun QuickNoteDetailScreen(
                         // SelectionContainer 支持长按选词 + 浮选工具栏;tap 拦截走
                         // detectTapGestures + TextLayoutResult.getOffsetForPosition,这条
                         // 路径不被 IME 短路,tap 一致命中。
-                        Box(
+                        //
+                        // fix-review-r1 F2:正文换 InlineMarkdownText 让 attachment://<id>
+                        // 渲染为可视缩略图;为拿到 dao 直接走 DetailScreenEntryPoint。
+                        // 副作用:entity-tap 当前在多 Text 段场景下与 new InlineMarkdownText
+                        // 互斥(新 Composable 是 Column 拼装,没有单 TextLayoutResult),
+                        // 因此本 change 暂时移除 tap-Box,后续独立 OpenSpec change 把
+                        // entity-tap 拆成 InlineMarkdownText 内部 onEntityTap(segment, offset)
+                        // 接口重新接回。详见 proposal §"What changes · attachment"。
+                        InlineMarkdownText(
+                            content = contentText,
+                            attachmentDao = attachmentDao,
+                            onAttachmentClick = onNavigateToLightbox,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = LocalSpacing.current.sm)
-                                .pointerInput(noteId, entityHighlights) {
-                                    detectTapGestures(onTap = { tapOffset ->
-                                        val layout = textLayoutResult ?: return@detectTapGestures
-                                        val annOffset = layout.getOffsetForPosition(tapOffset)
-                                        val starsBefore = annotatedContent.text.substring(
-                                            0,
-                                            annOffset.coerceIn(0, annotatedContent.length)
-                                        ).count { it == EntityCrossStarChar.first() }
-                                        val contentOffset = (annOffset - starsBefore)
-                                            .coerceIn(0, contentText.length)
-                                        // entity-tap-rightedge-fix:`until` 改成 `..` 闭合区间。
-                                        // 点击 ✦ superscript 字符本身或紧贴 ✦ 右侧的字符时,
-                                        // starsBefore 已计该 ✦,contentOffset 落在 entity 的
-                                        // contentEnd(原 until 不含端点 → miss)。视觉上 ✦
-                                        // 仍属该 entity,应当命中。闭合区间让点 entity 右半
-                                        // (含 ✦) 一律归到该 entity;firstOrNull 在相邻 entity
-                                        // 首尾相接时按列表顺序命中第一条,语义可接受。
-                                        val hit = entityHighlights.firstOrNull { h ->
-                                            contentOffset >= h.contentStart &&
-                                                contentOffset <= h.contentEnd
-                                        } ?: return@detectTapGestures
-                                        val entityKey = hit.entityKey
-                                        snackbarScope.launch {
-                                            relatedForEntity = viewModel.getRelatedByEntity(entityKey)
-                                            selectedEntity = hit
-                                            entitySheetState.show()
-                                        }
-                                        android.util.Log.d(
-                                            "EntityClick",
-                                            "tap hit=${hit.surfaceForm} " +
-                                                "annOffset=$annOffset contentOffset=$contentOffset " +
-                                                "span=${hit.contentStart}-${hit.contentEnd}"
-                                        )
-                                    })
-                                }
-                        ) {
-                            SelectionContainer {
-                                Text(
-                                    text = annotatedContent,
-                                    style = MaterialTheme.typography.bodyLarge.copy(
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    ),
-                                    onTextLayout = { layoutResult ->
-                                        textLayoutResult = layoutResult
-                                    }
-                                )
-                            }
-                        }
+                        )
                         // 字数 / 阅读时间 — 放在关联笔记上方，作为正文元数据贴近主体
                         Text(
                             text =
@@ -741,7 +721,8 @@ fun QuickNoteDetailScreen(
                 onNavigateToSettings = onNavigateToSettings,
                 onDismiss = { aiVm.dismiss() },
                 onUndo = { aiVm.undo() },
-                onDismissReplace = { aiVm.dismiss() }
+                onDismissReplace = { aiVm.dismiss() },
+                onSelectVersion = { position -> aiVm.selectVersion(position) }
             )
         }
 

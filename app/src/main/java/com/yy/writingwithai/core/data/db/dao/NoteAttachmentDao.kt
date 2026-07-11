@@ -29,6 +29,14 @@ interface NoteAttachmentDao {
     @Query("SELECT * FROM note_attachments WHERE noteId = :noteId")
     suspend fun getForNote(noteId: String): List<NoteAttachmentEntity>
 
+    /**
+     * attachment-inline-render §4:按 attachmentId 反查 localPath,供 InlineMarkdownText
+     * 拿到 localPath 后做 inSampleSize 解码(避免在 Composable 签名里强加 noteId 耦合)。
+     * id 是 note_attachments 主键,索引天然走 PK,O(1)。
+     */
+    @Query("SELECT * FROM note_attachments WHERE id = :id LIMIT 1")
+    fun observeById(id: String): Flow<NoteAttachmentEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: NoteAttachmentEntity)
 

@@ -34,6 +34,9 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
  *   - `@AutoMigration(2, 3)` 走 schema diff 自动建新表 + 索引 + 外键 CASCADE
  * - version 4:加 feishu_ref + feishu_sync_event，对应 feishu-bidir-sync
  *   - `@AutoMigration(3, 4)` 走 schema diff
+ * - version 13:加 feishu_ref/noteId + feishu_sync_event/noteId 索引(fix-full-review)
+ * - version 14:加 ai_history.versionGroupId + 联合索引(ai-regenerate-versions)
+ *   - `@AutoMigration(13, 14)` 走 schema diff 自动加可空列 + 索引
  * - `exportSchema = true` 配合 `app/build.gradle.kts` 的 KSP arg,
  *   schema JSON 输出到 `app/schemas/com.yy.writingwithai.core.data.db.AppDatabase/<version>.json`
  */
@@ -51,7 +54,7 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         SyncMetaEntity::class,
         NoteAttachmentEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -74,7 +77,10 @@ import com.yy.writingwithai.core.feishu.sync.FeishuSyncEventEntity
         AutoMigration(from = 11, to = 12),
         // fix-full-review:feishu_ref 加 docId + noteId 索引，feishu_sync_event 加 noteId 索引，
         // 加速按文档/笔记查关联的常见查询。AutoMigration 会自动 CREATE INDEX。
-        AutoMigration(from = 12, to = 13)
+        AutoMigration(from = 12, to = 13),
+        // ai-regenerate-versions:ai_history 加可空列 versionGroupId + 联合索引
+        // (noteId, versionGroupId)。旧行 groupId=null 视为"单版本"，无损升级。
+        AutoMigration(from = 13, to = 14)
     ]
 )
 @TypeConverters(SyncStatusConverter::class)

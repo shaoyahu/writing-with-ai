@@ -6,7 +6,11 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "ai_history",
-    indices = [Index("noteId"), Index("createdAt")]
+    indices = [
+        Index("noteId"),
+        Index("createdAt"),
+        Index(value = ["noteId", "versionGroupId"])
+    ]
 )
 data class AiHistoryEntity(
     @PrimaryKey val id: String,
@@ -22,5 +26,15 @@ data class AiHistoryEntity(
     val inputSnapshot: String,
     val outputSnapshot: String,
     val truncated: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    /**
+     * ai-regenerate-versions:本次操作归属的版本组 id;null = 单版本(M3 行为,向后兼容)。
+     * 同一 sourceText + op 一次多版本生成的 N 行共享同一非空 groupId(UUID)。
+     */
+    val versionGroupId: String? = null,
+    /**
+     * ai-regenerate-versions:本行在多版本生成中的位置(0..N-1),用于 ai_history 行排序
+     * 与 UI tab 顺序。null = 单版本(M3 行为)。
+     */
+    val versionPosition: Int? = null
 )

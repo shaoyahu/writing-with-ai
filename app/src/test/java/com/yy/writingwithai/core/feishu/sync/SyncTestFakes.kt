@@ -290,6 +290,9 @@ internal class FakeNoteAttachmentDao : NoteAttachmentDao {
     override fun observeForNote(noteId: String): Flow<List<NoteAttachmentEntity>> =
         kotlinx.coroutines.flow.flowOf(store[noteId].orEmpty())
 
+    override fun observeById(id: String): Flow<NoteAttachmentEntity?> =
+        kotlinx.coroutines.flow.flowOf(store.values.flatten().firstOrNull { it.id == id })
+
     override suspend fun getForNote(noteId: String): List<NoteAttachmentEntity> = store[noteId].orEmpty()
 
     override suspend fun insert(entity: NoteAttachmentEntity) {

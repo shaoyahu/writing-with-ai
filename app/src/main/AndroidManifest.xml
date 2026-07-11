@@ -14,6 +14,15 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
 
+    <!-- morning-freewrite · Android 13+ 通知权限。
+         SDK 33+ 才需要;用户拒绝时仍能写但通知不弹。 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- morning-freewrite · 设备开机 / APK 自更新后重排闹钟。
+         不申请 SCHEDULE_EXACT_ALARM(Google Play 政策:仅「日历/闹钟/提醒」
+         类目可申请,本应用不属于 — 用 setAndAllowWhileIdle 做 fallback)。 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:name=".app.WritingApp"
         android:allowBackup="false"
@@ -114,6 +123,24 @@
                 <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
             </intent-filter>
         </receiver>
+
+        <!-- morning-freewrite · 开机 / APK 更新后重排闹钟(design §3.3)。
+             BOOT_COMPLETED 必须是 exported=true 才能接收系统级 broadcast;
+             MY_PACKAGE_REPLACED 是同包 update(Android 不限制 exported,这里 true 保险)。 -->
+        <receiver
+            android:name=".core.notification.MorningFreewriteBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- morning-freewrite · 闹钟触发接收器(AlarmManager → 通知)。
+             不需要 exported(系统自起广播),exported=false 即可。 -->
+        <receiver
+            android:name=".core.notification.MorningFreewriteAlarmReceiver"
+            android:exported="false" />
 
         <!-- app-self-hosted-update · FileProvider，把 App-private external 下载目录
              暴露成 content:// URI 给系统安装器，避开 API 24+ 的 FileUriExposedException。 -->

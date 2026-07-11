@@ -45,7 +45,9 @@ fun NavGraphBuilder.settingsNavRoutes(navController: NavController) {
         SettingsEntry.SettingsRoute(
             onBack = { navController.popBackStack() },
             // entity-extraction-polish §5.2
-            onNavigateToAssociation = { navController.navigate(SettingsNoteAssociation) }
+            onNavigateToAssociation = { navController.navigate(SettingsNoteAssociation) },
+            // morning-freewrite §2.5:跳转「每日晨写」配置页
+            onNavigateToFreewrite = { navController.navigate(SettingsFreewrite) }
         )
     }
     composable<SettingsPromptTemplate> {
@@ -97,6 +99,12 @@ fun NavGraphBuilder.settingsNavRoutes(navController: NavController) {
     // ux-2026-06-28 P6:飞书授权页专属 route(不再走 Settings hub)
     composable<SettingsFeishu> {
         FeishuAuthScreen(
+            onBack = { navController.popBackStack() }
+        )
+    }
+    // morning-freewrite §2.3:「设置 → 每日晨写」配置 route
+    composable<SettingsFreewrite> {
+        com.yy.writingwithai.feature.settings.freewrite.SettingsFreewriteScreen(
             onBack = { navController.popBackStack() }
         )
     }

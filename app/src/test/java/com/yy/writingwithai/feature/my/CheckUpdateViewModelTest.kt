@@ -66,7 +66,7 @@ class CheckUpdateViewModelTest {
                 versionCode = BuildConfig.VERSION_CODE,
                 versionName = "1.0.0",
                 apkUrl = "https://example.com/app.apk",
-                apkSha256 = "abc123"
+                apkSha256 = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
             )
         )
         viewModel = CheckUpdateViewModel(appUpdateChecker)
@@ -85,7 +85,7 @@ class CheckUpdateViewModelTest {
                 versionCode = BuildConfig.VERSION_CODE,
                 versionName = "1.0.0",
                 apkUrl = "https://example.com/app.apk",
-                apkSha256 = "abc123"
+                apkSha256 = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
             )
         )
         viewModel = CheckUpdateViewModel(appUpdateChecker)
@@ -109,7 +109,7 @@ class CheckUpdateViewModelTest {
             versionCode = BuildConfig.VERSION_CODE + 1,
             versionName = "2.0.0",
             apkUrl = "https://example.com/app-v2.apk",
-            apkSha256 = "def456",
+            apkSha256 = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
             releaseNotes = "Bug fixes and improvements"
         )
         coEvery { appUpdateChecker.fetch() } returns Result.success(manifest)

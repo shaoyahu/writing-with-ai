@@ -11,6 +11,7 @@ import com.yy.writingwithai.core.data.repo.NoteRepository
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 
 /**
  * M4-3 · SettingsDataViewModel 单元测试(JUnit5 + MockK)。
@@ -34,11 +36,14 @@ import org.junit.jupiter.api.Test
  * 覆盖 spec §"SettingsDataViewModel 用 viewModelScope.launch + Dispatchers.IO" 场景:
  * - 导出成功 → state Idle → Exporting → Done(report.successCount = exported.size)
  * - 导出失败 → state Failed
- * - 导入成功 → state Done(report) + lastImportReportZipBytes 暂存
+ * - 导入成功 → state Done(report) + lastImportReportFile 暂存
  * - 导入失败 → state Failed
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsDataViewModelTest {
+    @TempDir
+    lateinit var tempDir: File
+
     private val context: Context = mockk(relaxed = true)
     private val contentResolver: ContentResolver = mockk(relaxed = true)
     private val noteExporter: NoteExporter = mockk()
@@ -51,6 +56,7 @@ class SettingsDataViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         every { context.contentResolver } returns contentResolver
+        every { context.cacheDir } returns tempDir
         every { noteRepository.observeNotesWithTags(null, null) } returns flowOf(emptyList<NoteWithTags>())
         viewModel =
             SettingsDataViewModel(
@@ -124,7 +130,7 @@ class SettingsDataViewModelTest {
         assertEquals(1, state.report.skippedCount)
         assertEquals(0, state.report.failedCount)
         assertTrue(state.isImport, "import 触发的 Done MUST isImport = true")
-        assertNotNull(viewModel.lastImportReportZipBytes, "lastImportReportZipBytes MUST 被暂存")
+        assertNotNull(viewModel.lastImportReportFile, "lastImportReportFile MUST 被暂存")
     }
 
     @Test
@@ -234,7 +240,7 @@ class SettingsDataViewModelTest {
                 expectedReport
             }
         viewModel.importFromZip(importUri)
-        val cachedBytes = viewModel.lastImportReportZipBytes
+        val cachedBytes = viewModel.lastImportReportFile?.readBytes()
         assertNotNull(cachedBytes, "import 成功 MUST 缓存 bytes")
         assertTrue(cachedBytes!!.isNotEmpty(), "mock importer 写入 out 后 cachedBytes MUST 非空")
 
@@ -263,8 +269,8 @@ class SettingsDataViewModelTest {
 
     @Test
     fun saveImportReport_nullBytesIsNoOp() = runTest {
-        // arrange:VM 初始(未触发 import)lastImportReportZipBytes == null
-        assertEquals(null, viewModel.lastImportReportZipBytes, "VM 初始 bytes MUST null")
+        // arrange:VM 初始(未触发 import)lastImportReportFile == null
+        assertEquals(null, viewModel.lastImportReportFile, "VM 初始 bytes MUST null")
 
         // act:直接调 saveImportReport
         val saveUri: Uri = mockk(relaxed = true)

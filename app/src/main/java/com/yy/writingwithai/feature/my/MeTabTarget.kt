@@ -43,5 +43,8 @@ enum class MeTabTarget {
     EntityManagement,
 
     /** entity-management-and-ai-decompose §5.3:开发者选项入口(仅开发者模式启用时显示) */
-    DeveloperOptions
+    DeveloperOptions,
+
+    /** ai-usage-statistics §7:AI 用量统计入口(数据管理区) */
+    AiUsage
 }

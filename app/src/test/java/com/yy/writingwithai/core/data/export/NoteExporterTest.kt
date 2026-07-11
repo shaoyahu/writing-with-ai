@@ -123,7 +123,7 @@ class NoteExporterTest {
             ExportJsonFormat
                 .decodeFromString(ExportMeta.serializer(), entries["meta.json"]!!.toString(Charsets.UTF_8))
         assertNotNull(meta.exportTimestamp)
-        assertEquals("0.4.0", meta.appVersion)
+        assertEquals("0.4.1", meta.appVersion)
         assertEquals("1", meta.schemaVersion)
     }
 

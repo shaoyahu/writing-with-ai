@@ -32,7 +32,12 @@ constructor(
 
     private fun redact(s: String): String = APIKEY_PATTERNS.fold(s) { acc, p -> acc.replace(p, "***REDACTED***") }
 
-    /** 记录一次 AI 调用(由 CoreAiGateway 在 Done / Failed 时调)。 */
+    /** 记录一次 AI 调用(由 CoreAiGateway 在 Done / Failed 时调)。
+     *
+     * ai-regenerate-versions:新增可选 `versionGroupId`(null = 单版本 M3 行为,向后兼容;
+     * 非空 = 多版本生成的同组行共享同一 groupId UUID)+ `versionPosition`(0..N-1,落库
+     * traceability)。
+     */
     suspend fun record(
         noteId: String?,
         providerId: String,
@@ -45,7 +50,9 @@ constructor(
         createdAt: Long,
         inputSnapshot: String,
         outputSnapshot: String,
-        error: String?
+        error: String?,
+        versionGroupId: String? = null,
+        versionPosition: Int? = null
     ) {
         val redactedInput = redact(inputSnapshot).take(MAX_SNAPSHOT_LEN)
         val redactedOutput = redact(outputSnapshot).take(MAX_SNAPSHOT_LEN)
@@ -67,7 +74,9 @@ constructor(
                 truncated =
                 redactedInput.length < inputSnapshot.length ||
                     redactedOutput.length < outputSnapshot.length,
-                error = redactedError
+                error = redactedError,
+                versionGroupId = versionGroupId,
+                versionPosition = versionPosition
             )
         )
     }

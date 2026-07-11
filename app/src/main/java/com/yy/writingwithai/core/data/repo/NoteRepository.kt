@@ -9,6 +9,7 @@ import com.yy.writingwithai.core.data.db.NoteDao
 import com.yy.writingwithai.core.data.db.NoteTagDao
 import com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao
 import com.yy.writingwithai.core.data.db.entity.NoteTagCrossRef
+import com.yy.writingwithai.core.data.db.entity.SyncStatus
 import com.yy.writingwithai.core.data.mapper.toEntity
 import com.yy.writingwithai.core.data.mapper.toModel
 import com.yy.writingwithai.core.data.model.Note
@@ -251,6 +252,35 @@ constructor(
         noteDao.updateAiMetadata(noteId, op, at)
     }
 
+    /**
+     * morning-freewrite §4.5:一键创建「晨写」笔记 + journal tag + (可选) lastAiOp 元数据。
+     *
+     * 走 [upsert] 同款事务 + widget 刷新路径,保证:
+     * - 主表 note 行 + note_tags (journal) 交叉引用行同时落库(原子)
+     * - DB 落库后 widget 同步刷新(用户下次开 widget 看到新条目)
+     *
+     * 失败兜底场景(Polish/Organize AI 失败):仍可保存「原文」+ fallback=true 元数据,
+     * 用户的输入不丢。`fallback` 不进表,只走 lastAiOp 标记 organizer=null 表示"未整理"。
+     *
+     * @param lastAiOp "polish" / "organize" / null(fallback 时无 op)
+     * @param lastAiAt op 落库时间戳;fallback 时传 null
+     */
+    suspend fun createJournalEntry(noteId: String, title: String, content: String, lastAiOp: String?, lastAiAt: Long?) {
+        val now = System.currentTimeMillis()
+        val note = Note(
+            id = noteId,
+            title = title,
+            content = content,
+            createdAt = now,
+            updatedAt = now,
+            isPinned = false,
+            lastAiOp = lastAiOp,
+            lastAiAt = lastAiAt,
+            syncStatus = SyncStatus.LOCAL
+        )
+        upsert(note, tags = listOf(JOURNAL_TAG))
+    }
+
     fun observeAllTags(): Flow<List<String>> = noteTagDao.observeAllTags().distinctUntilChanged()
 
     /**
@@ -262,5 +292,11 @@ constructor(
 
     companion object {
         private const val DEBOUNCE_MS = 500L
+
+        /**
+         * morning-freewrite §4.5:journal tag 字面量。**不**散落到业务代码层,统一从此常量引用,
+         * 避免 `grep "\"journal\""` 在 feature 层命中。
+         */
+        const val JOURNAL_TAG = "journal"
     }
 }

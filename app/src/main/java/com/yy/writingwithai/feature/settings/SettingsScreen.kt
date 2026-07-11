@@ -45,6 +45,8 @@ fun SettingsScreen(
     onBack: () -> Unit = {},
     // entity-extraction-polish §5.2:跳转「笔记关联」设置 route
     onNavigateToAssociation: () -> Unit = {},
+    // morning-freewrite §2.5:跳转「每日晨写」配置 route
+    onNavigateToFreewrite: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -115,6 +117,18 @@ fun SettingsScreen(
                         Text(stringResource(R.string.note_association_settings_entry_desc))
                     },
                     modifier = Modifier.clickable { onNavigateToAssociation() }
+                )
+            }
+            // morning-freewrite §2.5:每日晨写设置入口(toggle + TimePicker)
+            item {
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.freewrite_settings_title))
+                    },
+                    supportingContent = {
+                        Text(stringResource(R.string.freewrite_settings_entry_desc))
+                    },
+                    modifier = Modifier.clickable { onNavigateToFreewrite() }
                 )
             }
             // 反馈 #4:飞书同步日志 section 已迁到 FeishuAuth 主屏(更合理的位置)

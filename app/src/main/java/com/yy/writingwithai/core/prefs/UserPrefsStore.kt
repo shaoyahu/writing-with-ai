@@ -6,11 +6,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.ui.animation.AnimationStyle
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -64,6 +66,20 @@ interface UserPrefsStore {
 
     /** 持久化「标签动画」开关。`false` 时 tab 内容切换立即退化为 `snap()`。 */
     suspend fun setTabAnimationsEnabled(enabled: Boolean)
+
+    // ---- morning-freewrite ----
+
+    /** 「每日晨写」总开关(design §3.2)。未设置默认 `false`(用户主动开)。 */
+    val morningFreewriteEnabledFlow: Flow<Boolean>
+
+    /** 持久化晨写开关。 */
+    suspend fun setMorningFreewriteEnabled(enabled: Boolean)
+
+    /** 「每日晨写」触发时刻(design §3.2)。未设置默认 `08:00`。 */
+    val morningFreewriteTimeFlow: Flow<LocalTime>
+
+    /** 持久化晨写时刻(hour + minute 分开存,LocalTime 不直接序列化进 DataStore)。 */
+    suspend fun setMorningFreewriteTime(time: LocalTime)
 }
 
 private val Context.userPrefsDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs_store")
@@ -112,6 +128,29 @@ constructor(
         store.edit { it[KEY_TAB_ANIMATIONS_ENABLED_V1] = enabled }
     }
 
+    override val morningFreewriteEnabledFlow: Flow<Boolean> =
+        store.data.map { prefs ->
+            prefs[KEY_MORNING_FREEWRITE_ENABLED_V1] ?: DEFAULT_MORNING_FREEWRITE_ENABLED
+        }
+
+    override suspend fun setMorningFreewriteEnabled(enabled: Boolean) {
+        store.edit { it[KEY_MORNING_FREEWRITE_ENABLED_V1] = enabled }
+    }
+
+    override val morningFreewriteTimeFlow: Flow<LocalTime> =
+        store.data.map { prefs ->
+            val hour = prefs[KEY_MORNING_FREEWRITE_HOUR_V1] ?: DEFAULT_MORNING_FREEWRITE_HOUR
+            val minute = prefs[KEY_MORNING_FREEWRITE_MINUTE_V1] ?: DEFAULT_MORNING_FREEWRITE_MINUTE
+            LocalTime.of(hour, minute)
+        }
+
+    override suspend fun setMorningFreewriteTime(time: LocalTime) {
+        store.edit { prefs ->
+            prefs[KEY_MORNING_FREEWRITE_HOUR_V1] = time.hour
+            prefs[KEY_MORNING_FREEWRITE_MINUTE_V1] = time.minute
+        }
+    }
+
     companion object {
         private val KEY_ACK_APIKEY_PROMPT = booleanPreferencesKey("ack_apikey_prompt_v1")
 
@@ -140,6 +179,27 @@ constructor(
          * spec ADDED REQ 1 / REQ 2:「Default SHALL be `true`」。
          */
         private const val DEFAULT_ANIMATIONS_ENABLED = true
+
+        // ===== morning-freewrite · 每日晨写默认 + DataStore key =====
+        /**
+         * 「开启每日提醒」默认 `false`(v1 内测,关闭状态起步;用户进设置页手动开启)。
+         * 公开给 [FakeUserPrefsStore] 复用 fake 与 real 默认一致。
+         */
+        @Suppress("MemberVisibilityCanBePrivate")
+        const val DEFAULT_MORNING_FREEWRITE_ENABLED = false
+
+        @Suppress("MemberVisibilityCanBePrivate")
+        val KEY_MORNING_FREEWRITE_ENABLED_V1 = booleanPreferencesKey("morning_freewrite_enabled_v1")
+
+        /** 默认提醒时间 08:00;v1 内测取早 8 点,符合"上班前写"心智模型。 */
+        const val DEFAULT_MORNING_FREEWRITE_HOUR = 8
+        const val DEFAULT_MORNING_FREEWRITE_MINUTE = 0
+
+        @Suppress("MemberVisibilityCanBePrivate")
+        val KEY_MORNING_FREEWRITE_HOUR_V1 = intPreferencesKey("morning_freewrite_hour_v1")
+
+        @Suppress("MemberVisibilityCanBePrivate")
+        val KEY_MORNING_FREEWRITE_MINUTE_V1 = intPreferencesKey("morning_freewrite_minute_v1")
 
         /**
          * 把 DataStore 存的 String 还原为 [AnimationStyle];未知 / null / 解析失败返回 null

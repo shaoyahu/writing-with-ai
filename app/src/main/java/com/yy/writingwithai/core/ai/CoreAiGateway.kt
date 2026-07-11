@@ -117,7 +117,9 @@ constructor(
         apikey: String,
         modelName: String?,
         systemPrompt: String?,
-        apiFormatOverride: ApiFormat?
+        apiFormatOverride: ApiFormat?,
+        versionGroupId: String?,
+        versionPosition: Int?
     ): Flow<AiStreamEvent> {
         // fix-2026-06-30-full-review-r1 HIGH H10:在 gateway 入口加 consent 门控。
         // 项目 CLAUDE.md 规定"首次 AI 调用必须有用户同意",Gateway 是 AI 调用的
@@ -216,7 +218,10 @@ constructor(
                         createdAt = System.currentTimeMillis(),
                         inputSnapshot = sourceText,
                         outputSnapshot = outputBuilder.toString(),
-                        error = errorMsg
+                        error = errorMsg,
+                        // ai-regenerate-versions:多版本时落同组 id + 位置;单版本留 null。
+                        versionGroupId = versionGroupId,
+                        versionPosition = versionPosition
                     )
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e

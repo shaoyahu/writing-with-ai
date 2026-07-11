@@ -25,11 +25,14 @@ object SettingsEntry {
         onBack: () -> Unit = {},
         // entity-extraction-polish §5.2:笔记关联设置入口(进 SettingsNoteAssociation route)
         onNavigateToAssociation: () -> Unit = {},
+        // morning-freewrite §2.5:「每日晨写」配置入口(进 SettingsFreewrite route)
+        onNavigateToFreewrite: () -> Unit = {},
         modifier: Modifier = Modifier
     ) {
         SettingsScreen(
             onBack = onBack,
             onNavigateToAssociation = onNavigateToAssociation,
+            onNavigateToFreewrite = onNavigateToFreewrite,
             modifier = modifier
         )
     }

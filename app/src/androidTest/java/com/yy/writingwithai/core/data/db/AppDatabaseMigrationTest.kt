@@ -50,4 +50,38 @@ class AppDatabaseMigrationTest {
             AppDatabase.MIGRATION_1_2
         )
     }
+
+    /**
+     * ai-regenerate-versions:验证 v13 → v14 AutoMigration 在 Room 上能正常 apply。
+     *
+     * v14 在 ai_history 加 versionGroupId / versionPosition 两列(均可空)+ 复合索引
+     * (noteId, versionGroupId)。如果 AutoMigration 路径写错(列没加 / 索引漏建),
+     * MigrationTestHelper 会抛 IllegalStateException,启动崩溃。
+     */
+    @Test
+    fun migrate13To14_addsVersionGroupColumns() {
+        helper.createDatabase(DB_NAME, 13).close()
+        helper.runMigrationsAndValidate(DB_NAME, 14, true)
+    }
+
+    /**
+     * fix-review-r1 F8 4.9:验证"首次安装 v14"的 schema 与最新 `@Entity` 定义一致。
+     *
+     * 走 `createDatabase(DB_NAME, 14)` 直接铺 v14 schema(`app/schemas/.../14.json`),
+     * 再 `runMigrationsAndValidate(DB_NAME, 14, validateDroppedTables = true)` 不传
+     * `MIGRATION_*` 参数 → 等价 fresh install + open。`MigrationTestHelper` 内部
+     * 仍会拿最新 `@Entity` + `View` 重新跑一次 schema 校验,这一步捕获:
+     *   1. 忘了把 `@Database(version = 14)` bump 到下个版本;
+     *   2. 14.json 漏提交某个列 / index / 外键;
+     *   3. `@Entity` 注解与 14.json 漂移(列名 / 默认值 / nullable 不一致)。
+     */
+    @Test
+    fun freshInstall_v14_matchesLatestSchema() {
+        helper.createDatabase(DB_NAME, 14).close()
+        helper.runMigrationsAndValidate(
+            DB_NAME,
+            14,
+            validateDroppedTables = true
+        )
+    }
 }

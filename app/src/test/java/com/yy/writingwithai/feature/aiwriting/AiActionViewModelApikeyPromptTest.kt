@@ -124,7 +124,9 @@ private class ThrowingAiGatewayForAckTest : AiGateway {
         apikey: String,
         modelName: String?,
         systemPrompt: String?,
-        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?,
+        versionGroupId: String?,
+        versionPosition: Int?
     ): kotlinx.coroutines.flow.Flow<AiStreamEvent> {
         callCount++
         throw IllegalStateException("AiGateway must NOT be called when ack=false")
@@ -152,7 +154,9 @@ private class RecordingAiGatewayForAckTest : AiGateway {
         apikey: String,
         modelName: String?,
         systemPrompt: String?,
-        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?
+        apiFormatOverride: com.yy.writingwithai.core.ai.api.ApiFormat?,
+        versionGroupId: String?,
+        versionPosition: Int?
     ): kotlinx.coroutines.flow.Flow<AiStreamEvent> {
         callCount++
         lastProviderId = providerId

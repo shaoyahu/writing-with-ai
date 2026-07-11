@@ -17,7 +17,17 @@ interface AiGateway {
         apikey: String,
         modelName: String?,
         systemPrompt: String? = null,
-        apiFormatOverride: ApiFormat? = null
+        apiFormatOverride: ApiFormat? = null,
+        /**
+         * ai-regenerate-versions:多版本生成时同一 sourceText + op 的 N 次调用共享同一 groupId,
+         * 写 ai_history 行时落同一字段便于按组聚合。null = 单版本(M3 行为,向后兼容)。
+         */
+        versionGroupId: String? = null,
+        /**
+         * ai-regenerate-versions:本行在多版本生成中的位置(0..N-1),用于 ai_history 行排序
+         * 与 UI tab 顺序。null = 单版本(M3 行为)。
+         */
+        versionPosition: Int? = null
     ): Flow<AiStreamEvent>
 
     /**

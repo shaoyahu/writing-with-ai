@@ -488,6 +488,8 @@
     <!-- H8 · AliasManagementViewModel 提示消息 — 复用已有 entity_alias_*_toast keys(同语义) -->
     <!-- (无新增，VM 改用 R.string.entity_alias_merged_toast / entity_alias_unmerged_toast) -->
     <string name="common_back">返回</string>
+    <string name="common_confirm">确认</string>
+    <string name="common_cancel">取消</string>
     <string name="common_more_cd">更多选项</string>
     <string name="common_remove_cd">移除</string>
     <string name="common_add_cd">添加</string>
@@ -794,4 +796,95 @@
     <string name="update_toast_read_failed">下载文件损坏:无法读取</string>
     <string name="update_toast_sha_mismatch">下载文件损坏，请重试</string>
     <string name="update_toast_no_installer">无法启动安装器，请手动到 /app/download/ 下载</string>
+
+    <!-- ===== morning-freewrite · 每日晨写 ===== -->
+    <string name="freewrite_settings_title">每日晨写</string>
+    <string name="freewrite_settings_entry_desc">定时提醒 + 5 分钟沉浸写作</string>
+    <string name="freewrite_enable_label">开启每日提醒</string>
+    <string name="freewrite_enable_desc">每天定时弹出提醒，点开进入沉浸写作</string>
+    <string name="freewrite_time_label">提醒时间</string>
+    <string name="freewrite_time_picker_title">选择提醒时间</string>
+    <string name="freewrite_permission_denied_title">通知权限未开启</string>
+    <string name="freewrite_permission_denied_desc">点击前往系统设置开启通知权限</string>
+    <string name="freewrite_notification_channel_name">每日晨写提醒</string>
+    <!-- fix-review-r1 F8 4.7:channel description 与 per-notification body 必须分开。
+         系统设置 → 应用通知 → "每日晨写提醒" 频道详情页读 channel.description;
+         通知正文(锁屏/通知栏展开)读 setContentText。
+         原版把 body 复用给 description,系统设置页就成了"5 分钟沉浸写作时间",
+         完全没解释"这是干嘛的通知";同样 body 在 body 里也会让人误解为 category 说明。 -->
+    <string name="freewrite_notification_channel_description">晨间 5 分钟沉浸写作的提醒通知</string>
+    <string name="freewrite_notification_title">开始今天的晨写</string>
+    <string name="freewrite_notification_body">5 分钟沉浸写作时间</string>
+    <string name="freewrite_hint">开始写吧…</string>
+    <string name="freewrite_polishing">AI 润色中…</string>
+    <string name="freewrite_organizing">AI 整理中…</string>
+    <string name="freewrite_please_wait">请稍候</string>
+    <string name="freewrite_success_toast">已保存</string>
+    <string name="freewrite_fallback_toast">已保存(AI 暂时不可用)</string>
+    <string name="freewrite_failed">保存失败</string>
+    <string name="freewrite_no_provider_hint">请先配置 AI 模型</string>
+    <string name="freewrite_no_provider_action">去设置</string>
+    <string name="freewrite_finish">完成</string>
+    <string name="freewrite_skip">跳过</string>
+    <string name="freewrite_exit_dialog_title">结束晨写?</string>
+    <string name="freewrite_exit_dialog_message">退出会保存当前原文(不经过 AI 整理)</string>
+    <string name="freewrite_exit_dialog_confirm">结束</string>
+    <!-- ===== morning-freewrite · 每日晨写 ===== -->
+    <!-- source: ac787f36ae0fae940 --><string name="about_channel_debug">测试版(debug)</string>
+    <!-- source: ac787f36ae0fae940 --><string name="about_channel_release">正式版(release)</string>
+    <!-- source: ac787f36ae0fae940 --><string name="about_check_update">检查更新</string>
+    <!-- source: ac787f36ae0fae940 --><string name="about_check_update_hint">从 https://xiaozha.nananxue.cn/app/version.json 拉最新版本</string>
+    <!-- source: ac787f36ae0fae940 --><string name="about_check_update_title">检查更新</string>
+    <!-- source: ac787f36ae0fae940 --><string name="about_checking">检查中…</string>
+    <!-- source: ac787f36ae0fae940 --><string name="about_current_version">当前版本</string>
+    <!-- source: ac787f36ae0fae940 --><string name="about_title">关于</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_cost_disabled">未配置成本费率</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_cost_fmt">约 $%1$.2f</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_empty">还没有 AI 调用记录</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_op_expand">扩写</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_op_organize">整理</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_op_polish">润色</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_op_summarize">摘要</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_op_translate">翻译</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_period_30d">近 30 天</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_period_7d">近 7 天</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_section_by_op">按操作</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_section_by_provider">按模型服务</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_title">AI 用量</string>
+    <!-- source: aa66e8d1b0e6a3af0 --><string name="ai_usage_total_tokens">总消耗 %1$d token</string>
+    <!-- source: a8b54e3f10dff3444 --><string name="aiwriting_panel_done_suffix">完成</string>
+    <!-- source: a8b54e3f10dff3444 --><string name="aiwriting_version_failed">本版本生成失败，请切换其他版本或重新生成。</string>
+    <!-- source: a8b54e3f10dff3444 --><string name="aiwriting_version_mark_done"> · ✓</string>
+    <!-- source: a8b54e3f10dff3444 --><string name="aiwriting_version_mark_failed"> · ✗</string>
+    <!-- source: a8b54e3f10dff3444 --><string name="aiwriting_version_mark_streaming"> · 进行中</string>
+    <!-- source: a8b54e3f10dff3444 --><string name="aiwriting_version_tab_title">版本 %1$d</string>
+    <!-- source: ac787f36ae0fae940 --><string name="model_management_models_summary_fmt">%1$d 个模型 · 默认 %2$s</string>
+    <!-- source: a8529dd0e05a67ecf --><string name="note_graph_empty">该笔记暂无关联可展示</string>
+    <!-- source: a8529dd0e05a67ecf --><string name="note_graph_entry_action">查看关联图</string>
+    <!-- source: a8529dd0e05a67ecf --><string name="note_graph_legend_entity">实体标签</string>
+    <!-- source: a8529dd0e05a67ecf --><string name="note_graph_legend_related">实线 = 笔记关联</string>
+    <!-- source: a8529dd0e05a67ecf --><string name="note_graph_node_untitled">无标题笔记</string>
+    <!-- source: a8529dd0e05a67ecf --><string name="note_graph_title">关联图</string>
+    <!-- source: a1495b7762f822b3c --><string name="quicknote_editor_preview_mode_edit">编辑</string>
+    <!-- source: a1495b7762f822b3c --><string name="quicknote_editor_preview_mode_preview">预览</string>
+    <!-- source: a1495b7762f822b3c --><string name="quicknote_editor_preview_mode_split">分屏</string>
+    <!-- source: a1495b7762f822b3c --><string name="quicknote_editor_preview_split_unsupported">当前屏幕宽度不支持分屏,已切换到预览</string>
+    <!-- source: a1495b7762f822b3c --><string name="quicknote_editor_preview_toggle_cd">切换预览模式</string>
+    <!-- source: ac787f36ae0fae940 --><string name="update_dialog_download">下载</string>
+    <!-- source: ac787f36ae0fae940 --><string name="update_dialog_later">稍后</string>
+    <!-- source: ac787f36ae0fae940 --><string name="update_dialog_notes_header">更新日志</string>
+    <!-- source: ac787f36ae0fae940 --><string name="update_dialog_size">下载大小:%1$s</string>
+    <!-- source: ac787f36ae0fae940 --><string name="update_dialog_title">发现新版本 v%1$s</string>
+    <string name="quicknote_attachment_image_load_failed">图片加载失败</string>
+    <!-- fix-review-r1 F2:lightbox 全屏附件 + a11y -->
+    <string name="quicknote_attachment_lightbox_close">关闭</string>
+    <string name="quicknote_attachment_lightbox_not_found">附件不可用</string>
+    <string name="quicknote_attachment_lightbox_size_fmt">%1$s · %2$s</string>
+    <string name="quicknote_attachment_image_a11y">附件图片:%1$s</string>
+    <!-- fix-review-r1 F7:a11y 用量图表 / 关联图 -->
+    <string name="aiwriting_usage_chart_a11y">AI 用量日条形图</string>
+    <string name="aiwriting_usage_chart_bucket_fmt">%1$s,消耗 %2$d 个 token</string>
+    <string name="note_graph_a11y_summary">笔记关联图</string>
+    <string name="note_graph_node_fmt">节点:%1$s</string>
+    <string name="note_graph_edge_fmt">关联 %1$s → %2$s</string>
 </resources>

@@ -38,9 +38,10 @@ class SimpleMarkdownEditor : MarkdownEditor {
 
     @Composable
     override fun Preview(markdown: String, modifier: Modifier) {
-        // v1: 纯文本预览; v2: Markdown 渲染
-        Text(
-            text = markdown,
+        // v2: 复用 core/ui/MarkdownRenderer 渲染子集语法。
+        // Detail 屏已走同一条渲染管道,Preview 与 Detail 视觉一致。
+        com.yy.writingwithai.core.ui.MarkdownText(
+            markdown = markdown,
             modifier = modifier,
             style = MaterialTheme.typography.bodyMedium
         )

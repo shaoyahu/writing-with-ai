@@ -1,6 +1,7 @@
 package com.yy.writingwithai.core.prefs
 
 import com.yy.writingwithai.core.ui.animation.AnimationStyle
+import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * 仅在 unit test 编译，不入 main。
  *
  * animation-system-and-consent-redesign §2.3:新增 `animationStyleFlow` + `setAnimationStyle` + `seedAnimationStyle`。
+ *
+ * morning-freewrite:新增晨写开关 / 时间 state(默认 disabled + 08:00)。
  */
 @Singleton
 class FakeUserPrefsStore
@@ -21,6 +24,8 @@ constructor() : UserPrefsStore {
     private val animStyleState = MutableStateFlow(AnimationStyle.IMMERSIVE)
     private val navEnabledState = MutableStateFlow(true)
     private val tabEnabledState = MutableStateFlow(true)
+    private val morningFreewriteEnabledState = MutableStateFlow(false)
+    private val morningFreewriteTimeState = MutableStateFlow(LocalTime.of(8, 0))
 
     override val ackApikeyPromptFlow
         get() = ackState
@@ -33,6 +38,12 @@ constructor() : UserPrefsStore {
 
     override val tabAnimationsEnabledFlow
         get() = tabEnabledState
+
+    override val morningFreewriteEnabledFlow
+        get() = morningFreewriteEnabledState
+
+    override val morningFreewriteTimeFlow
+        get() = morningFreewriteTimeState
 
     override suspend fun isApikeyPromptAcked(): Boolean = ackState.value
 
@@ -52,9 +63,27 @@ constructor() : UserPrefsStore {
         tabEnabledState.value = enabled
     }
 
+    override suspend fun setMorningFreewriteEnabled(enabled: Boolean) {
+        morningFreewriteEnabledState.value = enabled
+    }
+
+    override suspend fun setMorningFreewriteTime(time: LocalTime) {
+        morningFreewriteTimeState.value = time
+    }
+
     /** 测试 hook:直接注入 ack 初值。 */
     fun seed(ack: Boolean) {
         ackState.value = ack
+    }
+
+    /** 测试 hook:直接注入晨写开关初值。 */
+    fun seedMorningFreewriteEnabled(enabled: Boolean) {
+        morningFreewriteEnabledState.value = enabled
+    }
+
+    /** 测试 hook:直接注入晨写时间初值。 */
+    fun seedMorningFreewriteTime(time: LocalTime) {
+        morningFreewriteTimeState.value = time
     }
 
     /**

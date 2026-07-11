@@ -80,7 +80,7 @@ class AiActionViewModelGenerationTest {
         val secondChannel = Channel<AiStreamEvent>(capacity = Channel.UNLIMITED)
 
         var call = 0
-        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any()) } answers {
+        coEvery { aiGateway.streamWritingOp(any(), any(), any(), any(), any(), any(), any(), any(), any()) } answers {
             call++
             if (call == 1) firstChannel.consumeAsFlow() else secondChannel.consumeAsFlow()
         }
@@ -133,6 +133,9 @@ class AiActionViewModelGenerationTest {
             done is AiActionUiState.Done,
             "expected Done after regenerate, got $done"
         )
-        assertEquals("second-delta", (done as AiActionUiState.Done).finalText)
+        assertEquals(
+            "second-delta",
+            (done as AiActionUiState.Done).versions[done.selectedPosition].finalText
+        )
     }
 }

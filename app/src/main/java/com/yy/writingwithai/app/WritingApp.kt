@@ -9,6 +9,7 @@ import com.yy.writingwithai.BuildConfig
 import com.yy.writingwithai.core.i18n.LocaleHelper
 import com.yy.writingwithai.core.i18n.LocaleStore
 import com.yy.writingwithai.core.note.backfill.BackfillScheduler
+import com.yy.writingwithai.core.notification.MorningFreewriteNotifier
 import com.yy.writingwithai.core.prefs.ConsentStore
 import com.yy.writingwithai.core.widget.QuickNoteWidgetWorker
 import com.yy.writingwithai.di.ApplicationScope
@@ -44,6 +45,10 @@ class WritingApp : Application() {
 
     @Inject
     lateinit var localeStore: LocaleStore
+
+    // morning-freewrite · 通知 channel 在 App 启动时建一次(SDK 26+ 幂等)。
+    @Inject
+    lateinit var morningFreewriteNotifier: MorningFreewriteNotifier
 
     // fix H19:改用 Hilt 注入的 @ApplicationScope CoroutineScope,不再自管 SupervisorJob。
     @Inject
@@ -88,5 +93,8 @@ class WritingApp : Application() {
 
         // 4) entity-extraction-association §7.2:DB 升级后 enqueue 实体抽取回填(5s 延后)
         backfillScheduler.scheduleEntityBackfillIfNeeded()
+
+        // 5) morning-freewrite · 启动时建 channel(SDK < 26 空走,SDK >= 26 幂等)
+        morningFreewriteNotifier.createChannel()
     }
 }

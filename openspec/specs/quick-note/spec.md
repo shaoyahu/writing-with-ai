@@ -737,3 +737,315 @@ QuickNoteEditorScreen SHALL use BasicTextField for title (headlineMedium, no bor
 - **WHEN** 想用 `snapshotFlow { textFieldValue.selection }` 替代手动同步
 - **THEN** 该方案 MUST NOT 通过验收 — Compose 1.7.5 下 `TextFieldValue.selection` 的 snapshot 订阅在 `BasicTextField` 内部修改时不触发外部 collect(已知 bug 或 API 限制);改用 `onValueChange` 直接同步是唯一可靠路径
 
+### Requirement: Editor top bar exposes preview mode toggle
+
+`QuickNoteEditorScreen` TopAppBar `actions` 区 MUST 在原"保存"按钮之前渲染一个 `IconButton`，点击后循环切换 `PreviewMode` 三态:`EDIT` → `PREVIEW` → `SPLIT` → `EDIT`。当前态对应的 `Icon` 与 `contentDescription` 来自 `R.string.quicknote_editor_preview_*` 资源，三态文案分别为"编辑 / 预览 / 分屏"。
+
+#### Scenario: 初始态是 EDIT
+- **WHEN** 用户从 tab bar 中央 FAB / 列表空状态"新建"按钮进入编辑器
+- **THEN** `previewMode == EDIT`，`IconButton` 图标为 `Icons.Filled.Edit`，正文 `BasicTextField` 占据全部编辑区域(行为同 M1)
+
+#### Scenario: 切到 PREVIEW
+- **WHEN** 用户点 toggle 一次，`previewMode: EDIT → PREVIEW`
+- **THEN** 编辑区隐藏，预览区显示 `MarkdownText(content)` 占满 weight(1f);`IconButton` 图标变为 `Icons.Filled.Visibility`
+
+#### Scenario: 切到 SPLIT
+- **WHEN** 用户再点一次，`previewMode: PREVIEW → SPLIT`
+- **THEN** 上下分屏：上半 `BasicTextField` weight(1f) + 下半 `MarkdownText(content)` weight(1f);`IconButton` 图标变为 `Icons.Filled.VerticalSplit`
+
+#### Scenario: SPLIT 在小屏竖屏被强制回退
+- **WHEN** 用户点 toggle 准备进入 SPLIT，但 `LocalConfiguration.current.screenWidthDp < 600`
+- **THEN** 实际态仍是 PREVIEW(不进入 SPLIT)，同时 `Snackbar` 显示"R.string.quicknote_editor_preview_split_unsupported"短文案;`previewMode` StateFlow 内部逻辑跳过 SPLIT 直接 PREVIEW → EDIT
+
+#### Scenario: 切回 EDIT
+- **WHEN** 用户在 SPLIT 态点 toggle，`previewMode: SPLIT → EDIT`
+- **THEN** 预览区消失，`BasicTextField` 重新占满 weight(1f);焦点不强制恢复(用户在编辑器内已 focus 过)
+
+### Requirement: Preview pane renders Markdown subset
+
+`MarkdownRenderer.render(markdown: String, entityHighlights: List<EntityHighlight> = emptyList(), primaryColor: Color): AnnotatedString` MUST 解析并渲染以下 Markdown 子集：
+
+| 语法 | 视觉 |
+| --- | --- |
+| `# ` 行首 | `headlineLarge` |
+| `## ` 行首 | `headlineMedium` |
+| `### ` 行首 | `titleLarge` |
+| `- ` / `* ` 行首 | bullet `·` + indent |
+| `1. ` / `2. ` ... 行首 | `1.` / `2.` + indent(顺序号原样保留) |
+| `**bold**` | `FontWeight.Bold` |
+| `*italic*` / `_italic_` | `FontStyle.Italic` |
+| `` `code` `` | `background = surfaceVariant` + `FontFamily.Monospace` |
+| `[[wikilink]]` | `color = primary` |
+| `[text](url)` | `color = primary` + `Underlined`(仅视觉，无 click handler) |
+| 段落间空行 | 8dp vertical spacing(通过 AnnotatedString 的 `\n\n` 体现，由 `Text` 默认行距) |
+
+`MarkdownText(markdown, modifier, entityHighlights, primaryColor)` 是薄 Composable，调 `MarkdownRenderer.render` + `Text(annotatedString)`。
+
+#### Scenario: 基础语法同时渲染
+- **WHEN** `markdown = "# 标题\n\n这是 **粗体** 和 *斜体* 和 `code`"`
+- **THEN** 输出 `AnnotatedString` 含 4 个 span：标题段 `headlineLarge`、普通段含 `Bold` SpanStyle、`Italic` SpanStyle、`code` 段含 `surfaceVariant` background + Monospace
+
+#### Scenario: 未闭合触发符当字面字符
+- **WHEN** `markdown = "这是 **未闭合粗体"`(尾部 `**` 缺失)
+- **THEN** 输出 `AnnotatedString` 含原文本"这是 **未闭合粗体"，`**` 显示为两个星号字符，不被吞掉
+
+#### Scenario: wikilink 视觉提示
+- **WHEN** `markdown = "见 [[晨跑计划]] 一文"`
+- **THEN** "晨跑计划" 段以 `SpanStyle(color = primary)` 渲染(不跳实体详情，仅视觉提示)
+
+#### Scenario: 列表缩进
+- **WHEN** `markdown = "- 项目一\n- 项目二"`
+- **THEN** 两行都以 `· ` 前缀 + indent 渲染；行间不出现多余 vertical spacing(列表段视为单一 block)
+
+### Requirement: Preview escapes user HTML and JS payload as literal text
+
+`MarkdownRenderer.render` MUST NOT 解释 `<script>` / `<iframe>` / `<img src=x onerror=...>` / `[click](javascript:alert(1))` 等 HTML / JS 语法为可执行 markup。所有不匹配 D2 Markdown 触发符的字符(含 `<` `>` `&` `"` `'`)走 `append(literal)` 原样加入输出 `AnnotatedString`。`addUrlAnnotation` / `addStringAnnotation` / `addStringAnnotation("URL", ...)` 不出现在 `MarkdownRenderer` 输出里(防止第三方 ClickableText callback 误跳)。
+
+#### Scenario: script 标签当字面字符
+- **WHEN** `markdown = "Hello <script>alert(1)</script>"`
+- **THEN** 输出 `AnnotatedString.text` 含完整字符串 `Hello <script>alert(1)</script>`，无 `<script>` 被解析为隐藏 markup;`Text` 渲染时可见所有尖括号字符
+
+#### Scenario: javascript: URL 仅视觉提示
+- **WHEN** `markdown = "[点我](javascript:alert(1))"`
+- **THEN** 输出含"点我"以 `SpanStyle(color = primary, textDecoration = Underlined)` 渲染，URL `javascript:alert(1)` 字符串本身不被解析为 `addUrlAnnotation`(Compose `Text` 不会自动跳转)
+
+#### Scenario: HTML 实体字符原样显示
+- **WHEN** `markdown = "5 &lt; 10 &amp;&amp; 10 &gt; 5"`
+- **THEN** 输出 `AnnotatedString.text` 原样保留 `&lt;` `&amp;` `&gt;` 字符;不会被自动转义为 `<` `&` `>`(也不需要转义 —— 因为不解释 HTML)
+
+### Requirement: Preview updates debounced 200ms after content edits
+
+`QuickNoteEditorScreen` 在 `previewMode != EDIT` 模式下 MUST 用 `snapshotFlow { uiState.content }.debounce(200L).collectAsState(initial = "")` 驱动 `MarkdownText` 的 `markdown` 参数。`BasicTextField.onValueChange` 同步写 `viewModel.setContent(...)`(行为不变)，但**预览**不跟随每次按键即时重渲染。
+
+#### Scenario: 连续按键预览延迟
+- **WHEN** 用户在 PREVIEW 模式下连续键入 "abc" 三个字符(无停顿)
+- **THEN** `BasicTextField` 显示 "abc" 实时同步；预览区在最后一次按键后 ~200ms 才显示 "abc" 渲染结果
+
+#### Scenario: 停顿后预览即时
+- **WHEN** 用户键入 "ab" 后停顿 500ms 再键入 "c"
+- **THEN** 键入 "ab" 后 ~200ms 预览显示 "ab" 渲染；再键入 "c" 后 ~200ms 预览显示 "abc"
+
+#### Scenario: 切回 EDIT 模式不丢光标
+- **WHEN** 用户在 PREVIEW 模式下编辑完切回 EDIT
+- **THEN** `BasicTextField` 仍持有最新 `uiState.content`(没丢字符);光标位置由 IME 决定(不强制恢复)
+
+### Requirement: Detail screen reuses MarkdownText without behavior regression
+
+`QuickNoteDetailScreen` 正文渲染 MUST 改为调 `MarkdownText(content, modifier, entityHighlights = entityHighlights, primaryColor = primaryColor)`，原 `buildEntityAnnotatedString(content, entityHighlights, primaryColor)` 内部逻辑被 `MarkdownRenderer.render` 复用。点击 entity 命中 `ModalBottomSheet` 行为必须保留(M3+ entity-tap-reliable-fix)。
+
+#### Scenario: 详情屏渲染含 Markdown 的内容
+- **WHEN** `note.content = "# 标题\n\n这是 **粗体** [[实体]] 文本"`，`entityHighlights` 含 `[[实体]]` span(start=15, end=19)
+- **THEN** `MarkdownText` 输出 AnnotatedString 含："标题" 段 `headlineLarge`、`**粗体**` 段 `Bold` SpanStyle、`[[实体]]` 段以 primary 色 + ✦ 字符渲染(实体末尾);点击 `[[实体]]` 仍弹 `ModalBottomSheet`
+
+#### Scenario: 详情屏 entity 命中区域不变
+- **WHEN** 用户点击 entity span 上 / 内 / ✦ 右侧任意位置
+- **THEN** `detectTapGestures` 命中逻辑(`contentOffset <= h.contentEnd` + `EntityCrossStarChar.first()` 计数)走 M5 已修路径，命中行为不变
+
+#### Scenario: 详情屏非 entity 文本无视觉变化
+- **WHEN** `note.content = "纯文本无 Markdown 语法"`
+- **THEN** 渲染结果视觉上与 M3+ 一致(无 Markdown 触发符时原样显示);`MarkdownText` 与原 `Text(annotatedContent)` 视觉等价
+
+### Requirement: i18n strings for preview mode
+
+`app/src/main/res/values/strings.xml`(中文权威)与 `values-en/strings.xml`(英文) MUST 新增以下 key，Composable 内禁止硬编码：
+
+| key | 中文 | 英文 |
+| --- | --- | --- |
+| `quicknote_editor_preview_mode_edit` | 编辑 | Edit |
+| `quicknote_editor_preview_mode_preview` | 预览 | Preview |
+| `quicknote_editor_preview_mode_split` | 分屏 | Split |
+| `quicknote_editor_preview_split_unsupported` | 当前屏幕宽度不支持分屏，已切回预览 | Split view is not supported on this screen width |
+| `quicknote_editor_preview_toggle_cd` | 切换编辑预览模式 | Toggle preview mode |
+
+#### Scenario: 中文显示
+- **WHEN** 系统语言为中文，用户点 toggle 按钮
+- **THEN** `IconButton.contentDescription = "切换编辑预览模式"`;Snackbar fallback 文案 = "当前屏幕宽度不支持分屏，已切回预览"
+
+#### Scenario: 英文显示
+- **WHEN** 系统语言为英文，用户点 toggle 按钮
+- **THEN** `IconButton.contentDescription = "Toggle preview mode"`;Snackbar fallback 文案 = "Split view is not supported on this screen width"
+
+#### Scenario: 英文未翻译不阻断构建
+- **WHEN** 某个 key 在 `values-en/strings.xml` 中值为 `TODO(en): quicknote_editor_preview_*`
+- **THEN** `./gradlew :app:assembleDebug` 与 `:app:check` 仍通过，运行时显示该占位文本
+
+### Requirement: Daily morning-freewrite notification fires at user-configured time
+
+App MUST 在用户开启「每日晨写」开关后,每天在用户配置的时间(默认 08:00,时区走 `ZoneId.systemDefault()`)通过 `AlarmManager` + `NotificationChannel`(`morning_freewrite`)发本地通知;通知点击启动 `MainActivity` 并把 `route=freewrite/{date}`(date 为当日 `yyyy-MM-dd`)作为 Intent extra 透传。`AlarmManager.setExactAndAllowWhileIdle` 在 API 31+ 需 `SCHEDULE_EXACT_ALARM` 权限;本项目**不申请**该权限(Play Store 政策限制),fallback `setAndAllowWhileIdle`(DOZE 时可能晚几分钟,文档写明)。
+
+#### Scenario: 开启 toggle 后注册 alarm
+- **WHEN** 用户在 `SettingsFreewriteScreen` 把 toggle 切到 true,系统弹 `POST_NOTIFICATIONS` 权限请求,用户允许
+- **THEN** `MorningFreewriteScheduler.schedule(hour=8, minute=0, today)` 调 `AlarmManager.setExactAndAllowWhileIdle(RTC_WAKEUP, nextTriggerAt.toEpochMilli(), pendingIntent)`;`nextTriggerAt` 是当日 8:00;若当前已过 8:00 则取次日 8:00
+
+#### Scenario: 通知点击启动 freewrite route
+- **WHEN** AlarmManager 触发,`MorningFreewriteNotifier.showDailyReminder(today)` 发出通知;用户点通知
+- **THEN** MainActivity 启动 + Intent extra `route=freewrite/2026-07-10`;`AppNav.LaunchedEffect(widgetPendingRoute)` 解析后 navigate `MorningFreewrite(date="2026-07-10")`;沉浸屏渲染
+
+#### Scenario: 用户拒绝 POST_NOTIFICATIONS 权限
+- **WHEN** 用户在 toggle=true 弹的 `requestPermission` launcher 选"拒绝"
+- **THEN** toggle 自动回弹 false + Snackbar `R.string.freewrite_permission_rationale_body` + 入口"去系统设置"跳 `Settings.ACTION_APP_NOTIFICATION_SETTINGS`;`scheduler.schedule` 不调
+
+#### Scenario: Android 12+ 无 SCHEDULE_EXACT_ALARM 权限
+- **WHEN** API 31+ 设备 `AlarmManager.canScheduleExactAlarms() == false`
+- **THEN** `MorningFreewriteScheduler.schedule` fallback `alarmManager.setAndAllowWhileIdle(...)`(非精确);不申请权限,不弹系统对话框;通知仍能发,但 ±15 分钟精度不保证
+
+#### Scenario: 修改时间重排 alarm
+- **WHEN** 用户在 `SettingsFreewriteScreen` 改时间 picker 从 08:00 到 07:30
+- **THEN** `MorningFreewriteScheduler.cancel()` 调 `alarmManager.cancel(pendingIntent)` 取消旧 alarm,再 `schedule(hour=7, minute=30, today)` 注册新 alarm
+
+#### Scenario: 关闭 toggle 取消 alarm
+- **WHEN** 用户把 toggle 从 true 切到 false
+- **THEN** `MorningFreewriteScheduler.cancel()` 被调;后续不再发通知;AlarmManager 内部 pendingIntent 被 GC
+
+#### Scenario: device reboot 后重排
+- **WHEN** 设备重启,`BootReceiver` 收到 `BOOT_COMPLETED`
+- **THEN** 读 `UserPrefsStore.morningFreewriteEnabledFlow.first()`;若 true,调 `scheduler.schedule(hour, minute, today)` 重排 alarm
+
+### Requirement: Freewrite screen is full-screen distraction-free
+
+`MorningFreewriteScreen` MUST 是沉浸式全屏编辑器:隐藏 system bars(status bar + navigation bar)、不渲染 AppShell tab bar、不渲染 FAB、不渲染 overflow menu、不渲染 top app bar;只渲染倒计时(右上角)+ 编辑区(weight=1f,borderless `BasicTextField`,`MaterialTheme.typography.headlineMedium`)+ "完成" / "跳过" 按钮(底部)。进入屏后自动 `focusRequester.requestFocus()` 唤起 IME。
+
+#### Scenario: 沉浸 mode 隐藏 system bars
+- **WHEN** 屏渲染
+- **THEN** `WindowCompat.setDecorFitsSystemWindows(window, false)` + `WindowInsetsControllerCompat.hide(systemBars)` 被调;status bar + navigation bar 不可见
+
+#### Scenario: 不渲染 AppShell tab bar
+- **WHEN** 屏渲染
+- **THEN** 该屏 MUST 不在 `AppShell` 子 NavHost 内(走独立 Nav destination `MorningFreewrite`,在根 NavHost 注册);底部 tab bar 不渲染
+
+#### Scenario: 倒计时显示在右上角
+- **WHEN** 屏进入,`secondsLeft = 300`(5 分钟)
+- **THEN** 右上角 `Text(style = labelLarge)` 显示 `"5:00"`;每秒 `-1`,显示 `"4:59"` → `"4:58"` → ... → `"0:00"`
+
+#### Scenario: 倒计时颜色变化
+- **WHEN** `secondsLeft == 30`
+- **THEN** 倒计时文字色 = `MaterialTheme.colorScheme.tertiary`(橙)
+- **WHEN** `secondsLeft <= 10`
+- **THEN** 倒计时文字色 = `MaterialTheme.colorScheme.error`(红)
+
+#### Scenario: 自动 focus 唤起 IME
+- **WHEN** 屏渲染
+- **THEN** `LaunchedEffect(Unit) { contentFocusRequester.requestFocus() }` 触发,IME 弹出,光标定位在编辑区
+
+#### Scenario: back 弹确认 dialog
+- **WHEN** 用户在屏内按 back
+- **THEN** `AlertDialog` 弹出,title=`R.string.freewrite_back_dialog_title`,body=`R.string.freewrite_back_dialog_body`,两个按钮"确认"(popBackStack 丢弃内容)/"继续写"(留在屏)
+
+### Requirement: 5-minute countdown triggers finish flow
+
+`MorningFreewriteViewModel` MUST 持 `secondsLeft: MutableStateFlow<Int>`(初值 300),`init` 块跑 `viewModelScope.launch { tick() }` 每秒 `delay(1000)` 后 `-1`;`secondsLeft <= 0` 时自动调 `finish()`(等同用户主动点"完成")。
+
+#### Scenario: 倒计时正常递减
+- **WHEN** 屏进入 5 秒后
+- **THEN** `secondsLeft` 从 300 → 295;UI 倒计时文字同步更新
+
+#### Scenario: 倒计时归零触发自动 finish
+- **WHEN** `secondsLeft` 减到 0
+- **THEN** `viewModel.finish()` 自动被调;`_state = Polishing(content)`,进入 AI 链
+
+#### Scenario: 用户点"完成"提前结束
+- **WHEN** `secondsLeft == 120`(剩余 2 分钟),用户点"完成"按钮
+- **THEN** `viewModel.finish()` 被调;`tick()` 协程取消(检测到 state != Writing 后 return)
+
+#### Scenario: tick 协程在非 Writing 态停止
+- **WHEN** `_state` 从 `Writing` 切到 `Polishing`
+- **THEN** `tick()` 协程在下一次 `delay(1000)` 醒来后看到 state != Writing,return 退出
+
+### Requirement: AI chain Polish → Organize with fallback to earlier stage on failure
+
+`MorningFreewriteViewModel.finish()` MUST 串行调 2 次 `AiActionViewModel.start(...)`:第一次 `op=POLISH, sourceText=<raw>`,第二次 `op=ORGANIZE, sourceText=<polishedText>`。两次均 `Done` → 用 `Organize` 输出落库;任一 `Failed` → 用「上一阶段产出」落库(Polish Failed 用原文;Organize Failed 用润色后版本)+ Snackbar `R.string.freewrite_fallback_toast`。两条路径都 MUST 落库,**禁止**因 AI 失败把用户输入丢失。
+
+#### Scenario: 双 op 成功路径
+- **WHEN** 用户点"完成",`raw="今早去晨跑,跑了 5 公里"`
+- **THEN** `aiActionVm.start(POLISH, "今早去晨跑,跑了 5 公里", journalNoteId)` 调 1 次;`Done` 后 `aiActionVm.start(ORGANIZE, polishedText, journalNoteId)` 调 1 次;`Note.content = organizedText`;`Note.lastAiOp="organize"` + `lastAiAt=<now>`;`Note.tags=["journal"]`;`Note.title="2026-07-10"`(date.toString())
+
+#### Scenario: Polish 失败 → 保存原文
+- **WHEN** `aiActionVm.start(POLISH, ...)` 返回 `Failed(AiError.Network(500))`
+- **THEN** `Note.content = raw`(原文,不润色);`Note.lastAiOp=null` + `lastAiAt=null`;`Note.tags=["journal"]`;Snackbar `R.string.freewrite_fallback_toast` 弹出;`_state = Saved(journalNoteId, usedFallback = true)`
+
+#### Scenario: Organize 失败 → 保存润色后
+- **WHEN** `Polish` Done,但 `Organize` Failed(AiError.Timeout)
+- **THEN** `Note.content = polishedText`;`Note.lastAiOp="polish"` + `lastAiAt=<now>`;`Note.tags=["journal"]`;Snackbar `R.string.freewrite_fallback_toast` 弹出;`_state = Saved(journalNoteId, usedFallback = true)`
+
+#### Scenario: 用户未配 AI provider apikey
+- **WHEN** `SecureApiKeyStore.observeConfiguredProviders().first().isEmpty()`
+- **THEN** 屏渲染时检测 → 不进入 5 分钟倒计时,直接显示 `R.string.freewrite_no_provider_hint` 文案 + "去设置"按钮(跳 `SettingsModelManagement`);**不**静默失败,不通知;Spec 解释:此 edge case 下通知已响但 AI 链无法跑,屏引导用户先去配 apikey
+
+### Requirement: Auto-archive freewrite note with journal tag and date title
+
+`NoteRepository.createJournalEntry(noteId, title, content, lastAiOp, lastAiAt)` MUST 在事务内 upsert note + 写入 `NoteTagCrossRef(noteId, tag=NoteRepository.JOURNAL_TAG)`,返回落库的 `noteId`。`JOURNAL_TAG = "journal"` 常量定义在 `NoteRepository` companion object 供跨 feature 引用。**禁止**在晨写 feature 内写死 `"journal"` 字面量。
+
+#### Scenario: createJournalEntry 落库 + 挂 tag
+- **WHEN** 调 `createJournalEntry("n-uuid", "2026-07-10", "润色+整理后文本", "organize", now)`
+- **THEN** `notes` 表 upsert 行 `(id=n-uuid, title="2026-07-10", content="润色+整理后文本", lastAiOp="organize", lastAiAt=now)`;`note_tags` 新增 `(noteId=n-uuid, tag="journal")`
+
+#### Scenario: 引用 NoteRepository.JOURNAL_TAG 常量
+- **WHEN** grep `feature/freewrite/**/*.kt`
+- **THEN** 0 个 `"journal"` 字面量;唯一引用是 `NoteRepository.JOURNAL_TAG`
+
+#### Scenario: widget 自动刷新
+- **WHEN** `createJournalEntry` 落库完成
+- **THEN** `NoteRepository.upsert` 末尾的 `widgetUpdater.updateAll(context)` 跑(M1 既有逻辑),widget 重渲染含新 journal 条目
+
+#### Scenario: ai_history 自动落库
+- **WHEN** Polish + Organize 双 op 跑完
+- **THEN** `ai_history` 表新增 2 条记录(op=polish, op=organize, providerId, tokens)(M2 既有逻辑,AiGateway 内部自动写)
+
+### Requirement: Settings entry for freewrite toggle and time picker
+
+`SettingsScreen` MUST 在 items 列表 append 一项 "每日晨写"(icon=`Icons.Outlined.Alarm`,文案 `R.string.freewrite_settings_title`);点击 → navigate `SettingsFreewrite`。`SettingsFreewriteScreen` MUST 渲染:`Switch` toggle + `TimePicker`(Material3) + (权限拒绝时)"去系统设置"按钮。`UserPrefsStore` MUST 加 3 个 pref key:`morning_freewrite_enabled_v1`(Boolean,默认 false)、`morning_freewrite_hour_v1`(Int,默认 8)、`morning_freewrite_minute_v1`(Int,默认 0)。
+
+#### Scenario: 设置项渲染
+- **WHEN** 用户进入 `SettingsScreen`
+- **THEN** 列表含 "每日晨写" 一项,onClick → `navController.navigate(SettingsFreewrite)`
+
+#### Scenario: toggle 开启 + 弹权限
+- **WHEN** `SettingsFreewriteScreen` Switch 从 false → true,Android 13+ 设备
+- **THEN** `rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission())` 启动 `Manifest.permission.POST_NOTIFICATIONS` 请求;允许 → `scheduler.schedule(...)`;拒绝 → toggle 回弹 + Snackbar + "去系统设置"按钮显示
+
+#### Scenario: TimePicker 改时间
+- **WHEN** 用户在 TimePicker 选 07:30(从 08:00)
+- **THEN** `UserPrefsStore.setMorningFreewriteTime(7, 30)` 持久化;`scheduler.cancel()` + `scheduler.schedule(7, 30, today)` 重排
+
+#### Scenario: UserPrefsStore 默认值
+- **WHEN** 首次安装 + DataStore 无 key
+- **THEN** `morningFreewriteEnabledFlow.first() == false`;`morningFreewriteTimeFlow.first() == LocalTime.of(8, 0)`
+
+#### Scenario: UserPrefsStore 持久化
+- **WHEN** `setMorningFreewriteEnabled(true)` 调用,进程 kill,重启
+- **THEN** `morningFreewriteEnabledFlow.first() == true`(DataStore 持久化生效)
+
+### Requirement: i18n for freewrite UI
+
+所有 `morning-freewrite` 引入的 UI 文案 MUST 出现在 `values/strings.xml`(中文,权威)与 `values-en/strings.xml`(英文 TODO 占位),namespace `freewrite_*`,14 个 key:
+
+| key | 中文 | 用途 |
+| --- | --- | --- |
+| `freewrite_notification_channel_name` | 每日晨写 | NotificationChannel name |
+| `freewrite_notification_title` | 晨写时间到 | 通知标题 |
+| `freewrite_notification_body` | 5 分钟,写下今天的想法 | 通知正文 |
+| `freewrite_screen_title` | 晨写 | 沉浸屏标题(隐式渲染,留 a11y) |
+| `freewrite_timer_zero` | 0:00 | 倒计时归零(理论不该显示,但 spec 兜底) |
+| `freewrite_done_button` | 完成 | 底部按钮 |
+| `freewrite_skip_button` | 跳过 | 底部按钮 |
+| `freewrite_ai_running` | AI 整理中... | AI 链跑时按钮变文案 |
+| `freewrite_settings_title` | 每日晨写 | 设置列表 + 设置屏标题 |
+| `freewrite_settings_toggle_label` | 开启每日提醒 | Switch label |
+| `freewrite_settings_time_label` | 提醒时间 | TimePicker label |
+| `freewrite_permission_rationale_body` | 通知权限被拒,无法在指定时间提醒你 | 拒绝后 Snackbar |
+| `freewrite_open_notification_settings` | 去系统设置 | 跳转按钮 |
+| `freewrite_fallback_toast` | AI 整理失败,已保存原始 | AI 失败兜底提示 |
+| `freewrite_no_provider_hint` | 请先在「设置 → 模型管理」配置 AI provider | 未配 apikey 时屏提示 |
+
+Composable 内 MUST 通过 `stringResource(R.string.freewrite_xxx)` 引用;**禁止**硬编码中文 / 英文。
+
+#### Scenario: 中英文双 string 都存在
+- **WHEN** grep `values/strings.xml` `freewrite_`
+- **THEN** 14 个 key 都在
+- **WHEN** grep `values-en/strings.xml` `freewrite_`
+- **THEN** 14 个 key 都在(英文值以 `TODO(en):` 前缀占位,既有模式)
+
+#### Scenario: 源码无中文硬编码
+- **WHEN** `grep -rE "[\\x{4e00}-\\x{9fff}]" app/src/main/java/com/yy/writingwithai/feature/freewrite/`
+- **THEN** 0 匹配(只有 i18n 字符串引用,不允许硬编码)
+

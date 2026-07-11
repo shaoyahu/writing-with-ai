@@ -157,6 +157,8 @@ fun AppShell(rootNavController: NavHostController, onCreateClick: () -> Unit, mo
                             // entity-management-and-ai-decompose §7.1 + §7.3
                             MeTabTarget.EntityManagement -> rootNavController.navigate(EntityManagement)
                             MeTabTarget.DeveloperOptions -> rootNavController.navigate(DeveloperOptions)
+                            // ai-usage-statistics §5:数据管理区入口
+                            MeTabTarget.AiUsage -> rootNavController.navigate(AiUsage)
                         }
                     }
                 )

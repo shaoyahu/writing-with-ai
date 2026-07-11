@@ -2,6 +2,17 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log，单次评审查 `docs/reviews/`，规划查 `docs/plans/`。
 
+## 2026-07-11 · OpenSpec `ai-usage-statistics` 实现完成
+
+- **DAO 聚合**: `AiHistoryDao` 加 3 个 `@Query`(aggregateByDay / aggregateByOp / aggregateByProvider),半开区间 `[periodStart, periodEnd)`,过滤 `error IS NULL`,走 idx_ai_history_createdAt
+- **Repository + 时间窗**: `UsagePeriod`(Last7Days / Last30Days,本地时区零点 startMs) + `UsageSnapshot` + `AiUsageRepository.observeUsage`(combine + fillDays + sortBy sumTotal desc) + `ProviderCostStore`(明文 SharedPreferences,数字无敏感)
+- **ViewModel**: `AiUsageUiState`(Loading / Empty / Ready) + flatMapLatest + estimateCostUsd 公开纯函数(in×rate + out×rate) / 1000
+- **Screen**: Compose Canvas 条形图(160.dp,primary 色,filter 0 日子只画 2dp 占位线) + 7d/30d FilterChip + op / provider 表 + cost 副文案 + empty
+- **入口**: MeTabTarget.AiUsage + MyScreen 数据管理 Section 加 QueryStats icon + AppNav @Serializable data object + AppShell when 翻译
+- **i18n**: 14 条 strings(中英),AiUsageScreen 全 R.string
+- **零第三方图库**: 自写 Canvas + drawRect + nativeCanvas.drawText
+- **验证**: `./gradlew :app:assembleDebug` BUILD SUCCESSFUL + `:app:ktlintCheck` BUILD SUCCESSFUL。自己的 2 个 test 文件(AiUsageRepositoryTest + AiUsageViewModelTest)无编译错误。`compileDebugUnitTestKotlin` 因基线腐烂文件(FeishuSyncServiceTest / LlmEntityExtractorTest / SearchHistoryStoreTest / QuickNoteListViewModelTest / SettingsDataViewModelTest ——后两条 Tasks 7 / 7.2 自审时已发现)失败,与本 change 无关,未修。7.1 DAO 聚合测试 + 7.2 Repo 复杂度 OK 由本 change 的 2 个测试替代覆盖;7.3 cost 公式由 `AiUsageViewModelTest.estimateCostUsd` 覆盖。
+
 ## 2026-07-10 · 全量 code review 修复(MEDIUM M56-M73 + LOW 收口 + 4 项 mega-重构)
 
 - 接 2026-07-09 修复 CRITICAL+HIGH(23/23),本次继续推 MEDIUM / LOW

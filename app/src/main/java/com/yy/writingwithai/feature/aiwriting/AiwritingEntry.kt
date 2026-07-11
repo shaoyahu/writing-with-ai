@@ -64,13 +64,18 @@ object AiwritingEntry {
     }
 
     /**
-     * H4 新增:AI 流式面板 wrapper(Idle 不渲染;Streaming / Done / Failed / Replaced 走 ModalBottomSheet)。
+     * H4 新增:AI 流式面板 wrapper(Idle 不渲染;Streaming / PartialDone / Done /
+     * Failed / Replaced 走 ModalBottomSheet)。
      * 内部转调 `feature.aiwriting.streaming.StreamingPanel`。
+     *
+     * ai-regenerate-versions:`onAccept: (Int) -> Unit` 接收 position 参数(默认 0),
+     * `onSelectVersion: (Int) -> Unit` 处理 tab 切换。
      */
     @Composable
     fun StreamingPanelRoute(
         state: AiActionUiState,
-        onAccept: () -> Unit,
+        onAccept: (Int) -> Unit,
+        onSelectVersion: (Int) -> Unit,
         onReject: () -> Unit,
         onCancel: () -> Unit,
         onRegenerate: () -> Unit,
@@ -82,7 +87,7 @@ object AiwritingEntry {
         onNavigateToSettings: () -> Unit = {}
     ) {
         StreamingPanel(
-            state, onAccept, onReject, onCancel, onRegenerate, onClose,
+            state, onAccept, onSelectVersion, onReject, onCancel, onRegenerate, onClose,
             onDismiss, onUndo, onDismissReplace, onRetry, onNavigateToSettings
         )
     }

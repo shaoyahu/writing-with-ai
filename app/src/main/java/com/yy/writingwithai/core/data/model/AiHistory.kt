@@ -15,5 +15,13 @@ data class AiHistory(
     val inputSnapshot: String,
     val outputSnapshot: String,
     val truncated: Boolean,
-    val error: String?
+    val error: String?,
+    /**
+     * ai-regenerate-versions:多版本生成的同组 id;null = 单版本。
+     */
+    val versionGroupId: String? = null,
+    /**
+     * ai-regenerate-versions:本行在多版本生成中的位置(0..N-1);null = 单版本。
+     */
+    val versionPosition: Int? = null
 )

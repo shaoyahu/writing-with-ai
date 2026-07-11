@@ -14,6 +14,10 @@ package com.yy.writingwithai.core.widget
  * - `new_note`  → NewNote
  * - `open_note:<id>` → OpenNote(id)         // Long,parse fail → null
  * - `edit_note:<id>:<prefill>` → EditNote(id, prefillFocus)  // prefill 字符串 "true" / "false"
+ * - `freewrite:<date>` → Freewrite(date)    // ISO LocalDate (yyyy-MM-dd),parse fail → null
+ *
+ * morning-freewrite §3.1:Freewrite(date) 走 Notifier PendingIntent 的 `route` extra
+ * (serialized as `freewrite/$date`),MainActivity 解析后写入 widgetPendingRoute。
  */
 sealed class WidgetLaunchRoute {
     /** 新建笔记入口(详情/列表 widget "+")。 */
@@ -25,20 +29,28 @@ sealed class WidgetLaunchRoute {
     /** 编辑入口(prefillFocus=true 时 editor 立即获焦)。 */
     data class EditNote(val noteId: Long, val prefillFocus: Boolean = false) : WidgetLaunchRoute()
 
+    /**
+     * morning-freewrite · 通知点入 → 沉浸晨写屏。`date` 是 ISO `yyyy-MM-dd`,
+     * 用于屏内读上次 freewrite 状态 / 决定是否新建笔记。
+     */
+    data class Freewrite(val date: String) : WidgetLaunchRoute()
+
     fun toRouteString(): String = when (this) {
         is NewNote -> "new_note"
         is OpenNote -> "open_note:$noteId"
         is EditNote -> "edit_note:$noteId:$prefillFocus"
+        is Freewrite -> "freewrite:$date"
     }
 
     companion object {
         /**
          * 解析 [EXTRA_ROUTE] 字符串到 sealed 路由。失败(未知 tag / id 非 Long / prefill
-         * 非 "true"/"false")返回 null。**不**做 string prefix 模糊匹配。
+         * 非 "true"/"false" / date 非 ISO)返回 null。**不**做 string prefix 模糊匹配。
          */
         fun fromRouteString(raw: String?): WidgetLaunchRoute? {
             if (raw.isNullOrEmpty()) return null
-            val parts = raw.split(":")
+            // morning-freewrite:Notifier 用 `freewrite/yyyy-MM-dd` 形式发 extra,统一 split 成两份
+            val parts = raw.split(":", "/")
             return when (parts[0]) {
                 "new_note" -> NewNote
                 "open_note" -> parts.getOrNull(1)?.toLongOrNull()?.let(::OpenNote)
@@ -51,6 +63,7 @@ sealed class WidgetLaunchRoute {
                     }
                     EditNote(id, prefill)
                 }
+                "freewrite" -> parts.getOrNull(1)?.takeIf { it.isNotBlank() }?.let(::Freewrite)
                 else -> null
             }
         }

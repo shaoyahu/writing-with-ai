@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.yy.writingwithai.core.data.repo.NoteRepository
 import com.yy.writingwithai.core.feishu.sync.FeishuSyncService
+import com.yy.writingwithai.core.prefs.SearchHistoryStoreImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -35,6 +36,7 @@ class QuickNoteListViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var repository: NoteRepository
     private lateinit var syncService: FeishuSyncService
+    private lateinit var searchHistoryStore: SearchHistoryStoreImpl
     private lateinit var viewModel: QuickNoteListViewModel
 
     @Before
@@ -42,12 +44,14 @@ class QuickNoteListViewModelTest {
         Dispatchers.setMain(testDispatcher)
         repository = mockk(relaxed = true)
         syncService = mockk(relaxed = true)
+        searchHistoryStore = mockk(relaxed = true)
         val importService = mockk<com.yy.writingwithai.core.feishu.sync.FeishuImportService>(relaxed = true)
         viewModel = QuickNoteListViewModel(
             appContext = ApplicationProvider.getApplicationContext<Context>(),
             repository = repository,
             feishuSyncService = syncService,
-            feishuImportService = importService
+            feishuImportService = importService,
+            searchHistoryStore = searchHistoryStore
         )
     }
 

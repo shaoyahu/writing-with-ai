@@ -49,6 +49,8 @@ constructor(
     private val feishuSyncService: FeishuSyncService,
     private val refDao: com.yy.writingwithai.core.feishu.sync.FeishuRefDao,
     private val noteAttachmentDao: com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao,
+    /** fix-review-r1 F2:暴露 dao 给 InlineMarkdownText / AttachmentLightboxViewModel 复用 */
+    val attachmentDao: com.yy.writingwithai.core.data.db.dao.NoteAttachmentDao = noteAttachmentDao,
     private val attachmentStore: com.yy.writingwithai.core.media.AttachmentStore,
     private val imageCompressor: com.yy.writingwithai.core.media.ImageCompressor,
     private val entityExtractor: EntityExtractor,
@@ -584,6 +586,30 @@ constructor(
     // 避免 NoteLinker 多次 IO 查询。
     private val _related = MutableStateFlow<List<RelatedNote>>(emptyList())
     val related: StateFlow<List<RelatedNote>> = _related.asStateFlow()
+
+    // note-graph-view §5.2:概述关联存在性(关联笔记 / backlinks / 实体任一非空即 true)。
+    // 详情屏 overflow "查看关联图" 入口按此 gate enabled。
+    val hasAnyRelation: StateFlow<Boolean> = kotlinx.coroutines.flow.flow {
+        val id = noteId ?: run {
+            emit(false)
+            return@flow
+        }
+        val related = noteLinker.getRelated(id)
+        if (related.isNotEmpty()) {
+            emit(true)
+        } else {
+            val backlinks = noteLinker.getBacklinks(id)
+            if (backlinks.isNotEmpty()) {
+                emit(true)
+            } else {
+                emit(entityDao.getByNoteId(id).isNotEmpty())
+            }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = false
+    )
 
     /** 加载关联笔记缓存（详情屏 + 实体卡片共享）。 */
     fun loadRelated() {
