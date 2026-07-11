@@ -1,0 +1,71 @@
+app/src/main/java/com/yy/writingwithai/app/AppNav.kt
+  s_ce4ecd601fb1ad::t_6610ebc29e3f74 35,238-239,247-257,355-361
+app/src/main/java/com/yy/writingwithai/core/note/graph/CircularLayout.kt
+  s_ce4ecd601fb1ad::t_89a73b9409e38a 1-59
+app/src/main/java/com/yy/writingwithai/core/note/graph/ForceLayout.kt
+  s_ce4ecd601fb1ad::t_e2a9093a323c21 1-226
+app/src/main/java/com/yy/writingwithai/core/note/graph/GraphDataLoader.kt
+  s_ce4ecd601fb1ad::t_b6f3bc798963e2 1-150
+app/src/main/java/com/yy/writingwithai/core/note/graph/GraphEdge.kt
+  s_cd9617c685aac8::t_8899131e687412 1-16
+app/src/main/java/com/yy/writingwithai/core/note/graph/GraphNode.kt
+  s_cd9617c685aac8::t_2da552005705f5 1-19
+app/src/main/java/com/yy/writingwithai/core/note/graph/GraphSnapshot.kt
+  s_ad1a7b1cb86081::t_19e7a636bf1b7b 1-39
+app/src/main/java/com/yy/writingwithai/core/note/graph/LayoutCache.kt
+  s_cd9617c685aac8::t_63b04b1833c3b1 1-75
+app/src/main/java/com/yy/writingwithai/core/note/graph/di/GraphModule.kt
+  s_ce4ecd601fb1ad::t_25ef5f7b5bb0e2 1-55
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailScreen.kt
+  s_ce4ecd601fb1ad::t_0ded903e0b7ba4 135-136,177-178,472-485
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailViewModel.kt
+  s_ce4ecd601fb1ad::t_344313623e9ac6 588-611
+app/src/main/java/com/yy/writingwithai/feature/quicknote/graph/NoteGraphCanvas.kt
+  s_ce4ecd601fb1ad::t_0f122db3812770 1-253
+app/src/main/java/com/yy/writingwithai/feature/quicknote/graph/NoteGraphScreen.kt
+  s_ce4ecd601fb1ad::t_bb13e340631337 1-127
+app/src/main/java/com/yy/writingwithai/feature/quicknote/graph/NoteGraphViewModel.kt
+  s_ce4ecd601fb1ad::t_d674f1f9d2abf3 1-105
+app/src/main/res/values-en/strings.xml
+  s_ce4ecd601fb1ad::t_2599292aa3b00e 598-605
+app/src/main/res/values/strings.xml
+  s_ce4ecd601fb1ad::t_ad25a8505dd5b0 348-355
+app/src/test/java/com/yy/writingwithai/core/note/graph/ForceLayoutTest.kt
+  s_ce4ecd601fb1ad::t_bd89a1ef285401 1-123
+app/src/test/java/com/yy/writingwithai/core/note/graph/GraphDataLoaderTest.kt
+  s_ce4ecd601fb1ad::t_9da2a438975b6d 1-237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "92f150e1c48cf8a0be9553e99e4db0322ca5ce06",
+  "prompts": {},
+  "sessions": {
+    "s_ad1a7b1cb86081": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a2e487d791d2a560a",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_cd9617c685aac8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a358a0cceb9301efa",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_ce4ecd601fb1ad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a8529dd0e05a67ecf",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
