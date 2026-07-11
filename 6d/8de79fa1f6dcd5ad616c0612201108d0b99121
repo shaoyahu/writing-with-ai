@@ -1,0 +1,45 @@
+app/src/main/java/com/yy/writingwithai/core/data/db/dao/NoteAttachmentDao.kt
+  s_ad1a7b1cb86081::t_b1c4694fd539f2 32-39
+app/src/main/java/com/yy/writingwithai/core/media/AttachmentMarkdownParser.kt
+  s_36c9ddaeb7b9b8::t_91b536152f296c 1-77
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/InlineMarkdownText.kt
+  s_cd9617c685aac8::t_1cbb2a133e5949 1-177
+app/src/main/java/com/yy/writingwithai/feature/quicknote/detail/QuickNoteDetailScreen.kt
+  s_ad1a7b1cb86081::t_837bc52ce31c80 122-124
+app/src/test/java/com/yy/writingwithai/core/media/AttachmentMarkdownParserTest.kt
+  s_36c9ddaeb7b9b8::t_3934db4c5a6455 1-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6d8de79fa1f6dcd5ad616c0612201108d0b99121",
+  "prompts": {},
+  "sessions": {
+    "s_36c9ddaeb7b9b8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a1495b7762f822b3c",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_ad1a7b1cb86081": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a2e487d791d2a560a",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    },
+    "s_cd9617c685aac8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a358a0cceb9301efa",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
