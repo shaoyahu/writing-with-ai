@@ -2,6 +2,13 @@
 
 > 只回答"项目从开工到现在走了多远"。具体实现查 git log，单次评审查 `docs/reviews/`，规划查 `docs/plans/`。
 
+## 2026-07-12 · M5.x 关联图可读性升级(OpenSpec `improve-note-graph-readability`)
+
+- **渲染层**: `NoteGraphCanvas` 加 `NodeLayout` 数据类 + `computeNodeLayouts`(4 方向碰撞避让 + 最近邻居夹角最大兜底);边色 theme-aware(`onSurfaceVariant α0.6` light / `outlineVariant` dark)+ stroke `2.5f + weight * 3f`;节点标签走 `layout.labelBox`(原固定右偏移)
+- **UI**: TopAppBar `title` slot 改 Column 加副标题(`X 个节点 · Y 条关联`,singular 文案覆盖);`nodes.size ≤ 2` 时 BottomCenter 浮一层 `NoteGraphGuidanceBanner` 取代 chips;`EmptyGraphBlock` 重写为 Icon(`AccountTree`)+ 标题 + 可执行说明
+- **资源**: strings.xml 6 条新增(fmt / singular / guidance / empty_title / empty_actionable / separator)
+- **验证**: `./gradlew :app:assembleDebug :app:ktlintCheck :app:testDebugUnitTest` 全部 BUILD SUCCESSFUL。真机 / 模拟器目视验收(4 场景)转用户。
+
 ## 2026-07-11 · OpenSpec `ai-usage-statistics` 实现完成
 
 - **DAO 聚合**: `AiHistoryDao` 加 3 个 `@Query`(aggregateByDay / aggregateByOp / aggregateByProvider),半开区间 `[periodStart, periodEnd)`,过滤 `error IS NULL`,走 idx_ai_history_createdAt
