@@ -887,4 +887,13 @@
     <string name="note_graph_a11y_summary">笔记关联图</string>
     <string name="note_graph_node_fmt">节点:%1$s</string>
     <string name="note_graph_edge_fmt">关联 %1$s → %2$s</string>
+    <!-- fix-note-graph-rendering:legend header 图例栏,Info 图标 a11y 描述。 -->
+    <string name="note_graph_legend_title">图例</string>
+    <string name="note_graph_legend_header">● 关联笔记   ✦ 实体</string>
+    <!-- improve-note-graph-readability:TopAppBar 副标题、首次引导、空态可执行文案 -->
+    <string name="note_graph_header_node_count_fmt">%1$d 个节点 · %2$d 条关联</string>
+    <string name="note_graph_header_node_count_singular">1 个节点 · %2$d 条关联</string>
+    <string name="note_graph_guidance_banner">关联图显示通过链接、标签、实体连过来的笔记;点击节点跳转,双指捏合缩放</string>
+    <string name="note_graph_empty_actionable_title">还没有关联</string>
+    <string name="note_graph_empty_actionable">给这条笔记加 #标签 或引用其他笔记,自动生成关联图</string>
 </resources>
