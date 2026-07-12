@@ -1,0 +1,25 @@
+openspec/changes/archive/2026-07-11-fix-note-graph-rendering/design.md
+  s_ab4e6de0e20586::t_4203d6cbe384f7 1-47
+openspec/changes/archive/2026-07-11-fix-note-graph-rendering/proposal.md
+  s_ab4e6de0e20586::t_6dcc1a51f0cd7c 1-76
+openspec/changes/archive/2026-07-11-fix-note-graph-rendering/tasks.md
+  s_ab4e6de0e20586::t_cd17d5851e9fdb 1-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "ff24d6ffea4f95faef4944328849c88d037d2458",
+  "prompts": {},
+  "sessions": {
+    "s_ab4e6de0e20586": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "18d2b255-adfe-4077-bcb3-9be417f9e332",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
