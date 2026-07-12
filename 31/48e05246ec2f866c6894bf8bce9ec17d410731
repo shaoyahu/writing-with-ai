@@ -1,0 +1,23 @@
+docs/progress.md
+  s_ab4e6de0e20586::t_fe684d5b4fd039 5-11
+docs/reviews/2026-07-12-improve-note-graph-readability-code-review-r1.md
+  s_ab4e6de0e20586::t_ec3c9938417c05 1-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "3148e05246ec2f866c6894bf8bce9ec17d410731",
+  "prompts": {},
+  "sessions": {
+    "s_ab4e6de0e20586": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "18d2b255-adfe-4077-bcb3-9be417f9e332",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
