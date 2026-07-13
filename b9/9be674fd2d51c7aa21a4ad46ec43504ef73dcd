@@ -1,0 +1,33 @@
+app/src/main/java/com/yy/writingwithai/feature/quicknote/graph/NoteGraphCanvas.kt
+  s_ab4e6de0e20586::t_e3de21f3873fd9 36,239-246,305-306,312-318,328-331,333,336-338,340-345,350-352,360,377-385,395-401,414-421,423,428-447,455-456,463-476,479,504-509,514,538
+app/src/test/java/com/yy/writingwithai/feature/quicknote/graph/NoteGraphLayoutTest.kt
+  s_ab4e6de0e20586::t_0c18204ce3ec0b 1-273
+openspec/changes/add-note-graph-layout-test/.openspec.yaml
+  s_ab4e6de0e20586::t_b252cc09ed8bce 1-2
+openspec/changes/add-note-graph-layout-test/design.md
+  s_ab4e6de0e20586::t_9539d2de194235 1-169
+openspec/changes/add-note-graph-layout-test/proposal.md
+  s_ab4e6de0e20586::t_74b5e524bcc76e 1-67
+openspec/changes/add-note-graph-layout-test/specs/note-graph-readability/spec.md
+  s_ab4e6de0e20586::t_3b6f59bdcb6671 1-49
+openspec/changes/add-note-graph-layout-test/tasks.md
+  s_ab4e6de0e20586::t_c3bc3e9d68ee16 1-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "b99be674fd2d51c7aa21a4ad46ec43504ef73dcd",
+  "prompts": {},
+  "sessions": {
+    "s_ab4e6de0e20586": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "18d2b255-adfe-4077-bcb3-9be417f9e332",
+        "model": "unknown"
+      },
+      "human_author": "zhangyy.syh <zhangyy.syh@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
