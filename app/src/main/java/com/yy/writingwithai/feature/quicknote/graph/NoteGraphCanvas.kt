@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -235,7 +236,14 @@ private fun DrawScope.drawGraph(
     }
     val nodeCount = snapshot.nodes.size
     // TODO(perf):nodeCount > 100 时考虑 spatial index,目前 O(n²) 渲染开销 < 1ms / 帧。
-    val layouts = computeNodeLayouts(snapshot, coords, canvasCenter, textPaint)
+    // add-note-graph-layout-test:coords 仍是相对中心坐标;算法需要的是已经把 center 平移进去的 final 坐标,
+    // 这里在 caller 里叠加 canvasCenter,保持纯函数对坐标系的单纯性(viewport-relative)。
+    val centeredCoords: Map<String, NodeCoords> = if (coords.isEmpty()) {
+        coords
+    } else {
+        coords.mapValues { (_, c) -> NodeCoords(x = canvasCenter.x + c.x, y = canvasCenter.y + c.y) }
+    }
+    val layouts = computeNodeLayouts(snapshot, centeredCoords, textPaint)
     // edges first (under nodes)
     for (edge in snapshot.edges) {
         val a = layouts[edge.srcId] ?: continue
@@ -294,19 +302,20 @@ private fun DrawScope.drawGraph(
  * 每个节点的渲染信息(位置 / 半径 / 标签 box)。NodeLayout 在 drawGraph 入口一次性算好,
  * edges / nodes 两轮循环共用。improve-note-graph-readability D1 引入。
  */
-private data class NodeLayout(
+// 仅 :app 测试可见;后续模块拆分若需 :core-ui 等对外暴露,再升级 public by review.
+internal data class NodeLayout(
     val center: Offset,
     val radius: Float,
     val labelBox: Rect?
 )
 
-/** 标签方向(对应 labelBoxFor 的四个偏移方向 + NONE)。 */
-private const val LABEL_NONE = 0
-private const val LABEL_RIGHT = 1
-private const val LABEL_LEFT = 2
-private const val LABEL_ABOVE = 3
-private const val LABEL_BELOW = 4
-private val LABEL_PRIORITY = intArrayOf(LABEL_RIGHT, LABEL_BELOW, LABEL_LEFT, LABEL_ABOVE)
+// 仅 :app 测试可见;同上 internal 升级注意。
+internal const val LABEL_NONE = 0
+internal const val LABEL_RIGHT = 1
+internal const val LABEL_LEFT = 2
+internal const val LABEL_ABOVE = 3
+internal const val LABEL_BELOW = 4
+internal val LABEL_PRIORITY = intArrayOf(LABEL_RIGHT, LABEL_BELOW, LABEL_LEFT, LABEL_ABOVE)
 
 /**
  * improve-note-graph-readability D1:
@@ -316,20 +325,31 @@ private val LABEL_PRIORITY = intArrayOf(LABEL_RIGHT, LABEL_BELOW, LABEL_LEFT, LA
  *   全重叠则选"与最近邻居夹角最大"的方向(优先级表 LABEL_PRIORITY 兜底 → right 优先打破平衡)。
  *
  * 为避免每节点 O(n²) 重复 measureText,先把每个节点的标签宽度缓存到 Pre.labelWidth。
+ *
+ * add-note-graph-layout-test:从 DrawScope 拆出此纯函数,接受 canvasSize / density / labelWidthFor,
+ * 与 canvas / paint / size / measureText 解耦,方便 JVM 单测覆盖算法行为。
+ * 画 viewport 边界校验(让 box.left+labelWidth > canvasSize.width 返 null)沿用原算法语义。
  */
-private fun DrawScope.computeNodeLayouts(
+internal fun computeNodeLayoutsFor(
     snapshot: GraphSnapshot,
     coords: Map<String, NodeCoords>,
-    canvasCenter: Offset,
-    textPaint: Paint
+    canvasSize: Size,
+    density: Float,
+    labelWidthFor: (String) -> Float
 ): Map<String, NodeLayout> {
-    // first pass:每个节点的 center / radius / label 文本 + 宽度
-    val labelPx = textPaint.textSize
+    // label sp size 14 写死等同 density × 14;主流程由 DrawScope.computeNodeLayouts 透传。
+    val labelPx = density * 14f
+    val canvasW = canvasSize.width
+    val canvasH = canvasSize.height
+
+    // first pass:每个节点的 center / radius / label 文本 + 宽度。
     val pres = ArrayList<NodePre>(snapshot.nodes.size)
     for (node in snapshot.nodes) {
         val p = coords[node.noteId] ?: continue
         val radius = nodeRadiusFor(node.score, isCenter = node.hopLevel == 0)
-        val center = canvasCenter + Offset(p.x, p.y)
+        // 节点中心入参仍以 (p.x, p.y) = 中心化坐标系给出;此处不需要 canvasCenter,
+        // 因为算法只看相对距离与 box 越界(viewport 内/外),最终使用方自行加 canvasCenter。
+        val center = Offset(p.x, p.y)
         val labelText: String? = if (node.title.isBlank()) {
             null
         } else if (node.title.length > 12) {
@@ -337,7 +357,7 @@ private fun DrawScope.computeNodeLayouts(
         } else {
             node.title
         }
-        val labelWidth = labelText?.let { textPaint.measureText(it) } ?: 0f
+        val labelWidth = labelText?.let { labelWidthFor(it) } ?: 0f
         pres.add(NodePre(node.noteId, center, radius, labelText, labelWidth))
     }
 
@@ -354,7 +374,15 @@ private fun DrawScope.computeNodeLayouts(
         }
         var chosen = LABEL_NONE
         for (dir in LABEL_PRIORITY) {
-            val candidate = labelBoxFor(self.center, self.radius, self.labelWidth, labelPx, dir) ?: continue
+            val candidate = labelBoxFor(
+                center = self.center,
+                radius = self.radius,
+                labelWidth = self.labelWidth,
+                labelPx = labelPx,
+                dir = dir,
+                canvasWidth = canvasW,
+                canvasHeight = canvasH
+            ) ?: continue
             val overlap = others.any { other ->
                 val otherNodeBox = nodeBBox(other.center, other.radius)
                 if (candidate.overlaps(otherNodeBox)) return@any true
@@ -364,11 +392,13 @@ private fun DrawScope.computeNodeLayouts(
                 // 复杂度 O(4n) = O(n),仍 ≤ 1ms / 帧。
                 LABEL_PRIORITY.any { otherDir ->
                     val otherLabelBox = labelBoxFor(
-                        other.center,
-                        other.radius,
-                        other.labelWidth,
-                        labelPx,
-                        otherDir
+                        center = other.center,
+                        radius = other.radius,
+                        labelWidth = other.labelWidth,
+                        labelPx = labelPx,
+                        dir = otherDir,
+                        canvasWidth = canvasW,
+                        canvasHeight = canvasH
                     )
                     otherLabelBox != null && candidate.overlaps(otherLabelBox)
                 }
@@ -379,21 +409,42 @@ private fun DrawScope.computeNodeLayouts(
             }
         }
         if (chosen == LABEL_NONE) {
-            // fallback:与最近邻居夹角最大 → 取最近邻居反方向 + 优先级表中第一个不背离的方向。
-            // 实现用最近邻居的位置推导"远离它"的方向。
             chosen = pickFallbackDirection(self, pres)
         }
-        result[self.id] = NodeLayout(
-            self.center,
-            self.radius,
-            labelBoxFor(self.center, self.radius, self.labelWidth, labelPx, chosen)
+        val finalBox = labelBoxFor(
+            center = self.center,
+            radius = self.radius,
+            labelWidth = self.labelWidth,
+            labelPx = labelPx,
+            dir = chosen,
+            canvasWidth = canvasW,
+            canvasHeight = canvasH
         )
+        result[self.id] = NodeLayout(self.center, self.radius, finalBox)
     }
     return result
 }
 
-/** collision 算法内部用的轻量 pre-computed 节点信息。 */
-private data class NodePre(
+/**
+ * DrawScope 入口:把 Compose 上下文(size + density)喂给纯函数 [computeNodeLayoutsFor]。
+ * 中心化坐标(canvasCenter)由调用方在 coords 里已经叠加,这里不再二次平移。
+ */
+private fun DrawScope.computeNodeLayouts(
+    snapshot: GraphSnapshot,
+    coords: Map<String, NodeCoords>,
+    textPaint: Paint
+): Map<String, NodeLayout> {
+    return computeNodeLayoutsFor(
+        snapshot = snapshot,
+        coords = coords,
+        canvasSize = size,
+        density = density,
+        labelWidthFor = { textPaint.measureText(it) }
+    )
+}
+
+// 仅 :app 测试可见。
+internal data class NodePre(
     val id: String,
     val center: Offset,
     val radius: Float,
@@ -401,19 +452,31 @@ private data class NodePre(
     val labelWidth: Float
 )
 
-/** 节点圆外切 box。 */
-private fun nodeBBox(center: Offset, radius: Float): Rect = Rect(
+// 仅 :app 测试可见。
+internal fun nodeBBox(center: Offset, radius: Float): Rect = Rect(
     left = center.x - radius,
     top = center.y - radius,
     right = center.x + radius,
     bottom = center.y + radius
 )
 
-/** 在指定方向放 label 后的 box(返回 null 表示方向无效)。 */
-private fun labelBoxFor(center: Offset, radius: Float, labelWidth: Float, labelPx: Float, dir: Int): Rect? {
+/**
+ * 在指定方向放 label 后的 box(返回 null 表示方向无效)。
+ * canvasWidth / canvasHeight 用来校验 box 不超出 viewport;
+ * 任一边越界返 null,避免渲染时画到屏幕外。
+ */
+internal fun labelBoxFor(
+    center: Offset,
+    radius: Float,
+    labelWidth: Float,
+    labelPx: Float,
+    dir: Int,
+    canvasWidth: Float,
+    canvasHeight: Float
+): Rect? {
     if (dir == LABEL_NONE) return null
     val labelHeight = labelPx
-    return when (dir) {
+    val rect = when (dir) {
         LABEL_RIGHT -> Rect(
             left = center.x + radius + 4f,
             top = center.y - labelHeight / 2f,
@@ -438,12 +501,17 @@ private fun labelBoxFor(center: Offset, radius: Float, labelWidth: Float, labelP
             right = center.x + labelWidth / 2f,
             bottom = center.y + radius + 4f + labelHeight
         )
-        else -> null
+        else -> return null
+    }
+    return if (rect.left < 0f || rect.top < 0f || rect.right > canvasWidth || rect.bottom > canvasHeight) {
+        null
+    } else {
+        rect
     }
 }
 
 /** 取最近邻居,选与之角度最大的方向(右优先)。 */
-private fun pickFallbackDirection(self: NodePre, all: List<NodePre>): Int {
+internal fun pickFallbackDirection(self: NodePre, all: List<NodePre>): Int {
     var nearest: NodePre? = null
     var nearestDist = Float.MAX_VALUE
     for (other in all) {
@@ -458,7 +526,6 @@ private fun pickFallbackDirection(self: NodePre, all: List<NodePre>): Int {
     val dx = self.center.x - neighbor.center.x
     val dy = self.center.y - neighbor.center.y
     val angle = atan2(dy.toDouble(), dx.toDouble())
-    // 选方向单位向量与 angle 最接近的方向(=远离邻居的方向)
     val dirs = listOf(
         LABEL_RIGHT to 0.0,
         LABEL_BELOW to Math.PI / 2.0,
@@ -468,7 +535,7 @@ private fun pickFallbackDirection(self: NodePre, all: List<NodePre>): Int {
     return dirs.minByOrNull { (_, dirAngle) -> angularDiff(angle, dirAngle) }?.first ?: LABEL_RIGHT
 }
 
-private fun angularDiff(a: Double, b: Double): Double {
+internal fun angularDiff(a: Double, b: Double): Double {
     var d = a - b
     while (d > Math.PI) d -= 2 * Math.PI
     while (d < -Math.PI) d += 2 * Math.PI
